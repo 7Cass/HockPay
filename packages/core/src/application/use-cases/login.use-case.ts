@@ -1,9 +1,8 @@
-import { Merchant } from '../../domain/entities/merchant.entity';
 import { InvalidCredentialsError } from '../../domain/errors/invalid-credentials.error';
 import { MerchantInactiveError } from '../../domain/errors/merchant-inactive.error';
 import { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
 import { IPasswordHasherPort } from '../ports/password-hasher.port';
-import { IJwtServicePort, JwtPayload } from '../ports/jwt-service.port';
+import { IJwtServicePort } from '../ports/jwt-service.port';
 import { IRefreshTokenRepositoryPort } from '../ports/refresh-token-repository.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
@@ -71,9 +70,10 @@ export class LoginUseCase {
       throw new MerchantInactiveError();
     }
 
-    // 4. Generate access token (15 minutes)
+    // 4. Generate access token (15 minutes) with current store if available
     const accessToken = await this.jwtService.generateAccessToken(
       merchant.id,
+      merchant.currentStoreId ?? null,
       '15m',
     );
 

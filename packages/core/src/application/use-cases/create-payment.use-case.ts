@@ -1,0 +1,197 @@
+import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
+import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
+import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
+import { IExpirationQueuePort } from '../ports/expiration-queue.port';
+import { FeePolicy } from '../services/fee-policy.service';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
+import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
+import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { ExternalIdAlreadyExistsError } from '../../domain/errors/external-id-already-exists.error';
+import { Customer } from '../../domain/entities/customer.entity';
+
+/**
+ * Customer data provided in the payment creation payload.
+ * Customer will be created on-the-fly if not exists.
+ */
+export interface PaymentCustomerInput {
+  document: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}
+
+/**
+ * Input DTO for CreatePaymentUseCase.
+ */
+export interface ICreatePaymentInput {
+  storeId: string;
+  externalId?: string;
+  amount: number;
+  description?: string;
+  customer: PaymentCustomerInput;
+  expiresAt?: Date;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Output DTO for CreatePaymentUseCase.
+ */
+export interface ICreatePaymentOutput {
+  payment: PaymentObject;
+  customerCreated: boolean;
+}
+
+/**
+ * Use Case: Create Payment
+ *
+ * This use case handles creating a new payment with customer on-the-fly creation.
+ *
+ * Business rules:
+ * - Store must exist, be active, and approved
+ * - externalId must be unique per store (if provided)
+ * - Customer is created on-the-fly if not exists (by document)
+ * - Fees are calculated based on store's fee configuration
+ * - Pix QR Code is generated following EMV standard
+ * - Expiration job is scheduled via BullMQ
+ */
+export class CreatePaymentUseCase {
+  constructor(
+    private readonly paymentRepository: IPaymentRepository,
+    private readonly customerRepository: ICustomerRepository,
+    private readonly storeRepository: IStoreRepository,
+    private readonly pixQrCodeGenerator: IPixQrCodeGeneratorPort,
+    private readonly expirationQueue: IExpirationQueuePort,
+    private readonly feePolicy: FeePolicy,
+    private readonly pixKey: string, // Store's Pix key for receiving payments
+    private readonly checkoutBaseUrl: string, // Base URL for checkout pages
+  ) {}
+
+  async execute(input: ICreatePaymentInput): Promise<ICreatePaymentOutput> {
+    // 1. Validate store exists, is active, and approved
+    const store = await this.storeRepository.findById(input.storeId);
+
+    if (!store) {
+      throw new StoreNotFoundError(input.storeId);
+    }
+
+    if (!store.isActive) {
+      throw new StoreInactiveError(store.id);
+    }
+
+    if (!store.isApproved) {
+      throw new StoreNotApprovedError(store.id);
+    }
+
+    // 2. Check externalId uniqueness (if provided)
+    if (input.externalId) {
+      const externalIdExists = await this.paymentRepository.externalIdExists(
+        input.externalId,
+        input.storeId,
+      );
+
+      if (externalIdExists) {
+        throw new ExternalIdAlreadyExistsError(input.externalId);
+      }
+    }
+
+    // 3. Find or create customer by document
+    const document = new Document(input.customer.document);
+    let customer = await this.customerRepository.findByDocument(
+      input.storeId,
+      document.value,
+    );
+    let customerCreated = false;
+
+    if (!customer) {
+      customer = Customer.create({
+        storeId: input.storeId,
+        name: input.customer.name,
+        email: input.customer.email,
+        document,
+        phone: input.customer.phone,
+        street: input.customer.street,
+        number: input.customer.number,
+        complement: input.customer.complement,
+        city: input.customer.city,
+        state: input.customer.state,
+        zipCode: input.customer.zipCode,
+        country: input.customer.country,
+      });
+      await this.customerRepository.save(customer);
+      customerCreated = true;
+    }
+
+    // 4. Calculate fees using FeePolicy
+    const feeResult = this.feePolicy.calculate({
+      amountInCents: input.amount,
+      feePercent: store.feePercent,
+      feeFixed: store.feeFixed,
+    });
+
+    // 5. Generate EMV Pix QR Code
+    const txId = this.generateTxId();
+    const qrCodeResult = await this.pixQrCodeGenerator.generate({
+      pixKey: this.pixKey,
+      amountInCents: input.amount,
+      merchantName: store.name.substring(0, 25),
+      merchantCity: 'SAO PAULO', // Default city, can be configurable
+      txId,
+    });
+
+    // 6. Set expiration time (default: 30 minutes from now)
+    const expiresAt =
+      input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
+
+    // 7. Generate checkout URL
+    const checkoutUrl = `${this.checkoutBaseUrl}/checkout/${txId}`;
+
+    // 8. Create Payment entity
+    const payment = Payment.create({
+      storeId: input.storeId,
+      customerId: customer.id,
+      externalId: input.externalId,
+      amount: input.amount,
+      fee: feeResult.feeInCents,
+      netAmount: feeResult.netAmountInCents,
+      description: input.description,
+      pixQrCode: qrCodeResult.qrCodeBase64,
+      pixCopyPaste: qrCodeResult.copyPaste,
+      pixTxId: qrCodeResult.txId,
+      checkoutUrl,
+      expiresAt,
+      metadata: input.metadata,
+    });
+
+    // 9. Persist Payment
+    await this.paymentRepository.save(payment);
+
+    // 10. Schedule expiration job
+    await this.expirationQueue.scheduleExpiration(payment.id, expiresAt);
+
+    // 11. Return output
+    return {
+      payment: payment.toObject(),
+      customerCreated,
+    };
+  }
+
+  /**
+   * Generate a unique transaction ID (txId).
+   * Format: timestamp + random (max 35 chars for EMV spec)
+   */
+  private generateTxId(): string {
+    const timestamp = Date.now().toString(36);
+    const random = crypto.randomUUID().split('-')[0];
+    return `HP${timestamp}${random}`.substring(0, 35);
+  }
+}

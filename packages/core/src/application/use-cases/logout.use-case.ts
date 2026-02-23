@@ -11,7 +11,7 @@ export interface ILogoutInput {
 /**
  * Use Case: Logout
  *
- * This use case handles merchant logout by revoking the refresh token.
+ * This use case handles merchant logout by revoking their refresh token.
  * This invalidates the token, preventing further refresh operations.
  */
 export class LogoutUseCase {
@@ -36,29 +36,5 @@ export class LogoutUseCase {
       token.revoke();
       await this.refreshTokenRepository.update(token);
     }
-  }
-}
-
-/**
- * Input DTO for LogoutAllUseCase (logout from all devices).
- */
-export interface ILogoutAllInput {
-  merchantId: string;
-}
-
-/**
- * Use Case: Logout All
- *
- * This use case handles merchant logout from all devices
- * by revoking all active refresh tokens for the merchant.
- */
-export class LogoutAllUseCase {
-  constructor(
-    private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
-  ) {}
-
-  async execute(input: ILogoutAllInput): Promise<void> {
-    // Revoke all active tokens for the merchant
-    await this.refreshTokenRepository.revokeAllForMerchant(input.merchantId);
   }
 }

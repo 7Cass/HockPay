@@ -13,6 +13,7 @@ export interface ICreateMerchantInput {
   email: string;
   password: string;
   document: string;
+  currentStoreId?: string;  // ← Novo campo!
 }
 
 /**

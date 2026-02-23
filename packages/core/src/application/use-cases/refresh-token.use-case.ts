@@ -70,9 +70,10 @@ export class RefreshTokenUseCase {
       throw new InvalidRefreshTokenError();
     }
 
-    // 5. Generate new access token
+    // 5. Generate new access token with current store if available
     const accessToken = await this.jwtService.generateAccessToken(
       merchant.id,
+      merchant.currentStoreId ?? null,
       '15m',
     );
 
