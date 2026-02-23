@@ -293,6 +293,8 @@ model Payment {
   pixTxId       String?         @map("pix_tx_id")
   checkoutUrl   String?         @map("checkout_url")
   checkoutToken String?         @unique @map("checkout_token")
+  successUrl    String?         @map("success_url")
+  cancelUrl     String?         @map("cancel_url")
   expiresAt     DateTime        @map("expires_at")
   paidAt        DateTime?       @map("paid_at")
   releasedAt    DateTime?       @map("released_at")
