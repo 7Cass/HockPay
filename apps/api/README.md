@@ -1,98 +1,126 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# @hockpay/api
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![NestJS](https://img.shields.io/badge/NestJS-11-red.svg)](https://nestjs.com/)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+API REST principal do Hockpay. Responsável por expor endpoints de pagamentos, webhooks e autenticação.
 
-## Description
+## Módulos
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Módulo | Descrição |
+|--------|-----------|
+| `auth` | Login, logout, refresh token |
+| `merchant` | Gestão de contas |
+| `store` | Gestão de lojas |
+| `api-key` | Gestão de API keys |
+| `customer` | Gestão de clientes |
+| `payment` | Criação e consulta de pagamentos |
+| `webhook` | Configuração de webhooks |
+| `idempotency` | Cache de requisições idempotentes |
 
-## Project setup
+## Endpoints Principais
 
-```bash
-$ pnpm install
-```
+### Autenticação
 
-## Compile and run the project
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `POST` | `/auth/login` | Login do merchant |
+| `POST` | `/auth/refresh` | Renovar access token |
+| `POST` | `/auth/logout` | Logout |
 
-```bash
-# development
-$ pnpm run start
+### Pagamentos
 
-# watch mode
-$ pnpm run start:dev
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `POST` | `/v1/payments` | Criar pagamento |
+| `GET` | `/v1/payments` | Listar pagamentos |
+| `GET` | `/v1/payments/:id` | Buscar pagamento |
 
-# production mode
-$ pnpm run start:prod
-```
+### Desenvolvimento (test keys only)
 
-## Run tests
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `POST` | `/v1/dev/simulate/:id/confirm` | Confirmar pagamento |
+| `POST` | `/v1/dev/simulate/:id/expire` | Expirar pagamento |
+| `POST` | `/v1/dev/simulate/:id/fail` | Falhar pagamento |
 
-```bash
-# unit tests
-$ pnpm run test
+## Autenticação
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### API Pública (API Keys)
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+curl -H "Authorization: Bearer hk_test_xxx" http://localhost:3000/v1/payments
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- **Formato:** `hk_{environment}_{32_chars}`
+- **Ambientes:** `test` (simulações) ou `live`
 
-## Resources
+### Dashboard (JWT)
 
-Check out a few resources that may come in handy when working with NestJS:
+- Access Token: 15 minutos (cookie HttpOnly)
+- Refresh Token: 7 dias (cookie HttpOnly)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Exemplos curl
 
-## Support
+### Login
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "merchant@email.com",
+    "password": "senha123"
+  }'
+```
 
-## Stay in touch
+### Criar Pagamento
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+curl -X POST http://localhost:3000/v1/payments \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: pedido-123" \
+  -d '{
+    "amount": 1500,
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "document": "12345678900"
+    }
+  }'
+```
 
-## License
+### Simular Confirmação
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+curl -X POST http://localhost:3000/v1/dev/simulate/{payment_id}/confirm \
+  -H "Authorization: Bearer hk_test_xxx"
+```
+
+## Variáveis de Ambiente
+
+| Variável | Descrição |
+|----------|-----------|
+| `DATABASE_URL` | Conexão PostgreSQL |
+| `REDIS_URL` | Conexão Redis |
+| `JWT_SECRET` | Secret para JWT |
+| `ENCRYPTION_KEY` | Chave AES-256 para criptografia |
+
+## Scripts
+
+```bash
+pnpm dev          # Desenvolvimento (watch)
+pnpm build        # Build de produção
+pnpm start:prod   # Iniciar produção
+pnpm test         # Testes unitários
+pnpm test:e2e     # Testes E2E
+```
+
+## Dependências Internas
+
+- `@hockpay/core` - Use cases e entidades
+- `@hockpay/infrastructure` - Implementações de repositories
+- `@hockpay/database` - Prisma client
+
+---
+
+[Voltar para README principal](../../README.md)

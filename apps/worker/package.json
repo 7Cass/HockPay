@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@hockpay/core": "workspace:*",
+    "@hockpay/infrastructure": "workspace:*",
     "@hockpay/database": "workspace:*",
     "@nestjs/bullmq": "^11.0.0",
     "@nestjs/common": "^11.0.1",
