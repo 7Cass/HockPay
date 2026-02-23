@@ -1457,11 +1457,11 @@ Semana 9-10: Polish & Documentation
 
 #### Semana 1-2: Setup & Foundation
 
-- [ ] Setup monorepo Turborepo
-- [ ] ESLint, Prettier, TypeScript
-- [ ] Docker Compose (PostgreSQL, Redis, LocalStack)
-- [ ] Prisma schema inicial
-- [ ] Estrutura NestJS básica
+- [x] Setup monorepo Turborepo
+- [x] ESLint, Prettier, TypeScript
+- [x] Docker Compose (PostgreSQL, Redis, LocalStack)
+- [x] Prisma schema inicial
+- [x] Estrutura NestJS básica
 - [ ] Health check endpoint
 - [ ] CI básico (lint + build)
 

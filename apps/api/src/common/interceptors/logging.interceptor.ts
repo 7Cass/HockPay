@@ -29,8 +29,8 @@ export class LoggingInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse<Response>();
 
     // Generate or retrieve request ID
-    const requestId = (request.headers['x-request-id'] as string | undefined) ||
-      randomUUID();
+    const requestId =
+      (request.headers['x-request-id'] as string | undefined) || randomUUID();
 
     // Store request ID for use in filters
     (request as any).id = requestId;

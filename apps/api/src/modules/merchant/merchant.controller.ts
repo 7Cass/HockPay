@@ -1,11 +1,19 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import {
   CreateMerchantUseCase,
   GetMerchantUseCase,
-  type ICreateMerchantInput,
   type ICreateMerchantOutput,
   type IGetMerchantOutput,
 } from '@hockpay/core';
+import { CreateMerchantDto } from './dtos/create-merchant.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Controller for Merchant endpoints.
@@ -21,15 +29,16 @@ export class MerchantController {
   ) {}
 
   @Post()
-  async create(
-    @Body() dto: ICreateMerchantInput,
-  ): Promise<ICreateMerchantOutput> {
-    console.log('received');
+  @Public()
+  async create(@Body() dto: CreateMerchantDto): Promise<ICreateMerchantOutput> {
     return await this.createMerchantUseCase.execute(dto);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<IGetMerchantOutput> {
+  @Public()
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<IGetMerchantOutput> {
     return await this.getMerchantUseCase.execute(id);
   }
 }

@@ -8,7 +8,10 @@ import {
 import { Response } from 'express';
 import { DomainError } from '@hockpay/core';
 
-import { getStatusCodeForError, getErrorCategory } from '../constants/error-codes';
+import {
+  getStatusCodeForError,
+  getErrorCategory,
+} from '../constants/error-codes';
 import type { ErrorResponseDto } from '../dto/error-response.dto';
 
 /**
