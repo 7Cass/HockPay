@@ -22,10 +22,24 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@hockpay/core": ["../../packages/core/src"],
-      "@hockpay/core/*": ["../../packages/core/src/*"],
-      "@hockpay/database": ["../../packages/database/src"],
-      "@hockpay/database/*": ["../../packages/database/src/*"]
+      "@hockpay/core": [
+        "../../packages/core/src"
+      ],
+      "@hockpay/core/*": [
+        "../../packages/core/src/*"
+      ],
+      "@hockpay/database": [
+        "../../packages/database/src"
+      ],
+      "@hockpay/database/*": [
+        "../../packages/database/src/*"
+      ],
+      "@hockpay/infrastructure": [
+        "../../packages/infrastructure/src"
+      ],
+      "@hockpay/infrastructure/*": [
+        "../../packages/infrastructure/src/*"
+      ]
     }
   }
 }
