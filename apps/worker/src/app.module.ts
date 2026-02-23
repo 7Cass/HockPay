@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { PrismaModule } from './infra/database/prisma.module';
-import { OutboxProcessor } from './workers/outbox.processor';
-import { PaymentExpirationJob, PaymentReleaseJob } from './jobs';
 import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './infra/database/prisma.module';
+import { CoreModule } from './modules/core/core.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { CronModule } from './modules/queue/cron.module';
 
 @Module({
   imports: [
@@ -13,11 +14,10 @@ import { ConfigModule } from '@nestjs/config';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    CoreModule,
+    QueueModule,
+    CronModule,
   ],
-  providers: [
-    OutboxProcessor,
-    PaymentExpirationJob,
-    PaymentReleaseJob,
-  ],
+  providers: [],
 })
 export class AppModule {}
