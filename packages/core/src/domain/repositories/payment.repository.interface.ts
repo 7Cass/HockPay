@@ -1,0 +1,88 @@
+import { Payment } from '../entities/payment.entity';
+import { PaymentStatus } from '../enums/payment-status.enum';
+
+/**
+ * Options for listing payments.
+ */
+export interface ListPaymentsOptions {
+  storeId: string;
+  page?: number;
+  limit?: number;
+  status?: PaymentStatus;
+  customerId?: string;
+  externalId?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+/**
+ * Result of listing payments.
+ */
+export interface ListPaymentsResult {
+  payments: Payment[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Interface for Payment Repository.
+ *
+ * This interface is defined in the domain layer and represents the contract
+ * that any infrastructure implementation must follow.
+ */
+export interface IPaymentRepository {
+  /**
+   * Save a new payment to the repository.
+   */
+  save(payment: Payment): Promise<void>;
+
+  /**
+   * Find a payment by ID.
+   * Returns null if not found.
+   */
+  findById(id: string): Promise<Payment | null>;
+
+  /**
+   * Find a payment by ID and store ID.
+   * This ensures the payment belongs to the store.
+   * Returns null if not found or doesn't belong to the store.
+   */
+  findByIdAndStoreId(id: string, storeId: string): Promise<Payment | null>;
+
+  /**
+   * Find a payment by external ID and store ID.
+   * Returns null if not found.
+   */
+  findByExternalIdAndStoreId(
+    externalId: string,
+    storeId: string
+  ): Promise<Payment | null>;
+
+  /**
+   * Find a payment by Pix transaction ID.
+   * Returns null if not found.
+   */
+  findByPixTxId(pixTxId: string): Promise<Payment | null>;
+
+  /**
+   * List payments with pagination and filters.
+   */
+  list(options: ListPaymentsOptions): Promise<ListPaymentsResult>;
+
+  /**
+   * Update a payment.
+   */
+  update(payment: Payment): Promise<void>;
+
+  /**
+   * Delete a payment by ID.
+   */
+  delete(id: string): Promise<void>;
+
+  /**
+   * Check if an external ID already exists for a store.
+   */
+  externalIdExists(externalId: string, storeId: string): Promise<boolean>;
+}

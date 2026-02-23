@@ -14,6 +14,7 @@ export class Merchant {
   private readonly _name: string;
   private readonly _document: Document;
   private readonly _isActive: boolean;
+  private _currentStoreId?: string;
   private readonly _createdAt: Date;
   private readonly _updatedAt: Date;
 
@@ -24,6 +25,7 @@ export class Merchant {
     this._name = props.name;
     this._document = props.document;
     this._isActive = props.isActive ?? true;
+    this._currentStoreId = props.currentStoreId;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
   }
@@ -79,6 +81,10 @@ export class Merchant {
     return this._isActive;
   }
 
+  get currentStoreId(): string | undefined {
+    return this._currentStoreId;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -114,9 +120,17 @@ export class Merchant {
       formattedDocument: this._document.formatted,
       documentType: this._document.type,
       isActive: this._isActive,
+      currentStoreId: this._currentStoreId,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
+  }
+
+  /**
+   * Set the current store ID.
+   */
+  setCurrentStoreId(storeId: string | undefined): void {
+    this._currentStoreId = storeId;
   }
 }
 
@@ -128,6 +142,7 @@ export interface CreateMerchantProps {
   document: Document;
   passwordHash: string;
   name: string;
+  currentStoreId?: string;
 }
 
 /**
@@ -140,6 +155,7 @@ export interface MerchantProps {
   passwordHash: string;
   name: string;
   isActive: boolean;
+  currentStoreId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -155,6 +171,7 @@ export interface MerchantObject {
   formattedDocument: string;
   documentType: 'CPF' | 'CNPJ';
   isActive: boolean;
+  currentStoreId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
