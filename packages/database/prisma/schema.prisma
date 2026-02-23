@@ -287,10 +287,12 @@ model Payment {
   currency      String          @default("BRL")
   description   String?
   status        PaymentStatus
+  environment   Environment     @default(TEST)
   pixQrCode     String?         @map("pix_qr_code")
   pixCopyPaste  String?         @map("pix_copy_paste") @db.Text
   pixTxId       String?         @map("pix_tx_id")
   checkoutUrl   String?         @map("checkout_url")
+  checkoutToken String?         @unique @map("checkout_token")
   expiresAt     DateTime        @map("expires_at")
   paidAt        DateTime?       @map("paid_at")
   releasedAt    DateTime?       @map("released_at")
@@ -335,7 +337,8 @@ model WebhookConfig {
   id          String        @id @default(uuid())
   storeId     String        @map("store_id")
   url         String
-  secret      String
+  secret      String        // Encrypted with AES-256-GCM
+  prefix      String        // First 12 chars of secret for identification (whsec_xxx...)
   events      String[]
   isActive    Boolean       @default(true) @map("is_active")
   createdAt   DateTime      @default(now()) @map("created_at")
