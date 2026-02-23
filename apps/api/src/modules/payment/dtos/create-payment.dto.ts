@@ -8,6 +8,7 @@ import {
   IsObject,
   Matches,
   MaxLength,
+  IsUrl,
 } from 'class-validator';
 
 /**
@@ -99,6 +100,16 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
+  successUrl?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
+  cancelUrl?: string;
 
   @IsOptional()
   @IsObject()

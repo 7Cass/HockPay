@@ -56,7 +56,7 @@ export class PaymentController {
     private readonly createPaymentUseCase: CreatePaymentUseCase,
     private readonly getPaymentUseCase: GetPaymentUseCase,
     private readonly listPaymentsUseCase: ListPaymentsUseCase,
-  ) {}
+  ) { }
 
   /**
    * POST /v1/payments
@@ -86,6 +86,8 @@ export class PaymentController {
         description: dto.description,
         customer: dto.customer,
         environment,
+        successUrl: dto.successUrl,
+        cancelUrl: dto.cancelUrl,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         metadata: dto.metadata,
       });
