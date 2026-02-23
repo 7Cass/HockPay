@@ -20,4 +20,12 @@ export interface ITokenGeneratorPort {
    * @returns A URL-safe base64 string
    */
   generateBase64(bytes?: number): string;
+
+  /**
+   * Generate a SHA-256 hash of a string.
+   *
+   * @param value - The string to hash
+   * @returns A hexadecimal string representing the hash
+   */
+  hash(value: string): string;
 }

@@ -1,0 +1,31 @@
+/**
+ * Port: Webhook Queue
+ *
+ * Interface for enqueueing webhook delivery jobs.
+ * This port is implemented in the infrastructure layer using BullMQ.
+ */
+export interface IWebhookQueuePort {
+  /**
+   * Enqueue a webhook delivery job.
+   *
+   * @param eventId - The outbox event ID to process
+   * @param delay - Optional delay in milliseconds
+   */
+  enqueue(eventId: string, delay?: number): Promise<void>;
+
+  /**
+   * Enqueue a webhook for retry with exponential backoff.
+   *
+   * @param eventId - The outbox event ID to retry
+   * @param attempt - The current attempt number
+   */
+  enqueueRetry(eventId: string, attempt: number): Promise<void>;
+}
+
+/**
+ * Webhook job data structure.
+ */
+export interface WebhookJobData {
+  eventId: string;
+  attempt: number;
+}
