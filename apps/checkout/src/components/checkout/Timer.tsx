@@ -10,7 +10,12 @@ interface TimerProps {
 }
 
 export function Timer({ expiresAt, onExpire }: TimerProps) {
+  const [mounted, setMounted] = useState(false);
   const [remaining, setRemaining] = useState(() => getRemainingSeconds(expiresAt));
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,6 +29,14 @@ export function Timer({ expiresAt, onExpire }: TimerProps) {
 
     return () => clearInterval(interval);
   }, [expiresAt, onExpire]);
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center gap-2 text-gray-700 h-[28px]">
+        {/* Placeholder para evitar layout shift */}
+      </div>
+    );
+  }
 
   if (remaining === 0) {
     return (

@@ -3,7 +3,9 @@ import type { CheckoutPayment } from '@/types/checkout';
 
 export async function fetchCheckoutPayment(token: string): Promise<CheckoutPayment | null> {
   try {
-    const response = await fetch(`${env.apiUrl}/checkout/${token}`);
+    const response = await fetch(`${env.apiUrl}/checkout/${token}`, {
+      cache: 'no-store'
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -22,7 +24,7 @@ export async function fetchCheckoutPayment(token: string): Promise<CheckoutPayme
 export async function simulatePayment(
   token: string,
   action: 'confirm' | 'expire' | 'fail'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; payment?: CheckoutPayment; error?: string }> {
   try {
     const response = await fetch(`${env.apiUrl}/checkout/${token}/simulate/${action}`, {
       method: 'POST',
@@ -39,7 +41,8 @@ export async function simulatePayment(
       return { success: false, error: data?.error?.message || `Failed to simulate: ${response.status}` };
     }
 
-    return { success: true };
+    const data = await response.json();
+    return { success: true, payment: data.payment };
   } catch (error) {
     console.error('Error simulating payment:', error);
     return { success: false, error: 'Network error' };

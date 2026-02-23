@@ -10,6 +10,8 @@ export interface CheckoutPayment {
   environment: Environment;
   pixQrCode: string;
   pixCopyPaste: string;
+  successUrl?: string;
+  cancelUrl?: string;
   expiresAt: string;
   paidAt?: string;
   createdAt: string;

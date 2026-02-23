@@ -5,10 +5,11 @@ import { Play, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { simulatePayment } from '@/lib/api-client';
 import { env } from '@/lib/env';
+import type { CheckoutPayment } from '@/types/checkout';
 
 interface DevSimulateButtonProps {
   token: string;
-  onSimulated: () => void;
+  onSimulated: (action: 'confirm' | 'expire' | 'fail', payment?: CheckoutPayment) => void;
 }
 
 export function DevSimulateButton({ token, onSimulated }: DevSimulateButtonProps) {
@@ -23,7 +24,9 @@ export function DevSimulateButton({ token, onSimulated }: DevSimulateButtonProps
     try {
       const result = await simulatePayment(token, action);
       if (result.success) {
-        onSimulated();
+        onSimulated(action, result.payment);
+      } else {
+        alert(result.error || 'Erro ao simular pagamento.');
       }
     } finally {
       setLoading(null);

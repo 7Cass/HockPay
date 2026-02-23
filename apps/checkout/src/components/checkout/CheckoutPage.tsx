@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
@@ -24,6 +24,27 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
     setPayment(updated);
   }, []);
 
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    let redirectUrl: string | undefined;
+
+    if (payment.status === 'CONFIRMED' || payment.status === 'RELEASED') {
+      redirectUrl = payment.successUrl;
+    } else if (payment.status === 'EXPIRED' || payment.status === 'FAILED') {
+      redirectUrl = payment.cancelUrl;
+    }
+
+    if (redirectUrl) {
+      setIsRedirecting(true);
+      const timer = setTimeout(() => {
+        window.location.assign(redirectUrl as string);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [payment.status, payment.successUrl, payment.cancelUrl]);
+
   const renderStatusContent = () => {
     switch (payment.status) {
       case 'CONFIRMED':
@@ -32,7 +53,10 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Confirmado!</h2>
-            <p className="text-gray-600">Obrigado por pagar. Você receberá uma confirmação em breve.</p>
+            <p className="text-gray-600 mb-4">Obrigado por pagar. Você receberá uma confirmação em breve.</p>
+            {isRedirecting && (
+              <p className="text-sm text-blue-600 font-medium animate-pulse">Redirecionando de volta à loja...</p>
+            )}
           </div>
         );
 
@@ -41,7 +65,10 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
           <div className="flex flex-col items-center py-8 text-center">
             <Clock className="w-16 h-16 text-gray-400 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Expirado</h2>
-            <p className="text-gray-600">O tempo para pagamento esgotou. Por favor, tente novamente.</p>
+            <p className="text-gray-600 mb-4">O tempo para pagamento esgotou. Por favor, tente novamente.</p>
+            {isRedirecting && (
+              <p className="text-sm text-blue-600 font-medium animate-pulse">Redirecionando de volta à loja...</p>
+            )}
           </div>
         );
 
@@ -50,7 +77,10 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
           <div className="flex flex-col items-center py-8 text-center">
             <XCircle className="w-16 h-16 text-red-500 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Falhou</h2>
-            <p className="text-gray-600">Houve um problema com o pagamento. Por favor, tente novamente.</p>
+            <p className="text-gray-600 mb-4">Houve um problema com o pagamento. Por favor, tente novamente.</p>
+            {isRedirecting && (
+              <p className="text-sm text-blue-600 font-medium animate-pulse">Redirecionando de volta à loja...</p>
+            )}
           </div>
         );
 
@@ -78,9 +108,17 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
               <CopyPasteButton pixCopyPaste={payment.pixCopyPaste} />
             </div>
 
-            <DevSimulateButton token={token} onSimulated={() => {
-              // Force a refetch by updating status temporarily
-              handleStatusChange({ ...payment, status: 'CONFIRMED' as PaymentStatus });
+            <DevSimulateButton token={token} onSimulated={(action, updatedPayment) => {
+              if (updatedPayment) {
+                handleStatusChange(updatedPayment);
+              } else {
+                const statusMap = {
+                  confirm: 'CONFIRMED',
+                  expire: 'EXPIRED',
+                  fail: 'FAILED'
+                } as const;
+                handleStatusChange({ ...payment, status: statusMap[action] as PaymentStatus });
+              }
             }} />
           </>
         );
