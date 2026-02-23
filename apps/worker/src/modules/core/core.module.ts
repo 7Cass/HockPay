@@ -1,17 +1,22 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../infra/database/prisma.module';
+import { PrismaService } from '../../infra/database/prisma.service';
 
 // Repositories
-import { OutboxRepository } from '../../infra/repositories/outbox.repository.impl';
-import { WebhookConfigRepository } from '../../infra/repositories/webhook-config.repository.impl';
-import { WebhookLogRepository } from '../../infra/repositories/webhook-log.repository.impl';
+import {
+  OutboxRepository,
+  PaymentRepository,
+  WebhookConfigRepository,
+  WebhookLogRepository,
+  IdempotencyKeyRepository,
+} from '@hockpay/infrastructure';
 import { AccountRepository } from '../../infra/repositories/account.repository.impl';
 import { TransactionRepository } from '../../infra/repositories/transaction.repository.impl';
-import { PaymentRepository } from '../../infra/repositories/payment.repository.impl';
 
 // Services
 import { HmacSignerService } from '../../infra/crypto/hmac-signer.service';
 import { WebhookHttpClientService } from '../../infra/http/webhook-http-client.service';
+import { EncryptionService } from '../../infra/services/encryption.service';
 
 // Use Cases
 import {
@@ -19,6 +24,10 @@ import {
   ReleasePaymentUseCase,
   CleanupLogsUseCase,
   DetectAnomaliesUseCase,
+  IPaymentRepository,
+  IOutboxRepository,
+  IWebhookConfigRepository,
+  IWebhookLogRepository,
 } from '@hockpay/core';
 
 // Token for IExpirationQueuePort (exported for use in QueueModule)
@@ -33,27 +42,52 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
 @Module({
   imports: [PrismaModule],
   providers: [
-    // Repositories
-    OutboxRepository,
-    WebhookConfigRepository,
-    WebhookLogRepository,
+    // Factory providers for shared repositories (from @hockpay/infrastructure)
+    {
+      provide: 'IPaymentRepository',
+      useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IOutboxRepository',
+      useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IWebhookConfigRepository',
+      useFactory: (prisma: PrismaService) => new WebhookConfigRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IWebhookLogRepository',
+      useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IIdempotencyKeyRepository',
+      useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
+      inject: [PrismaService],
+    },
+
+    // Local repositories (still using @Injectable)
     AccountRepository,
     TransactionRepository,
-    PaymentRepository,
 
     // Services
     HmacSignerService,
     WebhookHttpClientService,
+    EncryptionService,
 
     // Use Cases
     {
       provide: ProcessWebhookUseCase,
       useFactory: (
-        outboxRepository: OutboxRepository,
-        webhookConfigRepository: WebhookConfigRepository,
-        webhookLogRepository: WebhookLogRepository,
+        outboxRepository: IOutboxRepository,
+        webhookConfigRepository: IWebhookConfigRepository,
+        webhookLogRepository: IWebhookLogRepository,
         webhookSender: WebhookHttpClientService,
         hmacSigner: HmacSignerService,
+        encryption: EncryptionService,
       ) =>
         new ProcessWebhookUseCase(
           outboxRepository,
@@ -61,52 +95,62 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
           webhookLogRepository,
           webhookSender,
           hmacSigner,
+          encryption,
         ),
       inject: [
-        OutboxRepository,
-        WebhookConfigRepository,
-        WebhookLogRepository,
+        'IOutboxRepository',
+        'IWebhookConfigRepository',
+        'IWebhookLogRepository',
         WebhookHttpClientService,
         HmacSignerService,
+        EncryptionService,
       ],
     },
     {
       provide: ReleasePaymentUseCase,
       useFactory: (
-        paymentRepository: PaymentRepository,
+        paymentRepository: IPaymentRepository,
         accountRepository: AccountRepository,
         transactionRepository: TransactionRepository,
+        outboxRepository: IOutboxRepository,
       ) =>
         new ReleasePaymentUseCase(
           paymentRepository,
           accountRepository,
           transactionRepository,
+          outboxRepository,
         ),
-      inject: [PaymentRepository, AccountRepository, TransactionRepository],
+      inject: [
+        'IPaymentRepository',
+        AccountRepository,
+        TransactionRepository,
+        'IOutboxRepository',
+      ],
     },
     {
       provide: CleanupLogsUseCase,
       useFactory: (
-        webhookLogRepository: WebhookLogRepository,
-        outboxRepository: OutboxRepository,
+        webhookLogRepository: IWebhookLogRepository,
+        outboxRepository: IOutboxRepository,
       ) => new CleanupLogsUseCase(webhookLogRepository, outboxRepository),
-      inject: [WebhookLogRepository, OutboxRepository],
+      inject: ['IWebhookLogRepository', 'IOutboxRepository'],
     },
     {
       provide: DetectAnomaliesUseCase,
-      useFactory: (paymentRepository: PaymentRepository) =>
+      useFactory: (paymentRepository: IPaymentRepository) =>
         new DetectAnomaliesUseCase(paymentRepository),
-      inject: [PaymentRepository],
+      inject: ['IPaymentRepository'],
     },
   ],
   exports: [
-    // Repositories
-    OutboxRepository,
-    WebhookConfigRepository,
-    WebhookLogRepository,
+    // Repositories (tokens for shared)
+    'IPaymentRepository',
+    'IOutboxRepository',
+    'IWebhookConfigRepository',
+    'IWebhookLogRepository',
+    'IIdempotencyKeyRepository',
     AccountRepository,
     TransactionRepository,
-    PaymentRepository,
     // Use Cases
     ProcessWebhookUseCase,
     ReleasePaymentUseCase,
@@ -114,4 +158,4 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     DetectAnomaliesUseCase,
   ],
 })
-export class CoreModule {}
+export class CoreModule { }

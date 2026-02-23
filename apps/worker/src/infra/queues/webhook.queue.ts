@@ -1,4 +1,5 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
   IWebhookQueuePort,
@@ -7,30 +8,17 @@ import {
 
 /**
  * BullMQ-based implementation of IWebhookQueuePort.
+ *
+ * Uses the shared BullMQ connection configured in QueueModule.
  */
 @Injectable()
-export class WebhookQueue implements IWebhookQueuePort, OnModuleInit, OnModuleDestroy {
-  private queue: Queue<WebhookJobData> | null = null;
-
+export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
   private static readonly QUEUE_NAME = 'webhook-delivery';
 
-  onModuleInit() {
-    this.queue = new Queue<WebhookJobData>(WebhookQueue.QUEUE_NAME, {
-      connection: {
-        host: process.env.REDIS_HOST ?? 'localhost',
-        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-      },
-      defaultJobOptions: {
-        removeOnComplete: {
-          count: 1000,
-          age: 24 * 60 * 60, // 24 hours
-        },
-        removeOnFail: {
-          age: 7 * 24 * 60 * 60, // 7 days
-        },
-      },
-    });
-  }
+  constructor(
+    @InjectQueue(WebhookQueue.QUEUE_NAME)
+    private readonly queue: Queue<WebhookJobData>,
+  ) {}
 
   async onModuleDestroy() {
     if (this.queue) {

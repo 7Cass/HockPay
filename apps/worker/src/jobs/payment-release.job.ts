@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../infra/database/prisma.service';
 import { PaymentStatus } from '@hockpay/database';
+import { ReleasePaymentUseCase } from '@hockpay/core';
 
 /**
  * Job que libera o saldo de pagamentos confirmados para a conta do merchant
@@ -14,6 +15,7 @@ export class PaymentReleaseJob {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly releasePaymentUseCase: ReleasePaymentUseCase,
   ) {}
 
   /**
@@ -26,21 +28,16 @@ export class PaymentReleaseJob {
 
   /**
    * Libera o saldo de pagamentos confirmados
+   * Usa ReleasePaymentUseCase para garantir que eventos de outbox sejam criados
    */
   async releasePayments(): Promise<void> {
     this.logger.debug('Checking for payments to release...');
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 30); // D+30
 
     // Busca stores com seus dias de settlement
     const stores = await this.prisma.store.findMany({
       where: {
         isActive: true,
         isApproved: true,
-      },
-      include: {
-        account: true,
       },
     });
 
@@ -69,8 +66,20 @@ export class PaymentReleaseJob {
         this.logger.log(`Releasing ${paymentsToRelease.length} payments for store ${store.id}`);
 
         for (const payment of paymentsToRelease) {
-          await this.releasePayment(payment, store);
-          totalReleased++;
+          try {
+            const result = await this.releasePaymentUseCase.execute({
+              paymentId: payment.id,
+            });
+
+            if (result.alreadyReleased) {
+              this.logger.debug(`Payment ${payment.id} was already released`);
+            } else {
+              this.logger.debug(`Payment ${payment.id} released successfully`);
+              totalReleased++;
+            }
+          } catch (error) {
+            this.logger.error(`Failed to release payment ${payment.id}`, error);
+          }
         }
       } catch (error) {
         this.logger.error(`Failed to release payments for store ${store.id}`, error);
@@ -79,82 +88,6 @@ export class PaymentReleaseJob {
 
     if (totalReleased > 0) {
       this.logger.log(`Total payments released: ${totalReleased}`);
-    }
-  }
-
-  /**
-   * Libera um pagamento específico
-   */
-  private async releasePayment(payment: any, store: any): Promise<void> {
-    try {
-      // Atualiza o status do pagamento
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: PaymentStatus.RELEASED,
-          releasedAt: new Date(),
-        },
-      });
-
-      // Cria uma transação para liberar o saldo
-      const accountId = store.account?.id;
-      if (accountId) {
-        await this.prisma.$transaction([
-          // Atualiza o balance pendente -> disponível
-          this.prisma.account.update({
-            where: { id: accountId },
-            data: {
-              pending: { decrement: payment.netAmount },
-              available: { increment: payment.netAmount },
-            },
-          }),
-          // Cria registro de transação
-          this.prisma.transaction.create({
-            data: {
-              id: crypto.randomUUID(),
-              accountId,
-              type: 'PAYMENT_RELEASED',
-              amount: payment.netAmount,
-              fee: 0,
-              netAmount: payment.netAmount,
-              balanceAfter: (store.account.available + payment.netAmount),
-              referenceType: 'Payment',
-              referenceId: payment.id,
-              description: `Release of payment ${payment.id}`,
-              createdAt: new Date(),
-            },
-          }),
-        ]);
-      }
-
-      // Cria outbox event
-      await this.prisma.outboxEvent.create({
-        data: {
-          id: crypto.randomUUID(),
-          aggregateType: 'Payment',
-          aggregateId: payment.id,
-          eventType: 'payment.released',
-          payload: {
-            paymentId: payment.id,
-            storeId: payment.storeId,
-            accountId,
-            amount: payment.netAmount,
-            currency: payment.currency,
-            releasedAt: new Date().toISOString(),
-          },
-          status: 'PENDING',
-          processedAt: null,
-          retryCount: 0,
-          maxRetries: 5,
-          nextRetryAt: new Date(),
-          errorMessage: null,
-          createdAt: new Date(),
-        },
-      });
-
-      this.logger.debug(`Payment ${payment.id} released`);
-    } catch (error) {
-      this.logger.error(`Failed to release payment ${payment.id}`, error);
     }
   }
 }

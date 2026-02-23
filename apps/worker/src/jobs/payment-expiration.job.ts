@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../infra/database/prisma.service';
 import { PaymentStatus } from '@hockpay/database';
+import { ExpirePaymentUseCase } from '@hockpay/core';
 
 /**
  * Job que expira pagamentos pendentes que passaram do prazo
@@ -14,6 +15,7 @@ export class PaymentExpirationJob {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly expirePaymentUseCase: ExpirePaymentUseCase,
   ) {}
 
   /**
@@ -26,6 +28,7 @@ export class PaymentExpirationJob {
 
   /**
    * Expira pagamentos pendentes que passaram do prazo
+   * Usa ExpirePaymentUseCase para garantir que eventos de outbox sejam criados
    */
   async expirePendingPayments(): Promise<void> {
     this.logger.debug('Checking for expired payments...');
@@ -49,36 +52,15 @@ export class PaymentExpirationJob {
 
     for (const payment of expiredPayments) {
       try {
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: PaymentStatus.EXPIRED },
+        const result = await this.expirePaymentUseCase.execute({
+          paymentId: payment.id,
         });
 
-        // Cria outbox event
-        await this.prisma.outboxEvent.create({
-          data: {
-            id: crypto.randomUUID(),
-            aggregateType: 'Payment',
-            aggregateId: payment.id,
-            eventType: 'payment.expired',
-            payload: {
-              paymentId: payment.id,
-              storeId: payment.storeId,
-              amount: payment.amount,
-              currency: payment.currency,
-              expiredAt: now.toISOString(),
-            },
-            status: 'PENDING',
-            processedAt: null,
-            retryCount: 0,
-            maxRetries: 5,
-            nextRetryAt: new Date(),
-            errorMessage: null,
-            createdAt: now,
-          },
-        });
-
-        this.logger.debug(`Payment ${payment.id} expired`);
+        if (result.alreadyExpired) {
+          this.logger.debug(`Payment ${payment.id} was already expired`);
+        } else {
+          this.logger.debug(`Payment ${payment.id} expired successfully`);
+        }
       } catch (error) {
         this.logger.error(`Failed to expire payment ${payment.id}`, error);
       }
