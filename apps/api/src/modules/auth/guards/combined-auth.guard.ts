@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { ValidateApiKeyUseCase, JwtPayload } from '@hockpay/core';
+import { ValidateApiKeyUseCase, JwtPayload, Environment } from '@hockpay/core';
 import { JwtService } from 'src/infra/services/jwt.service';
 
 /**
@@ -60,6 +60,9 @@ export class CombinedAuthGuard implements CanActivate {
           // Mark as JWT auth for later use
           request.authType = 'jwt';
 
+          // JWT auth defaults to TEST environment (dashboard)
+          request.environment = Environment.TEST;
+
           // Also set store if available
           if (payload.storeId) {
             request.store = {
@@ -97,6 +100,9 @@ export class CombinedAuthGuard implements CanActivate {
           request.store = {
             id: result.storeId,
           };
+
+          // Inject the environment from the API key
+          request.environment = result.apiKey.environment;
 
           // Mark as API Key auth for later use
           request.authType = 'api_key';

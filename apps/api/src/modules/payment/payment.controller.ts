@@ -23,9 +23,11 @@ import {
   StoreNotFoundError,
   StoreInactiveError,
   StoreNotApprovedError,
+  Environment,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { CreatePaymentDto } from './dtos/create-payment.dto';
 import {
   GetPaymentResponseDto,
@@ -60,8 +62,10 @@ export class PaymentController {
    * POST /v1/payments
    *
    * Creates a new payment with customer on-the-fly creation.
+   * Supports idempotency via Idempotency-Key header.
    */
   @Post()
+  @Idempotent({ required: true })
   @HttpCode(HttpStatus.CREATED)
   async createPayment(
     @Body() dto: CreatePaymentDto,
@@ -69,6 +73,7 @@ export class PaymentController {
   ): Promise<CreatePaymentResponseDto> {
     try {
       const storeId = (req as any)?.store?.id;
+      const environment = (req as any)?.environment ?? Environment.TEST;
 
       if (!storeId) {
         throw new Error('Store ID not found in request');
@@ -80,6 +85,7 @@ export class PaymentController {
         amount: dto.amount,
         description: dto.description,
         customer: dto.customer,
+        environment,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         metadata: dto.metadata,
       });

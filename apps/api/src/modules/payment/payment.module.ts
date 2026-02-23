@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { PaymentController } from './payment.controller';
 import { DevController } from './dev.controller';
+import { CheckoutController } from './checkout.controller';
 import {
   CreatePaymentUseCase,
   GetPaymentUseCase,
@@ -9,13 +10,19 @@ import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
+  GetCheckoutPaymentUseCase,
+  SimulateCheckoutPaymentUseCase,
   FeePolicy,
+  IPaymentRepository,
+  IOutboxRepository,
+  ITokenGeneratorPort,
 } from '@hockpay/core';
-import { PaymentRepository } from 'src/infra/repositories/payment.repository.impl';
+import { PaymentRepository, OutboxRepository } from '@hockpay/infrastructure';
 import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
 import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
+import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { ExpirationQueue } from 'src/infra/queues/expiration.queue';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
@@ -42,16 +49,30 @@ import { JwtService } from 'src/infra/services/jwt.service';
       name: 'payment-expiration',
     }),
   ],
-  controllers: [PaymentController, DevController],
+  controllers: [PaymentController, DevController, CheckoutController],
   providers: [
     // Infrastructure
     PrismaService,
-    PaymentRepository,
-    CustomerRepository,
-    StoreRepository,
     JwtService,
     PixQrCodeGeneratorService,
+    TokenGeneratorService,
     ExpirationQueue,
+
+    // Factory providers for shared repositories (from @hockpay/infrastructure)
+    {
+      provide: 'IPaymentRepository',
+      useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IOutboxRepository',
+      useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
+      inject: [PrismaService],
+    },
+
+    // Local repositories (still using @Injectable)
+    CustomerRepository,
+    StoreRepository,
 
     // CombinedAuthGuard (uses ValidateApiKeyUseCase from ApiKeyModule)
     CombinedAuthGuard,
@@ -59,79 +80,111 @@ import { JwtService } from 'src/infra/services/jwt.service';
     // Services
     FeePolicy,
 
-    // Use Cases (from core)
+    // Use Cases (from core) - injecting interfaces via token
     {
       provide: CreatePaymentUseCase,
       useFactory: (
-        paymentRepo: PaymentRepository,
+        paymentRepo: IPaymentRepository,
         customerRepo: CustomerRepository,
         storeRepo: StoreRepository,
+        outboxRepo: IOutboxRepository,
         pixGenerator: PixQrCodeGeneratorService,
         expirationQueue: ExpirationQueue,
         feePolicy: FeePolicy,
+        tokenGenerator: ITokenGeneratorPort,
       ) => {
         return new CreatePaymentUseCase(
           paymentRepo,
           customerRepo,
           storeRepo,
+          outboxRepo,
           pixGenerator,
           expirationQueue,
           feePolicy,
+          tokenGenerator,
           process.env.PIX_KEY ?? 'test@hockpay.com',
           process.env.CHECKOUT_BASE_URL ?? 'http://localhost:4200',
         );
       },
       inject: [
-        PaymentRepository,
+        'IPaymentRepository',
         CustomerRepository,
         StoreRepository,
+        'IOutboxRepository',
         PixQrCodeGeneratorService,
         ExpirationQueue,
         FeePolicy,
+        TokenGeneratorService,
       ],
     },
 
     {
       provide: GetPaymentUseCase,
-      useFactory: (repo: PaymentRepository) => {
+      useFactory: (repo: IPaymentRepository) => {
         return new GetPaymentUseCase(repo);
       },
-      inject: [PaymentRepository],
+      inject: ['IPaymentRepository'],
     },
 
     {
       provide: ListPaymentsUseCase,
-      useFactory: (repo: PaymentRepository) => {
+      useFactory: (repo: IPaymentRepository) => {
         return new ListPaymentsUseCase(repo);
       },
-      inject: [PaymentRepository],
+      inject: ['IPaymentRepository'],
     },
 
     {
       provide: ConfirmPaymentUseCase,
-      useFactory: (repo: PaymentRepository) => {
-        return new ConfirmPaymentUseCase(repo);
+      useFactory: (
+        repo: IPaymentRepository,
+        outboxRepo: IOutboxRepository,
+      ) => {
+        return new ConfirmPaymentUseCase(repo, outboxRepo);
       },
-      inject: [PaymentRepository],
+      inject: ['IPaymentRepository', 'IOutboxRepository'],
     },
 
     {
       provide: ExpirePaymentUseCase,
       useFactory: (
-        repo: PaymentRepository,
+        repo: IPaymentRepository,
+        outboxRepo: IOutboxRepository,
         queue: ExpirationQueue,
       ) => {
-        return new ExpirePaymentUseCase(repo, queue);
+        return new ExpirePaymentUseCase(repo, outboxRepo, queue);
       },
-      inject: [PaymentRepository, ExpirationQueue],
+      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue],
     },
 
     {
       provide: FailPaymentUseCase,
-      useFactory: (repo: PaymentRepository) => {
-        return new FailPaymentUseCase(repo);
+      useFactory: (
+        repo: IPaymentRepository,
+        outboxRepo: IOutboxRepository,
+      ) => {
+        return new FailPaymentUseCase(repo, outboxRepo);
       },
-      inject: [PaymentRepository],
+      inject: ['IPaymentRepository', 'IOutboxRepository'],
+    },
+
+    {
+      provide: GetCheckoutPaymentUseCase,
+      useFactory: (repo: IPaymentRepository) => {
+        return new GetCheckoutPaymentUseCase(repo);
+      },
+      inject: ['IPaymentRepository'],
+    },
+
+    {
+      provide: SimulateCheckoutPaymentUseCase,
+      useFactory: (
+        repo: IPaymentRepository,
+        outboxRepo: IOutboxRepository,
+      ) => {
+        return new SimulateCheckoutPaymentUseCase(repo, outboxRepo);
+      },
+      inject: ['IPaymentRepository', 'IOutboxRepository'],
     },
   ],
   exports: [
@@ -141,6 +194,8 @@ import { JwtService } from 'src/infra/services/jwt.service';
     ConfirmPaymentUseCase,
     ExpirePaymentUseCase,
     FailPaymentUseCase,
+    GetCheckoutPaymentUseCase,
+    SimulateCheckoutPaymentUseCase,
   ],
 })
 export class PaymentModule {}

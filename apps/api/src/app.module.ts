@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -10,6 +10,9 @@ import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { StoreModule } from './modules/store/store.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { WebhookModule } from './modules/webhook/webhook.module';
+import { IdempotencyModule } from './modules/idempotency/idempotency.module';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
 @Module({
@@ -25,6 +28,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     StoreModule,
     CustomerModule,
     PaymentModule,
+    WebhookModule,
+    IdempotencyModule,
   ],
   controllers: [AppController],
   providers: [
@@ -34,6 +39,12 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Global Idempotency Interceptor
+    // Handles Idempotency-Key header for safe request retries
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
     },
   ],
 })

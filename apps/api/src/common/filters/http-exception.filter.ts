@@ -35,21 +35,38 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Extract message and details from exception response
     let message: string;
+    let code: string;
     let details: ErrorDetail[] | undefined;
 
     if (typeof exceptionResponse === 'string') {
       message = exceptionResponse;
+      code = this.getErrorCode(statusCode);
     } else if (typeof exceptionResponse === 'object') {
       const responseObj = exceptionResponse as Record<string, unknown>;
-      message = (responseObj.message as string) || exception.message;
-      details = this.extractDetails(responseObj);
+
+      // Check for custom error object format: { error: { code, message } }
+      if (
+        responseObj.error &&
+        typeof responseObj.error === 'object' &&
+        responseObj.error !== null
+      ) {
+        const customError = responseObj.error as Record<string, unknown>;
+        code = (customError.code as string) || this.getErrorCode(statusCode);
+        message = (customError.message as string) || exception.message;
+        details = customError.details as ErrorDetail[] | undefined;
+      } else {
+        message = (responseObj.message as string) || exception.message;
+        code = this.getErrorCode(statusCode);
+        details = this.extractDetails(responseObj);
+      }
     } else {
       message = exception.message;
+      code = this.getErrorCode(statusCode);
     }
 
     const errorResponse: ErrorResponseDto = {
       error: {
-        code: this.getErrorCode(statusCode),
+        code,
         message: Array.isArray(message) ? message.join(', ') : message,
         statusCode,
         timestamp: new Date().toISOString(),

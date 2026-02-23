@@ -60,6 +60,7 @@ export class ApiKeyController {
     @Body() dto: CreateApiKeyDto,
   ): Promise<CreatedApiKeyResponseDto> {
     // Get the store ID from the request (set by JwtAuthGuard)
+    console.log('api', req.user);
     const storeId = req.user.storeId;
 
     // Create the API key
