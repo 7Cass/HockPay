@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RequireStoreGuard } from './guards/require-store.guard';
+import { JwtStrategy } from './strategies/jwt.strategy';
 import {
   LoginUseCase,
   RefreshTokenUseCase,
   LogoutUseCase,
-  LogoutAllUseCase,
+  SwitchStoreUseCase,
 } from '@hockpay/core';
 import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
 import { RefreshTokenRepository } from 'src/infra/repositories/refresh-token.repository.impl';
+import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
@@ -21,13 +26,21 @@ import { PrismaService } from 'src/infra/database/prisma.service';
  * Use cases from the core layer are instantiated here with their dependencies.
  */
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, PassportModule.register({ defaultStrategy: 'jwt' })],
   controllers: [AuthController],
   providers: [
+    // Strategies
+    JwtStrategy,
+
+    // Guards
+    JwtAuthGuard,
+    RequireStoreGuard,
+
     // Infrastructure
     PrismaService,
     MerchantRepository,
     RefreshTokenRepository,
+    StoreRepository,
     PasswordHasherService,
     JwtService,
     TokenGeneratorService,
@@ -88,18 +101,38 @@ import { PrismaService } from 'src/infra/database/prisma.service';
       inject: [RefreshTokenRepository],
     },
     {
-      provide: LogoutAllUseCase,
-      useFactory: (refreshTokenRepo: RefreshTokenRepository) => {
-        return new LogoutAllUseCase(refreshTokenRepo);
+      provide: SwitchStoreUseCase,
+      useFactory: (
+        storeRepo: StoreRepository,
+        merchantRepo: MerchantRepository,
+        jwtService: JwtService,
+        refreshTokenRepo: RefreshTokenRepository,
+        tokenGenerator: TokenGeneratorService,
+      ) => {
+        return new SwitchStoreUseCase(
+          storeRepo,
+          merchantRepo,
+          jwtService,
+          refreshTokenRepo,
+          tokenGenerator,
+        );
       },
-      inject: [RefreshTokenRepository],
+      inject: [
+        StoreRepository,
+        MerchantRepository,
+        JwtService,
+        RefreshTokenRepository,
+        TokenGeneratorService,
+      ],
     },
   ],
   exports: [
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
-    LogoutAllUseCase,
+    SwitchStoreUseCase,
+    JwtAuthGuard,
+    RequireStoreGuard,
   ],
 })
 export class AuthModule {}

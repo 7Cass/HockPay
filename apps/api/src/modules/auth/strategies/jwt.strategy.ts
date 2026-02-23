@@ -1,14 +1,23 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from 'src/infra/services/jwt.service';
 import type { JwtPayload } from '@hockpay/core';
+import type { Request } from 'express';
+
+/**
+ * Extract JWT token from the hockpay_at cookie.
+ * This is used for dashboard authentication.
+ */
+function extractTokenFromCookie(req: Request): string | null {
+  return req.cookies?.hockpay_at || null;
+}
 
 /**
  * JWT Authentication Strategy
  *
- * This strategy validates JWT tokens from the Authorization header.
+ * This strategy validates JWT tokens from the hockpay_at cookie.
  * It extracts the merchant ID (sub) from the token payload.
  */
 @Injectable()
@@ -17,10 +26,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     private readonly config: ConfigService,
     private readonly jwtService: JwtService,
   ) {
+    const secret = config.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: extractTokenFromCookie,
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_SECRET') || 'default-secret',
+      secretOrKey: secret,
       passReqToCallback: true,
     });
   }
@@ -28,8 +41,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   /**
    * Validate the JWT payload.
    * This method is called automatically by Passport after verifying the token.
+   * Note: With passReqToCallback: true, the first argument is the request.
    */
-  async validate(payload: JwtPayload) {
+  async validate(_request: Request, payload: JwtPayload) {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
     }
@@ -37,6 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     // Return the payload which will be attached to request.user
     return {
       sub: payload.sub,
+      storeId: payload.storeId ?? null,
       iat: payload.iat,
       exp: payload.exp,
     };
