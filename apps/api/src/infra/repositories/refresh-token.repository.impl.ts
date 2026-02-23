@@ -95,9 +95,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
    * Convert a Prisma RefreshToken to a Domain RefreshToken.
    * This is a private helper method for internal use.
    */
-  private toDomain(
-    prismaToken: PrismaRefreshToken,
-  ): DomainRefreshToken {
+  private toDomain(prismaToken: PrismaRefreshToken): DomainRefreshToken {
     return DomainRefreshToken.reconstitute({
       id: prismaToken.id,
       token: prismaToken.token,

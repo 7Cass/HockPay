@@ -1,10 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import {
-  IJwtServicePort,
-  JwtPayload,
-} from '@hockpay/core';
+import { IJwtServicePort, JwtPayload } from '@hockpay/core';
 
 /**
  * Infrastructure implementation of IJwtServicePort.
@@ -17,8 +14,12 @@ export class JwtService implements IJwtServicePort {
   private readonly nestJwtService: NestJwtService;
 
   constructor(private readonly config: ConfigService) {
+    const secret = this.config.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
     this.nestJwtService = new NestJwtService({
-      secret: this.config.get<string>('JWT_SECRET') || 'default-secret',
+      secret,
       signOptions: {
         algorithm: 'HS256',
       },
@@ -27,22 +28,27 @@ export class JwtService implements IJwtServicePort {
 
   async generateAccessToken(
     sub: string,
+    storeId: string | null,
     expiresIn: string = '15m',
   ): Promise<string> {
-    return this.nestJwtService.signAsync(
-      { sub },
-      { expiresIn } as Record<string, unknown>,
-    );
+    const payload: JwtPayload = { sub };
+    if (storeId) {
+      payload.storeId = storeId;
+    }
+    return this.nestJwtService.signAsync(payload, { expiresIn } as Record<
+      string,
+      unknown
+    >);
   }
 
   async generateRefreshToken(
     sub: string,
     expiresIn: string = '7d',
   ): Promise<string> {
-    return this.nestJwtService.signAsync(
-      { sub },
-      { expiresIn } as Record<string, unknown>,
-    );
+    return this.nestJwtService.signAsync({ sub }, { expiresIn } as Record<
+      string,
+      unknown
+    >);
   }
 
   async verifyToken(token: string): Promise<JwtPayload> {
@@ -55,7 +61,7 @@ export class JwtService implements IJwtServicePort {
 
   decodeToken(token: string): JwtPayload | null {
     try {
-      return this.nestJwtService.decode(token) as JwtPayload;
+      return this.nestJwtService.decode(token);
     } catch {
       return null;
     }

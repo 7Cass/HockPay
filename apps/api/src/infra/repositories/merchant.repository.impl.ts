@@ -29,6 +29,7 @@ export class MerchantRepository implements IMerchantRepository {
         name: merchant.name,
         document: merchant.document.value,
         isActive: merchant.isActive,
+        currentStoreId: merchant.currentStoreId,
         createdAt: merchant.createdAt,
         updatedAt: merchant.updatedAt,
       },
@@ -99,6 +100,7 @@ export class MerchantRepository implements IMerchantRepository {
         name: merchant.name,
         document: merchant.document.value,
         isActive: merchant.isActive,
+        currentStoreId: merchant.currentStoreId,
         updatedAt: merchant.updatedAt,
       },
     });
@@ -116,6 +118,7 @@ export class MerchantRepository implements IMerchantRepository {
       passwordHash: prismaMerchant.passwordHash,
       name: prismaMerchant.name,
       isActive: prismaMerchant.isActive,
+      currentStoreId: prismaMerchant.currentStoreId ?? undefined,
       createdAt: prismaMerchant.createdAt,
       updatedAt: prismaMerchant.updatedAt,
     });
