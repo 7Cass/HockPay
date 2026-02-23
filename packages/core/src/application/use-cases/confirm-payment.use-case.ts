@@ -1,5 +1,7 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { PaymentExpiredError } from '../../domain/errors/payment-expired.error';
 import { InvalidPaymentStatusError } from '../../domain/errors/invalid-payment-status.error';
@@ -30,9 +32,13 @@ export interface IConfirmPaymentOutput {
  * - Payment must exist and belong to the store
  * - Payment must be in PENDING status
  * - Optional Pix transaction ID can be provided
+ * - Outbox event is created for webhook notification
  */
 export class ConfirmPaymentUseCase {
-  constructor(private readonly paymentRepository: IPaymentRepository) {}
+  constructor(
+    private readonly paymentRepository: IPaymentRepository,
+    private readonly outboxWriter: IOutboxWriter,
+  ) {}
 
   async execute(input: IConfirmPaymentInput): Promise<IConfirmPaymentOutput> {
     const payment = await this.paymentRepository.findByIdAndStoreId(
@@ -62,6 +68,15 @@ export class ConfirmPaymentUseCase {
     }
 
     await this.paymentRepository.update(payment);
+
+    // Create outbox event for webhook notification
+    const outboxEvent = OutboxEvent.create({
+      aggregateType: 'Payment',
+      aggregateId: payment.id,
+      eventType: 'payment.confirmed',
+      payload: payment.toObject() as unknown as Record<string, unknown>,
+    });
+    await this.outboxWriter.save(outboxEvent);
 
     return {
       payment: payment.toObject(),

@@ -13,6 +13,12 @@ import { IWebhookConfigRepository } from '../../domain/repositories/webhook-conf
 import { IWebhookLogRepository } from '../../domain/repositories/webhook-log.repository.interface';
 import { IWebhookSenderPort } from '../ports/webhook-sender.port';
 import { IHmacSignerPort } from '../ports/hmac-signer.port';
+import { IEncryptionPort } from '../ports/encryption.port';
+import {
+  buildWebhookEventPayload,
+  WebhookEventPayload,
+} from '../services/webhook-payload-builder.service';
+import { PaymentObject } from '../../domain/entities/payment.entity';
 
 /**
  * Input DTO for ProcessWebhookUseCase.
@@ -53,6 +59,7 @@ export class ProcessWebhookUseCase {
     private readonly webhookLogRepository: IWebhookLogRepository,
     private readonly webhookSender: IWebhookSenderPort,
     private readonly hmacSigner: IHmacSignerPort,
+    private readonly encryption: IEncryptionPort,
   ) {}
 
   async execute(input: IProcessWebhookInput): Promise<IProcessWebhookOutput> {
@@ -154,15 +161,30 @@ export class ProcessWebhookUseCase {
     const timestamp = Date.now();
     const webhookId = crypto.randomUUID();
 
-    // Sign payload
-    const signature = this.hmacSigner.sign(config.secret, event.payload, timestamp);
+    // Build webhook envelope payload (Stripe-like format)
+    const webhookPayload: WebhookEventPayload = buildWebhookEventPayload(
+      event.id,
+      event.eventType,
+      event.createdAt,
+      event.payload as unknown as PaymentObject,
+    );
 
-    // Create log entry
+    // Decrypt the secret before signing
+    const plainSecret = this.encryption.decrypt(config.secret);
+
+    // Sign the envelope payload with decrypted secret
+    const signature = this.hmacSigner.sign(
+      plainSecret,
+      webhookPayload as unknown as Record<string, unknown>,
+      timestamp,
+    );
+
+    // Create log entry with envelope payload
     const log = WebhookLog.create({
       configId: config.id,
-      paymentId: (event.payload as Record<string, unknown>).paymentId as string | undefined,
+      paymentId: (event.payload as Record<string, unknown>).id as string | undefined,
       eventType: event.eventType,
-      payload: event.payload,
+      payload: webhookPayload as unknown as Record<string, unknown>,
     });
 
     // Set headers
@@ -177,7 +199,11 @@ export class ProcessWebhookUseCase {
     log.setRequestHeaders(headers);
 
     try {
-      const response = await this.webhookSender.send(config.url, event.payload, headers);
+      const response = await this.webhookSender.send(
+        config.url,
+        webhookPayload as unknown as Record<string, unknown>,
+        headers,
+      );
 
       if (response.success) {
         log.recordSuccess(response.statusCode, response.body);

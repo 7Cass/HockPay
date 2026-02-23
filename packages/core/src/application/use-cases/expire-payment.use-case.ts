@@ -1,5 +1,7 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 
@@ -30,10 +32,12 @@ export interface IExpirePaymentOutput {
  * - Payment must exist
  * - If already in terminal state, do nothing (idempotent)
  * - Cancel any pending expiration job after expiring
+ * - Outbox event is created for webhook notification
  */
 export class ExpirePaymentUseCase {
   constructor(
     private readonly paymentRepository: IPaymentRepository,
+    private readonly outboxWriter: IOutboxWriter,
     private readonly expirationQueue: IExpirationQueuePort,
   ) {}
 
@@ -56,6 +60,15 @@ export class ExpirePaymentUseCase {
     if (payment.isPending()) {
       payment.expire();
       await this.paymentRepository.update(payment);
+
+      // Create outbox event for webhook notification
+      const outboxEvent = OutboxEvent.create({
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        eventType: 'payment.expired',
+        payload: payment.toObject() as unknown as Record<string, unknown>,
+      });
+      await this.outboxWriter.save(outboxEvent);
     }
 
     // Cancel any pending expiration job

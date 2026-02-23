@@ -1,10 +1,14 @@
 import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Document } from '../../domain/value-objects/document.vo';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
+import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
+import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { FeePolicy } from '../services/fee-policy.service';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
@@ -39,6 +43,7 @@ export interface ICreatePaymentInput {
   amount: number;
   description?: string;
   customer: PaymentCustomerInput;
+  environment: Environment;
   expiresAt?: Date;
   metadata?: Record<string, unknown>;
 }
@@ -69,9 +74,11 @@ export class CreatePaymentUseCase {
     private readonly paymentRepository: IPaymentRepository,
     private readonly customerRepository: ICustomerRepository,
     private readonly storeRepository: IStoreRepository,
+    private readonly outboxWriter: IOutboxWriter,
     private readonly pixQrCodeGenerator: IPixQrCodeGeneratorPort,
     private readonly expirationQueue: IExpirationQueuePort,
     private readonly feePolicy: FeePolicy,
+    private readonly tokenGenerator: ITokenGeneratorPort,
     private readonly pixKey: string, // Store's Pix key for receiving payments
     private readonly checkoutBaseUrl: string, // Base URL for checkout pages
   ) {}
@@ -152,8 +159,9 @@ export class CreatePaymentUseCase {
     const expiresAt =
       input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
-    // 7. Generate checkout URL
-    const checkoutUrl = `${this.checkoutBaseUrl}/checkout/${txId}`;
+    // 7. Generate checkout token and URL
+    const checkoutToken = this.tokenGenerator.generateBase64(32);
+    const checkoutUrl = `${this.checkoutBaseUrl}/${checkoutToken}`;
 
     // 8. Create Payment entity
     const payment = Payment.create({
@@ -164,10 +172,12 @@ export class CreatePaymentUseCase {
       fee: feeResult.feeInCents,
       netAmount: feeResult.netAmountInCents,
       description: input.description,
+      environment: input.environment,
       pixQrCode: qrCodeResult.qrCodeBase64,
       pixCopyPaste: qrCodeResult.copyPaste,
       pixTxId: qrCodeResult.txId,
       checkoutUrl,
+      checkoutToken,
       expiresAt,
       metadata: input.metadata,
     });
@@ -175,10 +185,19 @@ export class CreatePaymentUseCase {
     // 9. Persist Payment
     await this.paymentRepository.save(payment);
 
-    // 10. Schedule expiration job
+    // 10. Create outbox event for webhook notification
+    const outboxEvent = OutboxEvent.create({
+      aggregateType: 'Payment',
+      aggregateId: payment.id,
+      eventType: 'payment.created',
+      payload: payment.toObject() as unknown as Record<string, unknown>,
+    });
+    await this.outboxWriter.save(outboxEvent);
+
+    // 11. Schedule expiration job
     await this.expirationQueue.scheduleExpiration(payment.id, expiresAt);
 
-    // 11. Return output
+    // 12. Return output
     return {
       payment: payment.toObject(),
       customerCreated,

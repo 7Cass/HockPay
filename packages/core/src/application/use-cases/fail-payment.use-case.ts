@@ -1,5 +1,7 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 
 /**
@@ -28,9 +30,13 @@ export interface IFailPaymentOutput {
  * - Payment must exist and belong to the store
  * - Payment must be in PENDING status
  * - A reason for the failure should be provided
+ * - Outbox event is created for webhook notification
  */
 export class FailPaymentUseCase {
-  constructor(private readonly paymentRepository: IPaymentRepository) {}
+  constructor(
+    private readonly paymentRepository: IPaymentRepository,
+    private readonly outboxWriter: IOutboxWriter,
+  ) {}
 
   async execute(input: IFailPaymentInput): Promise<IFailPaymentOutput> {
     const payment = await this.paymentRepository.findByIdAndStoreId(
@@ -47,6 +53,16 @@ export class FailPaymentUseCase {
     payment.fail(reason);
 
     await this.paymentRepository.update(payment);
+
+    // Create outbox event for webhook notification
+    // Note: The failedReason is already set on the payment entity via payment.fail(reason)
+    const outboxEvent = OutboxEvent.create({
+      aggregateType: 'Payment',
+      aggregateId: payment.id,
+      eventType: 'payment.failed',
+      payload: payment.toObject() as unknown as Record<string, unknown>,
+    });
+    await this.outboxWriter.save(outboxEvent);
 
     return {
       payment: payment.toObject(),

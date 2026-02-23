@@ -1,9 +1,11 @@
 import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
 import { Account, AccountObject } from '../../domain/entities/account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
+import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { PaymentNotConfirmedError } from '../../domain/errors/payment-not-confirmed.error';
@@ -36,12 +38,14 @@ export interface IReleasePaymentOutput {
  * - Payment must be in CONFIRMED status
  * - Account must exist for the store
  * - Funds move from pending to available balance
+ * - Outbox event is created for webhook notification
  */
 export class ReleasePaymentUseCase {
   constructor(
     private readonly paymentRepository: IPaymentRepository,
     private readonly accountRepository: IAccountRepository,
     private readonly transactionRepository: ITransactionRepository,
+    private readonly outboxWriter: IOutboxWriter,
   ) {}
 
   async execute(input: IReleasePaymentInput): Promise<IReleasePaymentOutput> {
@@ -98,6 +102,15 @@ export class ReleasePaymentUseCase {
       description: `Release of payment ${payment.id}`,
     });
     await this.transactionRepository.save(transaction);
+
+    // Create outbox event for webhook notification
+    const outboxEvent = OutboxEvent.create({
+      aggregateType: 'Payment',
+      aggregateId: payment.id,
+      eventType: 'payment.released',
+      payload: payment.toObject() as unknown as Record<string, unknown>,
+    });
+    await this.outboxWriter.save(outboxEvent);
 
     return {
       payment: payment.toObject(),

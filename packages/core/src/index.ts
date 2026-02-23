@@ -10,6 +10,7 @@ export * from './domain/entities/webhook-config.entity';
 export * from './domain/entities/webhook-log.entity';
 export * from './domain/entities/account.entity';
 export * from './domain/entities/transaction.entity';
+export * from './domain/entities/idempotency-key.entity';
 
 // Domain - Enums
 export * from './domain/enums/payment-status.enum';
@@ -19,6 +20,9 @@ export * from './domain/value-objects/email.vo';
 export * from './domain/value-objects/document.vo';
 export * from './domain/value-objects/environment.vo';
 export * from './domain/value-objects/money.vo';
+
+// Domain - Constants
+export * from './domain/constants/webhook-events';
 
 // Domain - Errors
 export * from './domain/errors/domain-error';
@@ -51,6 +55,9 @@ export * from './domain/errors/external-id-already-exists.error';
 export * from './domain/errors/account-not-found.error';
 export * from './domain/errors/webhook-delivery-failed.error';
 export * from './domain/errors/payment-not-confirmed.error';
+export * from './domain/errors/webhook-config-not-found.error';
+export * from './domain/errors/invalid-webhook-events.error';
+export * from './domain/errors/live-environment-not-allowed.error';
 
 // Domain - Repository Interfaces
 export * from './domain/repositories/merchant.repository.interface';
@@ -59,10 +66,13 @@ export * from './domain/repositories/store.repository.interface';
 export * from './domain/repositories/customer.repository.interface';
 export * from './domain/repositories/payment.repository.interface';
 export * from './domain/repositories/outbox.repository.interface';
+export * from './domain/repositories/outbox-writer.repository.interface';
+export * from './domain/repositories/outbox-reader.repository.interface';
 export * from './domain/repositories/webhook-config.repository.interface';
 export * from './domain/repositories/webhook-log.repository.interface';
 export * from './domain/repositories/account.repository.interface';
 export * from './domain/repositories/transaction.repository.interface';
+export * from './domain/repositories/idempotency-key.repository.interface';
 
 // Application - Ports
 export * from './application/ports/password-hasher.port';
@@ -75,9 +85,12 @@ export * from './application/ports/expiration-queue.port';
 export * from './application/ports/webhook-queue.port';
 export * from './application/ports/webhook-sender.port';
 export * from './application/ports/hmac-signer.port';
+export * from './application/ports/idempotency-cache.port';
+export * from './application/ports/encryption.port';
 
 // Application - Services
 export * from './application/services/fee-policy.service';
+export * from './application/services/webhook-payload-builder.service';
 
 // Application - Use Cases
 export * from './application/use-cases/create-merchant.use-case';
@@ -106,3 +119,13 @@ export * from './application/use-cases/release-payment.use-case';
 export * from './application/use-cases/process-webhook.use-case';
 export * from './application/use-cases/cleanup-logs.use-case';
 export * from './application/use-cases/detect-anomalies.use-case';
+export * from './application/use-cases/create-webhook-config.use-case';
+export * from './application/use-cases/list-webhook-configs.use-case';
+export * from './application/use-cases/get-webhook-config.use-case';
+export * from './application/use-cases/update-webhook-config.use-case';
+export * from './application/use-cases/delete-webhook-config.use-case';
+export * from './application/use-cases/test-webhook-config.use-case';
+export * from './application/use-cases/list-webhook-logs.use-case';
+export * from './application/use-cases/retry-webhook-log.use-case';
+export * from './application/use-cases/get-checkout-payment.use-case';
+export * from './application/use-cases/simulate-checkout-payment.use-case';
