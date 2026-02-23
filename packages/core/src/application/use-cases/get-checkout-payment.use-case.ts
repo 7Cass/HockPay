@@ -22,6 +22,8 @@ export interface ICheckoutPaymentOutput {
   environment: Environment;
   pixQrCode: string;
   pixCopyPaste: string;
+  successUrl?: string;
+  cancelUrl?: string;
   expiresAt: Date;
   paidAt?: Date;
   createdAt: Date;
@@ -37,7 +39,7 @@ export interface ICheckoutPaymentOutput {
  * customers to view their payment without authentication.
  */
 export class GetCheckoutPaymentUseCase {
-  constructor(private readonly paymentRepository: IPaymentRepository) {}
+  constructor(private readonly paymentRepository: IPaymentRepository) { }
 
   async execute(input: IGetCheckoutPaymentInput): Promise<ICheckoutPaymentOutput> {
     const payment = await this.paymentRepository.findByCheckoutToken(input.token);
@@ -55,6 +57,8 @@ export class GetCheckoutPaymentUseCase {
       environment: payment.environment,
       pixQrCode: payment.pixQrCode!,
       pixCopyPaste: payment.pixCopyPaste!,
+      successUrl: payment.successUrl,
+      cancelUrl: payment.cancelUrl,
       expiresAt: payment.expiresAt,
       paidAt: payment.paidAt,
       createdAt: payment.createdAt,

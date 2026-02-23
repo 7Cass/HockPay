@@ -16,7 +16,7 @@ import { PrismaClient, Payment as PrismaPayment } from '@hockpay/database';
  * Each app provides its own PrismaClient instance.
  */
 export class PaymentRepository implements IPaymentRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) { }
 
   async save(payment: DomainPayment): Promise<void> {
     await this.prisma.payment.create({
@@ -37,6 +37,8 @@ export class PaymentRepository implements IPaymentRepository {
         pixTxId: payment.pixTxId,
         checkoutUrl: payment.checkoutUrl,
         checkoutToken: payment.checkoutToken,
+        successUrl: payment.successUrl,
+        cancelUrl: payment.cancelUrl,
         expiresAt: payment.expiresAt,
         paidAt: payment.paidAt,
         releasedAt: payment.releasedAt,
@@ -224,6 +226,8 @@ export class PaymentRepository implements IPaymentRepository {
       pixTxId: prismaPayment.pixTxId ?? undefined,
       checkoutUrl: prismaPayment.checkoutUrl ?? undefined,
       checkoutToken: (prismaPayment as any).checkoutToken ?? undefined,
+      successUrl: (prismaPayment as any).successUrl ?? undefined,
+      cancelUrl: (prismaPayment as any).cancelUrl ?? undefined,
       expiresAt: prismaPayment.expiresAt,
       paidAt: prismaPayment.paidAt ?? undefined,
       releasedAt: prismaPayment.releasedAt ?? undefined,

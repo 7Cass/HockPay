@@ -45,6 +45,8 @@ export interface ICreatePaymentInput {
   customer: PaymentCustomerInput;
   environment: Environment;
   expiresAt?: Date;
+  successUrl?: string;
+  cancelUrl?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -81,7 +83,7 @@ export class CreatePaymentUseCase {
     private readonly tokenGenerator: ITokenGeneratorPort,
     private readonly pixKey: string, // Store's Pix key for receiving payments
     private readonly checkoutBaseUrl: string, // Base URL for checkout pages
-  ) {}
+  ) { }
 
   async execute(input: ICreatePaymentInput): Promise<ICreatePaymentOutput> {
     // 1. Validate store exists, is active, and approved
@@ -178,6 +180,8 @@ export class CreatePaymentUseCase {
       pixTxId: qrCodeResult.txId,
       checkoutUrl,
       checkoutToken,
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
       expiresAt,
       metadata: input.metadata,
     });
