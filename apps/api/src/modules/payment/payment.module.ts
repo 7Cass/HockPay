@@ -103,7 +103,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
           feePolicy,
           tokenGenerator,
           process.env.PIX_KEY ?? 'test@hockpay.com',
-          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:4200',
+          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
         );
       },
       inject: [
@@ -198,4 +198,4 @@ import { JwtService } from 'src/infra/services/jwt.service';
     SimulateCheckoutPaymentUseCase,
   ],
 })
-export class PaymentModule {}
+export class PaymentModule { }
