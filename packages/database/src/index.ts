@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from './generated/prisma/client';
+import { PrismaClient, Prisma } from './generated/prisma';
 
 /**
  * Cria uma nova instância do PrismaClient.
@@ -16,6 +16,5 @@ export function createPrismaClient(options?: ConstructorParameters<typeof Prisma
 // Exporta o PrismaClient puro para uso direto
 export { PrismaClient, Prisma };
 
-// Exporta todos os tipos gerados pelo Prisma
-export * from './generated/prisma/client';
-export * from './generated/prisma/enums';
+// Re-exporta todos os tipos e enums do Prisma
+export * from './generated/prisma';

@@ -15,7 +15,7 @@
     "db:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0"
+    "@prisma/client": "^6.19.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
