@@ -1,52 +1,24 @@
+import { IOutboxWriter } from './outbox-writer.repository.interface';
 import {
-  OutboxEvent,
-  OutboxEventProps,
-  OutboxEventStatus,
-} from '../entities/outbox-event.entity';
+  IOutboxReader,
+  IOutboxUpdater,
+} from './outbox-reader.repository.interface';
 
 /**
  * Repository interface for OutboxEvent aggregate.
  *
  * Provides persistence operations for the outbox pattern.
+ * This interface combines all segregated interfaces for full repository access.
+ *
+ * For ISP compliance, use the specific interfaces:
+ * - IOutboxWriter: API writes events
+ * - IOutboxReader: Worker reads pending events
+ * - IOutboxUpdater: Worker updates event status
  */
-export interface IOutboxRepository {
-  /**
-   * Save a new outbox event.
-   */
-  save(event: OutboxEvent): Promise<void>;
+export interface IOutboxRepository
+  extends IOutboxWriter,
+    IOutboxReader,
+    IOutboxUpdater {}
 
-  /**
-   * Update an existing outbox event.
-   */
-  update(event: OutboxEvent): Promise<void>;
-
-  /**
-   * Find an outbox event by ID.
-   */
-  findById(id: string): Promise<OutboxEvent | null>;
-
-  /**
-   * Find pending events ready for processing.
-   * Returns events with status PENDING and nextRetryAt <= now.
-   *
-   * @param limit - Maximum number of events to return
-   */
-  findPendingEvents(limit: number): Promise<OutboxEvent[]>;
-
-  /**
-   * Find events by aggregate type and ID.
-   */
-  findByAggregate(aggregateType: string, aggregateId: string): Promise<OutboxEvent[]>;
-
-  /**
-   * Count events by status.
-   */
-  countByStatus(status: OutboxEventStatus): Promise<number>;
-
-  /**
-   * Delete old processed events (cleanup).
-   *
-   * @param olderThanDays - Delete events older than this many days
-   */
-  deleteOldProcessed(olderThanDays: number): Promise<number>;
-}
+// Re-export segregated interfaces
+export type { IOutboxWriter, IOutboxReader, IOutboxUpdater };

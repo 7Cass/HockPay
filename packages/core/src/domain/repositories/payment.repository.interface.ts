@@ -67,6 +67,13 @@ export interface IPaymentRepository {
   findByPixTxId(pixTxId: string): Promise<Payment | null>;
 
   /**
+   * Find a payment by checkout token.
+   * Used for public checkout page access.
+   * Returns null if not found.
+   */
+  findByCheckoutToken(token: string): Promise<Payment | null>;
+
+  /**
    * List payments with pagination and filters.
    */
   list(options: ListPaymentsOptions): Promise<ListPaymentsResult>;

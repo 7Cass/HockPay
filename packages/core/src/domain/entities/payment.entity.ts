@@ -3,6 +3,7 @@ import {
   VALID_STATUS_TRANSITIONS,
   TERMINAL_STATUSES,
 } from '../enums/payment-status.enum';
+import { Environment } from '../value-objects/environment.vo';
 import { InvalidPaymentStatusError } from '../errors/invalid-payment-status.error';
 
 /**
@@ -22,10 +23,12 @@ export class Payment {
   private readonly _currency: string;
   private _description?: string;
   private _status: PaymentStatus;
+  private readonly _environment: Environment;
   private _pixQrCode?: string;
   private _pixCopyPaste?: string;
   private _pixTxId?: string;
   private _checkoutUrl?: string;
+  private readonly _checkoutToken?: string;
   private readonly _expiresAt: Date;
   private _paidAt?: Date;
   private _releasedAt?: Date;
@@ -45,10 +48,12 @@ export class Payment {
     this._currency = props.currency ?? 'BRL';
     this._description = props.description;
     this._status = props.status;
+    this._environment = props.environment ?? Environment.TEST;
     this._pixQrCode = props.pixQrCode;
     this._pixCopyPaste = props.pixCopyPaste;
     this._pixTxId = props.pixTxId;
     this._checkoutUrl = props.checkoutUrl;
+    this._checkoutToken = props.checkoutToken;
     this._expiresAt = props.expiresAt;
     this._paidAt = props.paidAt;
     this._releasedAt = props.releasedAt;
@@ -74,10 +79,12 @@ export class Payment {
       currency: props.currency ?? 'BRL',
       description: props.description,
       status: PaymentStatus.PENDING,
+      environment: props.environment ?? Environment.TEST,
       pixQrCode: props.pixQrCode,
       pixCopyPaste: props.pixCopyPaste,
       pixTxId: props.pixTxId,
       checkoutUrl: props.checkoutUrl,
+      checkoutToken: props.checkoutToken,
       expiresAt: props.expiresAt,
       metadata: props.metadata,
       createdAt: new Date(),
@@ -135,6 +142,10 @@ export class Payment {
     return this._status;
   }
 
+  get environment(): Environment {
+    return this._environment;
+  }
+
   get pixQrCode(): string | undefined {
     return this._pixQrCode;
   }
@@ -149,6 +160,10 @@ export class Payment {
 
   get checkoutUrl(): string | undefined {
     return this._checkoutUrl;
+  }
+
+  get checkoutToken(): string | undefined {
+    return this._checkoutToken;
   }
 
   get expiresAt(): Date {
@@ -299,10 +314,12 @@ export class Payment {
       currency: this._currency,
       description: this._description,
       status: this._status,
+      environment: this._environment,
       pixQrCode: this._pixQrCode,
       pixCopyPaste: this._pixCopyPaste,
       pixTxId: this._pixTxId,
       checkoutUrl: this._checkoutUrl,
+      checkoutToken: this._checkoutToken,
       expiresAt: this._expiresAt,
       paidAt: this._paidAt,
       releasedAt: this._releasedAt,
@@ -326,10 +343,12 @@ export interface CreatePaymentProps {
   netAmount: number;
   currency?: string;
   description?: string;
+  environment?: Environment;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
   checkoutUrl?: string;
+  checkoutToken?: string;
   expiresAt: Date;
   metadata?: Record<string, unknown>;
 }
@@ -348,10 +367,12 @@ export interface PaymentProps {
   currency: string;
   description?: string;
   status: PaymentStatus;
+  environment?: Environment;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
   checkoutUrl?: string;
+  checkoutToken?: string;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;
@@ -375,10 +396,12 @@ export interface PaymentObject {
   currency: string;
   description?: string;
   status: PaymentStatus;
+  environment: Environment;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
   checkoutUrl?: string;
+  checkoutToken?: string;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;

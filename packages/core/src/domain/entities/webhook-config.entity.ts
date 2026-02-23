@@ -7,9 +7,10 @@
 export class WebhookConfig {
   private readonly _id: string;
   private readonly _storeId: string;
-  private readonly _url: string;
-  private readonly _secret: string;
-  private readonly _events: string[];
+  private _url: string;
+  private readonly _secret: string; // Encrypted secret
+  private readonly _prefix: string; // First 12 chars of plain secret for identification
+  private _events: string[];
   private _isActive: boolean;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
@@ -19,6 +20,7 @@ export class WebhookConfig {
     this._storeId = props.storeId;
     this._url = props.url;
     this._secret = props.secret;
+    this._prefix = props.prefix;
     this._events = props.events;
     this._isActive = props.isActive;
     this._createdAt = props.createdAt;
@@ -34,6 +36,7 @@ export class WebhookConfig {
       storeId: props.storeId,
       url: props.url,
       secret: props.secret,
+      prefix: props.prefix,
       events: props.events,
       isActive: true,
       createdAt: new Date(),
@@ -62,8 +65,20 @@ export class WebhookConfig {
     return this._url;
   }
 
+  /**
+   * Returns the encrypted secret.
+   * Use IEncryptionPort.decrypt() to get the plain secret.
+   */
   get secret(): string {
     return this._secret;
+  }
+
+  /**
+   * Returns the prefix (first 12 chars of the plain secret).
+   * Used for identification without exposing the full secret.
+   */
+  get prefix(): string {
+    return this._prefix;
   }
 
   get events(): string[] {
@@ -83,6 +98,22 @@ export class WebhookConfig {
   }
 
   // Business methods
+
+  /**
+   * Update webhook config properties.
+   */
+  update(props: UpdateWebhookConfigProps): void {
+    if (props.url !== undefined) {
+      this._url = props.url;
+    }
+    if (props.events !== undefined) {
+      this._events = props.events;
+    }
+    if (props.isActive !== undefined) {
+      this._isActive = props.isActive;
+    }
+    this._updatedAt = new Date();
+  }
 
   /**
    * Check if this config should receive a specific event.
@@ -108,7 +139,7 @@ export class WebhookConfig {
   }
 
   /**
-   * Convert to plain object.
+   * Convert to plain object (includes encrypted secret).
    */
   toObject(): WebhookConfigObject {
     return {
@@ -116,6 +147,23 @@ export class WebhookConfig {
       storeId: this._storeId,
       url: this._url,
       secret: this._secret,
+      prefix: this._prefix,
+      events: this._events,
+      isActive: this._isActive,
+      createdAt: this._createdAt,
+      updatedAt: this._updatedAt,
+    };
+  }
+
+  /**
+   * Convert to public object (excludes secret).
+   */
+  toPublicObject(): WebhookConfigPublicObject {
+    return {
+      id: this._id,
+      storeId: this._storeId,
+      url: this._url,
+      prefix: this._prefix,
       events: this._events,
       isActive: this._isActive,
       createdAt: this._createdAt,
@@ -130,8 +178,18 @@ export class WebhookConfig {
 export interface CreateWebhookConfigProps {
   storeId: string;
   url: string;
-  secret: string;
+  secret: string; // Encrypted secret
+  prefix: string; // First 12 chars of plain secret
   events: string[];
+}
+
+/**
+ * Properties for updating a WebhookConfig.
+ */
+export interface UpdateWebhookConfigProps {
+  url?: string;
+  events?: string[];
+  isActive?: boolean;
 }
 
 /**
@@ -142,6 +200,7 @@ export interface WebhookConfigProps {
   storeId: string;
   url: string;
   secret: string;
+  prefix: string;
   events: string[];
   isActive: boolean;
   createdAt: Date;
@@ -149,13 +208,28 @@ export interface WebhookConfigProps {
 }
 
 /**
- * Simplified object representation.
+ * Simplified object representation (includes encrypted secret).
  */
 export interface WebhookConfigObject {
   id: string;
   storeId: string;
   url: string;
   secret: string;
+  prefix: string;
+  events: string[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Public object representation (excludes secret).
+ */
+export interface WebhookConfigPublicObject {
+  id: string;
+  storeId: string;
+  url: string;
+  prefix: string;
   events: string[];
   isActive: boolean;
   createdAt: Date;
