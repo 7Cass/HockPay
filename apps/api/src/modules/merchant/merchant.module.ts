@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MerchantController } from './merchant.controller';
-import { CreateMerchantUseCase, GetMerchantUseCase } from '@hockpay/core';
+import {
+  CreateMerchantUseCase,
+  GetMerchantUseCase,
+  GetCurrentMerchantUseCase,
+} from '@hockpay/core';
 import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { PrismaService } from 'src/infra/database/prisma.service';
@@ -35,7 +39,14 @@ import { PrismaService } from 'src/infra/database/prisma.service';
       },
       inject: [MerchantRepository],
     },
+    {
+      provide: GetCurrentMerchantUseCase,
+      useFactory: (repo: MerchantRepository) => {
+        return new GetCurrentMerchantUseCase(repo);
+      },
+      inject: [MerchantRepository],
+    },
   ],
-  exports: [CreateMerchantUseCase, GetMerchantUseCase],
+  exports: [CreateMerchantUseCase, GetMerchantUseCase, GetCurrentMerchantUseCase],
 })
-export class MerchantModule {}
+export class MerchantModule { }

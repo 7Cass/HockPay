@@ -95,6 +95,7 @@ export * from './application/services/webhook-payload-builder.service';
 // Application - Use Cases
 export * from './application/use-cases/create-merchant.use-case';
 export * from './application/use-cases/get-merchant.use-case';
+export * from './application/use-cases/get-current-merchant.use-case';
 export * from './application/use-cases/login.use-case';
 export * from './application/use-cases/refresh-token.use-case';
 export * from './application/use-cases/logout.use-case';
