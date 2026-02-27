@@ -1,0 +1,37 @@
+<div class="min-h-screen bg-white text-zinc-900 flex flex-col lg:grid lg:grid-cols-2">
+    <!-- Left Side: Solid Dark Background with Brand details -->
+    <div class="hidden lg:flex flex-col justify-between p-10 bg-zinc-900 text-zinc-50 relative overflow-hidden">
+        <!-- Subtle Background Glow -->
+        <div
+            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/40 via-transparent to-transparent pointer-events-none">
+        </div>
+
+        <div class="relative z-10 flex items-center gap-2 font-bold text-xl tracking-tight">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20" />
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+            </div>
+            Hockpay
+        </div>
+
+        <div class="relative z-10 mt-auto">
+            <blockquote class="space-y-4 max-w-lg">
+                <p class="text-xl lg:text-3xl font-bold tracking-tight text-white leading-[1.2]">
+                    "Simule tudo. Lance rápido."
+                </p>
+                <p class="text-sm font-medium text-indigo-200">
+                    Infraestrutura de pagamentos simulada em poucas linhas de código. Feito para desenvolvedores, indie
+                    hackers e startups.
+                </p>
+            </blockquote>
+        </div>
+    </div>
+
+    <!-- Right Side: Content Area (Form) -->
+    <div class="flex-1 flex flex-col p-8 lg:p-14 justify-center relative bg-white">
+        <router-outlet />
+    </div>
+</div>
