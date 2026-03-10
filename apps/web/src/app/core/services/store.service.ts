@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ApiClientService } from './api-client.service';
+import { AuthService } from './auth.service';
 import { Observable, tap } from 'rxjs';
 
 export interface Store {
@@ -38,6 +39,7 @@ export interface CreateStoreResponse {
 })
 export class StoreService {
     private readonly api = inject(ApiClientService);
+    private readonly authService = inject(AuthService);
 
     /** Reactive list of stores for the current merchant. */
     readonly stores = signal<Store[]>([]);
@@ -53,9 +55,19 @@ export class StoreService {
         return this.api.get<ListStoresResponse>('/stores').pipe(
             tap((response) => {
                 this.stores.set(response.stores);
-                // Auto-select the first store if none is selected
+
+                // If a store is not yet selected in memory
                 if (!this.currentStore() && response.stores.length > 0) {
-                    this.currentStore.set(response.stores[0]);
+                    const savedStoreId = this.authService.currentUser()?.currentStoreId;
+
+                    if (savedStoreId) {
+                        // Select the store the user actually has saved in the DB
+                        const savedStore = response.stores.find(s => s.id === savedStoreId);
+                        this.currentStore.set(savedStore || response.stores[0]);
+                    } else {
+                        // Fallback to the first store if they don't have one saved
+                        this.currentStore.set(response.stores[0]);
+                    }
                 }
             })
         );
@@ -68,10 +80,9 @@ export class StoreService {
     switchStore(storeId: string): Observable<SwitchStoreResponse> {
         return this.api.post<SwitchStoreResponse>(`/auth/switch-store/${storeId}`, {}).pipe(
             tap(() => {
-                const store = this.stores().find(s => s.id === storeId);
-                if (store) {
-                    this.currentStore.set(store);
-                }
+                // Hard reload to prevent memory leakage between tenants
+                // and inject cleanly the new HttpOnly cookies into the new session.
+                window.location.href = '/dashboard';
             })
         );
     }

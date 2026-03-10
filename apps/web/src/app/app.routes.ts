@@ -57,8 +57,12 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/dashboard/pages/webhooks/webhooks').then(m => m.Webhooks),
             },
             {
-                path: 'stores',
-                loadComponent: () => import('./features/dashboard/pages/stores/stores').then(m => m.Stores),
+                path: 'products',
+                loadComponent: () => import('./features/dashboard/pages/products/products').then(m => m.Products),
+            },
+            {
+                path: 'financials',
+                loadComponent: () => import('./features/dashboard/pages/financials/financials').then(m => m.Financials),
             },
             {
                 path: 'settings',

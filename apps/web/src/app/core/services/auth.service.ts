@@ -25,6 +25,7 @@ export interface CurrentUser {
     documentType: 'CPF' | 'CNPJ';
     isActive: boolean;
     createdAt: string;
+    currentStoreId?: string;
 }
 
 @Injectable({

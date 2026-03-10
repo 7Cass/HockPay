@@ -17,6 +17,8 @@ import {
     lucideWebhook,
     lucidePanelLeftClose,
     lucidePanelLeftOpen,
+    lucideShoppingBag,
+    lucideArrowRightLeft,
 } from '@ng-icons/lucide';
 import { StoreService, type Store } from '../../../core/services/store.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -52,6 +54,8 @@ interface MenuGroup {
             lucideWebhook,
             lucidePanelLeftClose,
             lucidePanelLeftOpen,
+            lucideShoppingBag,
+            lucideArrowRightLeft,
         }),
     ],
     templateUrl: './sidebar.component.html',
@@ -93,7 +97,14 @@ export class SidebarComponent implements OnInit {
             items: [
                 { label: 'Visão Geral', icon: 'lucideLayoutDashboard', route: '/dashboard' },
                 { label: 'Pagamentos', icon: 'lucideCreditCard', route: '/dashboard/payments' },
+                { label: 'Produtos', icon: 'lucideShoppingBag', route: '/dashboard/products' },
                 { label: 'Clientes', icon: 'lucideUsers', route: '/dashboard/customers' },
+            ],
+        },
+        {
+            label: 'Financeiro',
+            items: [
+                { label: 'Saldo e Saques', icon: 'lucideArrowRightLeft', route: '/dashboard/financials' },
             ],
         },
         {
@@ -106,7 +117,6 @@ export class SidebarComponent implements OnInit {
         {
             label: 'Configurações',
             items: [
-                { label: 'Lojas', icon: 'lucideStore', route: '/dashboard/stores' },
                 { label: 'Configurações', icon: 'lucideSettings', route: '/dashboard/settings' },
             ],
         },

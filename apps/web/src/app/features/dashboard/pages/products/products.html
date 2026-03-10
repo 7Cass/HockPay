@@ -1,0 +1,46 @@
+<div class="px-8 pb-8 pt-4 max-w-7xl mx-auto flex flex-col h-full gap-6">
+    <!-- Header Area -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Produtos</h1>
+            <p class="text-sm text-zinc-500 mt-1">Gerencie seu catálogo, preços e gere links de checkout rápidos.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-plus">
+                    <path d="M5 12h14" />
+                    <path d="M12 5v14" />
+                </svg>
+                Criar Produto
+            </button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+        <!-- Empty State (Placeholder until table is built) -->
+        <div
+            class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center">
+            <div
+                class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    class="text-zinc-400">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                    <path d="M3 6h18" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+            </div>
+            <h3 class="text-base font-semibold text-zinc-900 mb-1">Nenhum produto cadastrado</h3>
+            <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">Crie seu primeiro produto para gerar links de
+                checkout e começar a vender.</p>
+            <button
+                class="px-3 py-1.5 bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50 rounded-md text-sm font-medium transition-colors">
+                Criar Primeiro Produto
+            </button>
+        </div>
+    </div>
+</div>

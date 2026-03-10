@@ -1,13 +1,22 @@
 <div class="min-h-screen bg-white text-zinc-900 flex flex-col lg:grid lg:grid-cols-2">
-    <!-- Left Side: Solid Dark Background with Brand details -->
-    <div class="hidden lg:flex flex-col justify-between p-10 bg-zinc-900 text-zinc-50 relative overflow-hidden">
-        <!-- Subtle Background Glow -->
+    <!-- Left Side: Dark Glassmorphic Background -->
+    <div
+        class="hidden lg:flex flex-col justify-between p-10 relative overflow-hidden text-zinc-50 border-r border-zinc-200/20">
+        <!-- Abstract Glass Background Image -->
+        <div class="absolute inset-0 bg-[url('/backgrounds/auth_bg_glass.png')] bg-cover bg-center bg-no-repeat z-0">
+        </div>
+
+        <!-- Premium Glass Filter Layer (Blur + Indigo/Dark tint) -->
+        <div class="absolute inset-0 bg-zinc-950/60 backdrop-blur-xl z-0 pointer-events-none"></div>
+
+        <!-- Subtle Radial Glow on top of the blur for depth -->
         <div
-            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/40 via-transparent to-transparent pointer-events-none">
+            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/30 via-transparent to-transparent z-0 pointer-events-none">
         </div>
 
         <div class="relative z-10 flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+            <div
+                class="w-8 h-8 rounded-lg bg-indigo-600/80 backdrop-blur-md flex items-center justify-center text-white shadow-lg border border-indigo-400/30 ring-1 ring-white/10">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2v20" />

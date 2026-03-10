@@ -1,4 +1,4 @@
-<main class="w-full flex flex-col gap-24 overflow-hidden pt-12 pb-16">
+<main class="w-full flex flex-col gap-24 pt-12 pb-16">
   <!-- Wrapper with background highlight -->
   <div class="relative w-full border-b border-zinc-100">
     <!-- Background Gradient -->
@@ -6,26 +6,35 @@
       class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-transparent to-transparent -z-10">
     </div>
 
-    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Subtle Grid Background -->
+    <div
+      class="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-40 -z-10">
+    </div>
+
+    <div class="w-full px-4 sm:px-6 lg:px-8 xl:px-16 2xl:px-24">
       <!-- Hero Section -->
       <section class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center pt-8 lg:pt-16 pb-12">
         <!-- Left Column: Content -->
         <div class="space-y-8 max-w-2xl">
           <!-- Badge -->
           <div
-            class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 shadow-sm">
+            class="group inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 shadow-sm transition-all hover:shadow-md hover:border-indigo-200 hover:ring-2 hover:ring-indigo-50">
             <div class="flex -space-x-2">
+              <img src="/avatars/founder_avatar_1_1773112975469.png"
+                class="h-6 w-6 rounded-full border-2 border-white object-cover" alt="Founder" loading="lazy">
+              <img src="/avatars/founder_avatar_2_1773112997846.png"
+                class="h-6 w-6 rounded-full border-2 border-white object-cover relative z-10" alt="Founder"
+                loading="lazy">
+              <img src="/avatars/founder_avatar_3_1773113010735.png"
+                class="h-6 w-6 rounded-full border-2 border-white object-cover relative z-20" alt="Founder"
+                loading="lazy">
               <div
-                class="h-6 w-6 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">
-                JS</div>
-              <div
-                class="h-6 w-6 rounded-full border-2 border-white bg-pink-100 flex items-center justify-center text-[10px] font-bold text-pink-700">
-                MS</div>
-              <div
-                class="h-6 w-6 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-700">
-                RC</div>
+                class="h-6 w-6 rounded-full border-2 border-white bg-indigo-50 flex items-center justify-center text-[8px] font-bold text-indigo-600 relative z-30">
+                +4k
+              </div>
             </div>
-            <span class="text-sm font-medium text-zinc-700 pr-1">Escolhido por devs & founders</span>
+            <span class="text-sm font-medium text-zinc-700 pr-1 group-hover:text-zinc-900 transition-colors">Escolhido
+              por <span class="font-bold text-indigo-600">4.3k+</span> devs & founders</span>
           </div>
 
           <!-- Headline -->
@@ -45,11 +54,11 @@
           <!-- CTAs -->
           <div class="flex flex-col sm:flex-row items-center gap-6 pt-2">
             <a routerLink="/login"
-              class="group inline-flex items-center justify-center gap-2 rounded-full text-base font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700 h-14 px-8 w-full sm:w-auto shadow-md hover:shadow-lg">
+              class="group inline-flex items-center justify-center gap-2 rounded-full text-base font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700 h-14 px-8 w-full sm:w-auto shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] hover:-translate-y-0.5">
               Integre ao seu negócio
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                class="transition-transform group-hover:translate-x-1">
+                class="transition-transform duration-300 group-hover:translate-x-1.5">
                 <path d="M5 12h14" />
                 <path d="m12 5 7 7-7 7" />
               </svg>
@@ -89,224 +98,89 @@
           </div>
         </div>
 
-        <!-- Right Column: Visual Mockup -->
-        <div class="relative w-full h-[500px] lg:h-[600px] flex items-center justify-center pt-8 lg:pt-0">
-          <!-- Decorative blurred blob -->
+        <!-- Right Column: Abstract Integration Canvas -->
+        <div
+          class="relative w-full h-[400px] lg:h-[600px] flex items-center justify-center pt-8 lg:pt-0 perspective-[1200px] overflow-visible">
+          <!-- Floating Background Orbs for Depth -->
           <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-indigo-400/20 blur-[80px]">
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] lg:w-[450px] h-[350px] lg:h-[450px] rounded-full bg-indigo-500/15 blur-[80px] lg:blur-[120px] animate-pulse">
+          </div>
+          <div
+            class="absolute top-[20%] right-[15%] w-[200px] lg:w-[300px] h-[200px] lg:h-[300px] rounded-full bg-emerald-400/15 blur-[70px] lg:blur-[100px]">
           </div>
 
-          <!-- Mockup Container -->
+          <!-- The Canvas Group -->
           <div
-            class="relative w-full max-w-lg lg:max-w-2xl perspective-[1000px] rotate-y-[-8deg] rotate-x-[4deg] transition-transform duration-700 hover:rotate-y-[0deg] hover:rotate-x-[0deg]">
-            <!-- App Window Mockup -->
+            class="relative w-full max-w-xl h-full flex items-center justify-center group z-10 transition-transform duration-700 hover:scale-[1.02]">
+
+            <!-- Connection Line (SVG) hidden on very very small screens, shown from sm up -->
+            <svg
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] lg:w-[130%] h-[300px] z-10 text-indigo-300/40 hidden sm:block pointer-events-none"
+              viewBox="0 0 400 200" fill="none" preserveAspectRatio="xMidYMid slice">
+              <path d="M 80 140 Q 200 140 200 60 T 320 60" stroke="currentColor" stroke-width="2"
+                stroke-dasharray="6 6" />
+              <circle cx="80" cy="140" r="4" fill="currentColor" class="animate-pulse" />
+              <circle cx="320" cy="60" r="4" fill="currentColor" class="animate-pulse" />
+            </svg>
+
+            <!-- Floating Code Editor (Left, Lower) -->
             <div
-              class="rounded-2xl border border-zinc-200/60 bg-white/90 backdrop-blur-sm shadow-2xl overflow-hidden ring-1 ring-black/5 pb-2">
-              <!-- Window Header -->
-              <div class="h-12 border-b border-zinc-100 bg-zinc-50/80 flex items-center px-4 justify-between">
-                <div class="flex gap-1.5">
-                  <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                </div>
-                <div
-                  class="flex h-7 items-center rounded-md bg-white px-3 text-[11px] font-medium text-zinc-500 shadow-sm border border-zinc-200/60 w-56 justify-center gap-1.5 relative mr-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <path d="M9 14v1" />
-                    <path d="M9 19v2" />
-                    <path d="M9 3v2" />
-                    <path d="M9 9v1" />
-                  </svg>
-                  app.hockpay.com
-                </div>
+              class="absolute left-[-5%] lg:left-[-10%] bottom-[15%] lg:bottom-[20%] z-20 w-[240px] sm:w-[280px] lg:w-[320px] rounded-2xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,0,0,0.05)] transition-all duration-1000 lg:group-hover:-translate-y-4 lg:group-hover:-translate-x-2 lg:group-hover:rotate-[-2deg] lg:group-hover:shadow-[0_30px_60px_rgba(79,70,229,0.15)]">
+              <div class="flex items-center gap-1.5 px-4 py-3 border-b border-indigo-100/50 bg-white/50 rounded-t-2xl">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-400/80"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/80"></div>
+                <div class="w-2.5 h-2.5 rounded-full bg-green-400/80"></div>
+                <div class="ml-2 text-[10px] font-medium text-zinc-400">payment.service.ts</div>
+              </div>
+              <div class="p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-zinc-700 overflow-x-auto">
+                <span class="text-indigo-600 font-semibold">await</span> hockpay.<span
+                  class="text-emerald-600">payments</span>.create(&#123;<br />
+                &nbsp;&nbsp;amount: <span class="text-orange-500">25000</span>, <span class="text-zinc-400">// R$
+                  250,00</span><br />
+                &nbsp;&nbsp;paymentMethod: <span class="text-green-600">'pix'</span>,<br />
+                &nbsp;&nbsp;customer: &#123;<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;email: <span class="text-green-600">'user@app.com'</span><br />
+                &nbsp;&nbsp;&#125;<br />
+                &#125;);
+              </div>
+            </div>
+
+            <!-- Floating UI Card / Receipt (Right, Higher) -->
+            <div
+              class="absolute right-[-5%] lg:right-[-10%] top-[10%] lg:top-[15%] z-30 w-[220px] sm:w-[260px] lg:w-[280px] rounded-3xl border border-white/60 bg-white/85 backdrop-blur-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] p-6 transition-all duration-1000 lg:group-hover:-translate-y-6 lg:group-hover:translate-x-2 lg:group-hover:rotate-[3deg] lg:group-hover:shadow-[0_40px_80px_rgba(16,185,129,0.15)]">
+              <!-- Animated Success Icon -->
+              <div
+                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 mx-auto border-4 border-white shadow-sm ring-1 ring-emerald-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
               </div>
 
-              <!-- Dashboard Content Mock -->
-              <div class="p-6">
-                <!-- Top Nav inside Mock -->
-                <div class="flex items-center justify-between mb-8">
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v20" />
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-sm font-bold text-zinc-900 leading-tight">Dashboard</div>
-                      <div class="text-[10px] font-medium text-zinc-500">Workspace Principal</div>
-                    </div>
-                  </div>
-                  <div class="flex gap-2">
-                    <div
-                      class="w-8 h-8 rounded-full border border-zinc-200 bg-zinc-50 flex items-center justify-center shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        class="text-zinc-600" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                      </svg>
-                    </div>
-                  </div>
+              <div class="text-center">
+                <h4 class="text-sm font-bold text-zinc-900">Pagamento Confirmado</h4>
+                <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-1">Hockpay simulou o webhook</p>
+              </div>
+
+              <div class="mt-5 border-t border-dashed border-zinc-200 pt-5">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs text-zinc-500">Valor líquido</span>
+                  <span class="text-sm font-bold text-emerald-600">+ R$ 248,50</span>
                 </div>
-
-                <!-- Metrics Mock -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                  <div class="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-                    <div class="text-[11px] font-medium text-zinc-500 mb-1">Total em vendas</div>
-                    <div class="text-2xl font-bold text-zinc-900 tracking-tight">R$ 8.283,35</div>
-                    <div
-                      class="mt-2.5 flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-50 w-fit px-1.5 py-0.5 rounded-md">
-                      +12 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                        class="ml-0.5">
-                        <path d="m18 15-6-6-6 6" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-                    <div class="text-[11px] font-medium text-zinc-500 mb-1">Pedidos convertidos</div>
-                    <div class="text-2xl font-bold text-zinc-900 tracking-tight">652</div>
-                    <div
-                      class="mt-2.5 flex items-center text-[10px] font-semibold text-red-600 bg-red-50 w-fit px-1.5 py-0.5 rounded-md">
-                      -04 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                        class="ml-0.5">
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Chart Mock -->
-                <div
-                  class="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm h-[180px] flex flex-col pt-3 relative">
-                  <div class="flex items-center justify-between mb-4 px-1 z-10">
-                    <div class="text-xs font-semibold text-zinc-800 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="text-zinc-400">
-                        <path d="M3 3v18h18" />
-                        <path d="m19 9-5 5-4-4-3 3" />
-                      </svg>
-                      Desempenho
-                    </div>
-                    <div class="flex gap-1 bg-zinc-100/80 p-1 rounded-md">
-                      <div class="bg-white rounded shadow-sm text-[9px] font-bold px-2 py-1 text-zinc-700">Hoje</div>
-                      <div class="rounded text-[9px] font-medium px-2 py-1 text-zinc-500">Ontem</div>
-                    </div>
-                  </div>
-
-                  <!-- Area Chart Shape -->
-                  <div class="relative flex-1 mt-2 mx-1 flex items-end">
-                    <div
-                      class="absolute inset-0 top-auto h-full w-full bg-gradient-to-t from-emerald-100/60 to-transparent clip-path-chart z-0">
-                    </div>
-                    <!-- Simulated SVG Chart Line -->
-                    <svg viewBox="0 0 100 40" preserveAspectRatio="none"
-                      class="absolute inset-0 w-full h-full vector-effect-non-scaling-stroke z-10 overflow-visible">
-                      <path d="M0,35 Q5,30 10,32 T20,28 T30,34 T40,25 T50,15 T60,20 T70,5 T80,8 T90,12 T100,18"
-                        fill="none" class="stroke-emerald-400" stroke-width="2.5" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                      <circle cx="70" cy="5" r="2.5" class="fill-white stroke-emerald-500 border" stroke-width="1.5" />
-                      <circle cx="50" cy="15" r="2" class="fill-white stroke-emerald-400" stroke-width="1" />
-                      <circle cx="20" cy="28" r="1.5" class="fill-white stroke-emerald-400" stroke-width="1" />
-                    </svg>
-                  </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[9px] sm:text-[10px] text-zinc-400">Taxa (Pix simulado)</span>
+                  <span class="text-[9px] sm:text-[10px] text-zinc-400 font-medium">- R$ 1,50</span>
                 </div>
               </div>
             </div>
 
-            <!-- Floating Mobile Mockup -->
+            <!-- Floating Status Badge -->
             <div
-              class="absolute -bottom-14 -left-8 lg:-left-16 w-48 lg:w-56 h-[26rem] lg:h-[30rem] rounded-[2.5rem] border-[6px] border-zinc-900 bg-white shadow-2xl overflow-hidden z-20 transition-transform duration-700 hover:-translate-y-4">
-              <!-- Notch/Dynamic Island simulate -->
-              <div class="absolute top-2 left-1/2 -translate-x-1/2 w-[70px] h-5 bg-zinc-900 rounded-full z-30"></div>
-
-              <div class="h-8 w-full px-5 pt-3 flex justify-between absolute top-0 left-0 z-20">
-                <div class="text-[9px] text-zinc-900 font-bold tracking-tight">9:41</div>
-                <div class="flex gap-1 h-2.5 items-center text-zinc-900">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 18h20" />
-                    <path d="M5 14h14" />
-                    <path d="M8 10h8" />
-                    <path d="M11 6h2" />
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="16" height="10" x="2" y="7" rx="2" ry="2" />
-                    <path d="M22 11v2" />
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Mobile Content -->
-              <div class="pt-12 p-4 flex flex-col h-full bg-zinc-50/50">
-                <div class="flex justify-between items-center mb-6">
-                  <div class="flex items-center gap-2">
-                    <div class="text-[10px] font-bold text-zinc-900 flex items-center gap-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
-                        <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9" />
-                        <path d="M12 3v6" />
-                      </svg>
-                      Dashboard
-                    </div>
-                  </div>
-                  <div class="w-6 h-6 flex items-center justify-center text-zinc-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div class="mb-5 px-1">
-                  <div class="text-[9px] text-zinc-500 font-medium">Total em vendas</div>
-                  <div class="text-xl font-bold tracking-tight text-zinc-900">R$ 8.283,35</div>
-
-                  <div class="mt-4 flex w-full">
-                    <div class="h-20 w-full relative">
-                      <svg viewBox="0 0 100 40" preserveAspectRatio="none" class="absolute inset-0 w-full h-full">
-                        <path d="M0,35 Q10,30 20,32 T40,28 T60,25 T80,15 T100,5" fill="none" class="stroke-indigo-500"
-                          stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="space-y-2 mt-auto">
-                  <div class="text-[9px] font-bold text-zinc-800 mb-2 px-1">Transações Recentes</div>
-                  <div
-                    class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-zinc-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                    <div class="flex items-center gap-2.5">
-                      <div class="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="m18 15-6-6-6 6" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-[10px] font-bold text-zinc-900">Pix Recebido</div>
-                        <div class="text-[8px] font-medium text-emerald-600">Concluído agora</div>
-                      </div>
-                    </div>
-                    <div class="text-[11px] font-bold text-emerald-600">+ R$ 45,00</div>
-                  </div>
-                </div>
-
-                <!-- Home Indicator -->
-                <div class="w-full flex justify-center mt-6 mb-1">
-                  <div class="w-16 h-1 bg-zinc-800 rounded-full"></div>
-                </div>
-              </div>
+              class="absolute top-[45%] lg:top-[52%] right-[10%] lg:right-[2%] z-40 bg-zinc-900 border border-zinc-700 text-white text-[9px] sm:text-[10px] font-bold px-3 py-1.5 rounded-full shadow-xl flex items-center gap-1.5 transition-all duration-1000 lg:group-hover:translate-x-6 lg:group-hover:-translate-y-2">
+              <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+              WEBHOOK ENVIADO
             </div>
+
           </div>
         </div>
       </section>
@@ -317,9 +191,12 @@
 
     <!-- Powers/Visual Section (Batteries Included) -->
     <section
-      class="relative rounded-3xl overflow-hidden bg-zinc-900 text-zinc-50 shadow-2xl border border-zinc-800 p-8 md:p-12 lg:p-16">
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-transparent"></div>
-      <div class="relative grid lg:grid-cols-2 gap-12 items-center">
+      class="group relative rounded-3xl overflow-hidden bg-zinc-900 text-zinc-50 shadow-2xl border border-zinc-800 p-8 md:p-12 lg:p-16 transition-all duration-700 hover:border-zinc-700">
+      <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-zinc-900/90 to-zinc-900 z-0"></div>
+      <div
+        class="absolute top-0 right-0 -m-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] group-hover:bg-indigo-500/20 transition-colors duration-1000 z-0 pointer-events-none">
+      </div>
+      <div class="relative grid lg:grid-cols-2 gap-12 items-center z-10">
         <div class="space-y-6">
           <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Batteries Included. <br />Tudo o que você espera de
             um
@@ -361,96 +238,553 @@
             </li>
           </ul>
         </div>
-        <!-- Code Snippet Visual -->
+        <!-- Infrastructure X-Ray Visual -->
         <div
-          class="rounded-xl bg-black/60 border border-zinc-800 p-6 flex flex-col font-mono text-sm leading-relaxed overflow-x-auto shadow-inner">
-          <div class="flex gap-2 mb-4">
-            <div class="h-3 w-3 rounded-full bg-red-500"></div>
-            <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
-            <div class="h-3 w-3 rounded-full bg-green-500"></div>
+          class="relative w-full h-[350px] sm:h-[400px] lg:h-[500px] flex items-center justify-center perspective-[1000px] font-sans">
+
+          <!-- Connections (SVG) -->
+          <svg class="absolute inset-0 w-full h-full z-0 pointer-events-none" viewBox="0 0 400 500" fill="none"
+            preserveAspectRatio="xMidYMid slice">
+            <!-- Path 1: Central to DB (Left) -->
+            <path id="path-db" d="M 200 250 Q 200 350 70 420" stroke="url(#xray-grad-1)" stroke-width="2"
+              stroke-dasharray="4 4" class="opacity-40" />
+            <!-- Path 2: Central to Queue (Right) -->
+            <path id="path-queue" d="M 200 250 Q 200 350 330 420" stroke="url(#xray-grad-2)" stroke-width="2"
+              stroke-dasharray="4 4" class="opacity-40" />
+            <!-- Path 3: Top to Central -->
+            <path id="path-top" d="M 200 80 Q 200 150 200 250" stroke="url(#xray-grad-3)" stroke-width="2"
+              stroke-dasharray="4 4" class="opacity-40" />
+
+            <defs>
+              <linearGradient id="xray-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#818cf8" />
+                <stop offset="100%" stop-color="#34d399" />
+              </linearGradient>
+              <linearGradient id="xray-grad-2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#818cf8" />
+                <stop offset="100%" stop-color="#f87171" />
+              </linearGradient>
+              <linearGradient id="xray-grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#a78bfa" />
+                <stop offset="100%" stop-color="#818cf8" />
+              </linearGradient>
+            </defs>
+
+            <!-- Moving Dots -->
+            <circle r="4" fill="#34d399" class="animate-pulse">
+              <animateMotion dur="2.5s" repeatCount="indefinite" path="M 200 250 Q 200 350 70 420" />
+            </circle>
+            <circle r="4" fill="#f87171" class="animate-pulse">
+              <animateMotion dur="2s" repeatCount="indefinite" path="M 200 250 Q 200 350 330 420" />
+            </circle>
+            <circle r="4" fill="#a78bfa" class="animate-pulse">
+              <animateMotion dur="3s" repeatCount="indefinite" path="M 200 80 Q 200 150 200 250" />
+            </circle>
+          </svg>
+
+          <!-- Top Node: Webhooks / Client -->
+          <div class="absolute top-[5%] lg:top-[10%] z-10 flex flex-col items-center gap-2 group">
+            <div
+              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-indigo-500/50">
+              <svg class="text-indigo-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20" />
+                <path d="m17 5-5-3-5 3" />
+                <path d="m5 17 5 3 5-3" />
+              </svg>
+            </div>
+            <span class="text-[10px] font-medium text-zinc-400 tracking-widest uppercase">Client Request</span>
           </div>
-          <div class="text-zinc-300">
-            <span class="text-indigo-400">const</span>&nbsp;<span class="text-blue-300">payment</span> = <span
-              class="text-indigo-400">await</span> hockpay.<span class="text-yellow-200">payments</span>.<span
-              class="text-blue-200">create</span>(&#123;
-            <br />&nbsp;&nbsp;amount: <span class="text-orange-300">1500</span>, <span class="text-zinc-500">// R$
-              15,00</span>
-            <br />&nbsp;&nbsp;customer: &#123;
-            <br />&nbsp;&nbsp;&nbsp;&nbsp;name: <span class="text-green-300">'João Silva'</span>,
-            <br />&nbsp;&nbsp;&nbsp;&nbsp;email: <span class="text-green-300">'joao@email.com'</span>
-            <br />&nbsp;&nbsp;&#125;
-            <br />&#125;, &#123;
-            <br />&nbsp;&nbsp;headers: &#123; <span class="text-green-300">'Idempotency-Key'</span>: <span
-              class="text-green-300">'pedido-123'</span> &#125;
-            <br />&#125;);
-            <br /><br /><span class="text-indigo-400">console</span>.<span
-              class="text-blue-200">log</span>(payment.<span class="text-blue-300">pixQrCode</span>);
+
+          <!-- Bottom Left Node: Postgres -->
+          <div
+            class="absolute bottom-[5%] lg:bottom-[10%] left-[2%] lg:left-[5%] z-10 flex flex-col items-center gap-2 group">
+            <div
+              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-emerald-500/50">
+              <svg class="text-emerald-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+                <path d="M3 12A9 3 0 0 0 21 12" />
+              </svg>
+            </div>
+            <span class="text-[10px] font-medium text-emerald-400/80 tracking-widest uppercase">PostgreSQL</span>
+          </div>
+
+          <!-- Bottom Right Node: Redis / BullMQ -->
+          <div
+            class="absolute bottom-[5%] lg:bottom-[10%] right-[2%] lg:right-[5%] z-10 flex flex-col items-center gap-2 group">
+            <div
+              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-red-500/50">
+              <svg class="text-red-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <span class="text-[10px] font-medium text-red-400/80 tracking-widest uppercase">Redis Queue</span>
+          </div>
+
+          <!-- Center Node: The Code Block -->
+          <div
+            class="absolute z-30 w-[260px] sm:w-[320px] rounded-xl bg-black/80 backdrop-blur-xl border border-zinc-700/50 p-5 sm:p-6 font-mono text-[9px] sm:text-[11px] leading-relaxed shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-500 hover:border-indigo-500/40 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(79,70,229,0.2)]">
+            <div
+              class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500/20 text-indigo-300 text-[9px] px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
+              NestJS Core APIs
+            </div>
+            <div class="flex gap-2 mb-4">
+              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
+              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
+              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
+            </div>
+            <div class="text-zinc-300">
+              <span class="text-indigo-400">const</span>&nbsp;<span class="text-blue-300">payment</span> = <span
+                class="text-indigo-400">await</span> hockpay.<span class="text-yellow-200">payments</span>.<span
+                class="text-blue-200">create</span>(&#123;
+              <br />&nbsp;&nbsp;amount: <span class="text-orange-300">1500</span>, <span class="text-zinc-500">// R$
+                15,00</span>
+              <br />&nbsp;&nbsp;customer: &#123;
+              <br />&nbsp;&nbsp;&nbsp;&nbsp;name: <span class="text-green-300">'João Silva'</span>,
+              <br />&nbsp;&nbsp;&nbsp;&nbsp;email: <span class="text-green-300">'joao@email.com'</span>
+              <br />&nbsp;&nbsp;&#125;
+              <br />&#125;, &#123;
+              <br />&nbsp;&nbsp;headers: &#123; <span class="text-green-300">'Idempotency-Key'</span>: <span
+                class="text-green-300">'ped-123'</span> &#125;
+              <br />&#125;);
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="grid md:grid-cols-3 gap-8">
-      <div class="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
-        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-          </svg>
+    <!-- Features Section Bento Grid -->
+    <div class="mb-8 text-center max-w-2xl mx-auto pt-8">
+      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Tudo que você precisa para escalar</h2>
+      <p class="mt-4 text-lg text-zinc-600">Ferramentas essenciais para não deixar dinheiro na mesa.</p>
+    </div>
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Feature 1 -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
         </div>
-        <h3 class="mb-2 text-xl font-bold text-zinc-900">Integração Simples</h3>
-        <p class="text-zinc-600 leading-relaxed">
-          APIs construídas pensando na Developer Experience. Sem complexidade desnecessária para colocar seu negócio
-          para
-          rodar rapidinho.
-        </p>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+              <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+              <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Integração Simples</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            APIs construídas pensando na Developer Experience. Sem complexidade desnecessária para colocar seu negócio
+            para rodar rapidinho.
+          </p>
+        </div>
       </div>
 
-      <div class="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
-        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-          </svg>
+      <!-- Feature 2 (Spans 2 columns on lg) -->
+      <div
+        class="group lg:col-span-2 rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col justify-center">
+        <!-- Ambient hover glow -->
+        <div
+          class="absolute -bottom-10 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
         </div>
-        <h3 class="mb-2 text-xl font-bold text-zinc-900">Webhooks Resilientes</h3>
-        <p class="text-zinc-600 leading-relaxed">
-          Não perca nenhuma conversão. Nosso sistema de webhooks conta com retries automáticos garantidos por Redis e
-          BullMQ no padrão Outbox para avisar o seu servidor.
-        </p>
+        <div class="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
+          <div
+            class="shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="mb-2 text-2xl font-bold text-zinc-900">Webhooks Resilientes</h3>
+            <p class="text-zinc-600 leading-relaxed max-w-lg">
+              Não perca nenhuma conversão. Nosso sistema de webhooks conta com retries automáticos garantidos por Redis
+              e BullMQ no padrão Outbox para avisar o seu servidor.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div class="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
-        <div class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-            <line x1="3" x2="21" y1="9" y2="9" />
-            <line x1="9" x2="9" y1="21" y2="9" />
-          </svg>
+      <!-- Feature 3 -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
         </div>
-        <h3 class="mb-2 text-xl font-bold text-zinc-900">Dashboard Completo</h3>
-        <p class="text-zinc-600 leading-relaxed">
-          Gerencie suas chaves de API, configure endpoints de webhooks e acompanhe todas as transações, tudo numa
-          interface limpa.
-        </p>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+              <line x1="3" x2="21" y1="9" y2="9" />
+              <line x1="9" x2="9" y1="21" y2="9" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Dashboard Completo</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Gerencie suas chaves de API, configure endpoints de webhooks e acompanhe todas as transações, tudo numa
+            interface limpa.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 4: Idempotência Nativa -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+        </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Idempotência Nativa</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Evite cobranças duplicadas com um sistema robusto garantido desde a primeira requisição. Segurança
+            transacional em todas as rotas.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 5: Dev Mode -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+        </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m18 16 4-4-4-4" />
+              <path d="m6 8-4 4 4 4" />
+              <path d="m14.5 4-5 16" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Dev Mode</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Simule cenários de sucesso, falha e expiração como em um gateway de verdade. Teste edge-cases sem envolver
+            dinheiro real.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 6: Escalável por Design -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+        </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+              <path d="M3 12A9 3 0 0 0 21 12" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Escalável por Design</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Arquitetura construída com NestJS, PostgreSQL e filas distribuídas para alta performance e confiabilidade na
+            entrega de eventos.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 7: Checkout White-label (Converted to col-span-1) -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col h-full">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+        </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Checkout Hospedado</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Ofereça uma página de pagamento profissional customizável ou integre as transações nativamente no frontend.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 8: Ambiente Sandbox Isolado -->
+      <div
+        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col h-full">
+        <div
+          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+        </div>
+        <div class="relative z-10 flex flex-col h-full">
+          <div
+            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M12 12 4 8" />
+              <path d="m12 12 8-4" />
+              <path d="M12 2v10" />
+            </svg>
+          </div>
+          <h3 class="mb-3 text-xl font-bold text-zinc-900">Ambiente Sandbox</h3>
+          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
+            Gere tokens falsos, force cenários de erro e valide toda a jornada transacional em um ambiente idêntico à
+            produção.
+          </p>
+        </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="rounded-3xl bg-indigo-50 px-6 py-16 text-center sm:px-12 mt-8 mb-16 border border-indigo-100">
-      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Pronto para simular seus pagamentos?</h2>
-      <p class="mx-auto mt-4 max-w-2xl text-lg text-indigo-900/70">
-        Crie sua conta de integrador e comece a gerar chaves de API para testar sua aplicação imediatamente.
-      </p>
-      <div class="mt-8 flex justify-center">
-        <a routerLink="/login"
-          class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white hover:bg-indigo-700 h-12 px-8 py-2 w-full sm:w-auto shadow-sm">
-          Criar Conta Gratuita
-        </a>
+    <!-- The Flow Section -->
+    <section class="py-16 mt-8 max-w-5xl mx-auto px-4 sm:px-6 relative">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Integração à prova de balas</h2>
+        <p class="mt-4 text-lg text-zinc-600">Simule seu fluxo em 3 passos básicos para colocar o checkout no ar.</p>
+      </div>
+
+      <div class="relative grid md:grid-cols-3 gap-8">
+        <!-- Connecting Line (Desktop) -->
+        <div
+          class="hidden md:block absolute top-[40px] left-[16%] right-[16%] h-0.5 border-t-2 border-dashed border-zinc-200 z-0">
+          <div
+            class="absolute top-[-2px] left-0 h-0.5 bg-indigo-500 w-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-1000">
+          </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="relative z-10 flex flex-col items-center text-center group">
+          <div
+            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2">
+            1
+          </div>
+          <h3 class="text-xl font-bold text-zinc-900 mb-2">Crie sua chave</h3>
+          <p class="text-zinc-600 text-sm max-w-[200px]">Gere as credenciais seguras na dashboard para o seu ambiente de
+            sandbox.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative z-10 flex flex-col items-center text-center group">
+          <div
+            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2 delay-100">
+            2
+          </div>
+          <h3 class="text-xl font-bold text-zinc-900 mb-2">Integre o core</h3>
+          <p class="text-zinc-600 text-sm max-w-[200px]">Consuma via API REST no Angular ou checkout nativo via Next.js
+            sem dores de cabeça.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative z-10 flex flex-col items-center text-center group">
+          <div
+            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2 delay-200">
+            3
+          </div>
+          <h3 class="text-xl font-bold text-zinc-900 mb-2">Receba Webhooks</h3>
+          <p class="text-zinc-600 text-sm max-w-[200px]">Testes eventos assíncronos em tempo real com entrega garantida
+            e simulada.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack Marquee Section -->
+    <style>
+      @keyframes marquee {
+        0% {
+          transform: translateX(0%);
+        }
+
+        100% {
+          transform: translateX(-50%);
+        }
+      }
+
+      .animate-marquee {
+        animation: marquee 40s linear infinite;
+      }
+    </style>
+    <section
+      class="py-12 border-y border-zinc-200/50 overflow-hidden relative mt-8 -mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-16 2xl:-mx-24 px-4 sm:px-0 bg-zinc-50/50">
+      <div
+        class="absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-zinc-50 to-transparent z-10 pointer-events-none">
+      </div>
+      <div
+        class="absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-zinc-50 to-transparent z-10 pointer-events-none">
+      </div>
+
+      <div class="flex animate-marquee w-max items-center">
+        <!-- Group 1 -->
+        <div
+          class="flex items-center justify-around w-max px-12 gap-16 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg> NestJS</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m12 2-9 4.3 1.5 11.5L12 22l7.5-4.2L21 6.3 12 2z" />
+              <path d="M12 5.5l-6 10.5h2.5l1.5-3h4l1.5 3h2.5L12 5.5z" />
+            </svg> Angular</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-black"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg> Next.js</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M8 12h8" />
+              <path d="M12 8v8" />
+            </svg> TypeScript</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-emerald-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+              <path d="M3 12A9 3 0 0 0 21 12" />
+            </svg> PostgreSQL</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m18 16 4-4-4-4" />
+              <path d="m6 8-4 4 4 4" />
+              <path d="m14.5 4-5 16" />
+            </svg> Redis</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-rose-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg> BullMQ</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+              <path
+                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+            </svg> Docker</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-indigo-700"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 22 22 22" />
+            </svg> Prisma</span>
+        </div>
+        <!-- Group 2 (Duplicate for infinite flow) -->
+        <div
+          class="flex items-center justify-around w-max px-12 gap-16 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg> NestJS</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m12 2-9 4.3 1.5 11.5L12 22l7.5-4.2L21 6.3 12 2z" />
+              <path d="M12 5.5l-6 10.5h2.5l1.5-3h4l1.5 3h2.5L12 5.5z" />
+            </svg> Angular</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-black"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg> Next.js</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M8 12h8" />
+              <path d="M12 8v8" />
+            </svg> TypeScript</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-emerald-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3" />
+              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+              <path d="M3 12A9 3 0 0 0 21 12" />
+            </svg> PostgreSQL</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m18 16 4-4-4-4" />
+              <path d="m6 8-4 4 4 4" />
+              <path d="m14.5 4-5 16" />
+            </svg> Redis</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-rose-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg> BullMQ</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-500"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+              <path
+                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+            </svg> Docker</span>
+          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-indigo-700"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 2 22 22 22" />
+            </svg> Prisma</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section: The Launchpad -->
+    <section
+      class="relative overflow-hidden rounded-3xl bg-zinc-950 px-6 py-20 text-center sm:px-12 mt-8 mb-16 border border-zinc-800 shadow-2xl group cursor-default">
+      <!-- Deep starfield subtle background -->
+      <div
+        class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-950 to-zinc-950 -z-10">
+      </div>
+
+      <!-- Massive Sunrise Glow -->
+      <div
+        class="absolute -bottom-[50%] left-1/2 -translate-x-1/2 w-full max-w-4xl h-[600px] bg-indigo-600/30 rounded-full blur-[140px] pointer-events-none transition-all duration-1000 group-hover:bg-indigo-500/40">
+      </div>
+
+      <!-- Floating Particles -->
+      <div class="absolute top-[20%] left-[15%] w-1.5 h-1.5 rounded-full bg-white/30 animate-pulse"></div>
+      <div class="absolute top-[40%] right-[20%] w-2 h-2 rounded-full bg-indigo-400/30 animate-pulse"
+        style="animation-delay: 1s;"></div>
+      <div class="absolute bottom-[30%] left-[25%] w-2.5 h-2.5 rounded-full bg-emerald-400/20 animate-pulse"
+        style="animation-delay: 2s;"></div>
+
+      <div class="relative z-10">
+        <h2 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl mb-6">
+          Sua rampa de <span
+            class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">lançamento</span>.
+        </h2>
+        <p class="mx-auto mt-4 max-w-2xl text-lg md:text-xl text-zinc-400">
+          Crie sua conta de desenvolvedor agora mesno, gere suas chaves de API restritas e desfrute de <strong>testes
+            ilimitados</strong> para escalar sem medo.
+        </p>
+        <div class="mt-10 flex justify-center">
+          <a routerLink="/login"
+            class="group/btn relative inline-flex items-center justify-center gap-3 rounded-xl text-base font-bold transition-all focus-visible:outline-none bg-indigo-600 text-white hover:bg-indigo-500 h-14 px-10 w-full sm:w-auto shadow-[0_0_40px_rgba(79,70,229,0.3)] hover:shadow-[0_0_60px_rgba(79,70,229,0.6)] hover:-translate-y-1 overflow-hidden ring-1 ring-white/10">
+            <!-- Button inner subtle gradient -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+
+            <span class="relative z-10 flex items-center gap-2">
+              Iniciar Integração ⚡
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                class="transition-transform duration-300 group-hover/btn:translate-x-1.5">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </span>
+          </a>
+        </div>
+        <p class="mt-6 text-sm text-zinc-500">Sem cartão de crédito. Simule o quanto quiser.</p>
       </div>
     </section>
   </div>

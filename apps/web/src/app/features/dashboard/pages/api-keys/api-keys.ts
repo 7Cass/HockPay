@@ -1,23 +1,188 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ApiKeyService, ApiKey, Environment } from '../../../../core/services/api-key.service';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
+
+// Spartan UI
+import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { HlmTableImports } from '@spartan-ng/helm/table';
+import { HlmBadgeImports } from '@spartan-ng/helm/badge';
+import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
+
+// Icons
+import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { HlmIconImports } from '@spartan-ng/helm/icon';
+import {
+  lucideRefreshCcw,
+  lucidePlus,
+  lucideTrash2,
+  lucideKey,
+  lucideXCircle,
+  lucideCheck,
+  lucideCopy,
+  lucideAlertTriangle
+} from '@ng-icons/lucide';
 
 @Component({
-    selector: 'app-api-keys',
-    standalone: true,
-    template: `
-    <div class="flex flex-col gap-6">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Chaves de API</h1>
-        <p class="text-sm text-zinc-500 mt-1">Crie e gerencie chaves para integração com nosso Gateway.</p>
-      </div>
-
-      <div class="flex-1 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/50 flex flex-col items-center justify-center py-24 text-center">
-        <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>
-        </div>
-        <h3 class="text-lg font-semibold text-zinc-900 mb-1">Página em Construção</h3>
-        <p class="text-sm text-zinc-500 max-w-sm">Você poderá criar chaves PK_TEST e SK_TEST para transacionar no Sandbox de desenvolvimento em breve.</p>
-      </div>
-    </div>
-  `
+  selector: 'app-api-keys',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DatePipe,
+    // UI Components
+    ...HlmButtonImports,
+    ...HlmTableImports,
+    ...HlmBadgeImports,
+    ...HlmSpinnerImports,
+    NgIconComponent,
+    HlmIconImports,
+    ...DialogImports
+  ],
+  viewProviders: [
+    provideIcons({
+      lucideRefreshCcw,
+      lucidePlus,
+      lucideTrash2,
+      lucideKey,
+      lucideXCircle,
+      lucideCheck,
+      lucideCopy,
+      lucideAlertTriangle
+    })
+  ],
+  templateUrl: './api-keys.html'
 })
-export class ApiKeys { }
+export class ApiKeys implements OnInit {
+  private readonly apiKeyService = inject(ApiKeyService);
+
+  // State Signals
+  testKeys = signal<ApiKey[]>([]);
+  isLoading = signal<boolean>(true);
+  error = signal<string | null>(null);
+
+  // Creation State
+  isCreating = signal<boolean>(false);
+  newKeyName = new FormControl('', [Validators.required, Validators.minLength(3)]);
+  createDialogState = signal<'closed' | 'open'>('closed');
+
+  // Secret Key Modal State
+  newSecretKey = signal<string>('');
+  copied = signal<boolean>(false);
+  secretDialogState = signal<'closed' | 'open'>('closed');
+
+  // Revoke Dialog State
+  keyToRevoke = signal<{ id: string; name: string } | null>(null);
+  revokeDialogState = signal<'closed' | 'open'>('closed');
+  isRevoking = signal<boolean>(false);
+
+  ngOnInit() {
+    this.loadKeys();
+  }
+
+  openCreateDialog() {
+    this.createDialogState.set('open');
+  }
+
+  closeCreateDialog() {
+    this.createDialogState.set('closed');
+    this.newKeyName.reset();
+  }
+
+  closeSecretDialog() {
+    this.secretDialogState.set('closed');
+  }
+
+  openRevokeDialog(id: string, name: string) {
+    this.keyToRevoke.set({ id, name });
+    this.revokeDialogState.set('open');
+  }
+
+  closeRevokeDialog() {
+    this.revokeDialogState.set('closed');
+    // small delay to let the dialog animation close before nullifying content
+    setTimeout(() => this.keyToRevoke.set(null), 200);
+  }
+
+  loadKeys() {
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.testKeys.set([]);
+
+    this.apiKeyService.list().subscribe({
+      next: (response) => {
+        // We simulate applying the DEV MODE toggle by filtering locally for TEST keys 
+        const testKeysOnly = response.apiKeys.filter(k => k.environment === Environment.TEST);
+        this.testKeys.set(testKeysOnly);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load api keys', err);
+        this.error.set('Houve um erro ao se comunicar com o servidor. Tente novamente mais tarde.');
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  createKey() {
+    if (this.newKeyName.invalid) return;
+
+    this.isCreating.set(true);
+    const keyName = this.newKeyName.value!;
+
+    this.apiKeyService.create({ name: keyName, environment: Environment.TEST }).subscribe({
+      next: (response) => {
+        // Reset creating state
+        this.isCreating.set(false);
+        this.newKeyName.reset();
+
+        // Add the new key to the local list (stripping the plainKey)
+        const newKeyEntity: ApiKey = { ...response, plainKey: undefined } as any;
+        this.testKeys.update(keys => [newKeyEntity, ...keys]);
+
+        // Show the one-time plain key in the modal explicitly
+        this.newSecretKey.set(response.plainKey);
+        this.copied.set(false);
+
+        // Hide create dialog and show secret dialog via Signals
+        this.createDialogState.set('closed');
+        this.secretDialogState.set('open');
+      },
+      error: (err) => {
+        this.isCreating.set(false);
+        console.error('Failed to create api key', err);
+        alert('Falha ao criar chave de API. Tente novamente.');
+      }
+    });
+  }
+
+  revokeKey() {
+    const key = this.keyToRevoke();
+    if (!key) return;
+
+    this.isRevoking.set(true);
+
+    this.apiKeyService.revoke(key.id).subscribe({
+      next: () => {
+        this.isRevoking.set(false);
+        this.closeRevokeDialog();
+        this.loadKeys();
+      },
+      error: (err) => {
+        this.isRevoking.set(false);
+        console.error('Failed to revoke api key', err);
+        alert('Falha ao revogar chave de API.');
+      }
+    });
+  }
+
+  copyToClipboard() {
+    if (!this.newSecretKey()) return;
+
+    navigator.clipboard.writeText(this.newSecretKey()).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 3000);
+    });
+  }
+}
