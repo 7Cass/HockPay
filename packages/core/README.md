@@ -1,107 +1,80 @@
-# @hockpay/core
+# 🧠 `@hockpay/core`
 
-Camada de domínio e aplicação do Hockpay, seguindo Clean Architecture.
+Este pacote é o coração do Hockpay. Seguindo os princípios da **Clean Architecture (Arquitetura Limpa)**, ele isola completamente as regras de negócio das tecnologias de entrega (HTTP, Banco de Dados, UI, Filas). 
 
-## Estrutura
+> Zero dependências de frameworks como NestJS, Express ou bibliotecas de banco como Prisma. O Core é puro TypeScript.
 
+## 🏗️ Estrutura de Diretórios
+
+O código é unicamente dividido em duas camadas principais:
+
+### 1. `domain/` (Círculo mais interno)
+Não tem conhecimento da existência de nenhuma outra camada do software.
+- **Entidades**: Lógica agregadora, encapsula estado. Ex: `Payment`, `Merchant`, `WebhookConfig`.
+- **Value Objects**: Objetos imutáveis com validação própria. Ex: `Money`, `PixKey`, `Email`.
+- **Domain Events**: Eventos engatilhados por mudanças de domínio. Ex: `payment.confirmed`.
+- **Errors**: Erros tratáveis de domínio (ex: `InvalidStatusTransitionError`).
+- **Repositories (Interfaces)**: Contratos determinando como a infraestrutura **deve** lidar com persistência de dados.
+
+### 2. `application/` (Camada de Casos de Uso)
+Orquestra o domínio. Tem dependência exclusiva da pasta `domain/`.
+- **Use Cases**: O fluxo do processo de negócio em si. Ex: `CreatePaymentUseCase`, `ConfirmPaymentUseCase`.
+- **Services**: Lógica de aplicação compartilhada por Casos de Uso.
+- **Ports**: Interfaces de infraestrutura adicionais (Queue, Cache, HashProvider).
+
+## 🔀 Regra de Dependência (Inversão de Controle)
+
+A arquitetura dita a direção do acoplamento:
+```text
+(Core) Domain ← Application ← // Limite do Pacote // ← Infrastructure ← Presentation
 ```
-src/
-├── domain/           # Camada de domínio (sem dependências externas)
-│   ├── entities/     # Entidades de negócio
-│   ├── value-objects/# Objetos de valor
-│   ├── repositories/ # Interfaces de repositories
-│   ├── events/       # Domain events
-│   ├── errors/       # Erros de domínio
-│   └── constants/    # Constantes de domínio
-│
-└── application/      # Camada de aplicação
-    ├── use-cases/    # Casos de uso
-    ├── services/     # Serviços de aplicação
-    └── ports/        # Interfaces para infraestrutura
-```
 
-## Regra de Dependência
+A infraestrutura e os controllers (ver `apps/api`) devem se adaptar ao Core implementando suas interfaces (Ports/Repositories), e nunca o contrário.
 
-```
-Domain → Application → Infrastructure ← Presentation
-```
+## 🔑 Principais Entidades
 
-- **Domain** não depende de nada externo
-- **Application** depende apenas de Domain
-- **Infrastructure** implementa interfaces de Application
+| Agregado / Entidade | Descrição do Estado |
+|---------------------|---------------------|
+| `Merchant` | Representação do usuário e credenciais no sistema. |
+| `Store` | Contexto de loja para um merchant. |
+| `ApiKey` | Identificador público para ambiente (Live/Test). |
+| `Payment` | Máquina de estados da transação Pix (PENDING, CONFIRMED, EXPIRED, FAILED). |
+| `Account` / `Transaction` | Conta financeira virtual e histórico de movimentações. |
+| `OutboxEvent` / `WebhookLog` | Eventos atrelados ao disparo resiliente de Webhooks. |
 
-## Entidades
-
-| Entidade | Descrição |
-|----------|-----------|
-| `Merchant` | Conta do usuário |
-| `Store` | Loja do merchant |
-| `ApiKey` | Chave de API |
-| `Customer` | Cliente da loja |
-| `Payment` | Transação Pix |
-| `Account` | Conta financeira |
-| `Transaction` | Movimentação |
-| `WebhookConfig` | Configuração de webhook |
-| `WebhookLog` | Log de entrega |
-| `OutboxEvent` | Evento para outbox pattern |
-| `IdempotencyKey` | Cache de idempotência |
-
-## Use Cases
-
-### Autenticação
-
-| Use Case | Descrição |
-|----------|-----------|
-| `LoginUseCase` | Autenticar merchant |
-| `LogoutUseCase` | Invalidar sessão |
-| `RefreshTokenUseCase` | Renovar access token |
-
-### Pagamentos
-
-| Use Case | Descrição |
-|----------|-----------|
-| `CreatePaymentUseCase` | Criar novo pagamento |
-| `ConfirmPaymentUseCase` | Confirmar pagamento |
-| `ExpirePaymentUseCase` | Expirar pagamento |
-| `FailPaymentUseCase` | Marcar como falho |
-| `ReleasePaymentUseCase` | Liberar para saque |
-
-### Webhooks
-
-| Use Case | Descrição |
-|----------|-----------|
-| `ProcessWebhookUseCase` | Processar webhook |
-| `CreateWebhookConfigUseCase` | Criar configuração |
-| `TestWebhookConfigUseCase` | Testar endpoint |
-
-## Exemplo de Uso
+## 💻 Exemplo Prático (Uso de Caso)
 
 ```typescript
 import { CreatePaymentUseCase, PaymentRepository } from '@hockpay/core';
 
-// Em um controller ou service
+// Dependências injetadas (implementadas fora do Core)
+const createPaymentUseCase = new CreatePaymentUseCase(
+  paymentRepository, 
+  qrCodeGenerator,
+  idempotencyService
+);
+
+// Execução pura da regra de negócio
 const result = await createPaymentUseCase.execute({
-  storeId: 'store-uuid',
-  amount: 1500,
+  merchantId: 'merchant-uuid',
+  amount: 1500, // 15.00 BRL
+  currency: 'BRL',
   customer: {
-    name: 'João Silva',
-    email: 'joao@email.com',
-    document: '12345678900'
+    name: 'Jane Doe',
+    email: 'jane@email.com',
+    document: '12345678900' // CPF
   }
 });
-
-console.log(result.payment.id);       // UUID do pagamento
-console.log(result.payment.pixQrCode); // QR Code Pix
 ```
 
-## Scripts
+## 🛠️ Comandos Locais
 
 ```bash
-pnpm build     # Build com tsup
-pnpm test      # Testes com Vitest
-pnpm test:cov  # Cobertura de testes
+pnpm build     # Build via TSUp (Gera /dist em ESM/CJS)
+pnpm test      # Roda suíte unitária pura (Vitest)
+pnpm test:cov  # Cobertura de testes exigida > 85%
 ```
 
 ---
 
-[Voltar para README principal](../../README.md)
+[⬅️ Voltar para o monorepo raiz](../../README.md)

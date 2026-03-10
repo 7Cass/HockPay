@@ -1,59 +1,44 @@
-# Web
+# 💻 `@hockpay/web`
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.0-rc.0.
+[![Angular](https://img.shields.io/badge/Angular-21+-red.svg)](https://angular.dev/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-blue.svg)](https://tailwindcss.com/)
+[![Spartan UI](https://img.shields.io/badge/Spartan_UI-Brain-black.svg)](https://www.spartan.ng/)
 
-## Development server
+Aplicação front-end principal do Hockpay construída com **Angular**. Ela encapsula tanto o site público de marketing quanto a área logada do sistema.
 
-To start a local development server, run:
+## 🎯 Arquitetura de Features
 
-```bash
-ng serve
-```
+A base de código segue uma separação estrita por módulos (features), utilizando o ecossistema reativo do Angular e TailwindCSS para estilos utilitários.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+| Feature Area | Caminho | Descrição |
+|--------------|---------|-----------|
+| **Landing** | `src/app/features/landing` | Páginas estáticas de marketing, preços e guia ágil de API para devs interessados em integrar o Hockpay. |
+| **Auth** | `src/app/features/auth` | Telas de SignIn e SignUp do merchant com formulários reativos. Comunica-se via cookies HttpOnly com a API. |
+| **Dashboard** | `src/app/features/dashboard` | Área logada rica em dados para o lojista: gráficos via *ApexCharts*, listagem de pagamentos e painel e configuração de Webhooks/API Keys. |
 
-## Code scaffolding
+A camada de componentes visuais brutos (`libs/`) abriga a ponte entre o design system base e a camada de Headless UI **Spartan-ng**, gerando componentes reutilizáveis, acessíveis e elegantes.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## 🎨 Integrações & Ferramentas Visuais
 
-```bash
-ng generate component component-name
-```
+- **Spartan UI (Brain)**: Primitivas headless e de acessibilidade providas ao Angular, unificadas ao utilitário `CVA` (Class Variance Authority) para manter consistência das variantes Tailwind.
+- **ApexCharts** (`ng-apexcharts`): Para componentes de gráficos reativos de alta performance exibidos no Dashboard.
+- **Lucide Icons** (`@ng-icons/lucide`): Set padrão de ícones escaláveis integrados nativamente.
+- **Tailwind v4**: Carregamento instantâneo via PostCSS e nova sintaxe para gestão de temas e cores.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## 🔌 Reatividade
 
-```bash
-ng generate --help
-```
+Priorizamos fortemente *Control Flow* estrutural (ex: `@if`, `@for`) em detrimento de diretivas estruturais antigas. O manuseio de estado assíncrono é tratado com os novos Signals (`signal()`, `computed()`, `effect()`) aliando performance à sintaxe limpa.
 
-## Building
+## 💻 Comandos Locais
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Estes comandos podem ser rodados dentro da pasta `apps/web`:
 
 ```bash
-ng test
+pnpm dev          # Iniciar o ng serve (localhost:4200)
+pnpm build        # Build otimizado de produção
+pnpm test         # Executar suíte de testes (`vitest` configurado)
 ```
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+[⬅️ Voltar para o monorepo raiz](../../README.md)

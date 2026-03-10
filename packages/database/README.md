@@ -1,97 +1,57 @@
-# @hockpay/database
+# 🗄️ `@hockpay/database`
 
-Schema Prisma e migrations do Hockpay.
+[![Prisma](https://img.shields.io/badge/Prisma-6+-blue.svg)](https://www.prisma.io/)
 
-## Estrutura
+Este pacote é a fonte única de verdade para a persistência de estado do Hockpay. Ele centraliza as credenciais de conexão, de modelagem de dados, esquemas relacionais, e *migrations* geridas exclusivamente pelo **Prisma ORM**.
 
-```
-├── prisma/
-│   ├── schema.prisma     # Schema do banco
-│   ├── migrations/       # Migrations geradas
-│   └── seed.ts           # Dados iniciais
-│
-└── src/
-    ├── index.ts          # Exports
-    ├── prisma.service.ts # Serviço NestJS
-    └── generated/        # Prisma Client gerado
-```
+Ao manter o banco de dados como um pacote separado da API, garantimos que qualquer outro serviço (como as rotinas isoladas no worker ou lambdas de relatórios) consiga referenciar o mesmo `schema.prisma` com typesafety completo, unificando a experiência de desenvolvimento no monorepo e aderindo aos princípios de Clean Architecture.
 
-## Modelos
+## 🗃️ Arquitetura de Dados Principal
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Merchant   │────<│    Store    │────<│   ApiKey    │
-└─────────────┘     └─────────────┘     └─────────────┘
-                          │
-                          │
-    ┌─────────────────────┼─────────────────────┐
-    │                     │                     │
-    ▼                     ▼                     ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Account   │     │  Customer   │     │ WebhookCfg  │
-└─────────────┘     └─────────────┘     └─────────────┘
-    │                     │
-    │                     │
-    ▼                     ▼
-┌─────────────┐     ┌─────────────┐
-│ Transaction │     │   Payment   │
-└─────────────┘     └─────────────┘
-```
+O schema está configurado para consumir um **PostgreSQL 15+**. O cerne relacional gira em torno:
 
-## Enums
+- `Merchant`: Logista autônomo (SaaS Owner).
+- `Payment`: Mapeia um payload de pagamento de transação Pix com seus status rígidos (`PENDING`, `CONFIRMED`, `EXPIRED`, `FAILED`).
+- `WebhookConfig` e `WebhookLog`: Lida com configurações URLs de notificador e logs de delivery com tentativas (`Outbox Pattern`).
+- `ApiKey` e `IdempotencyKey`: Aspectos críticos de segurança para integradores.
 
-| Enum | Valores |
-|------|---------|
-| `Environment` | `TEST`, `LIVE` |
-| `PaymentStatus` | `PENDING`, `CONFIRMED`, `RELEASED`, `EXPIRED`, `FAILED`, `REFUNDED` |
-| `RefundStatus` | `PENDING`, `PROCESSED`, `FAILED` |
-| `WithdrawalStatus` | `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED` |
-| `TransactionType` | `PAYMENT_RECEIVED`, `PAYMENT_RELEASED`, `REFUND_DEDUCTED`, ... |
-| `PixKeyType` | `CPF`, `CNPJ`, `EMAIL`, `PHONE`, `RANDOM` |
-| `OutboxStatus` | `PENDING`, `PROCESSED`, `FAILED` |
+*💡 Para verificação profunda do ER e diagramas, leia o [DATA_MODELING.md](../../DATA_MODELING.md) na raiz do projeto.*
 
-## Comandos Prisma
+## 💻 Comandos e CLI do Prisma
+
+Os scripts a seguir devem ser rodados a partir **desta pasta (`packages/database`)**:
 
 ```bash
-pnpm db:generate         # Gera Prisma Client
-pnpm db:migrate:dev      # Cria e roda migration (dev)
-pnpm db:migrate:deploy   # Deploya migrations (prod)
-pnpm db:push             # Push schema (sem migration)
-pnpm db:studio           # Abre Prisma Studio
-pnpm db:seed             # Popula dados iniciais
+# Sincroniza o cliente do Prisma com o schema local
+pnpm run db:generate
+
+# Roda novas migrations contra a base configurada no .env
+pnpm run db:migrate:dev
+
+# Roda todas as automações pendentes de build/release
+# (É o que usualmente se executa em CI/CD)
+pnpm run db:migrate:deploy
+
+# Sincroniza schema local com BD sem gerar arquivos de migration 
+# (Ideal apensa para desenvolvimento prematuro exploratório)
+pnpm run db:push
+
+# Inicializa o Studio UI do Prisma na porta local (ótimo para debugging dos dados)
+pnpm run db:studio
+
+# Povoa o banco com o arquivo de Seed
+pnpm run db:seed
 ```
 
-## Uso
+## 🔌 Importação do Cliente
+
+Os demais scripts do workspace (ex. `@hockpay/infrastructure`) nunca chamam o NPM global do `@prisma/client`, mas requerem este pacote sob a dependência:
 
 ```typescript
-import { PrismaService, PaymentStatus } from '@hockpay/database';
-
-@Module({
-  providers: [PrismaService],
-})
-export class AppModule {}
-
-// Em um service
-const payment = await this.prisma.payment.findUnique({
-  where: { id: 'payment-uuid' },
-  include: { customer: true, items: true }
-});
-
-const pending = await this.prisma.payment.count({
-  where: { status: PaymentStatus.PENDING }
-});
+import { PrismaClient } from '@hockpay/database';
+const prisma = new PrismaClient();
 ```
-
-## Relacionamentos Principais
-
-- **Merchant** → Stores (1:N)
-- **Store** → ApiKeys, Customers, Payments, WebhookConfigs (1:N)
-- **Store** → Account (1:1)
-- **Account** → Transactions, Withdrawals (1:N)
-- **Customer** → Payments (1:N)
-- **Payment** → PaymentItems, WebhookLogs, Refund (1:N)
-- **WebhookConfig** → WebhookLogs (1:N)
 
 ---
 
-[Voltar para README principal](../../README.md) | [Ver DATA_MODELING.md](../../DATA_MODELING.md)
+[⬅️ Voltar para o monorepo raiz](../../README.md)

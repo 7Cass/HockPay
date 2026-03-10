@@ -1,79 +1,45 @@
-# @hockpay/api
+# 🚀 `@hockpay/api`
 
 [![NestJS](https://img.shields.io/badge/NestJS-11-red.svg)](https://nestjs.com/)
 
-API REST principal do Hockpay. Responsável por expor endpoints de pagamentos, webhooks e autenticação.
+API REST principal do **Hockpay**. Ela atua como a camada de *Presentation* e um *API Gateway*, expondo os endpoints essenciais para merchants manipularem pagamentos, webhooks e integrações. A API confia a lógica de negócios pesada aos pacotes `@hockpay/core` (Domain/Application) e delega a comunicação de dados ao `@hockpay/infrastructure`.
 
-## Módulos
+## 📂 Arquitetura e Módulos
+
+Esta aplicação usa o ecossistema NestJS, organizando-se em módulos coesos que representam os diferentes domínios e contextos do negócio.
 
 | Módulo | Descrição |
 |--------|-----------|
-| `auth` | Login, logout, refresh token |
-| `merchant` | Gestão de contas |
-| `store` | Gestão de lojas |
-| `api-key` | Gestão de API keys |
-| `customer` | Gestão de clientes |
-| `payment` | Criação e consulta de pagamentos |
-| `webhook` | Configuração de webhooks |
-| `idempotency` | Cache de requisições idempotentes |
+| `account` | Gestão de saldos virtuais das lojas associadas ao merchant. |
+| `api-key` | Emissão e validação de chaves de acesso públicas (API Keys). |
+| `auth` | Sistema de login interno, logout e refresh tokens (Dashboard). |
+| `bank-account` | Gestão de contas bancárias reais para transferência de fundos. |
+| `customer` | Gestão de perfis de clientes finais (compradores). |
+| `dashboard` | Consolidação de métricas e gráficos de faturamento para o painel. |
+| `idempotency` | Middleware de cache para requisições idempotentes (header `Idempotency-Key`). |
+| `merchant` | Criação e gestão de contas de merchants. |
+| `payment` | Núcleo do produto: criação, aprovação (dev mode) e consulta de pagamentos Pix. |
+| `store` | Gerenciamento de lojas sob o guarda-chuva de um merchant. |
+| `transaction` | Extrato histórico e movimentações financeiras da respectiva conta (`account`). |
+| `webhook` | Configuração de URLs e gestão de assinatura e envio de eventos (`outbox pattern`). |
 
-## Endpoints Principais
+## 🛡️ Camada de Autenticação
 
-### Autenticação
+O sistema opera sob dois paradigmas distintos de autenticação para suprir o Dashboard de controle e a API Pública:
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/auth/login` | Login do merchant |
-| `POST` | `/auth/refresh` | Renovar access token |
-| `POST` | `/auth/logout` | Logout |
+### 1. API Pública (Autenticação via API Key)
+Para integrações de backend-para-backend dos devs indie:
+- **Formato esperado**: Inserir no header da requisição, ex: `Authorization: Bearer hk_test_xxx` ou `hk_live_xxx`.
+- **Validação Segura**: Apenas o Hash `SHA-256` da key é mantido no banco de dados.
 
-### Pagamentos
+### 2. Dashboard (Autenticação via JWT)
+Para controle de sessão dos próprios merchants usando a UI:
+- **Formato**: Uso de cookies com diretiva `HttpOnly`.
+- **Tempos de expiração**: Access Token expira em 15 minutos; Refresh Token dura 7 dias.
 
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/v1/payments` | Criar pagamento |
-| `GET` | `/v1/payments` | Listar pagamentos |
-| `GET` | `/v1/payments/:id` | Buscar pagamento |
+## 🔌 Referência Rápida de Endpoints
 
-### Desenvolvimento (test keys only)
-
-| Método | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/v1/dev/simulate/:id/confirm` | Confirmar pagamento |
-| `POST` | `/v1/dev/simulate/:id/expire` | Expirar pagamento |
-| `POST` | `/v1/dev/simulate/:id/fail` | Falhar pagamento |
-
-## Autenticação
-
-### API Pública (API Keys)
-
-```bash
-curl -H "Authorization: Bearer hk_test_xxx" http://localhost:3000/v1/payments
-```
-
-- **Formato:** `hk_{environment}_{32_chars}`
-- **Ambientes:** `test` (simulações) ou `live`
-
-### Dashboard (JWT)
-
-- Access Token: 15 minutos (cookie HttpOnly)
-- Refresh Token: 7 dias (cookie HttpOnly)
-
-## Exemplos curl
-
-### Login
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "merchant@email.com",
-    "password": "senha123"
-  }'
-```
-
-### Criar Pagamento
-
+### Criação de Pagamento (Pública)
 ```bash
 curl -X POST http://localhost:3000/v1/payments \
   -H "Authorization: Bearer hk_test_xxx" \
@@ -89,38 +55,48 @@ curl -X POST http://localhost:3000/v1/payments \
   }'
 ```
 
-### Simular Confirmação
-
+### Simular Pagamento: Dev Mode (Pública)
+Para os fluxos em simulação quando a chave for ambiente `test`:
 ```bash
+# Confirma o recebimento de um PIX
 curl -X POST http://localhost:3000/v1/dev/simulate/{payment_id}/confirm \
+  -H "Authorization: Bearer hk_test_xxx"
+
+# Força o status para falha
+curl -X POST http://localhost:3000/v1/dev/simulate/{payment_id}/fail \
   -H "Authorization: Bearer hk_test_xxx"
 ```
 
-## Variáveis de Ambiente
-
-| Variável | Descrição |
-|----------|-----------|
-| `DATABASE_URL` | Conexão PostgreSQL |
-| `REDIS_URL` | Conexão Redis |
-| `JWT_SECRET` | Secret para JWT |
-| `ENCRYPTION_KEY` | Chave AES-256 para criptografia |
-
-## Scripts
-
+### Módulo de Login (Dashboard Interno)
 ```bash
-pnpm dev          # Desenvolvimento (watch)
-pnpm build        # Build de produção
-pnpm start:prod   # Iniciar produção
-pnpm test         # Testes unitários
-pnpm test:e2e     # Testes E2E
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "merchant@email.com",
+    "password": "senha123"
+  }'
 ```
 
-## Dependências Internas
+## ⚙️ Variáveis de Ambiente Necessárias
 
-- `@hockpay/core` - Use cases e entidades
-- `@hockpay/infrastructure` - Implementações de repositories
-- `@hockpay/database` - Prisma client
+| Variável | Contexto | Exemplo |
+|----------|----------|---------|
+| `JWT_SECRET` | Chave simétrica para assinatura do token de sessão | `super-secret` |
+| `ENCRYPTION_KEY` | Chave AES-256 para dados sensíveis | `32-chars-long...` |
+
+> *A conexão de BD e REDIS é puxada do pacote `@hockpay/config` por ser comum ao workspace.*
+
+## 💻 Comandos Locais
+
+Estes comandos podem ser rodados dentro da pasta `apps/api`:
+
+```bash
+pnpm dev          # Iniciar o NestJS em modo watch
+pnpm build        # Gerar a de produção em dist/
+pnpm test         # Executar suíte de testes unitários (Vitest/Jest)
+pnpm test:e2e     # Executar suíte de testes de ponta-a-ponta
+```
 
 ---
 
-[Voltar para README principal](../../README.md)
+[⬅️ Voltar para o monorepo raiz](../../README.md)

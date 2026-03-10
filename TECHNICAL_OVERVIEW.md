@@ -140,7 +140,7 @@ Hockpay é uma plataforma de pagamentos via Pix voltada para desenvolvedores ind
 |------------|------------|------------------|
 | Landing Page | Next.js | Marketing, pricing, documentação |
 | Dashboard | Angular 18+ | Gestão de transações, configurações, API keys |
-| Checkout Page | Angular (lib compartilhada) | Página de pagamento white-label |
+| Checkout Page | Next.js | Página de pagamento white-label |
 | API | NestJS | Endpoints REST, regras de negócio |
 | Worker | NestJS (aplicação separada) | Processamento de webhooks, jobs assíncronos |
 | PostgreSQL | v15+ | Persistência de dados |
@@ -159,7 +159,7 @@ hockpay/
 │   ├── api/                    # NestJS - API principal
 │   ├── worker/                 # NestJS - Worker de webhooks
 │   ├── dashboard/              # Angular - Dashboard do merchant
-│   ├── checkout/               # Angular - Página de checkout
+│   ├── checkout/               # Next.js - Página de checkout
 │   └── landing/                # Next.js - Landing page
 │
 ├── packages/
