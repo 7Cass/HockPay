@@ -241,6 +241,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.2.1
         version: 4.2.1
+      apexcharts:
+        specifier: ^5.6.0
+        version: 5.6.0
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -250,6 +253,9 @@ importers:
       embla-carousel-angular:
         specifier: ^20.0.0
         version: 20.0.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))
+      ng-apexcharts:
+        specifier: ^2.2.0
+        version: 2.2.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(apexcharts@5.6.0)(rxjs@7.8.2)
       ngx-mask:
         specifier: ^21.0.1
         version: 21.0.1(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(@angular/forms@21.2.0-rc.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(@angular/platform-browser@21.2.0-rc.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2)))(rxjs@7.8.2))
@@ -4138,6 +4144,9 @@ packages:
     resolution: {integrity: sha512-/HcYgtUSiJiot/XWGLOlGxPYUG65+/31V8oqk17vZLW1xlCoR4PampyePljOxY2n8/3jz9+tIFzICsyGujJZoA==}
     engines: {node: '>=18.12.0'}
 
+  '@yr/monotone-cubic-spline@1.0.3':
+    resolution: {integrity: sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==}
+
   '@zkochan/js-yaml@0.0.7':
     resolution: {integrity: sha512-nrUSn7hzt7J6JWgWGz78ZYI8wj+gdIJdk0Ynjpp8l+trkn58Uqsf6RYrYkEK+3X18EX+TNdtJI0WxAtc+L84SQ==}
     hasBin: true
@@ -4272,6 +4281,9 @@ packages:
   anymatch@3.1.3:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
+
+  apexcharts@5.6.0:
+    resolution: {integrity: sha512-BZua59yedRsaDfnxkzNrkyLCvluq2c3ZDBIz4joxSKtgr0xDQXQ5dzceMhf/TpTbAjaF+2NYIpLP3BEEIG2s/w==}
 
   append-field@1.0.0:
     resolution: {integrity: sha512-klpgFSWLW1ZEs8svjfb7g4qWY0YS5imI82dTg+QahUvJ8YqAY0P10Uk8tTyh9ZGuYEZEMaeJYCF5BFuX552hsw==}
@@ -7271,6 +7283,14 @@ packages:
         optional: true
       sass:
         optional: true
+
+  ng-apexcharts@2.2.0:
+    resolution: {integrity: sha512-b8KO5p+tfKhDJFnf29DeU60RQyMykpdfpHBjdUxSlfN6d6Uo56i1fElh+kZ6HShX0tpspydjYfbRrJIUjqt0hg==}
+    peerDependencies:
+      '@angular/common': '>=20.0.0'
+      '@angular/core': '>=20.0.0'
+      apexcharts: ^5.3.2
+      rxjs: ^7.8.2
 
   ngx-mask@21.0.1:
     resolution: {integrity: sha512-L7zyKhXHQjfMLIGPxEmaVXdZ6VurHemgPt352yY9vP0dmWKmmzwF1nkKzDjYqpqEWhL/KMooSqrMGApNVzWeYA==}
@@ -14369,6 +14389,8 @@ snapshots:
       js-yaml: 3.14.2
       tslib: 2.8.1
 
+  '@yr/monotone-cubic-spline@1.0.3': {}
+
   '@zkochan/js-yaml@0.0.7':
     dependencies:
       argparse: 2.0.1
@@ -14496,6 +14518,10 @@ snapshots:
     dependencies:
       normalize-path: 3.0.0
       picomatch: 2.3.1
+
+  apexcharts@5.6.0:
+    dependencies:
+      '@yr/monotone-cubic-spline': 1.0.3
 
   append-field@1.0.0: {}
 
@@ -18248,6 +18274,14 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  ng-apexcharts@2.2.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(apexcharts@5.6.0)(rxjs@7.8.2):
+    dependencies:
+      '@angular/common': 21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@angular/core': 21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2)
+      apexcharts: 5.6.0
+      rxjs: 7.8.2
+      tslib: 2.8.1
 
   ngx-mask@21.0.1(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(@angular/forms@21.2.0-rc.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(@angular/platform-browser@21.2.0-rc.0(@angular/common@21.2.0-rc.0(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.0-rc.0(@angular/compiler@21.2.0-rc.0)(rxjs@7.8.2)))(rxjs@7.8.2)):
     dependencies:

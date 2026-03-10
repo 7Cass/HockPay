@@ -64,6 +64,7 @@ enum PixKeyType {
 
 enum OutboxStatus {
   PENDING
+  DISPATCHED
   PROCESSED
   FAILED
 }

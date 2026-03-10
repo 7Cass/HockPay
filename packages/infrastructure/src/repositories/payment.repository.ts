@@ -7,7 +7,7 @@ import {
   PaymentStatus,
   Environment,
 } from '@hockpay/core';
-import { PrismaClient, Payment as PrismaPayment } from '@hockpay/database';
+import { PrismaClient, Payment as PrismaPayment, Prisma } from '@hockpay/database';
 
 /**
  * Shared implementation of IPaymentRepository using Prisma.
@@ -16,7 +16,7 @@ import { PrismaClient, Payment as PrismaPayment } from '@hockpay/database';
  * Each app provides its own PrismaClient instance.
  */
 export class PaymentRepository implements IPaymentRepository {
-  constructor(private readonly prisma: PrismaClient) { }
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) { }
 
   async save(payment: DomainPayment): Promise<void> {
     await this.prisma.payment.create({

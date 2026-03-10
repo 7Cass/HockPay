@@ -59,6 +59,11 @@ export * from './domain/errors/webhook-config-not-found.error';
 export * from './domain/errors/invalid-webhook-events.error';
 export * from './domain/errors/live-environment-not-allowed.error';
 
+// Bank Account
+export * from './domain/entities/bank-account.entity';
+export * from './domain/repositories/bank-account.repository.interface';
+export * from './domain/errors/invalid-balance.error';
+
 // Domain - Repository Interfaces
 export * from './domain/repositories/merchant.repository.interface';
 export * from './domain/repositories/api-key.repository.interface';
@@ -73,6 +78,7 @@ export * from './domain/repositories/webhook-log.repository.interface';
 export * from './domain/repositories/account.repository.interface';
 export * from './domain/repositories/transaction.repository.interface';
 export * from './domain/repositories/idempotency-key.repository.interface';
+export * from './domain/repositories/unit-of-work.interface';
 
 // Application - Ports
 export * from './application/ports/password-hasher.port';
@@ -130,3 +136,9 @@ export * from './application/use-cases/list-webhook-logs.use-case';
 export * from './application/use-cases/retry-webhook-log.use-case';
 export * from './application/use-cases/get-checkout-payment.use-case';
 export * from './application/use-cases/simulate-checkout-payment.use-case';
+export * from './application/use-cases/get-account.use-case';
+export * from './application/use-cases/list-transactions.use-case';
+export * from './application/use-cases/get-dashboard-metrics.use-case';
+export * from './application/use-cases/create-bank-account.use-case';
+export * from './application/use-cases/list-bank-accounts.use-case';
+export * from './application/use-cases/delete-bank-account.use-case';

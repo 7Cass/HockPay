@@ -12,6 +12,10 @@ import { CustomerModule } from './modules/customer/customer.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module';
+import { AccountModule } from './modules/account/account.module';
+import { TransactionModule } from './modules/transaction/transaction.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { BankAccountModule } from './modules/bank-account/bank-account.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
@@ -30,6 +34,10 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     PaymentModule,
     WebhookModule,
     IdempotencyModule,
+    AccountModule,
+    TransactionModule,
+    DashboardModule,
+    BankAccountModule,
   ],
   controllers: [AppController],
   providers: [
@@ -48,4 +56,4 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

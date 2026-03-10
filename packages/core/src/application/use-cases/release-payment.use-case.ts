@@ -1,14 +1,11 @@
-import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
-import { Account, AccountObject } from '../../domain/entities/account.entity';
+import { PaymentObject } from '../../domain/entities/payment.entity';
+import { AccountObject } from '../../domain/entities/account.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
-import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
-import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { PaymentNotConfirmedError } from '../../domain/errors/payment-not-confirmed.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 /**
  * Input DTO for ReleasePaymentUseCase.
@@ -39,83 +36,83 @@ export interface IReleasePaymentOutput {
  * - Account must exist for the store
  * - Funds move from pending to available balance
  * - Outbox event is created for webhook notification
+ * - Executed atomically via UnitOfWork
  */
 export class ReleasePaymentUseCase {
   constructor(
-    private readonly paymentRepository: IPaymentRepository,
-    private readonly accountRepository: IAccountRepository,
-    private readonly transactionRepository: ITransactionRepository,
-    private readonly outboxWriter: IOutboxWriter,
-  ) {}
+    private readonly unitOfWork: IUnitOfWork,
+  ) { }
 
   async execute(input: IReleasePaymentInput): Promise<IReleasePaymentOutput> {
-    // Find payment
-    const payment = await this.paymentRepository.findById(input.paymentId);
+    return this.unitOfWork.execute(async (repos) => {
+      // Find payment
+      const payment = await repos.paymentRepository.findById(input.paymentId);
 
-    if (!payment) {
-      throw new PaymentNotFoundError(input.paymentId);
-    }
-
-    // Check if already released (idempotent)
-    if (payment.isTerminal() && payment.status !== 'CONFIRMED') {
-      if (payment.releasedAt) {
-        const account = await this.accountRepository.findByStoreId(payment.storeId);
-        return {
-          payment: payment.toObject(),
-          account: account?.toObject() as AccountObject,
-          alreadyReleased: true,
-        };
+      if (!payment) {
+        throw new PaymentNotFoundError(input.paymentId);
       }
-    }
 
-    // Validate payment is confirmed
-    if (!payment.isConfirmed()) {
-      throw new PaymentNotConfirmedError(input.paymentId, payment.status);
-    }
+      // Check if already released (idempotent)
+      if (payment.isTerminal() && payment.status !== 'CONFIRMED') {
+        if (payment.releasedAt) {
+          const account = await repos.accountRepository.findByStoreId(payment.storeId);
+          return {
+            payment: payment.toObject(),
+            account: account?.toObject() as AccountObject,
+            alreadyReleased: true,
+          };
+        }
+      }
 
-    // Find account
-    const account = await this.accountRepository.findByStoreId(payment.storeId);
+      // Validate payment is confirmed
+      if (!payment.isConfirmed()) {
+        throw new PaymentNotConfirmedError(input.paymentId, payment.status);
+      }
 
-    if (!account) {
-      throw new AccountNotFoundError(payment.storeId);
-    }
+      // Find account
+      const account = await repos.accountRepository.findByStoreId(payment.storeId);
 
-    // Release the payment
-    payment.release();
-    await this.paymentRepository.update(payment);
+      if (!account) {
+        throw new AccountNotFoundError(payment.storeId);
+      }
 
-    // Move funds from pending to available
-    account.releaseFromPending(payment.netAmount);
-    await this.accountRepository.update(account);
+      // Release the payment
+      payment.release();
+      await repos.paymentRepository.update(payment);
 
-    // Create transaction record
-    const balanceAfter = account.available;
-    const transaction = Transaction.create({
-      accountId: account.id,
-      type: TransactionType.PAYMENT_RELEASED,
-      amount: payment.amount,
-      fee: payment.fee,
-      netAmount: payment.netAmount,
-      balanceAfter,
-      referenceType: 'Payment',
-      referenceId: payment.id,
-      description: `Release of payment ${payment.id}`,
+      // Move funds from pending to available
+      account.releaseFromPending(payment.netAmount);
+      await repos.accountRepository.update(account);
+
+      // Create transaction record
+      const balanceAfter = account.available;
+      const transaction = Transaction.create({
+        accountId: account.id,
+        type: TransactionType.PAYMENT_RELEASED,
+        amount: payment.amount,
+        fee: payment.fee,
+        netAmount: payment.netAmount,
+        balanceAfter,
+        referenceType: 'Payment',
+        referenceId: payment.id,
+        description: `Release of payment ${payment.id}`,
+      });
+      await repos.transactionRepository.save(transaction);
+
+      // Create outbox event for webhook notification
+      const outboxEvent = OutboxEvent.create({
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        eventType: 'payment.released',
+        payload: payment.toObject() as unknown as Record<string, unknown>,
+      });
+      await repos.outboxWriter.save(outboxEvent);
+
+      return {
+        payment: payment.toObject(),
+        account: account.toObject(),
+        alreadyReleased: false,
+      };
     });
-    await this.transactionRepository.save(transaction);
-
-    // Create outbox event for webhook notification
-    const outboxEvent = OutboxEvent.create({
-      aggregateType: 'Payment',
-      aggregateId: payment.id,
-      eventType: 'payment.released',
-      payload: payment.toObject() as unknown as Record<string, unknown>,
-    });
-    await this.outboxWriter.save(outboxEvent);
-
-    return {
-      payment: payment.toObject(),
-      account: account.toObject(),
-      alreadyReleased: false,
-    };
   }
 }

@@ -9,6 +9,7 @@ import {
   WebhookConfigRepository,
   WebhookLogRepository,
   IdempotencyKeyRepository,
+  UnitOfWork,
 } from '@hockpay/infrastructure';
 import { AccountRepository } from '../../infra/repositories/account.repository.impl';
 import { TransactionRepository } from '../../infra/repositories/transaction.repository.impl';
@@ -28,6 +29,7 @@ import {
   IOutboxRepository,
   IWebhookConfigRepository,
   IWebhookLogRepository,
+  IUnitOfWork,
 } from '@hockpay/core';
 
 // Token for IExpirationQueuePort (exported for use in QueueModule)
@@ -66,6 +68,11 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     {
       provide: 'IIdempotencyKeyRepository',
       useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
 
@@ -108,24 +115,8 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     },
     {
       provide: ReleasePaymentUseCase,
-      useFactory: (
-        paymentRepository: IPaymentRepository,
-        accountRepository: AccountRepository,
-        transactionRepository: TransactionRepository,
-        outboxRepository: IOutboxRepository,
-      ) =>
-        new ReleasePaymentUseCase(
-          paymentRepository,
-          accountRepository,
-          transactionRepository,
-          outboxRepository,
-        ),
-      inject: [
-        'IPaymentRepository',
-        AccountRepository,
-        TransactionRepository,
-        'IOutboxRepository',
-      ],
+      useFactory: (unitOfWork: IUnitOfWork) => new ReleasePaymentUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: CleanupLogsUseCase,

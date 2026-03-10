@@ -18,7 +18,7 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
   constructor(
     @InjectQueue(WebhookQueue.QUEUE_NAME)
     private readonly queue: Queue<WebhookJobData>,
-  ) {}
+  ) { }
 
   async onModuleDestroy() {
     if (this.queue) {
@@ -37,27 +37,17 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
       {
         delay: delay ?? 0,
         jobId: `webhook-${eventId}`,
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 60000, // Starts at 1min, then 2m, 4m, 8m
+        },
       },
     );
   }
 
   async enqueueRetry(eventId: string, attempt: number): Promise<void> {
-    if (!this.queue) {
-      throw new Error('Queue not initialized');
-    }
-
-    // Exponential backoff: 1min, 5min, 30min, 2h
-    const delays = [0, 60000, 300000, 1800000, 7200000];
-    const index = Math.min(attempt - 1, delays.length - 1);
-    const delay = delays[index];
-
-    await this.queue.add(
-      'deliver',
-      { eventId, attempt },
-      {
-        delay,
-        jobId: `webhook-${eventId}-retry-${attempt}`,
-      },
-    );
+    // Deprecated: BullMQ handles generic backoffs via the `backoff` config directly in enqueue.
+    this.enqueue(eventId);
   }
 }

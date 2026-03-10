@@ -3,6 +3,7 @@
  */
 export enum OutboxEventStatus {
   PENDING = 'PENDING',
+  DISPATCHED = 'DISPATCHED',
   PROCESSED = 'PROCESSED',
   FAILED = 'FAILED',
 }
@@ -142,6 +143,13 @@ export class OutboxEvent {
   // Business methods
 
   /**
+   * Mark the event as dispatched to the queue.
+   */
+  markAsDispatched(): void {
+    this._status = OutboxEventStatus.DISPATCHED;
+  }
+
+  /**
    * Mark the event as processed.
    */
   markAsProcessed(): void {
@@ -151,31 +159,13 @@ export class OutboxEvent {
   }
 
   /**
-   * Mark the event as failed and schedule retry.
+   * Mark the event as failed.
+   * Native backoff in BullMQ replaces custom domain retries.
    */
   markAsFailed(error: string): void {
     this._retryCount++;
-
-    if (this.canRetry()) {
-      this._status = OutboxEventStatus.PENDING;
-      this._nextRetryAt = this.calculateNextRetry();
-    } else {
-      this._status = OutboxEventStatus.FAILED;
-      this._nextRetryAt = undefined;
-    }
-
+    this._status = OutboxEventStatus.FAILED;
     this._errorMessage = error;
-  }
-
-  /**
-   * Calculate next retry time with exponential backoff.
-   * Delays: immediate, 1min, 5min, 30min, 2h
-   */
-  private calculateNextRetry(): Date {
-    const delays = [0, 60, 300, 1800, 7200]; // in seconds
-    const index = Math.min(this._retryCount, delays.length - 1);
-    const delaySeconds = delays[index];
-    return new Date(Date.now() + delaySeconds * 1000);
   }
 
   /**

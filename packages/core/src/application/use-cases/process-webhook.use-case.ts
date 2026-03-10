@@ -60,7 +60,7 @@ export class ProcessWebhookUseCase {
     private readonly webhookSender: IWebhookSenderPort,
     private readonly hmacSigner: IHmacSignerPort,
     private readonly encryption: IEncryptionPort,
-  ) {}
+  ) { }
 
   async execute(input: IProcessWebhookInput): Promise<IProcessWebhookOutput> {
     // Find event
@@ -94,9 +94,18 @@ export class ProcessWebhookUseCase {
 
     // Get store ID from payload
     const payload = event.payload as Record<string, unknown>;
-    const storeId = payload.storeId as string | undefined;
+
+    // Outbox events from payment might nest the data under 'payment' or another key depending on serialization 
+    // Wait, let's just make sure we find the storeId anywhere in the payload
+    let storeId = payload.storeId as string | undefined;
+
+    if (!storeId && payload.payment) {
+      storeId = (payload.payment as Record<string, unknown>).storeId as string | undefined;
+    }
 
     if (!storeId) {
+      // If we genuinely cannot find a storeId in the payload, the webhook is untargetable. 
+      // We must mark it as processed to stop the dispatch infinite loop.
       event.markAsProcessed();
       await this.outboxRepository.update(event);
       return {

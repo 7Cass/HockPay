@@ -10,6 +10,7 @@ import {
   UnprocessableEntityException,
   BadRequestException,
   Req,
+  Body,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import {
@@ -44,7 +45,7 @@ export class DevController {
     private readonly confirmPaymentUseCase: ConfirmPaymentUseCase,
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
     private readonly failPaymentUseCase: FailPaymentUseCase,
-  ) {}
+  ) { }
 
   /**
    * POST /v1/dev/simulate/:id/confirm
@@ -140,6 +141,7 @@ export class DevController {
       return this.handleError(error);
     }
   }
+
 
   /**
    * Validates that the request is from a TEST environment.

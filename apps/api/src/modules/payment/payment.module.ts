@@ -16,8 +16,9 @@ import {
   IPaymentRepository,
   IOutboxRepository,
   ITokenGeneratorPort,
+  IUnitOfWork,
 } from '@hockpay/core';
-import { PaymentRepository, OutboxRepository } from '@hockpay/infrastructure';
+import { PaymentRepository, OutboxRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
 import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
@@ -67,6 +68,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: 'IOutboxRepository',
       useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
 
@@ -136,13 +142,10 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: ConfirmPaymentUseCase,
-      useFactory: (
-        repo: IPaymentRepository,
-        outboxRepo: IOutboxRepository,
-      ) => {
-        return new ConfirmPaymentUseCase(repo, outboxRepo);
+      useFactory: (unitOfWork: IUnitOfWork) => {
+        return new ConfirmPaymentUseCase(unitOfWork);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository'],
+      inject: ['IUnitOfWork'],
     },
 
     {
@@ -179,12 +182,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: SimulateCheckoutPaymentUseCase,
       useFactory: (
-        repo: IPaymentRepository,
-        outboxRepo: IOutboxRepository,
+        unitOfWork: IUnitOfWork,
       ) => {
-        return new SimulateCheckoutPaymentUseCase(repo, outboxRepo);
+        return new SimulateCheckoutPaymentUseCase(unitOfWork);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository'],
+      inject: ['IUnitOfWork'],
     },
   ],
   exports: [

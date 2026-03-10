@@ -213,3 +213,12 @@ export interface TransactionObject {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * Daily aggregation structure for dashboard charts.
+ */
+export interface DailyVolume {
+  date: string; // YYYY-MM-DD
+  volume: number; // sum of netAmount
+  count: number; // total number of transactions
+}

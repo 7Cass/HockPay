@@ -4,7 +4,7 @@ import {
   OutboxEventProps,
   OutboxEventStatus,
 } from '@hockpay/core';
-import { PrismaClient, OutboxStatus } from '@hockpay/database';
+import { PrismaClient, OutboxStatus, Prisma } from '@hockpay/database';
 
 /**
  * Shared implementation of IOutboxRepository using Prisma.
@@ -13,7 +13,7 @@ import { PrismaClient, OutboxStatus } from '@hockpay/database';
  * Each app provides its own PrismaClient instance.
  */
 export class OutboxRepository implements IOutboxRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) { }
 
   async save(event: OutboxEvent): Promise<void> {
     await this.prisma.outboxEvent.create({

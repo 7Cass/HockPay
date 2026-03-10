@@ -14,6 +14,7 @@ export interface IGetCurrentMerchantOutput {
     documentType: 'CPF' | 'CNPJ';
     isActive: boolean;
     createdAt: Date;
+    currentStoreId?: string;
 }
 
 /**
@@ -42,6 +43,7 @@ export class GetCurrentMerchantUseCase {
             documentType: merchant.document.type,
             isActive: merchant.isActive,
             createdAt: merchant.createdAt,
+            currentStoreId: merchant.currentStoreId,
         };
     }
 }

@@ -22,18 +22,20 @@ import {
 export const CurrentStore = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest();
-    const user = request.user;
 
-    if (!user?.storeId) {
+    // CombinedAuthGuard sets either request.store.id (API Key) or request.user.storeId (JWT)
+    const storeId = request.store?.id || request.user?.storeId;
+
+    if (!storeId) {
       throw new ForbiddenException({
         statusCode: 403,
         error: 'Forbidden',
         message:
-          'No store selected. Please select a store before performing this action.',
+          'No store selected or could not be determined from authentication context.',
         code: 'NO_CURRENT_STORE',
       });
     }
 
-    return user.storeId;
+    return storeId;
   },
 );

@@ -1,11 +1,12 @@
 import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { InvalidPaymentStatusError } from '../../domain/errors/invalid-payment-status.error';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
 
 /**
  * Simulation action type.
@@ -44,69 +45,96 @@ export interface ISimulateCheckoutOutput {
  */
 export class SimulateCheckoutPaymentUseCase {
   constructor(
-    private readonly paymentRepository: IPaymentRepository,
-    private readonly outboxWriter: IOutboxWriter,
-  ) {}
+    private readonly unitOfWork: IUnitOfWork,
+  ) { }
 
   async execute(input: ISimulateCheckoutInput): Promise<ISimulateCheckoutOutput> {
-    // 1. Find payment by checkout token
-    const payment = await this.paymentRepository.findByCheckoutToken(input.token);
+    return this.unitOfWork.execute(async (repos) => {
+      // 1. Find payment by checkout token
+      const payment = await repos.paymentRepository.findByCheckoutToken(input.token);
 
-    if (!payment) {
-      throw new PaymentNotFoundError(input.token);
-    }
-
-    // 2. Validate environment - only TEST payments can be simulated
-    if (payment.environment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
-
-    // 3. Execute the requested action
-    let eventType: string;
-
-    try {
-      switch (input.action) {
-        case 'confirm':
-          payment.confirm();
-          eventType = 'payment.confirmed';
-          break;
-
-        case 'expire':
-          payment.expire();
-          eventType = 'payment.expired';
-          break;
-
-        case 'fail':
-          payment.fail('Simulated failure');
-          eventType = 'payment.failed';
-          break;
-
-        default:
-          throw new Error(`Invalid simulation action: ${input.action}`);
+      if (!payment) {
+        throw new PaymentNotFoundError(input.token);
       }
-    } catch (error) {
-      if (error instanceof InvalidPaymentStatusError) {
-        // Payment is not in a valid state for this action
+
+      // 2. Validate environment - only TEST payments can be simulated
+      if (payment.environment === Environment.LIVE) {
+        throw new LiveEnvironmentNotAllowedError();
+      }
+
+      // 3. Execute the requested action
+      let eventType: string;
+
+      try {
+        switch (input.action) {
+          case 'confirm':
+            payment.confirm();
+            eventType = 'payment.confirmed';
+            break;
+
+          case 'expire':
+            payment.expire();
+            eventType = 'payment.expired';
+            break;
+
+          case 'fail':
+            payment.fail('Simulated failure');
+            eventType = 'payment.failed';
+            break;
+
+          default:
+            throw new Error(`Invalid simulation action: ${input.action}`);
+        }
+      } catch (error) {
+        if (error instanceof InvalidPaymentStatusError) {
+          // Payment is not in a valid state for this action
+          throw error;
+        }
         throw error;
       }
-      throw error;
-    }
 
-    // 4. Persist the payment
-    await this.paymentRepository.update(payment);
+      // Handle account updates and transaction entries for confirmation
+      if (input.action === 'confirm') {
+        const account = await repos.accountRepository.findByStoreId(payment.storeId);
+        if (!account) {
+          throw new AccountNotFoundError(payment.storeId);
+        }
 
-    // 5. Create outbox event for webhook notification
-    const outboxEvent = OutboxEvent.create({
-      aggregateType: 'Payment',
-      aggregateId: payment.id,
-      eventType,
-      payload: payment.toObject() as unknown as Record<string, unknown>,
+        // Update pending balance
+        account.addToPending(payment.netAmount);
+        await repos.accountRepository.update(account);
+
+        // Create Ledger Transaction
+        const transaction = Transaction.create({
+          accountId: account.id,
+          type: TransactionType.PAYMENT_RECEIVED,
+          amount: payment.amount,
+          fee: payment.fee,
+          netAmount: payment.netAmount,
+          balanceAfter: account.totalBalance,
+          referenceType: 'PAYMENT',
+          referenceId: payment.id,
+          description: `Pagamento recebido (#${payment.id.split('-')[0]})`,
+        });
+        await repos.transactionRepository.save(transaction);
+      }
+
+      // 4. Persist the payment
+      await repos.paymentRepository.update(payment);
+
+      // 5. Create outbox event for webhook notification
+      const outboxEvent = OutboxEvent.create({
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        eventType,
+        payload: payment.toObject() as unknown as Record<string, unknown>,
+      });
+      await repos.outboxWriter.save(outboxEvent);
+
+      // 6. Return the updated payment
+      return {
+        payment: payment.toObject(),
+      };
     });
-    await this.outboxWriter.save(outboxEvent);
-
-    // 6. Return the updated payment
-    return {
-      payment: payment.toObject(),
-    };
   }
 }

@@ -11,23 +11,37 @@ import { Store as PrismaStore } from '@hockpay/database';
  */
 @Injectable()
 export class StoreRepository implements IStoreRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async save(store: DomainStore): Promise<void> {
-    await this.prisma.store.create({
-      data: {
-        id: store.id,
-        merchantId: store.merchantId,
-        name: store.name,
-        slug: store.slug,
-        isActive: store.isActive,
-        isApproved: store.isApproved,
-        settlementDays: store.settlementDays,
-        feePercent: store.feePercent,
-        feeFixed: store.feeFixed,
-        createdAt: store.createdAt,
-        updatedAt: store.updatedAt,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Create the store
+      await tx.store.create({
+        data: {
+          id: store.id,
+          merchantId: store.merchantId,
+          name: store.name,
+          slug: store.slug,
+          isActive: store.isActive,
+          isApproved: store.isApproved,
+          settlementDays: store.settlementDays,
+          feePercent: store.feePercent,
+          feeFixed: store.feeFixed,
+          createdAt: store.createdAt,
+          updatedAt: store.updatedAt,
+        },
+      });
+
+      // 2. Create the associated account initialized with 0 balances
+      await tx.account.create({
+        data: {
+          storeId: store.id,
+          available: 0,
+          pending: 0,
+          blocked: 0,
+          currency: 'BRL',
+        },
+      });
     });
   }
 

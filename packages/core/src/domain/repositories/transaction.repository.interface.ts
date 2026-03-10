@@ -1,4 +1,11 @@
-import { Transaction, TransactionProps, TransactionType } from '../entities/transaction.entity';
+import { Transaction, TransactionProps, TransactionType, DailyVolume } from '../entities/transaction.entity';
+
+export interface ITransactionFilters {
+  accountId: string;
+  startDate?: Date;
+  endDate?: Date;
+  type?: TransactionType;
+}
 
 /**
  * Repository interface for Transaction entity.
@@ -50,4 +57,22 @@ export interface ITransactionRepository {
     startDate: Date,
     endDate: Date,
   ): Promise<number>;
+
+  /**
+   * Find transactions with arbitrary filters and pagination.
+   */
+  findWithFilters(filters: ITransactionFilters, page: number, limit: number): Promise<Transaction[]>;
+
+  /**
+   * Count transactions matching filters.
+   */
+  /**
+   * Count transactions matching filters.
+   */
+  countWithFilters(filters: ITransactionFilters): Promise<number>;
+
+  /**
+   * Aggregate transaction volume by day.
+   */
+  getDailyVolume(accountId: string, startDate: Date, endDate: Date): Promise<DailyVolume[]>;
 }

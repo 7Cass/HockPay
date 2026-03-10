@@ -5,15 +5,17 @@ import {
   Transaction,
   TransactionProps,
   TransactionType,
+  ITransactionFilters,
+  DailyVolume,
 } from '@hockpay/core';
-import { TransactionType as PrismaTransactionType } from '@hockpay/database';
+import { TransactionType as PrismaTransactionType, Prisma } from '@hockpay/database';
 
 /**
  * Infrastructure implementation of ITransactionRepository.
  */
 @Injectable()
 export class TransactionRepository implements ITransactionRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async save(transaction: Transaction): Promise<void> {
     await this.prisma.transaction.create({
@@ -140,5 +142,63 @@ export class TransactionRepository implements ITransactionRepository {
     };
 
     return Transaction.reconstitute(props);
+  }
+
+  async findWithFilters(
+    filters: ITransactionFilters,
+    page: number,
+    limit: number,
+  ): Promise<Transaction[]> {
+    const skip = (page - 1) * limit;
+    const transactions = await this.prisma.transaction.findMany({
+      where: this.buildPrismaWhere(filters),
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    return transactions.map((t) => this.toDomain(t));
+  }
+
+  async countWithFilters(filters: ITransactionFilters): Promise<number> {
+    return this.prisma.transaction.count({
+      where: this.buildPrismaWhere(filters),
+    });
+  }
+
+  private buildPrismaWhere(filters: ITransactionFilters): Prisma.TransactionWhereInput {
+    const where: Prisma.TransactionWhereInput = { accountId: filters.accountId };
+    if (filters.type) {
+      where.type = filters.type as PrismaTransactionType;
+    }
+    if (filters.startDate || filters.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) where.createdAt.gte = filters.startDate;
+      if (filters.endDate) where.createdAt.lte = filters.endDate;
+    }
+    return where;
+  }
+
+  async getDailyVolume(accountId: string, startDate: Date, endDate: Date): Promise<DailyVolume[]> {
+    const result = await this.prisma.$queryRaw<
+      Array<{ date: string; volume: number; count: number }>
+    >`
+      SELECT 
+        TO_CHAR(created_at, 'YYYY-MM-DD') as date,
+        CAST(SUM(net_amount) AS INTEGER) as volume,
+        CAST(COUNT(*) AS INTEGER) as count
+      FROM transactions
+      WHERE account_id = ${accountId}
+        AND created_at >= ${startDate}
+        AND created_at <= ${endDate}
+      GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+      ORDER BY TO_CHAR(created_at, 'YYYY-MM-DD') ASC
+    `;
+
+    return result.map((row) => ({
+      date: row.date,
+      volume: Number(row.volume),
+      count: Number(row.count),
+    }));
   }
 }
