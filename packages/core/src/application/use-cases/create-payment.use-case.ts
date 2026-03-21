@@ -45,8 +45,6 @@ export interface ICreatePaymentInput {
   customer: PaymentCustomerInput;
   environment: Environment;
   expiresAt?: Date;
-  successUrl?: string;
-  cancelUrl?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -80,9 +78,7 @@ export class CreatePaymentUseCase {
     private readonly pixQrCodeGenerator: IPixQrCodeGeneratorPort,
     private readonly expirationQueue: IExpirationQueuePort,
     private readonly feePolicy: FeePolicy,
-    private readonly tokenGenerator: ITokenGeneratorPort,
     private readonly pixKey: string, // Store's Pix key for receiving payments
-    private readonly checkoutBaseUrl: string, // Base URL for checkout pages
   ) { }
 
   async execute(input: ICreatePaymentInput): Promise<ICreatePaymentOutput> {
@@ -161,11 +157,7 @@ export class CreatePaymentUseCase {
     const expiresAt =
       input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
-    // 7. Generate checkout token and URL
-    const checkoutToken = this.tokenGenerator.generateBase64(32);
-    const checkoutUrl = `${this.checkoutBaseUrl}/${checkoutToken}`;
-
-    // 8. Create Payment entity
+    // 7. Create Payment entity
     const payment = Payment.create({
       storeId: input.storeId,
       customerId: customer.id,
@@ -178,15 +170,11 @@ export class CreatePaymentUseCase {
       pixQrCode: qrCodeResult.qrCodeBase64,
       pixCopyPaste: qrCodeResult.copyPaste,
       pixTxId: qrCodeResult.txId,
-      checkoutUrl,
-      checkoutToken,
-      successUrl: input.successUrl,
-      cancelUrl: input.cancelUrl,
       expiresAt,
       metadata: input.metadata,
     });
 
-    // 9. Persist Payment
+    // 8. Persist Payment
     await this.paymentRepository.save(payment);
 
     // 10. Create outbox event for webhook notification
@@ -198,10 +186,10 @@ export class CreatePaymentUseCase {
     });
     await this.outboxWriter.save(outboxEvent);
 
-    // 11. Schedule expiration job
+    // 10. Schedule expiration job
     await this.expirationQueue.scheduleExpiration(payment.id, expiresAt);
 
-    // 12. Return output
+    // 11. Return output
     return {
       payment: payment.toObject(),
       customerCreated,

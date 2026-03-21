@@ -27,10 +27,6 @@ export class Payment {
   private _pixQrCode?: string;
   private _pixCopyPaste?: string;
   private _pixTxId?: string;
-  private _checkoutUrl?: string;
-  private readonly _checkoutToken?: string;
-  private readonly _successUrl?: string;
-  private readonly _cancelUrl?: string;
   private readonly _expiresAt: Date;
   private _paidAt?: Date;
   private _releasedAt?: Date;
@@ -54,10 +50,6 @@ export class Payment {
     this._pixQrCode = props.pixQrCode;
     this._pixCopyPaste = props.pixCopyPaste;
     this._pixTxId = props.pixTxId;
-    this._checkoutUrl = props.checkoutUrl;
-    this._checkoutToken = props.checkoutToken;
-    this._successUrl = props.successUrl;
-    this._cancelUrl = props.cancelUrl;
     this._expiresAt = props.expiresAt;
     this._paidAt = props.paidAt;
     this._releasedAt = props.releasedAt;
@@ -87,10 +79,6 @@ export class Payment {
       pixQrCode: props.pixQrCode,
       pixCopyPaste: props.pixCopyPaste,
       pixTxId: props.pixTxId,
-      checkoutUrl: props.checkoutUrl,
-      checkoutToken: props.checkoutToken,
-      successUrl: props.successUrl,
-      cancelUrl: props.cancelUrl,
       expiresAt: props.expiresAt,
       metadata: props.metadata,
       createdAt: new Date(),
@@ -162,22 +150,6 @@ export class Payment {
 
   get pixTxId(): string | undefined {
     return this._pixTxId;
-  }
-
-  get checkoutUrl(): string | undefined {
-    return this._checkoutUrl;
-  }
-
-  get checkoutToken(): string | undefined {
-    return this._checkoutToken;
-  }
-
-  get successUrl(): string | undefined {
-    return this._successUrl;
-  }
-
-  get cancelUrl(): string | undefined {
-    return this._cancelUrl;
   }
 
   get expiresAt(): Date {
@@ -332,10 +304,6 @@ export class Payment {
       pixQrCode: this._pixQrCode,
       pixCopyPaste: this._pixCopyPaste,
       pixTxId: this._pixTxId,
-      checkoutUrl: this._checkoutUrl,
-      checkoutToken: this._checkoutToken,
-      successUrl: this._successUrl,
-      cancelUrl: this._cancelUrl,
       expiresAt: this._expiresAt,
       paidAt: this._paidAt,
       releasedAt: this._releasedAt,
@@ -363,10 +331,6 @@ export interface CreatePaymentProps {
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
-  checkoutUrl?: string;
-  checkoutToken?: string;
-  successUrl?: string;
-  cancelUrl?: string;
   expiresAt: Date;
   metadata?: Record<string, unknown>;
 }
@@ -389,10 +353,6 @@ export interface PaymentProps {
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
-  checkoutUrl?: string;
-  checkoutToken?: string;
-  successUrl?: string;
-  cancelUrl?: string;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;
@@ -420,10 +380,6 @@ export interface PaymentObject {
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
-  checkoutUrl?: string;
-  checkoutToken?: string;
-  successUrl?: string;
-  cancelUrl?: string;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;

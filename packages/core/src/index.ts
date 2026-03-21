@@ -11,6 +11,7 @@ export * from './domain/entities/webhook-log.entity';
 export * from './domain/entities/account.entity';
 export * from './domain/entities/transaction.entity';
 export * from './domain/entities/idempotency-key.entity';
+export * from './domain/entities/checkout-session.entity';
 
 // Domain - Enums
 export * from './domain/enums/payment-status.enum';
@@ -79,6 +80,7 @@ export * from './domain/repositories/account.repository.interface';
 export * from './domain/repositories/transaction.repository.interface';
 export * from './domain/repositories/idempotency-key.repository.interface';
 export * from './domain/repositories/unit-of-work.interface';
+export * from './domain/repositories/checkout-session.repository.interface';
 
 // Application - Ports
 export * from './application/ports/password-hasher.port';
@@ -134,7 +136,9 @@ export * from './application/use-cases/delete-webhook-config.use-case';
 export * from './application/use-cases/test-webhook-config.use-case';
 export * from './application/use-cases/list-webhook-logs.use-case';
 export * from './application/use-cases/retry-webhook-log.use-case';
-export * from './application/use-cases/get-checkout-payment.use-case';
+export * from './application/use-cases/create-checkout-session.use-case';
+export * from './application/use-cases/get-checkout-session.use-case';
+export * from './application/use-cases/fulfill-checkout-session.use-case';
 export * from './application/use-cases/simulate-checkout-payment.use-case';
 export * from './application/use-cases/get-account.use-case';
 export * from './application/use-cases/list-transactions.use-case';

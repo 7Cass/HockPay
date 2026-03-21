@@ -30,6 +30,12 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum SessionStatus {
+  OPEN
+  COMPLETED
+  EXPIRED
+}
+
 enum RefundStatus {
   PENDING
   PROCESSED
@@ -128,6 +134,7 @@ model Store {
   customers       Customer[]
   products        Product[]
   payments        Payment[]
+  checkoutSessions CheckoutSession[]
   webhookConfigs  WebhookConfig[]
   idempotencyKeys IdempotencyKey[]
 
@@ -292,10 +299,6 @@ model Payment {
   pixQrCode     String?         @map("pix_qr_code")
   pixCopyPaste  String?         @map("pix_copy_paste") @db.Text
   pixTxId       String?         @map("pix_tx_id")
-  checkoutUrl   String?         @map("checkout_url")
-  checkoutToken String?         @unique @map("checkout_token")
-  successUrl    String?         @map("success_url")
-  cancelUrl     String?         @map("cancel_url")
   expiresAt     DateTime        @map("expires_at")
   paidAt        DateTime?       @map("paid_at")
   releasedAt    DateTime?       @map("released_at")
@@ -306,11 +309,38 @@ model Payment {
 
   store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customer      Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  checkoutSession CheckoutSession?
   items         PaymentItem[]
   refund        Refund?
   webhookLogs   WebhookLog[]
 
   @@map("payments")
+}
+
+// ============================================================================
+// CHECKOUT SESSION
+// ============================================================================
+
+model CheckoutSession {
+  id              String         @id @default(uuid())
+  storeId         String         @map("store_id")
+  amount          Int
+  currency        String         @default("BRL")
+  description     String?
+  paymentId       String?        @unique @map("payment_id")
+  checkoutToken   String         @unique @map("checkout_token")
+  status          SessionStatus  @default(OPEN)
+  expiresAt       DateTime       @map("expires_at")
+  successUrl      String?        @map("success_url")
+  cancelUrl       String?        @map("cancel_url")
+  metadata        Json?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  store           Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payment         Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@map("checkout_sessions")
 }
 
 // ============================================================================

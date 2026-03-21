@@ -17,7 +17,7 @@ export type SimulateAction = 'confirm' | 'expire' | 'fail';
  * Input DTO for SimulateCheckoutPaymentUseCase.
  */
 export interface ISimulateCheckoutInput {
-  token: string;
+  paymentId: string;
   action: SimulateAction;
 }
 
@@ -31,7 +31,7 @@ export interface ISimulateCheckoutOutput {
 /**
  * Use Case: Simulate Checkout Payment
  *
- * This use case allows simulating payment actions via checkout token.
+ * This use case allows simulating payment actions via payment ID.
  * It only works for payments created in TEST environment.
  *
  * Actions:
@@ -50,11 +50,11 @@ export class SimulateCheckoutPaymentUseCase {
 
   async execute(input: ISimulateCheckoutInput): Promise<ISimulateCheckoutOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      // 1. Find payment by checkout token
-      const payment = await repos.paymentRepository.findByCheckoutToken(input.token);
+      // 1. Find payment by id
+      const payment = await repos.paymentRepository.findById(input.paymentId);
 
       if (!payment) {
-        throw new PaymentNotFoundError(input.token);
+        throw new PaymentNotFoundError(input.paymentId);
       }
 
       // 2. Validate environment - only TEST payments can be simulated
