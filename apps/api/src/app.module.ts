@@ -16,6 +16,7 @@ import { AccountModule } from './modules/account/account.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { BankAccountModule } from './modules/bank-account/bank-account.module';
+import { CheckoutSessionModule } from './modules/checkout-session/checkout-session.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 
@@ -38,6 +39,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     TransactionModule,
     DashboardModule,
     BankAccountModule,
+    CheckoutSessionModule,
   ],
   controllers: [AppController],
   providers: [

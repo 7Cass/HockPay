@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { PaymentController } from './payment.controller';
 import { DevController } from './dev.controller';
-import { CheckoutController } from './checkout.controller';
 import {
   CreatePaymentUseCase,
   GetPaymentUseCase,
@@ -10,7 +9,6 @@ import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
-  GetCheckoutPaymentUseCase,
   SimulateCheckoutPaymentUseCase,
   FeePolicy,
   IPaymentRepository,
@@ -50,7 +48,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
       name: 'payment-expiration',
     }),
   ],
-  controllers: [PaymentController, DevController, CheckoutController],
+  controllers: [PaymentController, DevController],
   providers: [
     // Infrastructure
     PrismaService,
@@ -97,7 +95,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
         pixGenerator: PixQrCodeGeneratorService,
         expirationQueue: ExpirationQueue,
         feePolicy: FeePolicy,
-        tokenGenerator: ITokenGeneratorPort,
       ) => {
         return new CreatePaymentUseCase(
           paymentRepo,
@@ -107,9 +104,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
           pixGenerator,
           expirationQueue,
           feePolicy,
-          tokenGenerator,
           process.env.PIX_KEY ?? 'test@hockpay.com',
-          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
         );
       },
       inject: [
@@ -120,7 +115,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
         PixQrCodeGeneratorService,
         ExpirationQueue,
         FeePolicy,
-        TokenGeneratorService,
       ],
     },
 
@@ -172,14 +166,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
     },
 
     {
-      provide: GetCheckoutPaymentUseCase,
-      useFactory: (repo: IPaymentRepository) => {
-        return new GetCheckoutPaymentUseCase(repo);
-      },
-      inject: ['IPaymentRepository'],
-    },
-
-    {
       provide: SimulateCheckoutPaymentUseCase,
       useFactory: (
         unitOfWork: IUnitOfWork,
@@ -196,8 +182,8 @@ import { JwtService } from 'src/infra/services/jwt.service';
     ConfirmPaymentUseCase,
     ExpirePaymentUseCase,
     FailPaymentUseCase,
-    GetCheckoutPaymentUseCase,
     SimulateCheckoutPaymentUseCase,
+    'IPaymentRepository',
   ],
 })
 export class PaymentModule { }

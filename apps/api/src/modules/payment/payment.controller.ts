@@ -18,6 +18,7 @@ import {
   CreatePaymentUseCase,
   GetPaymentUseCase,
   ListPaymentsUseCase,
+  SimulateCheckoutPaymentUseCase,
   ExternalIdAlreadyExistsError,
   PaymentNotFoundError,
   StoreNotFoundError,
@@ -50,12 +51,12 @@ import {
  */
 @Controller('payments')
 @Public()
-@UseGuards(CombinedAuthGuard)
 export class PaymentController {
   constructor(
     private readonly createPaymentUseCase: CreatePaymentUseCase,
     private readonly getPaymentUseCase: GetPaymentUseCase,
     private readonly listPaymentsUseCase: ListPaymentsUseCase,
+    private readonly simulatePaymentUseCase: SimulateCheckoutPaymentUseCase,
   ) { }
 
   /**
@@ -66,6 +67,7 @@ export class PaymentController {
    */
   @Post()
   @Idempotent({ required: true })
+  @UseGuards(CombinedAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createPayment(
     @Body() dto: CreatePaymentDto,
@@ -86,8 +88,6 @@ export class PaymentController {
         description: dto.description,
         customer: dto.customer,
         environment,
-        successUrl: dto.successUrl,
-        cancelUrl: dto.cancelUrl,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         metadata: dto.metadata,
       });
@@ -139,6 +139,7 @@ export class PaymentController {
    * Gets a payment by ID with lazy expiration check.
    */
   @Get(':id')
+  @UseGuards(CombinedAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getPayment(
     @Param('id') id: string,
@@ -178,6 +179,7 @@ export class PaymentController {
    * Lists payments with pagination and filters.
    */
   @Get()
+  @UseGuards(CombinedAuthGuard)
   @HttpCode(HttpStatus.OK)
   async listPayments(
     @Query() query: ListPaymentsQueryDto,
@@ -201,5 +203,34 @@ export class PaymentController {
     });
 
     return result;
+  }
+
+  /**
+   * POST /v1/payments/:id/simulate/:action
+   * 
+   * Simulates a payment action for TEST environment payments.
+   * Publicly accessible for the checkout dev UI.
+   */
+  @Post(':id/simulate/:action')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  async simulatePayment(
+    @Param('id') id: string,
+    @Param('action') action: 'confirm' | 'expire' | 'fail',
+  ) {
+    try {
+      const result = await this.simulatePaymentUseCase.execute({
+        paymentId: id,
+        action,
+      });
+
+      return {
+        payment: result.payment,
+      };
+    } catch (error: any) {
+       // Only test payments can be simulated, LiveEnvironmentNotAllowedError can be thrown
+       if (error.name === 'PaymentNotFoundError') throw new NotFoundException(error.message);
+       throw new UnprocessableEntityException(error.message);
+    }
   }
 }
