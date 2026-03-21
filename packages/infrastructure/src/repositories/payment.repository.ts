@@ -35,10 +35,6 @@ export class PaymentRepository implements IPaymentRepository {
         pixQrCode: payment.pixQrCode,
         pixCopyPaste: payment.pixCopyPaste,
         pixTxId: payment.pixTxId,
-        checkoutUrl: payment.checkoutUrl,
-        checkoutToken: payment.checkoutToken,
-        successUrl: payment.successUrl,
-        cancelUrl: payment.cancelUrl,
         expiresAt: payment.expiresAt,
         paidAt: payment.paidAt,
         releasedAt: payment.releasedAt,
@@ -109,19 +105,6 @@ export class PaymentRepository implements IPaymentRepository {
 
     return this.toDomain(prismaPayment);
   }
-
-  async findByCheckoutToken(token: string): Promise<DomainPayment | null> {
-    const prismaPayment = await this.prisma.payment.findUnique({
-      where: { checkoutToken: token },
-    });
-
-    if (!prismaPayment) {
-      return null;
-    }
-
-    return this.toDomain(prismaPayment);
-  }
-
   async list(options: ListPaymentsOptions): Promise<ListPaymentsResult> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 20;
@@ -224,10 +207,6 @@ export class PaymentRepository implements IPaymentRepository {
       pixQrCode: prismaPayment.pixQrCode ?? undefined,
       pixCopyPaste: prismaPayment.pixCopyPaste ?? undefined,
       pixTxId: prismaPayment.pixTxId ?? undefined,
-      checkoutUrl: prismaPayment.checkoutUrl ?? undefined,
-      checkoutToken: (prismaPayment as any).checkoutToken ?? undefined,
-      successUrl: (prismaPayment as any).successUrl ?? undefined,
-      cancelUrl: (prismaPayment as any).cancelUrl ?? undefined,
       expiresAt: prismaPayment.expiresAt,
       paidAt: prismaPayment.paidAt ?? undefined,
       releasedAt: prismaPayment.releasedAt ?? undefined,
