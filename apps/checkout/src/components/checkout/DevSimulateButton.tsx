@@ -8,11 +8,11 @@ import { env } from '@/lib/env';
 import type { CheckoutPayment } from '@/types/checkout';
 
 interface DevSimulateButtonProps {
-  token: string;
+  paymentId: string;
   onSimulated: (action: 'confirm' | 'expire' | 'fail', payment?: CheckoutPayment) => void;
 }
 
-export function DevSimulateButton({ token, onSimulated }: DevSimulateButtonProps) {
+export function DevSimulateButton({ paymentId, onSimulated }: DevSimulateButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
 
   if (!env.devMode) {
@@ -22,7 +22,7 @@ export function DevSimulateButton({ token, onSimulated }: DevSimulateButtonProps
   const handleSimulate = async (action: 'confirm' | 'expire' | 'fail') => {
     setLoading(action);
     try {
-      const result = await simulatePayment(token, action);
+      const result = await simulatePayment(paymentId, action);
       if (result.success) {
         onSimulated(action, result.payment);
       } else {
@@ -36,7 +36,7 @@ export function DevSimulateButton({ token, onSimulated }: DevSimulateButtonProps
   return (
     <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
       <p className="text-sm text-yellow-800 font-medium mb-3">
-        Modo Desenvolvimento - Simular Pagamento
+        Modo Desenvolvimento - Simular Pagamento ({paymentId})
       </p>
       <div className="flex gap-2 flex-wrap">
         <Button

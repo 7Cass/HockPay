@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { fetchCheckoutPayment } from '@/lib/api-client';
+import { fetchCheckoutSession } from '@/lib/api-client';
 import { CheckoutPage } from '@/components/checkout/CheckoutPage';
 
 interface PageProps {
@@ -10,11 +10,11 @@ interface PageProps {
 
 export default async function Page({ params }: PageProps) {
   const { token } = params;
-  const payment = await fetchCheckoutPayment(token);
+  const session = await fetchCheckoutSession(token);
 
-  if (!payment) {
+  if (!session) {
     notFound();
   }
 
-  return <CheckoutPage initialPayment={payment} token={token} />;
+  return <CheckoutPage initialSession={session} token={token} />;
 }

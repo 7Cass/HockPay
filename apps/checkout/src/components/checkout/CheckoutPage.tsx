@@ -1,38 +1,49 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { CopyPasteButton } from './CopyPasteButton';
 import { Timer } from './Timer';
 import { AmountDisplay } from './AmountDisplay';
 import { DevSimulateButton } from './DevSimulateButton';
 import { StatusPoller } from './StatusPoller';
-import type { CheckoutPayment, PaymentStatus } from '@/types/checkout';
+import { fulfillCheckoutSession } from '@/lib/api-client';
+import type { CheckoutSession, PaymentStatus } from '@/types/checkout';
 
 interface CheckoutPageProps {
-  initialPayment: CheckoutPayment;
+  initialSession: CheckoutSession;
   token: string;
 }
 
-export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
-  const [payment, setPayment] = useState(initialPayment);
-
-  const handleStatusChange = useCallback((updated: CheckoutPayment) => {
-    setPayment(updated);
-  }, []);
-
+export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
+  const [session, setSession] = useState(initialSession);
+  const [document, setDocument] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [isFulfilling, setIsFulfilling] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const payment = session.payment;
+
+  const handleSessionChange = useCallback((updated: CheckoutSession) => {
+    setSession(updated);
+  }, []);
 
   useEffect(() => {
     let redirectUrl: string | undefined;
 
-    if (payment.status === 'CONFIRMED' || payment.status === 'RELEASED') {
-      redirectUrl = payment.successUrl;
-    } else if (payment.status === 'EXPIRED' || payment.status === 'FAILED') {
-      redirectUrl = payment.cancelUrl;
+    if (payment) {
+      if (payment.status === 'CONFIRMED' || payment.status === 'RELEASED') {
+        redirectUrl = session.successUrl ?? undefined;
+      } else if (payment.status === 'EXPIRED' || payment.status === 'FAILED') {
+        redirectUrl = session.cancelUrl ?? undefined;
+      }
+    } else if (session.status === 'EXPIRED') {
+      redirectUrl = session.cancelUrl ?? undefined;
     }
 
     if (redirectUrl) {
@@ -43,9 +54,75 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
 
       return () => clearTimeout(timer);
     }
-  }, [payment.status, payment.successUrl, payment.cancelUrl]);
+  }, [session.status, payment?.status, session.successUrl, session.cancelUrl]);
 
-  const renderStatusContent = () => {
+  const handleFulfill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsFulfilling(true);
+    const result = await fulfillCheckoutSession(token, { document, name, email });
+    if (!result.success) {
+      alert(result.error);
+      setIsFulfilling(false);
+    }
+    // If success, StatusPoller will automatically pull the updated session with Payment object
+  };
+
+  const renderSessionOpen = () => (
+    <form onSubmit={handleFulfill} className="space-y-4">
+      <div className="mb-6">
+        <AmountDisplay amountInCents={session.amount} currency={session.currency} />
+      </div>
+
+      {session.description && (
+        <p className="text-center text-gray-600 mb-4">{session.description}</p>
+      )}
+
+      <div className="flex justify-center mb-4">
+        <Timer expiresAt={session.expiresAt} onExpire={() => handleSessionChange({ ...session, status: 'EXPIRED' })} />
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">CPF / CNPJ</label>
+          <input
+            type="text"
+            required
+            value={document}
+            onChange={(e) => setDocument(e.target.value)}
+            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Apenas números"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Opcional)</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">E-mail (Opcional)</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <Button type="submit" className="w-full" disabled={isFulfilling}>
+          {isFulfilling ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+          {isFulfilling ? 'Processando...' : 'Gerar Pix'}
+        </Button>
+      </div>
+    </form>
+  );
+
+  const renderPayment = () => {
+    if (!payment) return null;
+
     switch (payment.status) {
       case 'CONFIRMED':
       case 'RELEASED':
@@ -89,15 +166,15 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
         return (
           <>
             <div className="mb-6">
-              <AmountDisplay amountInCents={payment.amount} currency={payment.currency} />
+              <AmountDisplay amountInCents={session.amount} currency={session.currency} />
             </div>
 
-            {payment.description && (
-              <p className="text-center text-gray-600 mb-4">{payment.description}</p>
+            {session.description && (
+              <p className="text-center text-gray-600 mb-4">{session.description}</p>
             )}
 
             <div className="flex justify-center mb-4">
-              <Timer expiresAt={payment.expiresAt} onExpire={() => handleStatusChange({ ...payment, status: 'EXPIRED' as PaymentStatus })} />
+              <Timer expiresAt={payment.expiresAt} onExpire={() => handleSessionChange({ ...session, payment: { ...payment, status: 'EXPIRED' } })} />
             </div>
 
             <div className="flex justify-center mb-6">
@@ -108,16 +185,16 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
               <CopyPasteButton pixCopyPaste={payment.pixCopyPaste} />
             </div>
 
-            <DevSimulateButton token={token} onSimulated={(action, updatedPayment) => {
+            <DevSimulateButton paymentId={payment.id} onSimulated={(action, updatedPayment) => {
               if (updatedPayment) {
-                handleStatusChange(updatedPayment);
+                handleSessionChange({ ...session, payment: updatedPayment });
               } else {
                 const statusMap = {
                   confirm: 'CONFIRMED',
                   expire: 'EXPIRED',
                   fail: 'FAILED'
                 } as const;
-                handleStatusChange({ ...payment, status: statusMap[action] as PaymentStatus });
+                handleSessionChange({ ...session, payment: { ...payment, status: statusMap[action] as PaymentStatus } });
               }
             }} />
           </>
@@ -129,17 +206,35 @@ export function CheckoutPage({ initialPayment, token }: CheckoutPageProps) {
     <>
       <StatusPoller
         token={token}
-        currentStatus={payment.status}
-        onStatusChange={handleStatusChange}
+        session={session}
+        onSessionChange={handleSessionChange}
       />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Pagamento Pix</h1>
-          <StatusBadge status={payment.status} />
+          <h1 className="text-xl font-semibold text-gray-900">Checkout Hospedado</h1>
+          <StatusBadge status={payment ? payment.status : session.status} />
         </CardHeader>
         <CardContent>
-          {renderStatusContent()}
+          {session.status === 'EXPIRED' && !payment ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <Clock className="w-16 h-16 text-gray-400 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Sessão Expirada</h2>
+              <p className="text-gray-600 mb-4">O tempo para preencher os dados esgotou. Por favor, reinicie a compra.</p>
+              {isRedirecting && (
+                <p className="text-sm text-blue-600 font-medium animate-pulse">Redirecionando de volta à loja...</p>
+              )}
+            </div>
+          ) : session.status === 'OPEN' ? (
+            renderSessionOpen()
+          ) : session.status === 'COMPLETED' && payment ? (
+            renderPayment()
+          ) : (
+            <div className="flex flex-col items-center justify-center p-8">
+              <Loader2 className="w-10 h-10 animate-spin text-gray-400" />
+              <p className="mt-4 text-gray-500">Aguardando geração do QR Code...</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>

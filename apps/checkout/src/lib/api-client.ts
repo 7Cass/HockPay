@@ -1,9 +1,9 @@
 import { env } from './env';
-import type { CheckoutPayment } from '@/types/checkout';
+import type { CheckoutSession, CheckoutPayment } from '@/types/checkout';
 
-export async function fetchCheckoutPayment(token: string): Promise<CheckoutPayment | null> {
+export async function fetchCheckoutSession(token: string): Promise<CheckoutSession | null> {
   try {
-    const response = await fetch(`${env.apiUrl}/checkout/${token}`, {
+    const response = await fetch(`${env.apiUrl}/checkout-sessions/${token}`, {
       cache: 'no-store'
     });
 
@@ -11,22 +11,47 @@ export async function fetchCheckoutPayment(token: string): Promise<CheckoutPayme
       if (response.status === 404) {
         return null;
       }
-      throw new Error(`Failed to fetch checkout: ${response.status}`);
+      throw new Error(`Failed to fetch checkout session: ${response.status}`);
     }
 
     return response.json();
   } catch (error) {
-    console.error('Error fetching checkout payment:', error);
+    console.error('Error fetching checkout session:', error);
     return null;
   }
 }
 
-export async function simulatePayment(
+export async function fulfillCheckoutSession(
   token: string,
+  customerData: { document: string; name?: string; email?: string }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${env.apiUrl}/checkout-sessions/${token}/fulfill`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ customer: customerData }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return { success: false, error: data?.message || 'Failed to fulfill session' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error fulfilling checkout session:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+export async function simulatePayment(
+  paymentId: string,
   action: 'confirm' | 'expire' | 'fail'
 ): Promise<{ success: boolean; payment?: CheckoutPayment; error?: string }> {
   try {
-    const response = await fetch(`${env.apiUrl}/checkout/${token}/simulate/${action}`, {
+    const response = await fetch(`${env.apiUrl}/payments/${paymentId}/simulate/${action}`, {
       method: 'POST',
     });
 
