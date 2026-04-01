@@ -1,16 +1,26 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
+import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import {
   DomainExceptionFilter,
   HttpExceptionFilter,
-  LoggingInterceptor,
   TimeoutInterceptor,
 } from './common';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Logging
+  app.useLogger(app.get(Logger));
+
+  // Graceful shutdown
+  app.enableShutdownHooks();
+
+  // Security
+  app.use(helmet());
 
   // Cookie parser middleware
   app.use(cookieParser());
@@ -31,12 +41,11 @@ async function bootstrap() {
     }),
   );
 
-  // Exception filters (ordem importa - mais específico primeiro)
+  // Exception filters
   app.useGlobalFilters(new DomainExceptionFilter(), new HttpExceptionFilter());
 
   // Interceptors
   app.useGlobalInterceptors(
-    new LoggingInterceptor(),
     new TimeoutInterceptor(30000), // 30 segundos
   );
 

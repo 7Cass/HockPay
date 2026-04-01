@@ -13,7 +13,10 @@
     "test:cov": "turbo run test:cov",
     "test:e2e": "turbo run test:e2e",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @hockpay/database db:generate",
+    "db:migrate": "pnpm --filter @hockpay/database db:migrate:dev",
+    "db:deploy": "pnpm --filter @hockpay/database db:migrate:deploy"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
