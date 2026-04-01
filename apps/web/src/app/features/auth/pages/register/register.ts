@@ -94,7 +94,7 @@ export class Register {
                 error: (err: HttpErrorResponse) => {
                     this.isLoading.set(false);
                     toast.error(
-                        err.error?.message || 'Erro ao criar conta. Tente novamente mais tarde.'
+                        err.error?.error?.message || 'Erro ao criar conta. Tente novamente mais tarde.'
                     );
                 },
             });

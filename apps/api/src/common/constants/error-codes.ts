@@ -30,6 +30,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   API_KEY_INVALID: 401,
   API_KEY_EXPIRED: 401,
   API_KEY_MISSING: 401,
+  INVALID_CREDENTIALS: 401,
 
   // Authorization Errors (403 Forbidden)
   INSUFFICIENT_PERMISSIONS: 403,
@@ -77,7 +78,7 @@ export const ERROR_CATEGORIES = {
   ],
 
   /** Authentication and identity verification failures */
-  AUTHENTICATION: ['API_KEY_INVALID', 'API_KEY_EXPIRED', 'API_KEY_MISSING'],
+  AUTHENTICATION: ['API_KEY_INVALID', 'API_KEY_EXPIRED', 'API_KEY_MISSING', 'INVALID_CREDENTIALS'],
 
   /** Permission and access control failures */
   AUTHORIZATION: ['INSUFFICIENT_PERMISSIONS', 'MERCHANT_MISMATCH'],

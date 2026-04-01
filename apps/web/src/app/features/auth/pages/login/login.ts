@@ -62,10 +62,7 @@ export class Login {
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
-        const errorMessage =
-          err.status === 401
-            ? 'Credenciais inválidas'
-            : 'Erro ao conectar com o servidor.';
+        const errorMessage = err.error?.error?.message || 'Erro ao conectar com o servidor.';
         toast.error(errorMessage);
       },
     });
