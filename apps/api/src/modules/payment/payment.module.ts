@@ -16,7 +16,11 @@ import {
   ITokenGeneratorPort,
   IUnitOfWork,
 } from '@hockpay/core';
-import { PaymentRepository, OutboxRepository, UnitOfWork } from '@hockpay/infrastructure';
+import {
+  PaymentRepository,
+  OutboxRepository,
+  UnitOfWork,
+} from '@hockpay/infrastructure';
 import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
 import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
@@ -156,10 +160,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: FailPaymentUseCase,
-      useFactory: (
-        repo: IPaymentRepository,
-        outboxRepo: IOutboxRepository,
-      ) => {
+      useFactory: (repo: IPaymentRepository, outboxRepo: IOutboxRepository) => {
         return new FailPaymentUseCase(repo, outboxRepo);
       },
       inject: ['IPaymentRepository', 'IOutboxRepository'],
@@ -168,11 +169,24 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: SimulateCheckoutPaymentUseCase,
       useFactory: (
-        unitOfWork: IUnitOfWork,
+        paymentRepo: IPaymentRepository,
+        confirmUseCase: ConfirmPaymentUseCase,
+        expireUseCase: ExpirePaymentUseCase,
+        failUseCase: FailPaymentUseCase,
       ) => {
-        return new SimulateCheckoutPaymentUseCase(unitOfWork);
+        return new SimulateCheckoutPaymentUseCase(
+          paymentRepo,
+          confirmUseCase,
+          expireUseCase,
+          failUseCase,
+        );
       },
-      inject: ['IUnitOfWork'],
+      inject: [
+        'IPaymentRepository',
+        ConfirmPaymentUseCase,
+        ExpirePaymentUseCase,
+        FailPaymentUseCase,
+      ],
     },
   ],
   exports: [
@@ -186,4 +200,4 @@ import { JwtService } from 'src/infra/services/jwt.service';
     'IPaymentRepository',
   ],
 })
-export class PaymentModule { }
+export class PaymentModule {}

@@ -10,4 +10,5 @@ export * from "./repositories/unit-of-work";
 export * from "./repositories/bank-account.repository";
 export * from "./repositories/receipt.repository";
 export * from "./repositories/refund.repository";
+export * from "./repositories/store.repository";
 export * from "./services/encryption.service";

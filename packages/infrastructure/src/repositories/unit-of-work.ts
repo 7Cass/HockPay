@@ -6,6 +6,7 @@ import { TransactionRepository } from "./transaction.repository";
 import { BankAccountRepository } from "./bank-account.repository";
 import { OutboxRepository } from "./outbox.repository";
 import { ReceiptRepository } from "./receipt.repository";
+import { StoreRepository } from "./store.repository";
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -29,6 +30,7 @@ export class UnitOfWork implements IUnitOfWork {
           bankAccountRepository: new BankAccountRepository(tx),
           outboxWriter: new OutboxRepository(tx),
           receiptRepository: new ReceiptRepository(tx),
+          storeRepository: new StoreRepository(tx),
         };
 
         return work(repos);

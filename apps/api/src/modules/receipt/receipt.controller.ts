@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import {
@@ -14,7 +15,6 @@ import {
   ListReceiptsUseCase,
   ReceiptNotFoundError,
 } from '@hockpay/core';
-import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { ListReceiptsQueryDto } from './dtos/list-receipts.dto';
 import {
@@ -24,7 +24,6 @@ import {
 } from './dtos/receipt-response.dto';
 
 @Controller('receipts')
-@Public()
 @UseGuards(CombinedAuthGuard)
 export class ReceiptController {
   constructor(
@@ -65,20 +64,32 @@ export class ReceiptController {
     @Param('id') id: string,
     @Req() req: Request,
   ): Promise<GetReceiptResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    try {
+      const storeId = (req as any)?.store?.id;
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
+      if (!storeId) {
+        throw new Error('Store ID not found in request');
+      }
+
+      const result = await this.getReceiptUseCase.execute({
+        receiptId: id,
+        storeId,
+      });
+
+      return {
+        receipt: this.toResponse(result.receipt),
+      };
+    } catch (error) {
+      if (error instanceof ReceiptNotFoundError) {
+        throw new NotFoundException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
     }
-
-    const result = await this.getReceiptUseCase.execute({
-      receiptId: id,
-      storeId,
-    });
-
-    return {
-      receipt: this.toResponse(result.receipt),
-    };
   }
 
   @Get('payment/:paymentId')
@@ -87,20 +98,32 @@ export class ReceiptController {
     @Param('paymentId') paymentId: string,
     @Req() req: Request,
   ): Promise<GetReceiptResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    try {
+      const storeId = (req as any)?.store?.id;
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
+      if (!storeId) {
+        throw new Error('Store ID not found in request');
+      }
+
+      const result = await this.getReceiptUseCase.execute({
+        paymentId,
+        storeId,
+      });
+
+      return {
+        receipt: this.toResponse(result.receipt),
+      };
+    } catch (error) {
+      if (error instanceof ReceiptNotFoundError) {
+        throw new NotFoundException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
     }
-
-    const result = await this.getReceiptUseCase.execute({
-      paymentId,
-      storeId,
-    });
-
-    return {
-      receipt: this.toResponse(result.receipt),
-    };
   }
 
   private toResponse(receipt: any): ReceiptResponseDto {

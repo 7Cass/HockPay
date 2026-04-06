@@ -21,8 +21,6 @@ export interface IConfirmPaymentInput {
   payerName?: string;
   payerDocument?: string;
   payerEmail?: string;
-  payeeName?: string;
-  payeeDocument?: string;
 }
 
 /**
@@ -45,7 +43,7 @@ export interface IConfirmPaymentOutput {
  * - Validates the Account for the store
  * - Updates the pending balance atomically
  * - Records a Transaction in the ledger
- * - Creates a Receipt for the payment
+ * - Creates a Receipt for the payment (always)
  * - Outbox event is created for webhook notification
  */
 export class ConfirmPaymentUseCase {
@@ -108,25 +106,36 @@ export class ConfirmPaymentUseCase {
       });
       await repos.transactionRepository.save(transaction);
 
-      // Create Receipt
-      if (input.payeeName) {
-        const receipt = Receipt.create({
-          receiptNumber: "", // Will be set by repository
-          paymentId: payment.id,
-          storeId: input.storeId,
-          payerName: input.payerName,
-          payerDocument: input.payerDocument,
-          payerEmail: input.payerEmail,
-          payeeName: input.payeeName,
-          payeeDocument: input.payeeDocument,
-          amount: payment.amount,
-          fee: payment.fee,
-          netAmount: payment.netAmount,
-          currency: payment.currency,
-          description: payment.description,
-        });
-        await repos.receiptRepository.save(receipt);
+      // Create Receipt (always)
+      const store = await repos.storeRepository.findById(input.storeId);
+      if (!store) {
+        throw new Error(`Store not found: ${input.storeId}`);
       }
+
+      const date = new Date();
+      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
+      const sequence = await repos.receiptRepository.incrementCounter(
+        input.storeId,
+        dateStr,
+      );
+      const receiptNumber = `RCP-${dateStr}-${String(sequence).padStart(5, "0")}`;
+
+      const receipt = Receipt.create({
+        receiptNumber,
+        paymentId: payment.id,
+        storeId: input.storeId,
+        payerName: input.payerName,
+        payerDocument: input.payerDocument,
+        payerEmail: input.payerEmail,
+        payeeName: store.name,
+        payeeDocument: undefined,
+        amount: payment.amount,
+        fee: payment.fee,
+        netAmount: payment.netAmount,
+        currency: payment.currency,
+        description: payment.description,
+      });
+      await repos.receiptRepository.save(receipt);
 
       // Create outbox event for webhook notification
       const outboxEvent = OutboxEvent.create({

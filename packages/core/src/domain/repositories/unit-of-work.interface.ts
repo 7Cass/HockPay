@@ -4,6 +4,7 @@ import { ITransactionRepository } from "./transaction.repository.interface";
 import { IOutboxWriter } from "./outbox-writer.repository.interface";
 import { IBankAccountRepository } from "./bank-account.repository.interface";
 import { IReceiptRepository } from "./receipt.repository.interface";
+import { IStoreRepository } from "./store.repository.interface";
 
 /**
  * Interface containing transacted repositories.
@@ -15,6 +16,7 @@ export interface ITransactedRepositories {
   bankAccountRepository: IBankAccountRepository;
   outboxWriter: IOutboxWriter;
   receiptRepository: IReceiptRepository;
+  storeRepository: IStoreRepository;
 }
 
 /**
