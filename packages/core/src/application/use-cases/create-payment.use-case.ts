@@ -1,20 +1,24 @@
-import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
-import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
-import { Document } from '../../domain/value-objects/document.vo';
-import { Environment } from '../../domain/value-objects/environment.vo';
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
-import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
-import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
-import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
-import { IExpirationQueuePort } from '../ports/expiration-queue.port';
-import { ITokenGeneratorPort } from '../ports/token-generator.port';
-import { FeePolicy } from '../services/fee-policy.service';
-import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
-import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
-import { ExternalIdAlreadyExistsError } from '../../domain/errors/external-id-already-exists.error';
-import { Customer } from '../../domain/entities/customer.entity';
+import {
+  Payment,
+  PaymentObject,
+  PaymentMethod,
+} from "../../domain/entities/payment.entity";
+import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
+import { Document } from "../../domain/value-objects/document.vo";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
+import { ICustomerRepository } from "../../domain/repositories/customer.repository.interface";
+import { IStoreRepository } from "../../domain/repositories/store.repository.interface";
+import { IOutboxWriter } from "../../domain/repositories/outbox-writer.repository.interface";
+import { IPixQrCodeGeneratorPort } from "../ports/pix-qr-code-generator.port";
+import { IExpirationQueuePort } from "../ports/expiration-queue.port";
+import { ITokenGeneratorPort } from "../ports/token-generator.port";
+import { FeePolicy } from "../services/fee-policy.service";
+import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
+import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
+import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
+import { ExternalIdAlreadyExistsError } from "../../domain/errors/external-id-already-exists.error";
+import { Customer } from "../../domain/entities/customer.entity";
 
 /**
  * Customer data provided in the payment creation payload.
@@ -44,6 +48,9 @@ export interface ICreatePaymentInput {
   description?: string;
   customer: PaymentCustomerInput;
   environment: Environment;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: Record<string, unknown>;
+  acquirerId?: string;
   expiresAt?: Date;
   metadata?: Record<string, unknown>;
 }
@@ -79,7 +86,7 @@ export class CreatePaymentUseCase {
     private readonly expirationQueue: IExpirationQueuePort,
     private readonly feePolicy: FeePolicy,
     private readonly pixKey: string, // Store's Pix key for receiving payments
-  ) { }
+  ) {}
 
   async execute(input: ICreatePaymentInput): Promise<ICreatePaymentOutput> {
     // 1. Validate store exists, is active, and approved
@@ -149,13 +156,12 @@ export class CreatePaymentUseCase {
       pixKey: this.pixKey,
       amountInCents: input.amount,
       merchantName: store.name.substring(0, 25),
-      merchantCity: 'SAO PAULO', // Default city, can be configurable
+      merchantCity: "SAO PAULO", // Default city, can be configurable
       txId,
     });
 
     // 6. Set expiration time (default: 30 minutes from now)
-    const expiresAt =
-      input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
+    const expiresAt = input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
     // 7. Create Payment entity
     const payment = Payment.create({
@@ -167,6 +173,9 @@ export class CreatePaymentUseCase {
       netAmount: feeResult.netAmountInCents,
       description: input.description,
       environment: input.environment,
+      paymentMethod: input.paymentMethod ?? PaymentMethod.PIX,
+      paymentDetails: input.paymentDetails,
+      acquirerId: input.acquirerId,
       pixQrCode: qrCodeResult.qrCodeBase64,
       pixCopyPaste: qrCodeResult.copyPaste,
       pixTxId: qrCodeResult.txId,
@@ -179,9 +188,9 @@ export class CreatePaymentUseCase {
 
     // 10. Create outbox event for webhook notification
     const outboxEvent = OutboxEvent.create({
-      aggregateType: 'Payment',
+      aggregateType: "Payment",
       aggregateId: payment.id,
-      eventType: 'payment.created',
+      eventType: "payment.created",
       payload: payment.toObject() as unknown as Record<string, unknown>,
     });
     await this.outboxWriter.save(outboxEvent);
@@ -202,7 +211,7 @@ export class CreatePaymentUseCase {
    */
   private generateTxId(): string {
     const timestamp = Date.now().toString(36);
-    const random = crypto.randomUUID().split('-')[0];
+    const random = crypto.randomUUID().split("-")[0];
     return `HP${timestamp}${random}`.substring(0, 35);
   }
 }

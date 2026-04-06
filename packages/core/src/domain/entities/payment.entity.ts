@@ -2,9 +2,16 @@ import {
   PaymentStatus,
   VALID_STATUS_TRANSITIONS,
   TERMINAL_STATUSES,
-} from '../enums/payment-status.enum';
-import { Environment } from '../value-objects/environment.vo';
-import { InvalidPaymentStatusError } from '../errors/invalid-payment-status.error';
+} from "../enums/payment-status.enum";
+import { Environment } from "../value-objects/environment.vo";
+import { InvalidPaymentStatusError } from "../errors/invalid-payment-status.error";
+
+export enum PaymentMethod {
+  PIX = "PIX",
+  CREDIT_CARD = "CREDIT_CARD",
+  BOLETO = "BOLETO",
+  DEBIT_CARD = "DEBIT_CARD",
+}
 
 /**
  * Domain Entity: Payment
@@ -24,6 +31,10 @@ export class Payment {
   private _description?: string;
   private _status: PaymentStatus;
   private readonly _environment: Environment;
+  private readonly _paymentMethod: PaymentMethod;
+  private readonly _paymentDetails?: Record<string, unknown>;
+  private readonly _acquirerId?: string;
+  private _totalRefunded: number;
   private _pixQrCode?: string;
   private _pixCopyPaste?: string;
   private _pixTxId?: string;
@@ -43,10 +54,14 @@ export class Payment {
     this._amount = props.amount;
     this._fee = props.fee;
     this._netAmount = props.netAmount;
-    this._currency = props.currency ?? 'BRL';
+    this._currency = props.currency ?? "BRL";
     this._description = props.description;
     this._status = props.status;
     this._environment = props.environment ?? Environment.TEST;
+    this._paymentMethod = props.paymentMethod ?? PaymentMethod.PIX;
+    this._paymentDetails = props.paymentDetails;
+    this._acquirerId = props.acquirerId;
+    this._totalRefunded = props.totalRefunded ?? 0;
     this._pixQrCode = props.pixQrCode;
     this._pixCopyPaste = props.pixCopyPaste;
     this._pixTxId = props.pixTxId;
@@ -72,10 +87,14 @@ export class Payment {
       amount: props.amount,
       fee: props.fee,
       netAmount: props.netAmount,
-      currency: props.currency ?? 'BRL',
+      currency: props.currency ?? "BRL",
       description: props.description,
       status: PaymentStatus.PENDING,
       environment: props.environment ?? Environment.TEST,
+      paymentMethod: props.paymentMethod ?? PaymentMethod.PIX,
+      paymentDetails: props.paymentDetails,
+      acquirerId: props.acquirerId,
+      totalRefunded: 0,
       pixQrCode: props.pixQrCode,
       pixCopyPaste: props.pixCopyPaste,
       pixTxId: props.pixTxId,
@@ -140,6 +159,22 @@ export class Payment {
     return this._environment;
   }
 
+  get paymentMethod(): PaymentMethod {
+    return this._paymentMethod;
+  }
+
+  get paymentDetails(): Record<string, unknown> | undefined {
+    return this._paymentDetails;
+  }
+
+  get acquirerId(): string | undefined {
+    return this._acquirerId;
+  }
+
+  get totalRefunded(): number {
+    return this._totalRefunded;
+  }
+
   get pixQrCode(): string | undefined {
     return this._pixQrCode;
   }
@@ -196,6 +231,10 @@ export class Payment {
     return this._status === PaymentStatus.CONFIRMED;
   }
 
+  isReleased(): boolean {
+    return this._status === PaymentStatus.RELEASED;
+  }
+
   /**
    * Check if payment is in a terminal state (no further transitions possible).
    */
@@ -208,7 +247,9 @@ export class Payment {
    * This is used for lazy expiration checks.
    */
   hasExpired(): boolean {
-    return this._status === PaymentStatus.PENDING && new Date() > this._expiresAt;
+    return (
+      this._status === PaymentStatus.PENDING && new Date() > this._expiresAt
+    );
   }
 
   // Business methods
@@ -275,6 +316,26 @@ export class Payment {
   }
 
   /**
+   * Add a partial refund amount to the total refunded.
+   * If totalRefunded >= amount, the payment status changes to REFUNDED.
+   */
+  addRefund(amount: number): void {
+    if (amount <= 0) {
+      throw new Error("Refund amount must be positive");
+    }
+    if (this._totalRefunded + amount > this._amount) {
+      throw new Error("Refund amount exceeds payment amount");
+    }
+
+    this._totalRefunded += amount;
+    this._updatedAt = new Date();
+
+    if (this._totalRefunded >= this._amount) {
+      this.refund();
+    }
+  }
+
+  /**
    * Validate if a status transition is allowed.
    * Throws InvalidPaymentStatusError if not valid.
    */
@@ -301,6 +362,10 @@ export class Payment {
       description: this._description,
       status: this._status,
       environment: this._environment,
+      paymentMethod: this._paymentMethod,
+      paymentDetails: this._paymentDetails,
+      acquirerId: this._acquirerId,
+      totalRefunded: this._totalRefunded,
       pixQrCode: this._pixQrCode,
       pixCopyPaste: this._pixCopyPaste,
       pixTxId: this._pixTxId,
@@ -328,6 +393,9 @@ export interface CreatePaymentProps {
   currency?: string;
   description?: string;
   environment?: Environment;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: Record<string, unknown>;
+  acquirerId?: string;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
@@ -350,6 +418,10 @@ export interface PaymentProps {
   description?: string;
   status: PaymentStatus;
   environment?: Environment;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: Record<string, unknown>;
+  acquirerId?: string;
+  totalRefunded?: number;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
@@ -377,6 +449,10 @@ export interface PaymentObject {
   description?: string;
   status: PaymentStatus;
   environment: Environment;
+  paymentMethod: PaymentMethod;
+  paymentDetails?: Record<string, unknown>;
+  acquirerId?: string;
+  totalRefunded: number;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;
