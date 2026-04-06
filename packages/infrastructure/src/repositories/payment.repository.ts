@@ -6,8 +6,12 @@ import {
   PaymentProps,
   PaymentStatus,
   Environment,
-} from '@hockpay/core';
-import { PrismaClient, Payment as PrismaPayment, Prisma } from '@hockpay/database';
+} from "@hockpay/core";
+import {
+  PrismaClient,
+  Payment as PrismaPayment,
+  Prisma,
+} from "@hockpay/database";
 
 /**
  * Shared implementation of IPaymentRepository using Prisma.
@@ -16,7 +20,9 @@ import { PrismaClient, Payment as PrismaPayment, Prisma } from '@hockpay/databas
  * Each app provides its own PrismaClient instance.
  */
 export class PaymentRepository implements IPaymentRepository {
-  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) { }
+  constructor(
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
+  ) {}
 
   async save(payment: DomainPayment): Promise<void> {
     await this.prisma.payment.create({
@@ -32,6 +38,10 @@ export class PaymentRepository implements IPaymentRepository {
         description: payment.description,
         status: payment.status as any,
         environment: payment.environment as any,
+        paymentMethod: payment.paymentMethod as any,
+        paymentDetails: payment.paymentDetails as any,
+        acquirerId: payment.acquirerId,
+        totalRefunded: payment.totalRefunded,
         pixQrCode: payment.pixQrCode,
         pixCopyPaste: payment.pixCopyPaste,
         pixTxId: payment.pixTxId,
@@ -141,7 +151,7 @@ export class PaymentRepository implements IPaymentRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.payment.count({ where }),
     ]);
@@ -166,6 +176,7 @@ export class PaymentRepository implements IPaymentRepository {
         paidAt: payment.paidAt,
         releasedAt: payment.releasedAt,
         failedReason: payment.failedReason,
+        totalRefunded: payment.totalRefunded,
         updatedAt: payment.updatedAt,
       },
     });
@@ -177,7 +188,10 @@ export class PaymentRepository implements IPaymentRepository {
     });
   }
 
-  async externalIdExists(externalId: string, storeId: string): Promise<boolean> {
+  async externalIdExists(
+    externalId: string,
+    storeId: string,
+  ): Promise<boolean> {
     const count = await this.prisma.payment.count({
       where: {
         externalId,

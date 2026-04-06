@@ -21,6 +21,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { BankAccountModule } from './modules/bank-account/bank-account.module';
 import { CheckoutSessionModule } from './modules/checkout-session/checkout-session.module';
 import { HealthModule } from './modules/health/health.module';
+import { ReceiptModule } from './modules/receipt/receipt.module';
+import { RefundModule } from './modules/refund/refund.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { randomUUID } from 'crypto';
@@ -89,6 +91,8 @@ import { randomUUID } from 'crypto';
     BankAccountModule,
     CheckoutSessionModule,
     HealthModule,
+    ReceiptModule,
+    RefundModule,
   ],
   controllers: [AppController],
   providers: [

@@ -10,6 +10,7 @@ import {
   MaxLength,
   IsUrl,
 } from 'class-validator';
+import { PaymentMethod } from '@hockpay/core';
 
 /**
  * DTO for customer data in payment creation.
@@ -94,12 +95,27 @@ export class CreatePaymentDto {
   @MaxLength(500)
   description?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsObject()
+  paymentDetails?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  acquirerId?: string;
+
   @IsObject()
   customer: PaymentCustomerDto;
 
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;

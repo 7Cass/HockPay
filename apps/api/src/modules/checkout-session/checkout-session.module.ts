@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CheckoutSessionController } from './checkout-session.controller';
-import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase } from '@hockpay/core';
+import {
+  CreateCheckoutSessionUseCase,
+  GetCheckoutSessionUseCase,
+  FulfillCheckoutSessionUseCase,
+} from '@hockpay/core';
 import { CheckoutSessionRepository } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
@@ -21,8 +25,9 @@ import { JwtService } from 'src/infra/services/jwt.service';
     JwtService,
     {
       provide: 'ICheckoutSessionRepository',
-      useFactory: (prisma: PrismaService) => new CheckoutSessionRepository(prisma),
-      inject: [PrismaService]
+      useFactory: (prisma: PrismaService) =>
+        new CheckoutSessionRepository(prisma),
+      inject: [PrismaService],
     },
     {
       provide: CreateCheckoutSessionUseCase,
@@ -31,25 +36,49 @@ import { JwtService } from 'src/infra/services/jwt.service';
           sessionRepo,
           storeRepo,
           tokenGenerator,
-          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333'
+          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
         );
       },
-      inject: ['ICheckoutSessionRepository', StoreRepository, TokenGeneratorService]
+      inject: [
+        'ICheckoutSessionRepository',
+        StoreRepository,
+        TokenGeneratorService,
+      ],
     },
     {
       provide: GetCheckoutSessionUseCase,
       useFactory: (sessionRepo: any, storeRepo: any, paymentRepo: any) => {
-        return new GetCheckoutSessionUseCase(sessionRepo, storeRepo, paymentRepo);
+        return new GetCheckoutSessionUseCase(
+          sessionRepo,
+          storeRepo,
+          paymentRepo,
+        );
       },
-      inject: ['ICheckoutSessionRepository', StoreRepository, 'IPaymentRepository']
+      inject: [
+        'ICheckoutSessionRepository',
+        StoreRepository,
+        'IPaymentRepository',
+      ],
     },
     {
       provide: FulfillCheckoutSessionUseCase,
-      useFactory: (sessionRepo: any, createPaymentUseCase: any) => {
-        return new FulfillCheckoutSessionUseCase(sessionRepo, createPaymentUseCase);
+      useFactory: (
+        sessionRepo: any,
+        createPaymentUseCase: any,
+        storeRepo: any,
+      ) => {
+        return new FulfillCheckoutSessionUseCase(
+          sessionRepo,
+          createPaymentUseCase,
+          storeRepo,
+        );
       },
-      inject: ['ICheckoutSessionRepository', CreatePaymentUseCase]
-    }
-  ]
+      inject: [
+        'ICheckoutSessionRepository',
+        CreatePaymentUseCase,
+        StoreRepository,
+      ],
+    },
+  ],
 })
 export class CheckoutSessionModule {}

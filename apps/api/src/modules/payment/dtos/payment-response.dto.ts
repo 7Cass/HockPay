@@ -1,4 +1,4 @@
-import { PaymentStatus } from '@hockpay/core';
+import { PaymentStatus, PaymentMethod } from '@hockpay/core';
 
 /**
  * Response DTO for payment data.
@@ -14,6 +14,11 @@ export class PaymentResponseDto {
   currency: string;
   description?: string;
   status: PaymentStatus;
+  environment: string;
+  paymentMethod: PaymentMethod;
+  paymentDetails?: Record<string, unknown>;
+  acquirerId?: string;
+  totalRefunded: number;
   pixQrCode?: string;
   pixCopyPaste?: string;
   pixTxId?: string;

@@ -75,6 +75,18 @@ enum OutboxStatus {
   FAILED
 }
 
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  BOLETO
+  DEBIT_CARD
+}
+
+enum ReceiptStatus {
+  ISSUED
+  CANCELLED
+}
+
 // ============================================================================
 // MERCHANT & AUTH
 // ============================================================================
@@ -137,6 +149,8 @@ model Store {
   checkoutSessions CheckoutSession[]
   webhookConfigs  WebhookConfig[]
   idempotencyKeys IdempotencyKey[]
+  receipts        Receipt[]
+  receiptCounters ReceiptCounter[]
 
   @@map("stores")
 }
@@ -296,6 +310,10 @@ model Payment {
   description   String?
   status        PaymentStatus
   environment   Environment     @default(TEST)
+  paymentMethod PaymentMethod   @default(PIX) @map("payment_method")
+  paymentDetails Json?          @map("payment_details")
+  acquirerId    String?         @map("acquirer_id")
+  totalRefunded Int             @default(0) @map("total_refunded")
   pixQrCode     String?         @map("pix_qr_code")
   pixCopyPaste  String?         @map("pix_copy_paste") @db.Text
   pixTxId       String?         @map("pix_tx_id")
@@ -311,9 +329,13 @@ model Payment {
   customer      Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
   checkoutSession CheckoutSession?
   items         PaymentItem[]
-  refund        Refund?
+  refunds       Refund[]
+  receipt       Receipt?
   webhookLogs   WebhookLog[]
 
+  @@index([storeId, status])
+  @@index([storeId, createdAt(sort: Desc)])
+  @@index([expiresAt])
   @@map("payments")
 }
 
@@ -349,7 +371,7 @@ model CheckoutSession {
 
 model Refund {
   id           String        @id @default(uuid())
-  paymentId    String        @unique @map("payment_id")
+  paymentId    String        @map("payment_id")
   amount       Int
   feeRefunded  Int           @default(0) @map("fee_refunded")
   reason       String?
@@ -357,8 +379,9 @@ model Refund {
   processedAt  DateTime?     @map("processed_at")
   createdAt    DateTime      @default(now()) @map("created_at")
 
-  payment      Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment      Payment       @relation(fields: [paymentId], references: [id])
 
+  @@index([paymentId])
   @@map("refunds")
 }
 
@@ -401,6 +424,7 @@ model WebhookLog {
   config          WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
   payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
+  @@index([configId, deliveredAt])
   @@map("webhook_logs")
 }
 
@@ -422,7 +446,55 @@ model OutboxEvent {
   errorMessage  String?      @map("error_message")
   createdAt     DateTime     @default(now()) @map("created_at")
 
+  @@index([status, nextRetryAt])
   @@map("outbox_events")
+}
+
+// ============================================================================
+// RECEIPTS
+// ============================================================================
+
+model Receipt {
+  id            String        @id @default(uuid())
+  receiptNumber String        @unique @map("receipt_number")
+  paymentId     String        @unique @map("payment_id")
+  storeId       String        @map("store_id")
+
+  payerName     String?       @map("payer_name")
+  payerDocument String?       @map("payer_document")
+  payerEmail    String?       @map("payer_email")
+
+  payeeName     String        @map("payee_name")
+  payeeDocument String?       @map("payee_document")
+
+  amount        Int
+  fee           Int
+  netAmount     Int           @map("net_amount")
+  currency      String        @default("BRL")
+  description   String?
+
+  status        ReceiptStatus @default(ISSUED)
+  issuedAt      DateTime      @map("issued_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  payment       Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@map("receipts")
+}
+
+model ReceiptCounter {
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  date      String   // YYYYMMDD
+  sequence  Int      @default(0)
+
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, date])
+  @@map("receipt_counters")
 }
 
 // ============================================================================
