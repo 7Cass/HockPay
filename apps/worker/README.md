@@ -1,63 +1,81 @@
-# ⚙️ `@hockpay/worker`
+# `@hockpay/worker`
 
-[![NestJS](https://img.shields.io/badge/NestJS-11-red.svg)](https://nestjs.com/)
+Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 
-A aplicação `worker` do Hockpay é um microserviço headless (sem exposição HTTP pública) concebido puramente para **processamento assíncrono em background**.
+## Estado Atual
 
-Ele atua em conjunto com a API principal, consumindo tarefas pendentes do banco de dados (via cron) ou de filas (BullMQ/Redis ou AWS SQS injetado pelo `@hockpay/infrastructure`). Seu maior foco é a estabilidade térmica das transações financeiras e envio confiável de webhooks (Pattern Outbox).
+- Framework: NestJS 11
+- Porta padrão: `3001`
+- Filas: BullMQ sobre Redis
+- Papel principal:
+  - despachar eventos do outbox para a fila
+  - processar entrega de webhooks
+  - rodar cron jobs de manutenção e liquidação simulada
 
-## 🕒 Cron Jobs & Filas
+> Embora não seja uma API pública de negócio, o processo atual sobe um listener HTTP por meio do bootstrap padrão do Nest.
 
-O Worker orquestra diferentes tipos de processos:
+## Filas Atuais
 
-| Job | Scheduler | Responsabilidade Principal |
-|-----|-----------|----------------------------|
-| `PaymentExpirationJob` | A cada 1 minuto | Varre a tabela de pagamentos buscando status `PENDING` cuja data atual seja maior que `expiresAt`. Altera para `EXPIRED`. |
-| `PaymentReleaseJob` | A cada 1 minuto | Varre pagamentos `CONFIRMED` e processa o *settlement*, os tornando disponíveis para saque ou creditando o merchant. |
-| `OutboxDispatcherJob` | A cada 5-10 segs | Consome eventos pendentes da tabela de `WebhookLog` (ou fila configurada) buscando disparar payloads HTTP para a URL dos merchants. |
-| `AntiFraudJob` | A cada 1 hora | Simulação de análise transacional em bloco. |
-| `SettlementJob` | Diário (00:00) | Consolidação diária de balanços para transferência bancária do merchant. |
-| `CleanupLogsJob` | Diário (03:00) | Rotina de deleção de logs antigos e limpezas operacionais do sistema. |
+| Fila | Uso |
+|------|-----|
+| `webhook-delivery` | entrega de webhooks |
+| `payment-expiration` | agendamento/processamento de expiração |
 
-## 🔄 Fluxo de Envio de Webhooks (Outbox)
+## Jobs Atuais
 
-O Worker assegura garantia de entrega (At-Least-Once Delivery) nos eventos de pagamento. O fluxo funciona da seguinte forma:
+| Job | Agendamento atual | Função |
+|-----|-------------------|--------|
+| `OutboxDispatcherJob` | a cada 10 segundos | lê `OutboxEvent` pendente e empilha no BullMQ |
+| `PaymentExpirationJob` | a cada 1 minuto | expira pagamentos pendentes vencidos |
+| `PaymentReleaseJob` | diariamente à meia-noite | libera pagamentos confirmados conforme `settlementDays` |
+| `SettlementJob` | diariamente à meia-noite | processamento semelhante de release/settlement |
+| `CleanupLogsJob` | diariamente às 03:00 | remove logs antigos e eventos processados |
+| `CleanupIdempotencyKeysJob` | diariamente às 04:00 | remove chaves expiradas |
+| `AntiFraudJob` | a cada 1 hora | varredura simulada de anomalias |
 
-1. A API cria um `Payment` e, na *mesma transação de banco de dados*, insere um registro em `WebhookLog` com status "PENDING".
-2. O `OutboxDispatcherJob` pega essa linha.
-3. Faz um envio HTTP assinado via HMAC-SHA256 (`X-Hockpay-Signature`).
-4. Se o servidor do merchant responder `2xx`, o log é atualizado para sucesso.
-5. Se não, agenda um *retry* progressivo.
+## Fluxo Atual de Webhooks
 
-### Estratégia de Retry (Retentativas)
+1. A API cria um `Payment`.
+2. Na mesma operação, grava um `OutboxEvent`.
+3. `OutboxDispatcherJob` busca eventos pendentes do outbox.
+4. O job marca o evento como `DISPATCHED` e o envia para BullMQ.
+5. `WebhookProcessor` consome a fila.
+6. `ProcessWebhookUseCase`:
+   - resolve configs ativas
+   - monta payload envelope
+   - assina com HMAC
+   - cria `WebhookLog`
+   - entrega via HTTP
 
-Caso o endpoint do merchant falhe (Timeout, 5xx, ou configuração incorreta):
+## Contrato Atual de Assinatura
 
-| Tentativa | Backoff Delay |
-|-----------|---------------|
-| 1ª vez | Imediata |
-| 2ª vez | Após 1 minuto |
-| 3ª vez | Após 5 minutos |
-| 4ª vez | Após 30 minutos |
-| 5ª vez (final) | Após 2 horas |
+Headers relevantes atualmente enviados ao merchant:
 
-Após 5 falhas exaustivas, o envio do evento falha permanentemente e sua redelivery deve ser engatilhada manualmente via Dashboard.
+- `X-Hockpay-Signature`
+- `X-Hockpay-Timestamp`
+- `X-Hockpay-Webhook-Id`
 
-## 🛠️ Variáveis de Ambiente Necessárias
+## Variáveis de Ambiente Relevantes
 
-| Variável | Descrição |
-|----------|-----------|
-| `DATABASE_URL` | Conexão com o PostgreSQL. |
-| `REDIS_URL` | Usado para Filas do BullMQ (se a infra não usar Native SQS). |
+| Variável | Uso |
+|----------|-----|
+| `PORT` | Porta do processo Nest |
+| `DATABASE_URL` | PostgreSQL |
+| `REDIS_HOST` / `REDIS_PORT` | conexão BullMQ/Redis |
+| `ENCRYPTION_KEY` | descriptografia de segredos de webhook |
 
-## 💻 Comandos Locais
+## Observações
+
+- O worker atual usa Redis/BullMQ; SQS/LocalStack não fazem parte do runtime atual.
+- A documentação antiga dizia que o outbox partia de `WebhookLog`; isso não é mais verdade no código atual.
+
+## Scripts
 
 ```bash
-pnpm dev          # Roda o worker em ambiente de desenvolvimento
-pnpm build        # Empacota para a pasta /dist para deploy/Docker
-pnpm start:prod   # Inicia a aplicação usando arquivos cacheados do build
+pnpm dev
+pnpm build
+pnpm test
+pnpm start:prod
 ```
 
----
-
-[⬅️ Voltar para o monorepo raiz](../../README.md)
+[Voltar ao README raiz](../../README.md)

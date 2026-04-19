@@ -1,34 +1,41 @@
-# 🗄️ `@hockpay/infrastructure`
+# `@hockpay/infrastructure`
 
-Neste pacote residem todas as **implementações concretas** de integrações com o mundo externo (banco de dados, mensageria, serviços de terceiros), respeitando estritamente os contratos (interfaces) definidos em `@hockpay/core`.
+Pacote de infraestrutura compartilhada do monorepo.
 
-Ao invólucro do **Clean Architecture**, o projeto garante que se amanhã o Prisma ORM for substituído por TypeORM, ou se AWS SQS for trocado por RabbitMQ, as lógicas de negócio no `core` permanecerão completamente intactas. A mudança será um detalhe restrito apenas a esta camada conceitual.
+## Estado Atual
 
-## 🏗️ O que este pacote faz?
+Hoje este pacote não centraliza toda a infraestrutura do sistema. Ele expõe principalmente:
 
-Diferente de `apps/api` (que define as rotas HTTP), o pacote `infrastructure` provê as classes que operam sob responsabilidades únicas como:
+- repositórios Prisma compartilhados
+- `UnitOfWork`
+- `EncryptionService`
 
-- **Repositories**: Adaptações diretas sobre o `@hockpay/database` (PrismaClient). Exemplo: `PrismaPaymentRepository` atuando sobre a interface `PaymentRepository` do domínio.
-- **Cache Providers**: Implementação de interfaces de porta para conversar com sistemas em-memória (como Redis) para controle do Idempotency Key.
-- **Queue Injectors / Dispatchers**: Envio de cargas assíncronas para as filas de worker (para englobar o disparo dos Webhooks).
-- **Serviços Criptográficos**: Geração de chaves Hash-SHA256, Bcrypt, QR Code Generators.
+## O que realmente está aqui
 
-## 🔀 Ecossistema das Dependências
+| Tipo | Exemplos atuais |
+|------|-----------------|
+| Repositories | `PaymentRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `StoreRepository` |
+| Coordenação transacional | `UnitOfWork` |
+| Serviço utilitário | `EncryptionService` |
 
-Para desempenhar suas funções, este módulo atua como uma **Ponte**, conectando ativamente:
-- ➡️ `@hockpay/database`: De onde puxa o contexto de DB e modelagem do ORM.
-- ⬅️ `@hockpay/core`: De onde extrai as Interfaces (Ports e Repositories) para que o Typescript valide a implementação.
+## O que não está consolidado aqui
 
-## 💻 Comandos Locais
+- toda a camada HTTP
+- toda a infraestrutura de BullMQ
+- todos os serviços de HMAC/JWT/cache
+- geração de QR code
+
+Parte relevante dessas implementações ainda vive dentro de `apps/api` e `apps/worker`.
+
+## Objetivo do pacote no estado atual
+
+Compartilhar implementações de persistência e transação entre API e worker sem acoplar o domínio ao Prisma.
+
+## Scripts
 
 ```bash
-# Compila ativamente os arquivos .ts para cjs usando TSUp
 pnpm build
-
-# Roda o pacote no modo relacional de observação (dev)
 pnpm dev
 ```
 
----
-
-[⬅️ Voltar para o monorepo raiz](../../README.md)
+[Voltar ao README raiz](../../README.md)

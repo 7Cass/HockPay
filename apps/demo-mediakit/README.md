@@ -1,37 +1,36 @@
-# Media Kit Generator — Demo HockPay
+# Media Kit Generator — Demo Hockpay
 
-Demo de integração de merchant fictício com a plataforma HockPay.
+Demo de integração de um merchant fictício com o Hockpay.
 
-## Fluxo
+## Estado Atual
 
-1. Preencha o formulário com dados do seu Media Kit
-2. Clique em "Gerar Media Kit" — cria uma CheckoutSession no HockPay
-3. Você é redirecionado ao checkout hospedado do HockPay
-4. Pague via Pix (ou use o botão de simulação em dev mode)
-5. O HockPay envia um webhook confirmando o pagamento
-6. O Media Kit é gerado e exibido na página de sucesso
+Esta demo mostra o fluxo real hoje:
+
+1. formulário local cria uma `checkout session`
+2. usuário é redirecionado para o checkout hospedado do Hockpay
+3. pagamento é concluído ou simulado no checkout
+4. Hockpay envia webhook assinado
+5. a demo valida a assinatura e libera a página de sucesso
 
 ## Setup
 
-### 1. Configurar variáveis de ambiente
+### 1. Variáveis de ambiente
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edite `.env.local` com seus valores:
+Campos relevantes:
 
-- `HOCKPAY_API_KEY`: Sua API key de teste (`hk_test_...`)
-- `HOCKPAY_BASE_URL`: URL da API HockPay (padrão: `http://localhost:3000`)
-- `HOCKPAY_WEBHOOK_SECRET`: Secret do webhook (obtido ao criar o webhook)
-- `NEXT_PUBLIC_APP_URL`: URL da demo (padrão: `http://localhost:3005`)
+- `HOCKPAY_API_KEY`
+- `HOCKPAY_BASE_URL`
+- `HOCKPAY_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_APP_URL`
 
-### 2. Registrar o Webhook no HockPay
-
-Antes de rodar, crie um webhook configurado para receber eventos de pagamento:
+## Registrar webhook no Hockpay
 
 ```bash
-curl -X POST http://localhost:3000/v1/webhooks \
+curl -X POST http://localhost:3000/api/v1/webhooks \
   -H "Authorization: Bearer hk_test_xxx" \
   -H "Content-Type: application/json" \
   -d '{
@@ -40,43 +39,31 @@ curl -X POST http://localhost:3000/v1/webhooks \
   }'
 ```
 
-Copie o `secret` retornado (aparece apenas uma vez!) e coloque no `.env.local`:
+O secret retornado deve ser salvo em:
 
 ```env
 HOCKPAY_WEBHOOK_SECRET=whsec_xxx
 ```
 
-### 3. Rodar
+## Rodar
 
 ```bash
 pnpm --filter @hockpay/demo-mediakit dev
 ```
 
-Acesse `http://localhost:3005`
+## O que esta demo cobre
 
-## O que esta demo demonstra
+| Feature | Estado atual |
+|---------|--------------|
+| CheckoutSession | Implementado |
+| Metadata | Implementado |
+| Redirect flow | Implementado |
+| Checkout hospedado | Usa `apps/checkout` |
+| Webhook com HMAC | Valida `X-Hockpay-Signature` |
+| Dev mode | Usa fluxo de simulação do checkout |
 
-| Feature HockPay      | Como é usada                                     |
-| -------------------- | ------------------------------------------------ |
-| CheckoutSession      | Cria sessão de pagamento com metadata            |
-| Metadata             | Dados do Media Kit via `metadata` na sessão      |
-| Redirect Flow        | `successUrl` + `cancelUrl` configurados          |
-| Checkout Hospedado   | Usa `apps/checkout` existente                    |
-| Webhook com HMAC     | Valida assinatura `X-Hockpay-Signature`          |
-| Metadata-driven Flow | Webhook extrai metadata para gerar o produto     |
-| Dev Mode             | Botão de simulação no checkout para teste rápido |
+## Observações
 
-## Arquitetura
-
-```
-Formulário → POST /api/create-session → HockPay CheckoutSession
-  → Redirect → apps/checkout (HockPay)
-  → Pagamento Pix → Webhook → POST /api/webhook
-  → Valida HMAC → Salva dados → Success Page (polling)
-  → GET /api/mediakit → Renderiza Media Kit
-```
-
-## Notas
-
-- **Storage in-memory**: Os dados do Media Kit são armazenados em memória (`Map`). Adequado para demo, mas em produção usaria banco de dados.
-- **Nome do criador**: O `creatorName` é enviado no metadata da CheckoutSession. O checkout HockPay coleta CPF separadamente (contexto de pagamento).
+- O storage da demo é in-memory.
+- O checkout Hockpay coleta os dados mínimos do pagador no fluxo hospedado.
+- O endpoint de webhook no exemplo precisa usar o path versionado atual da API do Hockpay.

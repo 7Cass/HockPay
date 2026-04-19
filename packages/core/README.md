@@ -1,80 +1,53 @@
-# 🧠 `@hockpay/core`
+# `@hockpay/core`
 
-Este pacote é o coração do Hockpay. Seguindo os princípios da **Clean Architecture (Arquitetura Limpa)**, ele isola completamente as regras de negócio das tecnologias de entrega (HTTP, Banco de Dados, UI, Filas). 
+Pacote central do domínio e da aplicação. Ele concentra entidades, value objects, erros, interfaces de repositório/portas e use cases compartilhados.
 
-> Zero dependências de frameworks como NestJS, Express ou bibliotecas de banco como Prisma. O Core é puro TypeScript.
+## Estado Atual
 
-## 🏗️ Estrutura de Diretórios
+- Sem dependência de NestJS
+- Sem dependência direta de Prisma
+- Exporta:
+  - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `WebhookConfig`, `WebhookLog`, `Account`, `Refund`, `Receipt`
+  - value objects como `Email`, `Document`, `Environment`, `Money`
+  - interfaces de repositório e portas
+  - use cases do fluxo principal
 
-O código é unicamente dividido em duas camadas principais:
+## Estrutura Atual
 
-### 1. `domain/` (Círculo mais interno)
-Não tem conhecimento da existência de nenhuma outra camada do software.
-- **Entidades**: Lógica agregadora, encapsula estado. Ex: `Payment`, `Merchant`, `WebhookConfig`.
-- **Value Objects**: Objetos imutáveis com validação própria. Ex: `Money`, `PixKey`, `Email`.
-- **Domain Events**: Eventos engatilhados por mudanças de domínio. Ex: `payment.confirmed`.
-- **Errors**: Erros tratáveis de domínio (ex: `InvalidStatusTransitionError`).
-- **Repositories (Interfaces)**: Contratos determinando como a infraestrutura **deve** lidar com persistência de dados.
+| Área | Conteúdo |
+|------|----------|
+| `domain/entities` | aggregates e entidades |
+| `domain/value-objects` | VOs atuais do domínio |
+| `domain/errors` | erros de negócio |
+| `domain/repositories` | contratos de persistência |
+| `application/ports` | contratos de adapters externos |
+| `application/services` | lógica compartilhada |
+| `application/use-cases` | casos de uso reais do sistema |
 
-### 2. `application/` (Camada de Casos de Uso)
-Orquestra o domínio. Tem dependência exclusiva da pasta `domain/`.
-- **Use Cases**: O fluxo do processo de negócio em si. Ex: `CreatePaymentUseCase`, `ConfirmPaymentUseCase`.
-- **Services**: Lógica de aplicação compartilhada por Casos de Uso.
-- **Ports**: Interfaces de infraestrutura adicionais (Queue, Cache, HashProvider).
+## Observações
 
-## 🔀 Regra de Dependência (Inversão de Controle)
+- A documentação antiga citava `PixKey` e `Domain Events` como parte consolidada do pacote; isso não corresponde ao conjunto atual exportado.
+- `Money` existe no pacote, mas nem todos os aggregates o usam como tipo central.
 
-A arquitetura dita a direção do acoplamento:
-```text
-(Core) Domain ← Application ← // Limite do Pacote // ← Infrastructure ← Presentation
-```
+## Casos de Uso Relevantes
 
-A infraestrutura e os controllers (ver `apps/api`) devem se adaptar ao Core implementando suas interfaces (Ports/Repositories), e nunca o contrário.
+- merchants/auth
+- stores/api keys
+- customers
+- payments e simulação
+- webhooks
+- checkout sessions
+- dashboard/account/transactions
+- bank accounts
+- receipts
+- refunds
 
-## 🔑 Principais Entidades
-
-| Agregado / Entidade | Descrição do Estado |
-|---------------------|---------------------|
-| `Merchant` | Representação do usuário e credenciais no sistema. |
-| `Store` | Contexto de loja para um merchant. |
-| `ApiKey` | Identificador público para ambiente (Live/Test). |
-| `Payment` | Máquina de estados da transação Pix (PENDING, CONFIRMED, EXPIRED, FAILED). |
-| `Account` / `Transaction` | Conta financeira virtual e histórico de movimentações. |
-| `OutboxEvent` / `WebhookLog` | Eventos atrelados ao disparo resiliente de Webhooks. |
-
-## 💻 Exemplo Prático (Uso de Caso)
-
-```typescript
-import { CreatePaymentUseCase, PaymentRepository } from '@hockpay/core';
-
-// Dependências injetadas (implementadas fora do Core)
-const createPaymentUseCase = new CreatePaymentUseCase(
-  paymentRepository, 
-  qrCodeGenerator,
-  idempotencyService
-);
-
-// Execução pura da regra de negócio
-const result = await createPaymentUseCase.execute({
-  merchantId: 'merchant-uuid',
-  amount: 1500, // 15.00 BRL
-  currency: 'BRL',
-  customer: {
-    name: 'Jane Doe',
-    email: 'jane@email.com',
-    document: '12345678900' // CPF
-  }
-});
-```
-
-## 🛠️ Comandos Locais
+## Scripts
 
 ```bash
-pnpm build     # Build via TSUp (Gera /dist em ESM/CJS)
-pnpm test      # Roda suíte unitária pura (Vitest)
-pnpm test:cov  # Cobertura de testes exigida > 85%
+pnpm build
+pnpm test
+pnpm test:cov
 ```
 
----
-
-[⬅️ Voltar para o monorepo raiz](../../README.md)
+[Voltar ao README raiz](../../README.md)

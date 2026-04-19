@@ -1,42 +1,43 @@
-# 🛒 `@hockpay/checkout`
+# `@hockpay/checkout`
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-v3.4-38B2AC.svg)](https://tailwindcss.com/)
+Aplicação Next.js orientada ao comprador final. O checkout hospedado atual é baseado em token de `checkout session`, não em leitura direta de `payment` como contrato primário.
 
-O `checkout` é a aplicação orientada ao cliente final (comprador). Diferente do dashboard interno que utiliza Angular, o Checkout é uma aplicação **Next.js 14** construída puramente focada em performance, conversão e white-label (personalização por merchant).
+## Estado Atual
 
-> O checkout opera num ambiente tático: sua meta é renderizar um QR Code Pix ou código "Copia e Cola" o mais rápido possível e escutar eventos de mudança de status (`CONFIRMED`, `EXPIRED`).
+- Next.js 14
+- React 18
+- Porta de desenvolvimento: `3333`
+- Base URL padrão da API no frontend: `http://localhost:3000/v1`
+  - isso é uma convenção local do app
+  - na prática, o contrato real exposto pela API principal usa `/api/v1`, então a variável `NEXT_PUBLIC_API_URL` deve ser ajustada de acordo com o ambiente
 
-## 🎯 Arquitetura de UI
+## Fluxo Atual
 
-Foi projetado utilizando React Server Components e Client Components com o Tailwind CSS como motor visual, além do uso proeminente da biblioteca `lucide-react` para iconografia sem comprometer bundle size.  
+1. O merchant cria uma `checkout session` via API.
+2. O comprador acessa a rota do checkout com o token.
+3. O app busca `GET /checkout-sessions/:token`.
+4. O comprador envia dados mínimos do customer.
+5. O app chama `POST /checkout-sessions/:token/fulfill`.
+6. Se o checkout estiver em dev mode, a UI pode chamar `POST /payments/:id/simulate/:action`.
 
-Diferenciais da arquitetura:
-1. **Isolamento**: Completamente desacomplado do Dashboard.
-2. **Performance (SSR/SSG)**: Telas de checkout abrem instantaneamente.
-3. **Polling/Sincronização**: Componentes client-side inspecionam a API para atualizar a UI em tempo real quando um pagamento Pix é efetivado.
+## Contratos Relevantes
 
-## 🔌 Integração com API
+- `GET /checkout-sessions/:token`
+- `POST /checkout-sessions/:token/fulfill`
+- `POST /payments/:id/simulate/:action`
 
-O checkout consulta a rota da API pública (normalmente em `http://localhost:3000/v1/payments/:id`) para montar a tela.
+## Observações
 
-## 💻 Comandos Locais
+- O README antigo dizia que a tela era montada a partir de `GET /payments/:id`; isso não representa o fluxo atual.
+- A UI foi desenhada para polling/sincronização de status, mas o contrato central é a checkout session.
+
+## Scripts
 
 ```bash
-# Iniciar ambiente de desenvolvimento (porta 3333 por padrão)
 pnpm dev
-
-# Gerar bundle otimizado para produção
 pnpm build
-
-# Start server com a build gerada
 pnpm start
-
-# Analisar e corrigir formatação padrão
 pnpm lint
 ```
 
----
-
-[⬅️ Voltar para o monorepo raiz](../../README.md)
+[Voltar ao README raiz](../../README.md)
