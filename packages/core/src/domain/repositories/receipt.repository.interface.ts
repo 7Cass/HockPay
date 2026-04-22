@@ -13,6 +13,10 @@ export interface IReceiptRepository {
     storeId: string,
     page?: number,
     limit?: number,
+    filters?: {
+      receiptNumber?: string;
+      customerId?: string;
+    },
   ): Promise<{ items: Receipt[]; total: number }>;
   save(receipt: Receipt): Promise<void>;
   update(receipt: Receipt): Promise<void>;

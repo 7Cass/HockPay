@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, Min } from 'class-validator';
+import { IsOptional, IsInt, Min, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ListReceiptsQueryDto {
@@ -13,4 +13,12 @@ export class ListReceiptsQueryDto {
   @IsInt()
   @Min(1)
   limit?: number;
+
+  @IsOptional()
+  @IsString()
+  receiptNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
 }

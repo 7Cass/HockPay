@@ -45,6 +45,14 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/dashboard/pages/payments/payments').then(m => m.Payments),
             },
             {
+                path: 'receipts',
+                loadComponent: () => import('./features/dashboard/pages/receipts/receipts').then(m => m.Receipts),
+            },
+            {
+                path: 'receipts/:id',
+                loadComponent: () => import('./features/dashboard/pages/receipt-detail/receipt-detail').then(m => m.ReceiptDetail),
+            },
+            {
                 path: 'customers',
                 loadComponent: () => import('./features/dashboard/pages/customers/customers').then(m => m.Customers),
             },

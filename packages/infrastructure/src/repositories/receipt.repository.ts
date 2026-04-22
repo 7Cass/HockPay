@@ -37,17 +37,34 @@ export class ReceiptRepository implements IReceiptRepository {
     storeId: string,
     page = 1,
     limit = 20,
+    filters?: {
+      receiptNumber?: string;
+      customerId?: string;
+    },
   ): Promise<{ items: Receipt[]; total: number }> {
     const skip = (page - 1) * limit;
+    const where: Prisma.ReceiptWhereInput = {
+      storeId,
+      ...(filters?.receiptNumber
+        ? { receiptNumber: filters.receiptNumber }
+        : {}),
+      ...(filters?.customerId
+        ? {
+            payment: {
+              customerId: filters.customerId,
+            },
+          }
+        : {}),
+    };
 
     const [items, total] = await Promise.all([
       this.prisma.receipt.findMany({
-        where: { storeId },
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
-      this.prisma.receipt.count({ where: { storeId } }),
+      this.prisma.receipt.count({ where }),
     ]);
 
     return {

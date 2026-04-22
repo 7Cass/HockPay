@@ -5,6 +5,8 @@ export interface IListReceiptsInput {
   storeId: string;
   page?: number;
   limit?: number;
+  receiptNumber?: string;
+  customerId?: string;
 }
 
 export interface IListReceiptsOutput {
@@ -26,6 +28,10 @@ export class ListReceiptsUseCase {
       input.storeId,
       page,
       limit,
+      {
+        receiptNumber: input.receiptNumber,
+        customerId: input.customerId,
+      },
     );
 
     return {

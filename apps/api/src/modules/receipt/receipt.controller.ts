@@ -15,6 +15,7 @@ import {
   ListReceiptsUseCase,
   ReceiptNotFoundError,
 } from '@hockpay/core';
+import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { ListReceiptsQueryDto } from './dtos/list-receipts.dto';
 import {
@@ -24,6 +25,7 @@ import {
 } from './dtos/receipt-response.dto';
 
 @Controller('receipts')
+@Public()
 @UseGuards(CombinedAuthGuard)
 export class ReceiptController {
   constructor(
@@ -47,6 +49,8 @@ export class ReceiptController {
       storeId,
       page: query.page,
       limit: query.limit,
+      receiptNumber: query.receiptNumber,
+      customerId: query.customerId,
     });
 
     return {
@@ -58,10 +62,10 @@ export class ReceiptController {
     };
   }
 
-  @Get(':id')
+  @Get('number/:receiptNumber')
   @HttpCode(HttpStatus.OK)
-  async getReceipt(
-    @Param('id') id: string,
+  async getReceiptByNumber(
+    @Param('receiptNumber') receiptNumber: string,
     @Req() req: Request,
   ): Promise<GetReceiptResponseDto> {
     try {
@@ -72,7 +76,7 @@ export class ReceiptController {
       }
 
       const result = await this.getReceiptUseCase.execute({
-        receiptId: id,
+        receiptNumber,
         storeId,
       });
 
@@ -107,6 +111,40 @@ export class ReceiptController {
 
       const result = await this.getReceiptUseCase.execute({
         paymentId,
+        storeId,
+      });
+
+      return {
+        receipt: this.toResponse(result.receipt),
+      };
+    } catch (error) {
+      if (error instanceof ReceiptNotFoundError) {
+        throw new NotFoundException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  async getReceipt(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ): Promise<GetReceiptResponseDto> {
+    try {
+      const storeId = (req as any)?.store?.id;
+
+      if (!storeId) {
+        throw new Error('Store ID not found in request');
+      }
+
+      const result = await this.getReceiptUseCase.execute({
+        receiptId: id,
         storeId,
       });
 

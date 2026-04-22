@@ -5,6 +5,7 @@ import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.erro
 export interface IGetReceiptInput {
   receiptId?: string;
   paymentId?: string;
+  receiptNumber?: string;
   storeId: string;
 }
 
@@ -22,14 +23,22 @@ export class GetReceiptUseCase {
       receipt = await this.receiptRepository.findById(input.receiptId);
     } else if (input.paymentId) {
       receipt = await this.receiptRepository.findByPaymentId(input.paymentId);
+    } else if (input.receiptNumber) {
+      receipt = await this.receiptRepository.findByReceiptNumber(
+        input.receiptNumber,
+      );
     }
 
     if (!receipt) {
-      throw new ReceiptNotFoundError(input.receiptId || input.paymentId || "");
+      throw new ReceiptNotFoundError(
+        input.receiptId || input.paymentId || input.receiptNumber || "",
+      );
     }
 
     if (receipt.storeId !== input.storeId) {
-      throw new ReceiptNotFoundError(input.receiptId || input.paymentId || "");
+      throw new ReceiptNotFoundError(
+        input.receiptId || input.paymentId || input.receiptNumber || "",
+      );
     }
 
     return {

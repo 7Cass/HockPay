@@ -19,6 +19,7 @@ import {
     lucidePanelLeftOpen,
     lucideShoppingBag,
     lucideArrowRightLeft,
+    lucideReceipt,
 } from '@ng-icons/lucide';
 import { StoreService, type Store } from '../../../core/services/store.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -56,6 +57,7 @@ interface MenuGroup {
             lucidePanelLeftOpen,
             lucideShoppingBag,
             lucideArrowRightLeft,
+            lucideReceipt,
         }),
     ],
     templateUrl: './sidebar.component.html',
@@ -104,6 +106,7 @@ export class SidebarComponent implements OnInit {
         {
             label: 'Financeiro',
             items: [
+                { label: 'Comprovantes', icon: 'lucideReceipt', route: '/dashboard/receipts' },
                 { label: 'Saldo e Saques', icon: 'lucideArrowRightLeft', route: '/dashboard/financials' },
             ],
         },
@@ -179,4 +182,3 @@ export class SidebarComponent implements OnInit {
         });
     }
 }
-
