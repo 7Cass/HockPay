@@ -1,6 +1,16 @@
 export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'RELEASED' | 'EXPIRED' | 'FAILED';
 export type SessionStatus = 'OPEN' | 'COMPLETED' | 'EXPIRED';
 export type Environment = 'TEST' | 'LIVE';
+export type CustomerCollectionMode = 'IDENTIFIED' | 'GUEST';
+
+export interface CheckoutSessionCustomerInputState {
+  hasDocument: boolean;
+  hasName: boolean;
+  hasEmail: boolean;
+  maskedDocument?: string;
+  maskedName?: string;
+  maskedEmail?: string;
+}
 
 export interface CheckoutPayment {
   id: string;
@@ -21,6 +31,8 @@ export interface CheckoutSession {
   amount: number;
   currency: string;
   description: string | null;
+  customerCollectionMode: CustomerCollectionMode;
+  customerInputState: CheckoutSessionCustomerInputState;
   status: SessionStatus;
   expiresAt: string;
   store: {

@@ -1,14 +1,16 @@
 import { ICheckoutSessionRepository } from "../../domain/repositories/checkout-session.repository.interface";
-import { IStoreRepository } from "../../domain/repositories/store.repository.interface";
 import {
   CreatePaymentUseCase,
+  CustomerPromotionPolicy,
   PaymentCustomerInput,
 } from "./create-payment.use-case";
 import { Environment } from "../../domain/value-objects/environment.vo";
+import { Document } from "../../domain/value-objects/document.vo";
+import { CustomerCollectionMode } from "../../domain/entities/checkout-session.entity";
 
 export interface IFulfillCheckoutSessionInput {
   token: string;
-  customer: PaymentCustomerInput;
+  customer?: PaymentCustomerInput;
   environment: Environment;
 }
 
@@ -21,7 +23,6 @@ export class FulfillCheckoutSessionUseCase {
   constructor(
     private readonly sessionRepository: ICheckoutSessionRepository,
     private readonly createPaymentUseCase: CreatePaymentUseCase,
-    private readonly storeRepository: IStoreRepository,
   ) {}
 
   async execute(
@@ -45,23 +46,32 @@ export class FulfillCheckoutSessionUseCase {
       throw new Error("Checkout session has expired");
     }
 
-    const store = await this.storeRepository.findById(session.storeId);
+    const customer = resolveCheckoutCustomer(session.prefillCustomer, input.customer);
 
-    // 1. Delegate strictly to CreatePaymentUseCase which now acts as our internal Payment engine
-    // Since the externalId is irrelevant here, we just pass the necessary data
+    if (
+      session.customerCollectionMode === CustomerCollectionMode.IDENTIFIED &&
+      !customer.document
+    ) {
+      throw new Error("Customer document is required for identified checkout sessions");
+    }
+
+    if (customer.document && !Document.create(customer.document)) {
+      throw new Error("Customer document must be a valid CPF or CNPJ");
+    }
+
     const paymentResult = await this.createPaymentUseCase.execute({
       storeId: session.storeId,
       amount: session.amount,
       description: session.description ?? undefined,
-      customer: input.customer,
+      customer,
+      customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
       environment: input.environment,
       metadata: session.metadata ?? undefined,
-      expiresAt: session.expiresAt, // We sync the payment expiration with the session expiration
+      expiresAt: session.expiresAt,
     });
 
     const paymentId = paymentResult.payment.id;
 
-    // 2. Mark session as COMPLETED and attach Payment
     session.fulfill(paymentId);
     await this.sessionRepository.save(session);
 
@@ -70,4 +80,16 @@ export class FulfillCheckoutSessionUseCase {
       paymentId: paymentId,
     };
   }
+}
+
+function resolveCheckoutCustomer(
+  prefillCustomer: PaymentCustomerInput | null,
+  incomingCustomer?: PaymentCustomerInput,
+): PaymentCustomerInput {
+  return {
+    externalId: prefillCustomer?.externalId,
+    document: prefillCustomer?.document ?? incomingCustomer?.document,
+    name: prefillCustomer?.name ?? incomingCustomer?.name,
+    email: prefillCustomer?.email ?? incomingCustomer?.email,
+  };
 }

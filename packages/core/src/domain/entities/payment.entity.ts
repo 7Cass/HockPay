@@ -22,13 +22,16 @@ export enum PaymentMethod {
 export class Payment {
   private readonly _id: string;
   private readonly _storeId: string;
-  private readonly _customerId: string;
+  private readonly _customerId?: string;
   private _externalId?: string;
   private readonly _amount: number;
   private readonly _fee: number;
   private readonly _netAmount: number;
   private readonly _currency: string;
   private _description?: string;
+  private readonly _payerName?: string;
+  private readonly _payerDocument?: string;
+  private readonly _payerEmail?: string;
   private _status: PaymentStatus;
   private readonly _environment: Environment;
   private readonly _paymentMethod: PaymentMethod;
@@ -56,6 +59,9 @@ export class Payment {
     this._netAmount = props.netAmount;
     this._currency = props.currency ?? "BRL";
     this._description = props.description;
+    this._payerName = props.payerName;
+    this._payerDocument = props.payerDocument;
+    this._payerEmail = props.payerEmail;
     this._status = props.status;
     this._environment = props.environment ?? Environment.TEST;
     this._paymentMethod = props.paymentMethod ?? PaymentMethod.PIX;
@@ -89,6 +95,9 @@ export class Payment {
       netAmount: props.netAmount,
       currency: props.currency ?? "BRL",
       description: props.description,
+      payerName: props.payerName,
+      payerDocument: props.payerDocument,
+      payerEmail: props.payerEmail,
       status: PaymentStatus.PENDING,
       environment: props.environment ?? Environment.TEST,
       paymentMethod: props.paymentMethod ?? PaymentMethod.PIX,
@@ -123,7 +132,7 @@ export class Payment {
     return this._storeId;
   }
 
-  get customerId(): string {
+  get customerId(): string | undefined {
     return this._customerId;
   }
 
@@ -149,6 +158,18 @@ export class Payment {
 
   get description(): string | undefined {
     return this._description;
+  }
+
+  get payerName(): string | undefined {
+    return this._payerName;
+  }
+
+  get payerDocument(): string | undefined {
+    return this._payerDocument;
+  }
+
+  get payerEmail(): string | undefined {
+    return this._payerEmail;
   }
 
   get status(): PaymentStatus {
@@ -360,6 +381,9 @@ export class Payment {
       netAmount: this._netAmount,
       currency: this._currency,
       description: this._description,
+      payerName: this._payerName,
+      payerDocument: this._payerDocument,
+      payerEmail: this._payerEmail,
       status: this._status,
       environment: this._environment,
       paymentMethod: this._paymentMethod,
@@ -385,13 +409,16 @@ export class Payment {
  */
 export interface CreatePaymentProps {
   storeId: string;
-  customerId: string;
+  customerId?: string;
   externalId?: string;
   amount: number;
   fee: number;
   netAmount: number;
   currency?: string;
   description?: string;
+  payerName?: string;
+  payerDocument?: string;
+  payerEmail?: string;
   environment?: Environment;
   paymentMethod?: PaymentMethod;
   paymentDetails?: Record<string, unknown>;
@@ -409,13 +436,16 @@ export interface CreatePaymentProps {
 export interface PaymentProps {
   id: string;
   storeId: string;
-  customerId: string;
+  customerId?: string;
   externalId?: string;
   amount: number;
   fee: number;
   netAmount: number;
   currency: string;
   description?: string;
+  payerName?: string;
+  payerDocument?: string;
+  payerEmail?: string;
   status: PaymentStatus;
   environment?: Environment;
   paymentMethod?: PaymentMethod;
@@ -440,13 +470,16 @@ export interface PaymentProps {
 export interface PaymentObject {
   id: string;
   storeId: string;
-  customerId: string;
+  customerId?: string;
   externalId?: string;
   amount: number;
   fee: number;
   netAmount: number;
   currency: string;
   description?: string;
+  payerName?: string;
+  payerDocument?: string;
+  payerEmail?: string;
   status: PaymentStatus;
   environment: Environment;
   paymentMethod: PaymentMethod;

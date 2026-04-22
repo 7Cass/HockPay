@@ -1,6 +1,15 @@
-import { Environment } from '../value-objects/environment.vo';
-
 export type SessionStatus = 'OPEN' | 'COMPLETED' | 'EXPIRED';
+export enum CustomerCollectionMode {
+  IDENTIFIED = 'IDENTIFIED',
+  GUEST = 'GUEST',
+}
+
+export interface CheckoutSessionPrefillCustomer {
+  externalId?: string;
+  document?: string;
+  name?: string;
+  email?: string;
+}
 
 export interface CheckoutSessionProps {
   id?: string;
@@ -8,6 +17,8 @@ export interface CheckoutSessionProps {
   amount: number;
   currency?: string;
   description?: string;
+  customerCollectionMode?: CustomerCollectionMode;
+  prefillCustomer?: CheckoutSessionPrefillCustomer | null;
   paymentId?: string;
   checkoutToken: string;
   status?: SessionStatus;
@@ -28,6 +39,9 @@ export class CheckoutSession {
       id: props.id ?? crypto.randomUUID(),
       currency: props.currency ?? 'BRL',
       description: props.description ?? null,
+      customerCollectionMode:
+        props.customerCollectionMode ?? CustomerCollectionMode.IDENTIFIED,
+      prefillCustomer: props.prefillCustomer ?? null,
       paymentId: props.paymentId ?? null,
       status: props.status ?? 'OPEN',
       successUrl: props.successUrl ?? null,
@@ -48,6 +62,8 @@ export class CheckoutSession {
   get amount(): number { return this.props.amount; }
   get currency(): string { return this.props.currency; }
   get description(): string | null { return this.props.description; }
+  get customerCollectionMode(): CustomerCollectionMode { return this.props.customerCollectionMode; }
+  get prefillCustomer(): CheckoutSessionPrefillCustomer | null { return this.props.prefillCustomer; }
   get paymentId(): string | null { return this.props.paymentId; }
   get checkoutToken(): string { return this.props.checkoutToken; }
   get status(): SessionStatus { return this.props.status; }

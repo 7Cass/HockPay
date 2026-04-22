@@ -1,4 +1,8 @@
-import { CheckoutSession } from '../../domain/entities/checkout-session.entity';
+import {
+  CheckoutSession,
+  CustomerCollectionMode,
+  CheckoutSessionPrefillCustomer,
+} from '../../domain/entities/checkout-session.entity';
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
@@ -10,6 +14,8 @@ export interface ICreateCheckoutSessionInput {
   storeId: string;
   amount: number;
   description?: string;
+  customerCollectionMode?: CustomerCollectionMode;
+  prefillCustomer?: CheckoutSessionPrefillCustomer;
   successUrl?: string;
   cancelUrl?: string;
   metadata?: Record<string, unknown>;
@@ -20,6 +26,8 @@ export interface ICreateCheckoutSessionOutput {
   id: string;
   checkoutToken: string;
   checkoutUrl: string;
+  customerCollectionMode: CustomerCollectionMode;
+  prefillCustomer: CheckoutSessionPrefillCustomer | null;
 }
 
 export class CreateCheckoutSessionUseCase {
@@ -47,6 +55,9 @@ export class CreateCheckoutSessionUseCase {
       storeId: input.storeId,
       amount: input.amount,
       description: input.description,
+      customerCollectionMode:
+        input.customerCollectionMode ?? CustomerCollectionMode.IDENTIFIED,
+      prefillCustomer: input.prefillCustomer,
       checkoutToken,
       successUrl: input.successUrl,
       cancelUrl: input.cancelUrl,
@@ -60,6 +71,8 @@ export class CreateCheckoutSessionUseCase {
       id: session.id,
       checkoutToken,
       checkoutUrl: `${this.checkoutBaseUrl}/${checkoutToken}`,
+      customerCollectionMode: session.customerCollectionMode,
+      prefillCustomer: session.prefillCustomer,
     };
   }
 }

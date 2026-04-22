@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Param, Req, HttpCode, HttpStatus, UseGuards, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { FulfillCheckoutSessionDto } from './dtos/fulfill-checkout-session.dto';
-import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase, StoreNotFoundError, StoreInactiveError, StoreNotApprovedError, Environment } from '@hockpay/core';
+import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase, StoreNotFoundError, StoreInactiveError, StoreNotApprovedError, CustomerIdentityConflictError, Environment } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import type { Request } from 'express';
@@ -27,6 +27,8 @@ export class CheckoutSessionController {
         storeId,
         amount: dto.amount,
         description: dto.description,
+        customerCollectionMode: dto.customerCollectionMode,
+        prefillCustomer: dto.prefillCustomer,
         successUrl: dto.successUrl,
         cancelUrl: dto.cancelUrl,
         expiresInSeconds: dto.expiresInSeconds,
@@ -64,6 +66,9 @@ export class CheckoutSessionController {
         environment,
       });
     } catch (e: any) {
+      if (e instanceof CustomerIdentityConflictError) {
+        throw new UnprocessableEntityException(e.message);
+      }
       throw new UnprocessableEntityException(e.message);
     }
   }

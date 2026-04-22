@@ -23,15 +23,19 @@ export async function fetchCheckoutSession(token: string): Promise<CheckoutSessi
 
 export async function fulfillCheckoutSession(
   token: string,
-  customerData: { document: string; name?: string; email?: string }
+  customerData: { document?: string; name?: string; email?: string }
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const customer = Object.fromEntries(
+      Object.entries(customerData).filter(([, value]) => value !== undefined && value !== '')
+    );
+
     const response = await fetch(`${env.apiUrl}/checkout-sessions/${token}/fulfill`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ customer: customerData }),
+      body: JSON.stringify({ customer }),
     });
 
     if (!response.ok) {

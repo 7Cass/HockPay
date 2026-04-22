@@ -28,6 +28,16 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const payment = session.payment;
+  const requiresDocument =
+    session.customerCollectionMode === 'IDENTIFIED' &&
+    !session.customerInputState.hasDocument;
+  const showDocumentField = !session.customerInputState.hasDocument;
+  const showNameField = !session.customerInputState.hasName;
+  const showEmailField = !session.customerInputState.hasEmail;
+  const hasMerchantProvidedData =
+    session.customerInputState.hasDocument ||
+    session.customerInputState.hasName ||
+    session.customerInputState.hasEmail;
 
   const handleSessionChange = useCallback((updated: CheckoutSession) => {
     setSession(updated);
@@ -59,7 +69,11 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
   const handleFulfill = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsFulfilling(true);
-    const result = await fulfillCheckoutSession(token, { document, name, email });
+    const result = await fulfillCheckoutSession(token, {
+      document: document.trim() || undefined,
+      name: name.trim() || undefined,
+      email: email.trim() || undefined,
+    });
     if (!result.success) {
       alert(result.error);
       setIsFulfilling(false);
@@ -82,35 +96,62 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
       </div>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">CPF / CNPJ</label>
-          <input
-            type="text"
-            required
-            value={document}
-            onChange={(e) => setDocument(e.target.value)}
-            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Apenas números"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Opcional)</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">E-mail (Opcional)</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
+        {hasMerchantProvidedData && (
+          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+            <p className="font-medium">Dados do pagador informados pela loja</p>
+            <div className="mt-2 space-y-1 text-blue-800">
+              {session.customerInputState.maskedDocument && (
+                <p>CPF / CNPJ: {session.customerInputState.maskedDocument}</p>
+              )}
+              {session.customerInputState.maskedName && (
+                <p>Nome: {session.customerInputState.maskedName}</p>
+              )}
+              {session.customerInputState.maskedEmail && (
+                <p>E-mail: {session.customerInputState.maskedEmail}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showDocumentField && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              CPF / CNPJ {requiresDocument ? '' : '(Opcional)'}
+            </label>
+            <input
+              type="text"
+              required={requiresDocument}
+              value={document}
+              onChange={(e) => setDocument(e.target.value)}
+              className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Apenas números"
+            />
+          </div>
+        )}
+
+        {showNameField && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Opcional)</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {showEmailField && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail (Opcional)</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        )}
 
         <Button type="submit" className="w-full" disabled={isFulfilling}>
           {isFulfilling ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}

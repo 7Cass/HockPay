@@ -13,6 +13,8 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
       update: {
         status: session.status as any,
         paymentId: session.paymentId,
+        customerCollectionMode: session.customerCollectionMode as any,
+        prefillCustomer: session.prefillCustomer as any,
         metadata: session.metadata as any,
         updatedAt: session.updatedAt,
       },
@@ -22,6 +24,8 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
         amount: session.amount,
         currency: session.currency,
         description: session.description,
+        customerCollectionMode: session.customerCollectionMode as any,
+        prefillCustomer: session.prefillCustomer as any,
         checkoutToken: session.checkoutToken,
         expiresAt: session.expiresAt,
         successUrl: session.successUrl,
@@ -59,6 +63,9 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
       amount: prismaSession.amount,
       currency: prismaSession.currency,
       description: prismaSession.description ?? undefined,
+      customerCollectionMode: prismaSession.customerCollectionMode as any,
+      prefillCustomer:
+        (prismaSession.prefillCustomer as Record<string, unknown>) ?? undefined,
       paymentId: prismaSession.paymentId ?? undefined,
       checkoutToken: prismaSession.checkoutToken,
       status: prismaSession.status as any,

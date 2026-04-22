@@ -10,6 +10,7 @@ import {
   TransactionType,
 } from "../../domain/entities/transaction.entity";
 import { Receipt } from "../../domain/entities/receipt.entity";
+import { ICustomerRepository } from "../../domain/repositories/customer.repository.interface";
 
 /**
  * Input DTO for ConfirmPaymentUseCase.
@@ -18,9 +19,6 @@ export interface IConfirmPaymentInput {
   storeId: string;
   paymentId: string;
   pixTxId?: string;
-  payerName?: string;
-  payerDocument?: string;
-  payerEmail?: string;
 }
 
 /**
@@ -47,7 +45,10 @@ export interface IConfirmPaymentOutput {
  * - Outbox event is created for webhook notification
  */
 export class ConfirmPaymentUseCase {
-  constructor(private readonly unitOfWork: IUnitOfWork) {}
+  constructor(
+    private readonly unitOfWork: IUnitOfWork,
+    private readonly customerRepository: ICustomerRepository,
+  ) {}
 
   async execute(input: IConfirmPaymentInput): Promise<IConfirmPaymentOutput> {
     return this.unitOfWork.execute(async (repos) => {
@@ -120,13 +121,17 @@ export class ConfirmPaymentUseCase {
       );
       const receiptNumber = `RCP-${dateStr}-${String(sequence).padStart(5, "0")}`;
 
+      const customer = payment.customerId
+        ? await this.customerRepository.findById(payment.customerId)
+        : null;
+
       const receipt = Receipt.create({
         receiptNumber,
         paymentId: payment.id,
         storeId: input.storeId,
-        payerName: input.payerName,
-        payerDocument: input.payerDocument,
-        payerEmail: input.payerEmail,
+        payerName: payment.payerName ?? customer?.name,
+        payerDocument: payment.payerDocument ?? customer?.document.value,
+        payerEmail: payment.payerEmail ?? customer?.email,
         payeeName: store.name,
         payeeDocument: undefined,
         amount: payment.amount,

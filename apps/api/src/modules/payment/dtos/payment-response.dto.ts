@@ -6,13 +6,16 @@ import { PaymentStatus, PaymentMethod } from '@hockpay/core';
 export class PaymentResponseDto {
   id: string;
   storeId: string;
-  customerId: string;
+  customerId?: string;
   externalId?: string;
   amount: number;
   fee: number;
   netAmount: number;
   currency: string;
   description?: string;
+  payerName?: string;
+  payerDocument?: string;
+  payerEmail?: string;
   status: PaymentStatus;
   environment: string;
   paymentMethod: PaymentMethod;

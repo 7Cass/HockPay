@@ -65,18 +65,15 @@ import { JwtService } from 'src/infra/services/jwt.service';
       useFactory: (
         sessionRepo: any,
         createPaymentUseCase: any,
-        storeRepo: any,
       ) => {
         return new FulfillCheckoutSessionUseCase(
           sessionRepo,
           createPaymentUseCase,
-          storeRepo,
         );
       },
       inject: [
         'ICheckoutSessionRepository',
         CreatePaymentUseCase,
-        StoreRepository,
       ],
     },
   ],

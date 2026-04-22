@@ -55,13 +55,16 @@ export class ListPaymentsResponseDto {
   payments: {
     id: string;
     storeId: string;
-    customerId: string;
+    customerId?: string;
     externalId?: string;
     amount: number;
     fee: number;
     netAmount: number;
     currency: string;
     description?: string;
+    payerName?: string;
+    payerDocument?: string;
+    payerEmail?: string;
     status: PaymentStatus;
     pixTxId?: string;
     checkoutUrl?: string;

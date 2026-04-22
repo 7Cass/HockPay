@@ -51,6 +51,7 @@ export * from "./domain/errors/invalid-slug-format.error";
 export * from "./domain/errors/customer-not-found.error";
 export * from "./domain/errors/customer-already-exists.error";
 export * from "./domain/errors/document-already-in-use.error";
+export * from "./domain/errors/customer-identity-conflict.error";
 export * from "./domain/errors/invalid-payment-amount.error";
 export * from "./domain/errors/invalid-payment-status.error";
 export * from "./domain/errors/payment-not-found.error";

@@ -36,6 +36,11 @@ enum SessionStatus {
   EXPIRED
 }
 
+enum CustomerCollectionMode {
+  IDENTIFIED
+  GUEST
+}
+
 enum RefundStatus {
   PENDING
   PROCESSED
@@ -301,13 +306,16 @@ model PaymentItem {
 model Payment {
   id            String          @id @default(uuid())
   storeId       String          @map("store_id")
-  customerId    String          @map("customer_id")
+  customerId    String?         @map("customer_id")
   externalId    String?         @map("external_id")
   amount        Int
   fee           Int
   netAmount     Int             @map("net_amount")
   currency      String          @default("BRL")
   description   String?
+  payerName     String?         @map("payer_name")
+  payerDocument String?         @map("payer_document")
+  payerEmail    String?         @map("payer_email")
   status        PaymentStatus
   environment   Environment     @default(TEST)
   paymentMethod PaymentMethod   @default(PIX) @map("payment_method")
@@ -326,7 +334,7 @@ model Payment {
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
   store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customer      Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customer      Customer?       @relation(fields: [customerId], references: [id], onDelete: Restrict)
   checkoutSession CheckoutSession?
   items         PaymentItem[]
   refunds       Refund[]
@@ -349,6 +357,8 @@ model CheckoutSession {
   amount          Int
   currency        String         @default("BRL")
   description     String?
+  customerCollectionMode CustomerCollectionMode @default(IDENTIFIED) @map("customer_collection_mode")
+  prefillCustomer Json?          @map("prefill_customer")
   paymentId       String?        @unique @map("payment_id")
   checkoutToken   String         @unique @map("checkout_token")
   status          SessionStatus  @default(OPEN)

@@ -140,10 +140,13 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: ConfirmPaymentUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) => {
-        return new ConfirmPaymentUseCase(unitOfWork);
+      useFactory: (
+        unitOfWork: IUnitOfWork,
+        customerRepo: CustomerRepository,
+      ) => {
+        return new ConfirmPaymentUseCase(unitOfWork, customerRepo);
       },
-      inject: ['IUnitOfWork'],
+      inject: ['IUnitOfWork', CustomerRepository],
     },
 
     {
