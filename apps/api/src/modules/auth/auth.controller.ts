@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
@@ -15,6 +16,9 @@ import {
   LogoutUseCase,
   SwitchStoreUseCase,
   ISwitchStoreOutput,
+  InvalidRefreshTokenError,
+  RefreshTokenRevokedError,
+  TokenExpiredError,
 } from '@hockpay/core';
 import {
   LoginRequestDto,
@@ -35,6 +39,20 @@ const getCookieOptions = () => {
     secure: isProduction,
     sameSite: 'strict' as const,
   };
+};
+
+const clearAuthCookies = (response: Response) => {
+  const cookieOptions = getCookieOptions();
+
+  response.clearCookie('hockpay_at', {
+    ...cookieOptions,
+    path: '/',
+  });
+
+  response.clearCookie('hockpay_rt', {
+    ...cookieOptions,
+    path: '/api/v1/auth/refresh',
+  });
 };
 
 /**
@@ -106,35 +124,46 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<RefreshTokenResponseDto> {
-    // Get refresh token from cookie only (required)
-    const refreshToken = request.cookies?.hockpay_rt;
+    try {
+      const refreshToken = request.cookies?.hockpay_rt;
 
-    if (!refreshToken) {
-      throw new Error('Refresh token is required');
+      if (!refreshToken) {
+        clearAuthCookies(response);
+        throw new UnauthorizedException('Refresh token is required');
+      }
+
+      const result = await this.refreshTokenUseCase.execute({ refreshToken });
+      const cookieOptions = getCookieOptions();
+
+      response.cookie('hockpay_at', result.accessToken, {
+        ...cookieOptions,
+        maxAge: 15 * 60 * 1000,
+        path: '/',
+      });
+
+      response.cookie('hockpay_rt', result.refreshToken, {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/api/v1/auth/refresh',
+      });
+
+      return {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn,
+      };
+    } catch (error) {
+      if (
+        error instanceof InvalidRefreshTokenError ||
+        error instanceof RefreshTokenRevokedError ||
+        error instanceof TokenExpiredError
+      ) {
+        clearAuthCookies(response);
+        throw new UnauthorizedException(error.message);
+      }
+
+      throw error;
     }
-
-    const result = await this.refreshTokenUseCase.execute({ refreshToken });
-    const cookieOptions = getCookieOptions();
-
-    // Access token - available on all routes (15 min)
-    response.cookie('hockpay_at', result.accessToken, {
-      ...cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
-    });
-
-    // Refresh token - restricted to refresh route only (7 days)
-    response.cookie('hockpay_rt', result.refreshToken, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/v1/auth/refresh',
-    });
-
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      expiresIn: result.expiresIn,
-    };
   }
 
   /**
@@ -157,19 +186,7 @@ export class AuthController {
       await this.logoutUseCase.execute({ refreshToken });
     }
 
-    const cookieOptions = getCookieOptions();
-
-    // Clear access token cookie
-    response.clearCookie('hockpay_at', {
-      ...cookieOptions,
-      path: '/',
-    });
-
-    // Clear refresh token cookie
-    response.clearCookie('hockpay_rt', {
-      ...cookieOptions,
-      path: '/api/v1/auth/refresh',
-    });
+    clearAuthCookies(response);
   }
 
   /**
