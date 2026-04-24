@@ -23,6 +23,8 @@ import { CheckoutSessionModule } from './modules/checkout-session/checkout-sessi
 import { HealthModule } from './modules/health/health.module';
 import { ReceiptModule } from './modules/receipt/receipt.module';
 import { RefundModule } from './modules/refund/refund.module';
+import { CustomerHistoryModule } from './modules/customer-history/customer-history.module';
+import { AlertModule } from './modules/alert/alert.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { randomUUID } from 'crypto';
@@ -93,6 +95,8 @@ import { randomUUID } from 'crypto';
     HealthModule,
     ReceiptModule,
     RefundModule,
+    CustomerHistoryModule,
+    AlertModule,
   ],
   controllers: [AppController],
   providers: [

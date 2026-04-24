@@ -92,6 +92,16 @@ enum ReceiptStatus {
   CANCELLED
 }
 
+enum AlertChannel {
+  DISCORD
+}
+
+enum AlertDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
 // ============================================================================
 // MERCHANT & AUTH
 // ============================================================================
@@ -153,6 +163,7 @@ model Store {
   payments        Payment[]
   checkoutSessions CheckoutSession[]
   webhookConfigs  WebhookConfig[]
+  alertConfigs    AlertConfig[]
   idempotencyKeys IdempotencyKey[]
   receipts        Receipt[]
   receiptCounters ReceiptCounter[]
@@ -436,6 +447,55 @@ model WebhookLog {
 
   @@index([configId, deliveredAt])
   @@map("webhook_logs")
+}
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+model AlertConfig {
+  id              String        @id @default(uuid())
+  storeId         String        @map("store_id")
+  name            String
+  channel         AlertChannel
+  encryptedConfig Json          @map("encrypted_config")
+  configPreview   Json          @map("config_preview")
+  events          String[]
+  isActive        Boolean       @default(true) @map("is_active")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  deliveryLogs    AlertDeliveryLog[]
+
+  @@index([storeId, isActive])
+  @@map("alert_configs")
+}
+
+model AlertDeliveryLog {
+  id              String              @id @default(uuid())
+  alertConfigId   String              @map("alert_config_id")
+  outboxEventId   String              @map("outbox_event_id")
+  paymentId       String?             @map("payment_id")
+  eventType       String              @map("event_type")
+  channel         AlertChannel
+  status          AlertDeliveryStatus @default(PENDING)
+  payload         Json
+  responseStatus  Int?                @map("response_status")
+  responseBody    String?             @map("response_body") @db.Text
+  errorMessage    String?             @map("error_message") @db.Text
+  attempt         Int                 @default(1)
+  maxAttempts     Int                 @default(5) @map("max_attempts")
+  nextRetryAt     DateTime?           @map("next_retry_at")
+  deliveredAt     DateTime?           @map("delivered_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  alertConfig     AlertConfig         @relation(fields: [alertConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([alertConfigId, outboxEventId])
+  @@index([alertConfigId, createdAt])
+  @@index([outboxEventId, eventType])
+  @@map("alert_delivery_logs")
 }
 
 // ============================================================================

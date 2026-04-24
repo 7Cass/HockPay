@@ -13,6 +13,9 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   INVALID_AMOUNT: 400,
   INVALID_CURRENCY: 400,
   INVALID_WEBHOOK_URL: 400,
+  INVALID_ALERT_CHANNEL: 400,
+  INVALID_ALERT_EVENTS: 400,
+  INVALID_ALERT_CONFIG: 400,
 
   // Conflict Errors (409 Conflict)
   MERCHANT_ALREADY_EXISTS: 409,
@@ -25,6 +28,8 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   PAYMENT_NOT_FOUND: 404,
   API_KEY_NOT_FOUND: 404,
   WEBHOOK_CONFIG_NOT_FOUND: 404,
+  ALERT_CONFIG_NOT_FOUND: 404,
+  ALERT_DELIVERY_LOG_NOT_FOUND: 404,
 
   // Authentication Errors (401 Unauthorized)
   API_KEY_INVALID: 401,
@@ -59,6 +64,9 @@ export const ERROR_CATEGORIES = {
     'INVALID_AMOUNT',
     'INVALID_CURRENCY',
     'INVALID_WEBHOOK_URL',
+    'INVALID_ALERT_CHANNEL',
+    'INVALID_ALERT_EVENTS',
+    'INVALID_ALERT_CONFIG',
   ],
 
   /** Resource already exists or state conflicts */
@@ -75,6 +83,8 @@ export const ERROR_CATEGORIES = {
     'PAYMENT_NOT_FOUND',
     'API_KEY_NOT_FOUND',
     'WEBHOOK_CONFIG_NOT_FOUND',
+    'ALERT_CONFIG_NOT_FOUND',
+    'ALERT_DELIVERY_LOG_NOT_FOUND',
   ],
 
   /** Authentication and identity verification failures */
