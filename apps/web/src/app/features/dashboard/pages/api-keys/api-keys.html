@@ -1,263 +1,369 @@
 <div class="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-10">
-    <!-- Header -->
+  <!-- Header -->
+  @if (!embedded() || headerVariant() === 'compact') {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Chaves de API</h1>
-            <p class="text-sm text-zinc-500 mt-1">
-                Crie e gerencie chaves para integração com nosso Gateway.
-                <span
-                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold tracking-widest uppercase ml-2 border border-indigo-100">
-                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                    Modo Sandbox
-                </span>
-            </p>
-        </div>
-
-        <div class="flex items-center gap-3">
-            <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white" (click)="loadKeys()">
-                <ng-icon hlm name="lucideRefreshCcw" size="sm" [class.animate-spin]="isLoading()"></ng-icon>
-                Atualizar
-            </button>
-
-            <button hlmBtn size="sm" class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold"
-                (click)="openCreateDialog()">
-                <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-                Nova Chave
-            </button>
-
-            <brn-dialog [closeDelay]="150" [state]="createDialogState()" (closed)="closeCreateDialog()">
-                <ng-template brnDialogContent let-ctx>
-                    <app-dialog-overlay />
-                    <div
-                        class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200">
-                        <app-dialog-close />
-
-                        <app-dialog-header title="Criar Chave de API"
-                            description="Crie uma nova chave para o ambiente de testes (Sandbox)." />
-
-                        <div class="py-4">
-                            <div class="flex flex-col gap-2">
-                                <label class="text-sm font-medium text-zinc-900">Nome da Chave</label>
-                                <input type="text"
-                                    class="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="Ex:: App Mobile, E-commerce Principal" [formControl]="newKeyName">
-                                @if (newKeyName.invalid && newKeyName.touched) {
-                                <span class="text-xs text-red-500">Nome é obrigatório (mín. 3 caracteres).</span>
-                                }
-                            </div>
-                        </div>
-
-                        <app-dialog-footer>
-                            <button (click)="ctx.close()" hlmBtn variant="ghost" class="text-zinc-500">Cancelar</button>
-                            <button hlmBtn (click)="createKey()" [disabled]="newKeyName.invalid || isCreating()"
-                                class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm">
-                                @if (isCreating()) {
-                                <hlm-spinner size="sm" class="mr-2" />
-                                }
-                                Gerar Chave
-                            </button>
-                        </app-dialog-footer>
-                    </div>
-                </ng-template>
-            </brn-dialog>
-        </div>
-    </div>
-
-    <!-- Content -->
-    <div class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-
-        <!-- Loading State -->
-        @if (isLoading()) {
-        <div class="flex-1 flex flex-col justify-center items-center py-24">
-            <hlm-spinner class="w-6 h-6 text-indigo-600 animate-spin" />
-            <p class="text-sm text-zinc-500 mt-4 font-medium">Buscando chaves de API...</p>
-        </div>
-        }
-
-        <!-- Error State -->
-        @if (!isLoading() && error()) {
-        <div
-            class="p-4 m-6 rounded-xl bg-red-50 text-red-700 border border-red-200/60 shadow-sm flex items-start gap-3">
-            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold">Falha ao carregar chaves</h3>
-                <p class="text-sm mt-1 opacity-90">{{ error() }}</p>
-                <button hlmBtn variant="outline" size="sm" class="mt-3 bg-white text-zinc-700 border-zinc-200"
-                    (click)="loadKeys()">Tentar Novamente</button>
-            </div>
-        </div>
-        }
-
-        <!-- Empty State -->
-        @if (!isLoading() && !error() && testKeys().length === 0) {
-        <div
-            class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center">
-            <div
-                class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4">
-                <ng-icon hlm name="lucideKey" size="lg" class="text-zinc-400" strokeWidth="1.5"></ng-icon>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900 mb-1">Nenhuma chave gerada</h3>
-            <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">Você ainda não possui chaves de API Sandbox geradas
-                para
-                sua loja.</p>
-            <button hlmBtn size="sm" class="bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50"
-                (click)="openCreateDialog()">
-                Gerar Primeira Chave
-            </button>
-        </div>
-        }
-
-        <!-- Table View -->
-        @if (!isLoading() && !error() && testKeys().length > 0) {
-        <div class="flex-1 overflow-x-auto">
-            <table hlmTable class="w-full">
-                <thead hlmTHead class="bg-zinc-50 border-b border-zinc-200">
-                    <tr hlmTr class="border-none hover:bg-transparent">
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 h-auto">Nome
-                            da Chave</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 text-center h-auto">
-                            Ambiente</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto">Chave
-                            Pública (Prefix)</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto">
-                            Criada em
-                        </th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 text-right h-auto">
-                            Ações</th>
-                    </tr>
-                </thead>
-                <tbody hlmTBody class="divide-y divide-zinc-100">
-                    @for (key of testKeys(); track key.id) {
-                    <tr hlmTr class="hover:bg-zinc-50/50 transition-colors border-none group">
-                        <td hlmTd class="py-3.5 px-6">
-                            <span class="font-medium text-zinc-900 text-sm">{{ key.name }}</span>
-                        </td>
-                        <td hlmTd class="py-3.5 px-4 text-center">
-                            <div
-                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-indigo-50 text-indigo-700 border border-indigo-100/50">
-                                <span
-                                    class="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_4px_rgba(99,102,241,0.5)]"></span>
-                                TEST
-                            </div>
-                        </td>
-                        <td hlmTd class="py-3.5 px-4">
-                            <code
-                                class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50">{{ key.prefix }}...</code>
-                        </td>
-                        <td hlmTd class="py-3.5 px-4">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-sm text-zinc-600">{{ key.createdAt | date:'dd/MM/yyyy' }}</span>
-                                <span class="text-[11px] text-zinc-400 font-medium">{{ key.createdAt | date:'HH:mm'
-                                    }}</span>
-                            </div>
-                        </td>
-                        <td hlmTd class="py-3.5 px-6 text-right">
-                            <div class="flex justify-end relative">
-                                <!-- Tooltip wrapper class implementation is assumed or native title used -->
-                                <button hlmBtn variant="ghost" size="sm"
-                                    class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
-                                    title="Revogar Chave" (click)="openRevokeDialog(key.id, key.name)">
-                                    <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Elegant Footer -->
-        <div
-            class="px-6 py-3 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex justify-between items-center rounded-b-xl">
-            <span class="flex items-center gap-1.5">
-                Exibindo <span
-                    class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm">{{
-                    testKeys().length }}</span> registros
+      <div>
+        @if (headerVariant() === 'compact') {
+          <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Chaves de API</h1>
+        } @else {
+          <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Chaves de API</h1>
+          <p class="text-sm text-zinc-500 mt-1">
+            Crie e gerencie chaves para integração com nosso Gateway.
+            <span
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold tracking-widest uppercase ml-2 border border-indigo-100"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+              Modo Sandbox
             </span>
-        </div>
+          </p>
         }
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white" (click)="loadKeys()">
+          <ng-icon
+            hlm
+            name="lucideRefreshCcw"
+            size="sm"
+            [class.animate-spin]="isLoading()"
+          ></ng-icon>
+          Atualizar
+        </button>
+
+        <button
+          hlmBtn
+          size="sm"
+          class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold text-white"
+          (click)="openCreateDialog()"
+        >
+          <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
+          {{ headerVariant() === 'compact' ? 'Nova chave sandbox' : 'Nova Chave' }}
+        </button>
+      </div>
     </div>
+  }
+
+  <brn-dialog [closeDelay]="150" [state]="createDialogState()" (closed)="closeCreateDialog()">
+    <ng-template brnDialogContent let-ctx>
+      <app-dialog-overlay />
+      <div
+        class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200"
+      >
+        <app-dialog-close />
+
+        <app-dialog-header
+          title="Criar Chave de API"
+          description="Crie uma nova chave para o ambiente de testes (Sandbox)."
+        />
+
+        <div class="py-4">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-zinc-900">Nome da Chave</label>
+            <input
+              type="text"
+              class="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Ex:: App Mobile, E-commerce Principal"
+              [formControl]="newKeyName"
+            />
+            @if (newKeyName.invalid && newKeyName.touched) {
+              <span class="text-xs text-red-500">Nome é obrigatório (mín. 3 caracteres).</span>
+            }
+          </div>
+        </div>
+
+        <app-dialog-footer>
+          <button (click)="ctx.close()" hlmBtn variant="ghost" class="text-zinc-500">
+            Cancelar
+          </button>
+          <button
+            hlmBtn
+            (click)="createKey()"
+            [disabled]="newKeyName.invalid || isCreating()"
+            class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm text-white"
+          >
+            @if (isCreating()) {
+              <hlm-spinner size="sm" class="mr-2" />
+            }
+            Gerar Chave
+          </button>
+        </app-dialog-footer>
+      </div>
+    </ng-template>
+  </brn-dialog>
+
+  <!-- Content -->
+  <div
+    class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]"
+  >
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="flex-1 flex flex-col justify-center items-center py-24">
+        <hlm-spinner class="w-6 h-6 text-indigo-600 animate-spin" />
+        <p class="text-sm text-zinc-500 mt-4 font-medium">Buscando chaves de API...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (!isLoading() && error()) {
+      <div
+        class="p-4 m-6 rounded-xl bg-red-50 text-red-700 border border-red-200/60 shadow-sm flex items-start gap-3"
+      >
+        <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
+        <div class="flex-1">
+          <h3 class="text-sm font-semibold">Falha ao carregar chaves</h3>
+          <p class="text-sm mt-1 opacity-90">{{ error() }}</p>
+          <button
+            hlmBtn
+            variant="outline"
+            size="sm"
+            class="mt-3 bg-white text-zinc-700 border-zinc-200"
+            (click)="loadKeys()"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading() && !error() && testKeys().length === 0) {
+      <div
+        class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center"
+      >
+        <div
+          class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4"
+        >
+          <ng-icon hlm name="lucideKey" size="lg" class="text-zinc-400" strokeWidth="1.5"></ng-icon>
+        </div>
+        <h3 class="text-base font-semibold text-zinc-900 mb-1">Nenhuma chave gerada</h3>
+        <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">
+          Você ainda não possui chaves de API Sandbox geradas para sua loja.
+        </p>
+        <button
+          hlmBtn
+          size="sm"
+          class="bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50"
+          (click)="openCreateDialog()"
+        >
+          Gerar Primeira Chave
+        </button>
+      </div>
+    }
+
+    <!-- Table View -->
+    @if (!isLoading() && !error() && testKeys().length > 0) {
+      <div class="flex-1 overflow-x-auto">
+        <table hlmTable class="w-full">
+          <thead hlmTHead class="bg-zinc-50 border-b border-zinc-200">
+            <tr hlmTr class="border-none hover:bg-transparent">
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 h-auto"
+              >
+                Nome da Chave
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 text-center h-auto"
+              >
+                Ambiente
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto"
+              >
+                Chave Pública (Prefix)
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto"
+              >
+                Criada em
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 text-right h-auto"
+              >
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody hlmTBody class="divide-y divide-zinc-100">
+            @for (key of testKeys(); track key.id) {
+              <tr hlmTr class="hover:bg-zinc-50/50 transition-colors border-none group">
+                <td hlmTd class="py-3.5 px-6">
+                  <span class="font-medium text-zinc-900 text-sm">{{ key.name }}</span>
+                </td>
+                <td hlmTd class="py-3.5 px-4 text-center">
+                  <div
+                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-indigo-50 text-indigo-700 border border-indigo-100/50"
+                  >
+                    <span
+                      class="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_4px_rgba(99,102,241,0.5)]"
+                    ></span>
+                    TEST
+                  </div>
+                </td>
+                <td hlmTd class="py-3.5 px-4">
+                  <code
+                    class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50"
+                    >{{ key.prefix }}...</code
+                  >
+                </td>
+                <td hlmTd class="py-3.5 px-4">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-sm text-zinc-600">{{
+                      key.createdAt | date: 'dd/MM/yyyy'
+                    }}</span>
+                    <span class="text-[11px] text-zinc-400 font-medium">{{
+                      key.createdAt | date: 'HH:mm'
+                    }}</span>
+                  </div>
+                </td>
+                <td hlmTd class="py-3.5 px-6 text-right">
+                  <div class="flex justify-end relative">
+                    <!-- Tooltip wrapper class implementation is assumed or native title used -->
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                      title="Revogar Chave"
+                      (click)="openRevokeDialog(key.id, key.name)"
+                    >
+                      <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Elegant Footer -->
+      <div
+        class="px-6 py-3 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex justify-between items-center rounded-b-xl"
+      >
+        <span class="flex items-center gap-1.5">
+          Exibindo
+          <span
+            class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm"
+            >{{ testKeys().length }}</span
+          >
+          registros
+        </span>
+      </div>
+    }
+  </div>
 </div>
 
 <!-- Secret Key Reveal Modal -->
 <brn-dialog [closeDelay]="150" [state]="secretDialogState()" (closed)="closeSecretDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200">
-            <app-dialog-close />
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200"
+    >
+      <app-dialog-close />
 
-            <app-dialog-header title="Chave de API Gerada!"
-                description="Guarde essa chave em segurança. Ela não será exibida novamente." />
+      <app-dialog-header
+        title="Chave de API Gerada!"
+        description="Guarde essa chave em segurança. Ela não será exibida novamente."
+      />
 
-            <div class="py-4">
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
-                    <ng-icon hlm name="lucideAlertTriangle" class="text-amber-600 shrink-0 mt-0.5" size="sm"></ng-icon>
-                    <p class="text-sm text-amber-800 font-medium leading-relaxed">
-                        Esta é a sua <strong class="font-bold">Chave Secreta</strong>. Por motivos de segurança, não
-                        poderemos mostrá-la novamente após fechar essa aba.
-                        Use-a nos servidores backend.
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2 mt-2">
-                    <input type="text" readonly
-                        class="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-mono text-zinc-900 focus-visible:outline-none selection:bg-indigo-100"
-                        [value]="newSecretKey()">
-                    <button hlmBtn variant="outline" class="shrink-0 bg-white shadow-sm gap-2"
-                        (click)="copyToClipboard()">
-                        @if (copied()) {
-                        <ng-icon hlm name="lucideCheck" class="text-emerald-600"></ng-icon>
-                        <span class="text-emerald-700 font-semibold">Copiada</span>
-                        } @else {
-                        <ng-icon hlm name="lucideCopy"></ng-icon>
-                        Copiar
-                        }
-                    </button>
-                </div>
-            </div>
-
-            <app-dialog-footer>
-                <button (click)="ctx.close()" hlmBtn
-                    class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm w-full">Entendido, já guardei minha
-                    chave</button>
-            </app-dialog-footer>
+      <div class="py-4">
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
+          <ng-icon
+            hlm
+            name="lucideAlertTriangle"
+            class="text-amber-600 shrink-0 mt-0.5"
+            size="sm"
+          ></ng-icon>
+          <p class="text-sm text-amber-800 font-medium leading-relaxed">
+            Esta é a sua <strong class="font-bold">Chave Secreta</strong>. Por motivos de segurança,
+            não poderemos mostrá-la novamente após fechar essa aba. Use-a nos servidores backend.
+          </p>
         </div>
-    </ng-template>
+
+        <div class="flex items-center gap-2 mt-2">
+          <input
+            type="text"
+            readonly
+            class="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-mono text-zinc-900 focus-visible:outline-none selection:bg-indigo-100"
+            [value]="newSecretKey()"
+          />
+          <button
+            hlmBtn
+            variant="outline"
+            class="shrink-0 bg-white shadow-sm gap-2"
+            (click)="copyToClipboard()"
+          >
+            @if (copied()) {
+              <ng-icon hlm name="lucideCheck" class="text-emerald-600"></ng-icon>
+              <span class="text-emerald-700 font-semibold">Copiada</span>
+            } @else {
+              <ng-icon hlm name="lucideCopy"></ng-icon>
+              Copiar
+            }
+          </button>
+        </div>
+      </div>
+
+      <app-dialog-footer>
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm w-full"
+        >
+          Entendido, já guardei minha chave
+        </button>
+      </app-dialog-footer>
+    </div>
+  </ng-template>
 </brn-dialog>
 
 <!-- Revoke Confirmation Modal -->
 <brn-dialog [closeDelay]="150" [state]="revokeDialogState()" (closed)="closeRevokeDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden"
+    >
+      <div class="p-6 pb-5">
+        <h3 class="text-base font-semibold tracking-tight text-zinc-900">Revogar chave de API</h3>
+        <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
+          A chave <strong class="text-zinc-900 font-medium">{{ keyToRevoke()?.name }}</strong> será
+          invalidada imediatamente. As integrações que a utilizam deixarão de funcionar. Tem
+          certeza?
+        </p>
+      </div>
 
-            <div class="p-6 pb-5">
-                <h3 class="text-base font-semibold tracking-tight text-zinc-900">Revogar chave de API</h3>
-                <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
-                    A chave <strong class="text-zinc-900 font-medium">{{ keyToRevoke()?.name }}</strong> será invalidada
-                    imediatamente. As integrações que a utilizam deixarão de funcionar. Tem certeza?
-                </p>
-            </div>
-
-            <div class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2">
-                <button (click)="ctx.close()" hlmBtn variant="ghost" size="sm"
-                    class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900">Cancelar</button>
-                <button hlmBtn size="sm" (click)="revokeKey()" [disabled]="isRevoking()"
-                    class="bg-red-600 hover:bg-red-700 text-white shadow-sm">
-                    @if (isRevoking()) {
-                    <hlm-spinner size="sm" class="mr-2" />
-                    }
-                    Sim, revogar chave
-                </button>
-            </div>
-        </div>
-    </ng-template>
+      <div
+        class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2"
+      >
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          variant="ghost"
+          size="sm"
+          class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
+        >
+          Cancelar
+        </button>
+        <button
+          hlmBtn
+          size="sm"
+          (click)="revokeKey()"
+          [disabled]="isRevoking()"
+          class="bg-red-600 hover:bg-red-700 text-white shadow-sm"
+        >
+          @if (isRevoking()) {
+            <hlm-spinner size="sm" class="mr-2" />
+          }
+          Sim, revogar chave
+        </button>
+      </div>
+    </div>
+  </ng-template>
 </brn-dialog>

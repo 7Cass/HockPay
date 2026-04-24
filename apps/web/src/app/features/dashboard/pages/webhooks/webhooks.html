@@ -1,467 +1,735 @@
-<div class="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-10">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Webhooks</h1>
-            <p class="text-sm text-zinc-500 mt-1">Acompanhe e configure callbacks em tempo real para o seu sistema.</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-            <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white" (click)="loadWebhooks()">
-                <ng-icon hlm name="lucideRefreshCcw" size="sm" [class.animate-spin]="isLoading()"></ng-icon>
-                Atualizar
-            </button>
-
-            <button hlmBtn size="sm" class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold"
-                (click)="openCreateDialog()">
-                <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-                Novo Webhook
-            </button>
-        </div>
+<div class="flex flex-col gap-4 max-w-7xl mx-auto w-full pb-10">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Webhooks</h1>
     </div>
 
-    <!-- Content -->
-    <div class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+    <div class="flex items-center gap-3">
+      <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white" (click)="loadWebhooks()">
+        <ng-icon hlm name="lucideRefreshCcw" size="sm" [class.animate-spin]="isLoading()"></ng-icon>
+        Atualizar
+      </button>
 
-        <!-- Loading State -->
-        @if (isLoading()) {
-        <div class="flex-1 flex flex-col justify-center items-center py-24">
-            <hlm-spinner class="w-6 h-6 text-indigo-600 animate-spin" />
-            <p class="text-sm text-zinc-500 mt-4 font-medium">Carregando webhooks...</p>
+      <button
+        hlmBtn
+        size="sm"
+        class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold"
+        (click)="openCreateDialog()"
+      >
+        <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
+        Novo Webhook
+      </button>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+    Webhooks são para sincronização sistema-a-sistema. Para avisos operacionais ao time, use
+    Alertas.
+  </div>
+
+  <!-- Content -->
+  <div
+    class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]"
+  >
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="flex-1 flex flex-col justify-center items-center py-24">
+        <hlm-spinner class="w-6 h-6 text-indigo-600 animate-spin" />
+        <p class="text-sm text-zinc-500 mt-4 font-medium">Carregando webhooks...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (!isLoading() && error()) {
+      <div
+        class="p-4 m-6 rounded-xl bg-red-50 text-red-700 border border-red-200/60 shadow-sm flex items-start gap-3"
+      >
+        <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
+        <div class="flex-1">
+          <h3 class="text-sm font-semibold">Falha ao carregar configuração</h3>
+          <p class="text-sm mt-1 opacity-90">{{ error() }}</p>
+          <button
+            hlmBtn
+            variant="outline"
+            size="sm"
+            class="mt-3 bg-white text-zinc-700 border-zinc-200"
+            (click)="loadWebhooks()"
+          >
+            Tentar Novamente
+          </button>
         </div>
-        }
+      </div>
+    }
 
-        <!-- Error State -->
-        @if (!isLoading() && error()) {
+    <!-- Empty State -->
+    @if (!isLoading() && !error() && webhooks().length === 0) {
+      <div
+        class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center"
+      >
         <div
-            class="p-4 m-6 rounded-xl bg-red-50 text-red-700 border border-red-200/60 shadow-sm flex items-start gap-3">
-            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold">Falha ao carregar configuração</h3>
-                <p class="text-sm mt-1 opacity-90">{{ error() }}</p>
-                <button hlmBtn variant="outline" size="sm" class="mt-3 bg-white text-zinc-700 border-zinc-200"
-                    (click)="loadWebhooks()">Tentar Novamente</button>
-            </div>
+          class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4"
+        >
+          <ng-icon
+            hlm
+            name="lucideNetwork"
+            size="lg"
+            class="text-zinc-400"
+            strokeWidth="1.5"
+          ></ng-icon>
         </div>
-        }
+        <h3 class="text-base font-semibold text-zinc-900 mb-1">Nenhum webhook configurado</h3>
+        <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">
+          Configure uma URL e comece a receber eventos (como transações pagas) assim que eles
+          acontecerem.
+        </p>
+        <button
+          hlmBtn
+          size="sm"
+          class="bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50"
+          (click)="openCreateDialog()"
+        >
+          Adicionar Primeiro Webhook
+        </button>
+      </div>
+    }
 
-        <!-- Empty State -->
-        @if (!isLoading() && !error() && webhooks().length === 0) {
-        <div
-            class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center">
-            <div
-                class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4">
-                <ng-icon hlm name="lucideNetwork" size="lg" class="text-zinc-400" strokeWidth="1.5"></ng-icon>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900 mb-1">Nenhum webhook configurado</h3>
-            <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">Configure uma URL e comece a receber eventos (como
-                transações pagas) assim que eles acontecerem.</p>
-            <button hlmBtn size="sm" class="bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50"
-                (click)="openCreateDialog()">
-                Adicionar Primeiro Webhook
-            </button>
-        </div>
-        }
-
-        <!-- Table View -->
-        @if (!isLoading() && !error() && webhooks().length > 0) {
-        <div class="flex-1 overflow-x-auto">
-            <table hlmTable class="w-full">
-                <thead hlmTHead class="bg-zinc-50 border-b border-zinc-200">
-                    <tr hlmTr class="border-none hover:bg-transparent">
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 h-auto">URL
-                            do Destino</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 text-center h-auto">
-                            Status</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto">
-                            Assinatura
-                            (Secret)</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto">
-                            Eventos
-                            Enviados</th>
-                        <th hlmTh
-                            class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 text-right h-auto">
-                            Ações</th>
-                    </tr>
-                </thead>
-                <tbody hlmTBody class="divide-y divide-zinc-100">
-                    @for (hook of webhooks(); track hook.id) {
-                    <tr hlmTr class="hover:bg-zinc-50/50 transition-colors border-none group">
-                        <td hlmTd class="py-3.5 px-6">
-                            <span class="font-medium text-zinc-900 text-sm opacity-90 truncate max-w-[250px] block"
-                                [title]="hook.url">{{ hook.url }}</span>
-                            <span class="text-[11px] text-zinc-400 mt-0.5 block font-medium">{{ hook.createdAt |
-                                date:'dd/MM/yyyy &bull; HH:mm' }}</span>
-                        </td>
-                        <td hlmTd class="py-3.5 px-4 text-center">
-                            @if (hook.isActive) {
-                            <div
-                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-100/50">
-                                <span
-                                    class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span>
-                                ATIVO
-                            </div>
-                            } @else {
-                            <div
-                                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-zinc-100 text-zinc-600 border border-zinc-200/50">
-                                INATIVO
-                            </div>
-                            }
-                        </td>
-                        <td hlmTd class="py-3.5 px-4">
-                            <code
-                                class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50">{{ hook.prefix }}...</code>
-                        </td>
-                        <td hlmTd class="py-3.5 px-4">
-                            <div class="flex items-center gap-1">
-                                <span
-                                    class="text-[11px] font-bold tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/60 px-2 py-0.5 rounded-md">{{
-                                    hook.events.length }} Tipos</span>
-                            </div>
-                        </td>
-                        <td hlmTd class="py-3.5 px-6 text-right">
-                            <div class="flex justify-end gap-1">
-                                <button hlmBtn variant="ghost" size="sm"
-                                    class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                                    title="Ver Histórico de Logs" (click)="openLogsDialog(hook)">
-                                    <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
-                                </button>
-                                <button hlmBtn variant="ghost" size="sm"
-                                    class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                                    title="Testar Envio (Ping)" (click)="openTestDialog(hook)">
-                                    <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon>
-                                </button>
-                                <button hlmBtn variant="ghost" size="sm"
-                                    class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 flex items-center justify-center transition-colors"
-                                    title="Editar">
-                                    <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
-                                </button>
-                                <div class="w-px h-4 bg-zinc-200 mx-1 mt-2"></div>
-                                <button hlmBtn variant="ghost" size="sm"
-                                    class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
-                                    title="Remover Definitivamente" (click)="openDeleteDialog(hook)">
-                                    <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+    <!-- Table View -->
+    @if (!isLoading() && !error() && webhooks().length > 0) {
+      <div class="hidden flex-1 overflow-x-auto md:block">
+        <table hlmTable class="w-full min-w-[760px]">
+          <thead hlmTHead class="bg-zinc-50 border-b border-zinc-200">
+            <tr hlmTr class="border-none hover:bg-transparent">
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 h-auto"
+              >
+                URL do Destino
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto"
+              >
+                Cobertura
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto"
+              >
+                Criado em
+              </th>
+              <th
+                hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 text-right h-auto"
+              >
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody hlmTBody class="divide-y divide-zinc-100">
+            @for (hook of webhooks(); track hook.id) {
+              <tr hlmTr class="hover:bg-zinc-50/50 transition-colors border-none group">
+                <td hlmTd class="py-3.5 px-6">
+                  <span
+                    class="font-medium text-zinc-900 text-sm opacity-90 truncate max-w-[320px] block"
+                    [title]="hook.url"
+                    >{{ hook.url }}</span
+                  >
+                  <span class="text-[11px] text-zinc-500 mt-1 block"
+                    >Recebe eventos da loja neste endpoint.</span
+                  >
+                </td>
+                <td hlmTd class="py-3.5 px-4">
+                  <div class="flex flex-wrap items-center gap-2">
+                    @if (hook.isActive) {
+                      <div
+                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-100/50"
+                      >
+                        <span
+                          class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"
+                        ></span>
+                        Ativo
+                      </div>
+                    } @else {
+                      <div
+                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap bg-zinc-100 text-zinc-600 border border-zinc-200/50"
+                      >
+                        Inativo
+                      </div>
                     }
-                </tbody>
-            </table>
-        </div>
+                    <span
+                      class="text-[11px] font-bold tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/60 px-2 py-0.5 rounded-md"
+                      >{{ hook.events.length }} eventos</span
+                    >
+                    <code
+                      class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50"
+                      >Secret: {{ hook.prefix }}...</code
+                    >
+                  </div>
+                </td>
+                <td hlmTd class="py-3.5 px-4">
+                  <div class="flex flex-col">
+                    <span class="text-sm text-zinc-700">{{
+                      hook.createdAt | date: 'dd/MM/yyyy'
+                    }}</span>
+                    <span class="text-[11px] text-zinc-400 font-medium">{{
+                      hook.createdAt | date: 'HH:mm'
+                    }}</span>
+                  </div>
+                </td>
+                <td hlmTd class="py-3.5 px-6 text-right">
+                  <div class="flex justify-end gap-1">
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
+                      title="Ver Histórico de Logs"
+                      (click)="openLogsDialog(hook)"
+                    >
+                      <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
+                      title="Testar Envio (Ping)"
+                      (click)="openTestDialog(hook)"
+                    >
+                      <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon>
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                      title="Editar"
+                    >
+                      <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
+                    </button>
+                    <div class="w-px h-4 bg-zinc-200 mx-1 mt-2"></div>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="sm"
+                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                      title="Remover Definitivamente"
+                      (click)="openDeleteDialog(hook)"
+                    >
+                      <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Elegant Footer -->
-        <div
-            class="px-6 py-3 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex justify-between items-center rounded-b-xl">
-            <span class="flex items-center gap-1.5">
-                Exibindo <span
-                    class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm">{{
-                    webhooks().length }}</span> destinos
-            </span>
-        </div>
+      <div class="flex-1 space-y-3 p-4 md:hidden">
+        @for (hook of webhooks(); track hook.id) {
+          <article class="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-zinc-900" [title]="hook.url">
+                  {{ hook.url }}
+                </p>
+                <p class="mt-1 text-xs text-zinc-500">
+                  {{ hook.createdAt | date: 'dd/MM/yyyy - HH:mm' }}
+                </p>
+              </div>
+              @if (hook.isActive) {
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-md border border-emerald-100/50 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700"
+                >
+                  <span class="h-1 w-1 rounded-full bg-emerald-500"></span>
+                  Ativo
+                </span>
+              } @else {
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/50 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-zinc-600"
+                >
+                  Inativo
+                </span>
+              }
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+              <span
+                class="rounded-md border border-indigo-100/60 bg-indigo-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-indigo-700"
+              >
+                {{ hook.events.length }} eventos
+              </span>
+              <code
+                class="rounded-md border border-zinc-200/50 bg-zinc-100/80 px-2 py-0.5 text-[11px] text-zinc-700"
+                >Secret: {{ hook.prefix }}...</code
+              >
+            </div>
+
+            <div class="mt-4 flex items-center justify-end gap-1">
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
+                title="Ver Histórico de Logs"
+                (click)="openLogsDialog(hook)"
+              >
+                <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
+                title="Testar Envio (Ping)"
+                (click)="openTestDialog(hook)"
+              >
+                <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 flex items-center justify-center transition-colors"
+                title="Editar"
+              >
+                <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="sm"
+                class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                title="Remover Definitivamente"
+                (click)="openDeleteDialog(hook)"
+              >
+                <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
+              </button>
+            </div>
+          </article>
         }
-    </div>
+      </div>
+
+      <!-- Elegant Footer -->
+      <div
+        class="px-6 py-3 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex justify-between items-center rounded-b-xl"
+      >
+        <span class="flex items-center gap-1.5">
+          Exibindo
+          <span
+            class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm"
+            >{{ webhooks().length }}</span
+          >
+          destinos
+        </span>
+      </div>
+    }
+  </div>
 </div>
 
 <!-- Create Webhook Modal -->
 <brn-dialog [closeDelay]="150" [state]="createDialogState()" (closed)="closeCreateDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200">
-            <app-dialog-close />
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200"
+    >
+      <app-dialog-close />
 
-            <app-dialog-header title="Novo Webhook"
-                description="Adicione uma URL para escutar os eventos da sua loja." />
+      <app-dialog-header
+        title="Novo Webhook"
+        description="Adicione uma URL para escutar os eventos da sua loja."
+      />
 
-            <form [formGroup]="newWebhookForm" (ngSubmit)="createWebhook()" class="py-4 space-y-5">
-                <!-- URL Field -->
-                <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium text-zinc-900">Endpoint / URL de Destino</label>
-                    <input type="text" formControlName="url" placeholder="https://seudominio.com.br/api/webhook"
-                        class="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
-                    @if (newWebhookForm.get('url')?.invalid && newWebhookForm.get('url')?.touched) {
-                    <span class="text-xs text-red-500">URL inválida (ex: https://site.com).</span>
-                    }
-                </div>
-
-                <!-- Events Selection -->
-                <div class="flex flex-col gap-3">
-                    <label class="text-sm font-medium text-zinc-900">Eventos para escutar</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        @for (evt of availableEvents; track evt.id) {
-                        <label class="flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors"
-                            [class.border-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
-                            [class.bg-indigo-50]="newWebhookForm.value.events?.includes(evt.id)"
-                            [class.border-zinc-200]="!newWebhookForm.value.events?.includes(evt.id)"
-                            (click)="toggleEventSelection(evt.id)">
-                            <div class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
-                                [class.border-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
-                                [class.bg-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
-                                [class.border-zinc-300]="!newWebhookForm.value.events?.includes(evt.id)">
-                                @if (newWebhookForm.value.events?.includes(evt.id)) {
-                                <ng-icon hlm name="lucideCheck" class="text-white" size="xs"></ng-icon>
-                                }
-                            </div>
-                            <span class="text-sm font-medium"
-                                [class.text-indigo-900]="newWebhookForm.value.events?.includes(evt.id)"
-                                [class.text-zinc-700]="!newWebhookForm.value.events?.includes(evt.id)">
-                                {{ evt.label }}
-                            </span>
-                        </label>
-                        }
-                    </div>
-                    @if (newWebhookForm.get('events')?.invalid && newWebhookForm.get('events')?.touched) {
-                    <span class="text-xs text-red-500">Selecione pelo menos 1 evento.</span>
-                    }
-                </div>
-            </form>
-
-            <app-dialog-footer>
-                <button (click)="ctx.close()" hlmBtn variant="ghost" class="text-zinc-500 hover:bg-zinc-100"
-                    type="button">Cancelar</button>
-                <button hlmBtn (click)="createWebhook()" [disabled]="newWebhookForm.invalid || isCreating()"
-                    class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm text-white">
-                    @if (isCreating()) {
-                    <hlm-spinner size="sm" class="mr-2" />
-                    }
-                    Criar Webhook
-                </button>
-            </app-dialog-footer>
+      <form [formGroup]="newWebhookForm" (ngSubmit)="createWebhook()" class="py-4 space-y-5">
+        <!-- URL Field -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-zinc-900">Endpoint / URL de Destino</label>
+          <input
+            type="text"
+            formControlName="url"
+            placeholder="https://seudominio.com.br/api/webhook"
+            class="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+          />
+          @if (newWebhookForm.get('url')?.invalid && newWebhookForm.get('url')?.touched) {
+            <span class="text-xs text-red-500">URL inválida (ex: https://site.com).</span>
+          }
         </div>
-    </ng-template>
+
+        <!-- Events Selection -->
+        <div class="flex flex-col gap-3">
+          <label class="text-sm font-medium text-zinc-900">Eventos para escutar</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            @for (evt of availableEvents; track evt.id) {
+              <label
+                class="flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors"
+                [class.border-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
+                [class.bg-indigo-50]="newWebhookForm.value.events?.includes(evt.id)"
+                [class.border-zinc-200]="!newWebhookForm.value.events?.includes(evt.id)"
+                (click)="toggleEventSelection(evt.id)"
+              >
+                <div
+                  class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                  [class.border-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
+                  [class.bg-indigo-600]="newWebhookForm.value.events?.includes(evt.id)"
+                  [class.border-zinc-300]="!newWebhookForm.value.events?.includes(evt.id)"
+                >
+                  @if (newWebhookForm.value.events?.includes(evt.id)) {
+                    <ng-icon hlm name="lucideCheck" class="text-white" size="xs"></ng-icon>
+                  }
+                </div>
+                <span
+                  class="text-sm font-medium"
+                  [class.text-indigo-900]="newWebhookForm.value.events?.includes(evt.id)"
+                  [class.text-zinc-700]="!newWebhookForm.value.events?.includes(evt.id)"
+                >
+                  {{ evt.label }}
+                </span>
+              </label>
+            }
+          </div>
+          @if (newWebhookForm.get('events')?.invalid && newWebhookForm.get('events')?.touched) {
+            <span class="text-xs text-red-500">Selecione pelo menos 1 evento.</span>
+          }
+        </div>
+      </form>
+
+      <app-dialog-footer>
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          variant="ghost"
+          class="text-zinc-500 hover:bg-zinc-100"
+          type="button"
+        >
+          Cancelar
+        </button>
+        <button
+          hlmBtn
+          (click)="createWebhook()"
+          [disabled]="newWebhookForm.invalid || isCreating()"
+          class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm text-white"
+        >
+          @if (isCreating()) {
+            <hlm-spinner size="sm" class="mr-2" />
+          }
+          Criar Webhook
+        </button>
+      </app-dialog-footer>
+    </div>
+  </ng-template>
 </brn-dialog>
 
 <!-- Secret Key Reveal Modal -->
 <brn-dialog [closeDelay]="150" [state]="secretDialogState()" (closed)="closeSecretDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200">
-            <app-dialog-close />
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 animate-in zoom-in-95 duration-200"
+    >
+      <app-dialog-close />
 
-            <app-dialog-header title="Webhook Criado!"
-                description="Sua URL já está configurada. Pegue sua assinatura (Secret)." />
+      <app-dialog-header
+        title="Webhook Criado!"
+        description="Sua URL já está configurada. Pegue sua assinatura (Secret)."
+      />
 
-            <div class="py-4">
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
-                    <ng-icon hlm name="lucideAlertTriangle" class="text-amber-600 shrink-0 mt-0.5" size="sm"></ng-icon>
-                    <p class="text-sm text-amber-800 font-medium leading-relaxed">
-                        Este é o seu <strong class="font-bold">Webhook Secret</strong>. Guarde-o para validar a origem
-                        dos eventos transicionais que chegam ao seu servidor. Ele não será exibido de novo!
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-2 mt-2">
-                    <input type="text" readonly
-                        class="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-mono text-zinc-900 focus-visible:outline-none selection:bg-indigo-100"
-                        [value]="newSecret()">
-                    <button hlmBtn variant="outline" class="shrink-0 bg-white shadow-sm gap-2"
-                        (click)="copyToClipboard()">
-                        @if (copied()) {
-                        <ng-icon hlm name="lucideCheck" class="text-emerald-600"></ng-icon>
-                        <span class="text-emerald-700 font-semibold">Copiada</span>
-                        } @else {
-                        <ng-icon hlm name="lucideCopy"></ng-icon>
-                        Copiar
-                        }
-                    </button>
-                </div>
-            </div>
-
-            <app-dialog-footer>
-                <button (click)="ctx.close()" hlmBtn
-                    class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm w-full text-white">
-                    Entendido, já guardei o meu Secret
-                </button>
-            </app-dialog-footer>
+      <div class="py-4">
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex gap-3">
+          <ng-icon
+            hlm
+            name="lucideAlertTriangle"
+            class="text-amber-600 shrink-0 mt-0.5"
+            size="sm"
+          ></ng-icon>
+          <p class="text-sm text-amber-800 font-medium leading-relaxed">
+            Este é o seu <strong class="font-bold">Webhook Secret</strong>. Guarde-o para validar a
+            origem dos eventos transicionais que chegam ao seu servidor. Ele não será exibido de
+            novo!
+          </p>
         </div>
-    </ng-template>
+
+        <div class="flex items-center gap-2 mt-2">
+          <input
+            type="text"
+            readonly
+            class="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-mono text-zinc-900 focus-visible:outline-none selection:bg-indigo-100"
+            [value]="newSecret()"
+          />
+          <button
+            hlmBtn
+            variant="outline"
+            class="shrink-0 bg-white shadow-sm gap-2"
+            (click)="copyToClipboard()"
+          >
+            @if (copied()) {
+              <ng-icon hlm name="lucideCheck" class="text-emerald-600"></ng-icon>
+              <span class="text-emerald-700 font-semibold">Copiada</span>
+            } @else {
+              <ng-icon hlm name="lucideCopy"></ng-icon>
+              Copiar
+            }
+          </button>
+        </div>
+      </div>
+
+      <app-dialog-footer>
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm w-full text-white"
+        >
+          Entendido, já guardei o meu Secret
+        </button>
+      </app-dialog-footer>
+    </div>
+  </ng-template>
 </brn-dialog>
 
 <!-- Test Ping Modal -->
 <brn-dialog [closeDelay]="150" [state]="testDialogState()" (closed)="closeTestDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden"
+    >
+      <div class="p-6 pb-5">
+        <h3 class="text-base font-semibold tracking-tight text-zinc-900">
+          Disparar Evento de Teste
+        </h3>
+        <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
+          Vamos enviar um POST simulando um evento para
+          <strong class="text-zinc-900 font-medium">{{ hookToTest()?.url }}</strong
+          >.
+        </p>
+        <p class="text-xs text-zinc-400 mt-3 bg-zinc-50 p-2 rounded border border-zinc-100/80">
+          O Payload do teste utilizará dados fictícios para validar a assinatura SHA256 do seu lado.
+        </p>
+      </div>
 
-            <div class="p-6 pb-5">
-                <h3 class="text-base font-semibold tracking-tight text-zinc-900">Disparar Evento de Teste</h3>
-                <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
-                    Vamos enviar um POST simulando um evento para <strong class="text-zinc-900 font-medium">{{
-                        hookToTest()?.url }}</strong>.
-                </p>
-                <p class="text-xs text-zinc-400 mt-3 bg-zinc-50 p-2 rounded border border-zinc-100/80">
-                    O Payload do teste utilizará dados fictícios para validar a assinatura SHA256 do seu lado.
-                </p>
-            </div>
-
-            <div class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2">
-                <button (click)="ctx.close()" hlmBtn variant="ghost" size="sm"
-                    class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900">Cancelar</button>
-                <button hlmBtn size="sm" (click)="testWebhook()" [disabled]="isTesting()"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
-                    @if (isTesting()) {
-                    <hlm-spinner size="sm" class="mr-2" />
-                    }
-                    <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" class="mr-2"></ng-icon>
-                    Disparar Teste
-                </button>
-            </div>
-        </div>
-    </ng-template>
+      <div
+        class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2"
+      >
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          variant="ghost"
+          size="sm"
+          class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
+        >
+          Cancelar
+        </button>
+        <button
+          hlmBtn
+          size="sm"
+          (click)="testWebhook()"
+          [disabled]="isTesting()"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+        >
+          @if (isTesting()) {
+            <hlm-spinner size="sm" class="mr-2" />
+          }
+          <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" class="mr-2"></ng-icon>
+          Disparar Teste
+        </button>
+      </div>
+    </div>
+  </ng-template>
 </brn-dialog>
 
 <!-- Delete Confirmation Modal (Minimalist) -->
 <brn-dialog [closeDelay]="150" [state]="deleteDialogState()" (closed)="closeDeleteDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden">
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-sm translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden"
+    >
+      <div class="p-6 pb-5">
+        <h3 class="text-base font-semibold tracking-tight text-zinc-900">Excluir webhook</h3>
+        <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
+          A URL
+          <strong
+            class="text-zinc-900 font-medium truncate inline-block max-w-[200px] align-bottom"
+            [title]="hookToDelete()?.url"
+            >{{ hookToDelete()?.url }}</strong
+          >
+          não receberá mais nenhum aviso de transação. Esta ação é irreversível. O histórico de
+          envios também será apagado.
+        </p>
+      </div>
 
-            <div class="p-6 pb-5">
-                <h3 class="text-base font-semibold tracking-tight text-zinc-900">Excluir webhook</h3>
-                <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
-                    A URL <strong class="text-zinc-900 font-medium truncate inline-block max-w-[200px] align-bottom"
-                        [title]="hookToDelete()?.url">{{ hookToDelete()?.url }}</strong> não receberá mais nenhum aviso
-                    de transação. Esta ação é irreversível. O histórico de envios também será apagado.
-                </p>
-            </div>
-
-            <div class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2">
-                <button (click)="ctx.close()" hlmBtn variant="ghost" size="sm"
-                    class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900">Cancelar</button>
-                <button hlmBtn size="sm" (click)="deleteWebhook()" [disabled]="isDeleting()"
-                    class="bg-red-600 hover:bg-red-700 text-white shadow-sm">
-                    @if (isDeleting()) {
-                    <hlm-spinner size="sm" class="mr-2" />
-                    }
-                    Sim, excluir webhook
-                </button>
-            </div>
-        </div>
-    </ng-template>
+      <div
+        class="px-6 py-4 bg-zinc-50/80 border-t border-zinc-100/80 flex items-center justify-end gap-2"
+      >
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          variant="ghost"
+          size="sm"
+          class="text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-900"
+        >
+          Cancelar
+        </button>
+        <button
+          hlmBtn
+          size="sm"
+          (click)="deleteWebhook()"
+          [disabled]="isDeleting()"
+          class="bg-red-600 hover:bg-red-700 text-white shadow-sm"
+        >
+          @if (isDeleting()) {
+            <hlm-spinner size="sm" class="mr-2" />
+          }
+          Sim, excluir webhook
+        </button>
+      </div>
+    </div>
+  </ng-template>
 </brn-dialog>
 
 <!-- History / Logs Modal -->
 <brn-dialog [closeDelay]="150" [state]="logsDialogState()" (closed)="closeLogsDialog()">
-    <ng-template brnDialogContent let-ctx>
-        <app-dialog-overlay />
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[85vh]">
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[85vh]"
+    >
+      <div class="p-6 pb-4 shrink-0 flex justify-between items-start border-b border-zinc-100/80">
+        <div>
+          <h3 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
+            <ng-icon hlm name="lucideHistory" size="sm" class="text-zinc-400"></ng-icon>
+            Histórico de Envios
+          </h3>
+          <p class="text-sm text-zinc-500 mt-1">
+            Destino: <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
+          </p>
+        </div>
+        <app-dialog-close />
+      </div>
 
-            <div class="p-6 pb-4 shrink-0 flex justify-between items-start border-b border-zinc-100/80">
-                <div>
-                    <h3 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
-                        <ng-icon hlm name="lucideHistory" size="sm" class="text-zinc-400"></ng-icon>
-                        Histórico de Envios
-                    </h3>
-                    <p class="text-sm text-zinc-500 mt-1">
-                        Destino: <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
-                    </p>
-                </div>
-                <app-dialog-close />
+      <div class="flex-1 overflow-y-auto bg-zinc-50/30 p-6 min-h-[400px]">
+        @if (isLogsLoading()) {
+          <div class="flex justify-center items-center h-full flex-col text-zinc-500">
+            <hlm-spinner class="w-6 h-6 text-indigo-600 mb-3" />
+            <span class="text-sm font-medium">Buscando requisições...</span>
+          </div>
+        } @else if (logsError()) {
+          <div class="bg-red-50 text-red-700 p-4 rounded-lg flex gap-3 border border-red-200/60">
+            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500 shrink-0"></ng-icon>
+            <div>
+              <p class="text-sm font-semibold">Erro</p>
+              <p class="text-sm mt-1 opacity-90">{{ logsError() }}</p>
             </div>
-
-            <div class="flex-1 overflow-y-auto bg-zinc-50/30 p-6 min-h-[400px]">
-                @if (isLogsLoading()) {
-                <div class="flex justify-center items-center h-full flex-col text-zinc-500">
-                    <hlm-spinner class="w-6 h-6 text-indigo-600 mb-3" />
-                    <span class="text-sm font-medium">Buscando requisições...</span>
-                </div>
-                }
-                @else if (logsError()) {
-                <div class="bg-red-50 text-red-700 p-4 rounded-lg flex gap-3 border border-red-200/60">
-                    <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500 shrink-0"></ng-icon>
-                    <div>
-                        <p class="text-sm font-semibold">Erro</p>
-                        <p class="text-sm mt-1 opacity-90">{{ logsError() }}</p>
-                    </div>
-                </div>
-                }
-                @else if (webhookLogs().length === 0) {
-                <div class="flex flex-col items-center justify-center h-full text-center">
-                    <div class="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
-                        <ng-icon hlm name="lucideNetwork" size="sm" class="text-zinc-400"></ng-icon>
-                    </div>
-                    <p class="text-sm font-medium text-zinc-900">Nenhum evento disparado ainda.</p>
-                    <p class="text-sm text-zinc-500 mt-1 max-w-xs">Quando eventos ocorrerem na sua loja, os envios
-                        aparecerão detalhados aqui.</p>
-                </div>
-                }
-                @else {
-                <div class="space-y-3">
-                    @for (log of webhookLogs(); track log.id) {
-                    <div
-                        class="bg-white border text-sm border-zinc-200/80 rounded-lg overflow-hidden transition-shadow hover:shadow-sm">
-                        <div class="p-3.5 flex flex-wrap gap-4 justify-between items-center sm:flex-nowrap">
-                            <div class="flex items-center gap-3">
-                                <!-- Status indicator -->
-                                @if (log.responseStatus && log.responseStatus >= 200 && log.responseStatus < 300) { <div
-                                    class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0">
-                                    <ng-icon hlm name="lucideCheck" size="sm" class="text-emerald-600"></ng-icon>
-                            </div>
-                            } @else {
-                            <div
-                                class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 shrink-0">
-                                <ng-icon hlm name="lucideXCircle" size="sm" class="text-red-600"></ng-icon>
-                            </div>
-                            }
-
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-zinc-900">{{ log.eventType }}</span>
-                                    <span class="text-xs text-zinc-400">&bull;</span>
-                                    <span class="text-xs text-zinc-500">{{ log.createdAt | date:'dd/MM HH:mm:ss'
-                                        }}</span>
-                                </div>
-                                <div class="text-xs text-zinc-500 mt-0.5 font-mono">
-                                    Status HTTP {{ log.responseStatus || 'Falha/Timeout' }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                            <div class="text-right flex-1 sm:flex-none">
-                                <div class="text-xs text-zinc-500">Tentativa</div>
-                                <div class="text-sm font-medium text-zinc-700">{{ log.attempt }}/{{ log.maxAttempts }}
-                                </div>
-                            </div>
-                            @if (!log.responseStatus || log.responseStatus >= 300) {
-                            <button hlmBtn variant="outline" size="sm" class="h-8 gap-1.5 shrink-0 bg-white"
-                                (click)="retryLog(log)" [disabled]="isRetrying()[log.id]">
-                                @if (isRetrying()[log.id]) {
-                                <hlm-spinner size="sm" />
-                                } @else {
-                                <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
-                                Tentar de novo
-                                }
-                            </button>
-                            }
-                        </div>
-                    </div>
-                    @if (log.responseBody) {
-                    <div class="bg-zinc-50/50 border-t border-zinc-100/80 p-3 pt-2">
-                        <div class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Resposta do
-                            seu Servidor:</div>
-                        <code class="text-xs font-mono text-zinc-700 break-all">{{ log.responseBody }}</code>
-                    </div>
+          </div>
+        } @else if (webhookLogs().length === 0) {
+          <div class="flex flex-col items-center justify-center h-full text-center">
+            <div class="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
+              <ng-icon hlm name="lucideNetwork" size="sm" class="text-zinc-400"></ng-icon>
+            </div>
+            <p class="text-sm font-medium text-zinc-900">Nenhum evento disparado ainda.</p>
+            <p class="text-sm text-zinc-500 mt-1 max-w-xs">
+              Quando eventos ocorrerem na sua loja, os envios aparecerão detalhados aqui.
+            </p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (log of webhookLogs(); track log.id) {
+              <div
+                class="bg-white border text-sm border-zinc-200/80 rounded-lg overflow-hidden transition-shadow hover:shadow-sm"
+              >
+                <div class="p-3.5 flex flex-wrap gap-4 justify-between items-center sm:flex-nowrap">
+                  <div class="flex items-center gap-3">
+                    <!-- Status indicator -->
+                    @if (
+                      log.responseStatus && log.responseStatus >= 200 && log.responseStatus < 300
+                    ) {
+                      <div
+                        class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0"
+                      >
+                        <ng-icon
+                          hlm
+                          name="lucideCheck"
+                          size="sm"
+                          class="text-emerald-600"
+                        ></ng-icon>
+                      </div>
+                    } @else {
+                      <div
+                        class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 shrink-0"
+                      >
+                        <ng-icon hlm name="lucideXCircle" size="sm" class="text-red-600"></ng-icon>
+                      </div>
                     }
-                </div>
-                }
-            </div>
-            }
-        </div>
 
-        <div class="px-6 py-4 border-t border-zinc-100/80 bg-white flex justify-end shrink-0">
-            <button (click)="ctx.close()" hlmBtn
-                class="bg-zinc-900 border border-zinc-900 hover:bg-zinc-800 text-white shadow-sm">Fechar</button>
-        </div>
-        </div>
-    </ng-template>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-zinc-900">{{ log.eventType }}</span>
+                        <span class="text-xs text-zinc-400">&bull;</span>
+                        <span class="text-xs text-zinc-500">{{
+                          log.createdAt | date: 'dd/MM HH:mm:ss'
+                        }}</span>
+                      </div>
+                      <div class="text-xs text-zinc-500 mt-0.5 font-mono">
+                        Status HTTP {{ log.responseStatus || 'Falha/Timeout' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                    <div class="text-right flex-1 sm:flex-none">
+                      <div class="text-xs text-zinc-500">Tentativa</div>
+                      <div class="text-sm font-medium text-zinc-700">
+                        {{ log.attempt }}/{{ log.maxAttempts }}
+                      </div>
+                    </div>
+                    @if (!log.responseStatus || log.responseStatus >= 300) {
+                      <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        class="h-8 gap-1.5 shrink-0 bg-white"
+                        (click)="retryLog(log)"
+                        [disabled]="isRetrying()[log.id]"
+                      >
+                        @if (isRetrying()[log.id]) {
+                          <hlm-spinner size="sm" />
+                        } @else {
+                          <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
+                          Tentar de novo
+                        }
+                      </button>
+                    }
+                  </div>
+                </div>
+                @if (log.responseBody) {
+                  <div class="bg-zinc-50/50 border-t border-zinc-100/80 p-3 pt-2">
+                    <div
+                      class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1"
+                    >
+                      Resposta do seu Servidor:
+                    </div>
+                    <code class="text-xs font-mono text-zinc-700 break-all">{{
+                      log.responseBody
+                    }}</code>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="px-6 py-4 border-t border-zinc-100/80 bg-white flex justify-end shrink-0">
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          class="bg-zinc-900 border border-zinc-900 hover:bg-zinc-800 text-white shadow-sm"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </ng-template>
 </brn-dialog>

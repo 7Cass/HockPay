@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiKeyService, ApiKey, Environment } from '../../../../core/services/api-key.service';
@@ -21,7 +21,7 @@ import {
   lucideXCircle,
   lucideCheck,
   lucideCopy,
-  lucideAlertTriangle
+  lucideAlertTriangle,
 } from '@ng-icons/lucide';
 
 @Component({
@@ -38,7 +38,7 @@ import {
     ...HlmSpinnerImports,
     NgIconComponent,
     HlmIconImports,
-    ...DialogImports
+    ...DialogImports,
   ],
   viewProviders: [
     provideIcons({
@@ -49,13 +49,16 @@ import {
       lucideXCircle,
       lucideCheck,
       lucideCopy,
-      lucideAlertTriangle
-    })
+      lucideAlertTriangle,
+    }),
   ],
-  templateUrl: './api-keys.html'
+  templateUrl: './api-keys.html',
 })
 export class ApiKeys implements OnInit {
   private readonly apiKeyService = inject(ApiKeyService);
+  readonly embedded = input(false);
+  readonly headerVariant = input<'default' | 'compact'>('default');
+  readonly statsChange = output<{ total: number; isLoading: boolean; hasError: boolean }>();
 
   // State Signals
   testKeys = signal<ApiKey[]>([]);
@@ -109,19 +112,22 @@ export class ApiKeys implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
     this.testKeys.set([]);
+    this.emitStats();
 
     this.apiKeyService.list().subscribe({
       next: (response) => {
-        // We simulate applying the DEV MODE toggle by filtering locally for TEST keys 
-        const testKeysOnly = response.apiKeys.filter(k => k.environment === Environment.TEST);
+        // We simulate applying the DEV MODE toggle by filtering locally for TEST keys
+        const testKeysOnly = response.apiKeys.filter((k) => k.environment === Environment.TEST);
         this.testKeys.set(testKeysOnly);
         this.isLoading.set(false);
+        this.emitStats();
       },
       error: (err) => {
         console.error('Failed to load api keys', err);
         this.error.set('Houve um erro ao se comunicar com o servidor. Tente novamente mais tarde.');
         this.isLoading.set(false);
-      }
+        this.emitStats();
+      },
     });
   }
 
@@ -139,7 +145,7 @@ export class ApiKeys implements OnInit {
 
         // Add the new key to the local list (stripping the plainKey)
         const newKeyEntity: ApiKey = { ...response, plainKey: undefined } as any;
-        this.testKeys.update(keys => [newKeyEntity, ...keys]);
+        this.testKeys.update((keys) => [newKeyEntity, ...keys]);
 
         // Show the one-time plain key in the modal explicitly
         this.newSecretKey.set(response.plainKey);
@@ -148,12 +154,13 @@ export class ApiKeys implements OnInit {
         // Hide create dialog and show secret dialog via Signals
         this.createDialogState.set('closed');
         this.secretDialogState.set('open');
+        this.emitStats();
       },
       error: (err) => {
         this.isCreating.set(false);
         console.error('Failed to create api key', err);
         alert('Falha ao criar chave de API. Tente novamente.');
-      }
+      },
     });
   }
 
@@ -173,7 +180,7 @@ export class ApiKeys implements OnInit {
         this.isRevoking.set(false);
         console.error('Failed to revoke api key', err);
         alert('Falha ao revogar chave de API.');
-      }
+      },
     });
   }
 
@@ -183,6 +190,14 @@ export class ApiKeys implements OnInit {
     navigator.clipboard.writeText(this.newSecretKey()).then(() => {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 3000);
+    });
+  }
+
+  private emitStats() {
+    this.statsChange.emit({
+      total: this.testKeys().length,
+      isLoading: this.isLoading(),
+      hasError: !!this.error(),
     });
   }
 }

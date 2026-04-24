@@ -57,12 +57,21 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/dashboard/pages/customers/customers').then(m => m.Customers),
             },
             {
+                path: 'api',
+                loadComponent: () => import('./features/dashboard/pages/api/api').then(m => m.Api),
+            },
+            {
                 path: 'api-keys',
-                loadComponent: () => import('./features/dashboard/pages/api-keys/api-keys').then(m => m.ApiKeys),
+                redirectTo: 'api',
+                pathMatch: 'full',
             },
             {
                 path: 'webhooks',
                 loadComponent: () => import('./features/dashboard/pages/webhooks/webhooks').then(m => m.Webhooks),
+            },
+            {
+                path: 'alerts',
+                loadComponent: () => import('./features/dashboard/pages/alerts/alerts').then(m => m.Alerts),
             },
             {
                 path: 'products',

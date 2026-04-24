@@ -20,6 +20,7 @@ import {
     lucideShoppingBag,
     lucideArrowRightLeft,
     lucideReceipt,
+    lucideBell,
 } from '@ng-icons/lucide';
 import { StoreService, type Store } from '../../../core/services/store.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -58,6 +59,7 @@ interface MenuGroup {
             lucideShoppingBag,
             lucideArrowRightLeft,
             lucideReceipt,
+            lucideBell,
         }),
     ],
     templateUrl: './sidebar.component.html',
@@ -113,8 +115,9 @@ export class SidebarComponent implements OnInit {
         {
             label: 'Integrações',
             items: [
-                { label: 'API Keys', icon: 'lucideKey', route: '/dashboard/api-keys' },
+                { label: 'API', icon: 'lucideKey', route: '/dashboard/api' },
                 { label: 'Webhooks', icon: 'lucideWebhook', route: '/dashboard/webhooks' },
+                { label: 'Alertas', icon: 'lucideBell', route: '/dashboard/alerts' },
             ],
         },
         {

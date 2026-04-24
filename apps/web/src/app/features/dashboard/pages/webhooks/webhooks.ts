@@ -1,7 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
-import { WebhookService, WebhookConfig, WebhookLog } from '../../../../core/services/webhook.service';
+import {
+  WebhookService,
+  WebhookConfig,
+  WebhookLog,
+} from '../../../../core/services/webhook.service';
 import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 
 // Spartan UI
@@ -24,7 +28,7 @@ import {
   lucidePencil,
   lucideCopy,
   lucideAlertTriangle,
-  lucideCheck
+  lucideCheck,
 } from '@ng-icons/lucide';
 
 @Component({
@@ -41,7 +45,7 @@ import {
     ...HlmSpinnerImports,
     NgIconComponent,
     HlmIconImports,
-    ...DialogImports
+    ...DialogImports,
   ],
   viewProviders: [
     provideIcons({
@@ -56,10 +60,10 @@ import {
       // added missing from imports
       lucideCopy,
       lucideAlertTriangle,
-      lucideCheck
-    })
+      lucideCheck,
+    }),
   ],
-  templateUrl: './webhooks.html'
+  templateUrl: './webhooks.html',
 })
 export class Webhooks implements OnInit {
   private readonly webhookService = inject(WebhookService);
@@ -73,7 +77,7 @@ export class Webhooks implements OnInit {
   isCreating = signal<boolean>(false);
   newWebhookForm = new FormGroup({
     url: new FormControl('', [Validators.required, Validators.pattern('https?://.+')]),
-    events: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)])
+    events: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
   });
 
   availableEvents = [
@@ -132,7 +136,7 @@ export class Webhooks implements OnInit {
     const currentEvents = eventsControl?.value || [];
 
     if (currentEvents.includes(eventId)) {
-      eventsControl?.setValue(currentEvents.filter(e => e !== eventId));
+      eventsControl?.setValue(currentEvents.filter((e) => e !== eventId));
     } else {
       eventsControl?.setValue([...currentEvents, eventId]);
     }
@@ -151,7 +155,7 @@ export class Webhooks implements OnInit {
 
         // Push locally without the one-time secret
         const createdConfig: WebhookConfig = { ...response, secret: undefined } as any;
-        this.webhooks.update(hooks => [createdConfig, ...hooks]);
+        this.webhooks.update((hooks) => [createdConfig, ...hooks]);
 
         this.newSecret.set(response.secret);
         this.copied.set(false);
@@ -164,7 +168,7 @@ export class Webhooks implements OnInit {
         this.isCreating.set(false);
         console.error('Failed to create webhook', err);
         alert('Falha ao criar Webhook. Verifique os dados e tente novamente.');
-      }
+      },
     });
   }
 
@@ -203,10 +207,10 @@ export class Webhooks implements OnInit {
       error: (err) => {
         this.isTesting.set(false);
         console.error('Failed test webhook', err);
-        // We still close normally, as the log will register the attempt error, 
+        // We still close normally, as the log will register the attempt error,
         // but we can alert the user.
         alert('Falha ao disparar o ping de teste. O endpoint pode estar inacessível.');
-      }
+      },
     });
   }
 
@@ -235,7 +239,7 @@ export class Webhooks implements OnInit {
         this.isDeleting.set(false);
         console.error('Failed to delete webhook', err);
         alert('Falha ao excluir webhook.');
-      }
+      },
     });
   }
 
@@ -269,24 +273,24 @@ export class Webhooks implements OnInit {
         console.error('Failed to load webhook logs', err);
         this.logsError.set('Falha ao carregar o histórico de envios.');
         this.isLogsLoading.set(false);
-      }
+      },
     });
   }
 
   retryLog(log: WebhookLog) {
-    this.isRetrying.update(state => ({ ...state, [log.id]: true }));
+    this.isRetrying.update((state) => ({ ...state, [log.id]: true }));
 
     this.webhookService.retryLog(log.configId, log.id).subscribe({
       next: () => {
-        this.isRetrying.update(state => ({ ...state, [log.id]: false }));
+        this.isRetrying.update((state) => ({ ...state, [log.id]: false }));
         // Refresh logs list after a successful retry request
         this.loadLogs(log.configId);
       },
       error: (err) => {
-        this.isRetrying.update(state => ({ ...state, [log.id]: false }));
+        this.isRetrying.update((state) => ({ ...state, [log.id]: false }));
         console.error('Failed to retry log', err);
         alert('Falha ao reprocessar esse evento.');
-      }
+      },
     });
   }
 
@@ -304,7 +308,7 @@ export class Webhooks implements OnInit {
         console.error('Failed to load webhooks', err);
         this.error.set('Houve um erro ao se comunicar com o servidor. Tente novamente mais tarde.');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 }

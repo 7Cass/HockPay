@@ -39,142 +39,113 @@ export type ChartOptions = {
   imports: [CommonModule, NgApexchartsModule, CurrencyPipe, NgIconComponent, HlmIconImports],
   viewProviders: [provideIcons({ lucideWallet, lucideActivity, lucideCreditCard, lucideTrendingUp, lucideLineChart })],
   template: `
-    <div class="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-10">
+    <div class="flex flex-col gap-8 max-w-7xl mx-auto w-full pb-10 font-sans">
       <!-- Page Header & Filters -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Visão Geral</h1>
-          <p class="text-sm text-zinc-500 mt-1">Acompanhe as métricas e o desempenho da sua loja em tempo real.</p>
+          <h1 class="text-3xl font-semibold tracking-tight text-zinc-950">Overview</h1>
+          <p class="text-sm text-zinc-500 mt-1">Real-time metrics and performance.</p>
         </div>
         
         <!-- Filters -->
-        <div class="inline-flex bg-zinc-100/80 rounded-lg p-1 border border-zinc-200/50 shadow-sm">
+        <div class="inline-flex bg-zinc-100/50 rounded-lg p-1 border border-zinc-200/50">
           <button 
             (click)="setFilter('today')"
             [class.bg-white]="activeFilter() === 'today'"
             [class.shadow-sm]="activeFilter() === 'today'"
-            [class.text-zinc-900]="activeFilter() === 'today'"
+            [class.text-zinc-950]="activeFilter() === 'today'"
             [class.text-zinc-500]="activeFilter() !== 'today'"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all">
-            Hoje
+            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
+            Today
           </button>
           <button 
             (click)="setFilter('7days')"
             [class.bg-white]="activeFilter() === '7days'"
             [class.shadow-sm]="activeFilter() === '7days'"
-            [class.text-zinc-900]="activeFilter() === '7days'"
+            [class.text-zinc-950]="activeFilter() === '7days'"
             [class.text-zinc-500]="activeFilter() !== '7days'"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all hover:text-zinc-700">
-            Últimos 7 dias
+            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
+            7D
           </button>
           <button 
             (click)="setFilter('30days')"
             [class.bg-white]="activeFilter() === '30days'"
             [class.shadow-sm]="activeFilter() === '30days'"
-            [class.text-zinc-900]="activeFilter() === '30days'"
+            [class.text-zinc-950]="activeFilter() === '30days'"
             [class.text-zinc-500]="activeFilter() !== '30days'"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all hover:text-zinc-700">
-            Últimos 30 dias
+            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
+            30D
           </button>
         </div>
       </div>
 
       @if (isLoading()) {
-        <!-- Premium Skeletons -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Minimal Skeletons -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           @for (i of [1,2,3,4]; track i) {
-            <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm flex flex-col justify-between">
-              <div class="flex items-center justify-between mb-4 animate-pulse">
-                <div class="h-4 bg-zinc-200/80 rounded w-24"></div>
-                <div class="w-8 h-8 rounded-lg bg-zinc-100"></div>
-              </div>
-              <div class="h-8 bg-zinc-200/80 rounded w-32 animate-pulse mt-2"></div>
+            <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between">
+              <div class="h-4 bg-zinc-100 rounded w-20 mb-6 animate-pulse"></div>
+              <div class="h-8 bg-zinc-100 rounded w-32 animate-pulse"></div>
             </div>
           }
         </div>
-        <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm h-[400px] flex items-center justify-center">
-          <div class="h-full w-full bg-zinc-100/50 rounded-lg animate-pulse"></div>
+        <div class="bg-white rounded-xl border border-zinc-200/60 p-6 h-[400px] flex items-center justify-center">
+          <div class="h-full w-full bg-zinc-50/50 rounded-lg animate-pulse"></div>
         </div>
       } @else if (metrics()) {
         <!-- Metrics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <!-- Balance -->
-          <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm flex flex-col justify-between hover:border-indigo-500/30 transition-colors group relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-indigo-50 to-transparent opacity-50 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100"></div>
-            <div class="flex items-center justify-between mb-3 relative z-10">
-              <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide">Saldo Atual</h3>
-              <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center ring-1 ring-indigo-100/50 group-hover:scale-110 transition-transform">
-                <ng-icon hlm name="lucideWallet" size="sm"></ng-icon>
-              </div>
+          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Saldo Atual</h3>
+              <ng-icon hlm name="lucideWallet" class="text-zinc-400" size="sm"></ng-icon>
             </div>
-            <p class="text-[1.75rem] font-bold tracking-tight text-zinc-900 relative z-10">{{ (metrics()!.currentBalance.available / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.currentBalance.available / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
           </div>
           
           <!-- Total Volume -->
-          <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm flex flex-col justify-between hover:border-indigo-500/30 transition-colors group relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-emerald-50 to-transparent opacity-50 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100"></div>
-            <div class="flex items-center justify-between mb-3 relative z-10">
-              <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide">Vol. Processado</h3>
-              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center ring-1 ring-emerald-100/50 group-hover:scale-110 transition-transform">
-                <ng-icon hlm name="lucideActivity" size="sm"></ng-icon>
-              </div>
+          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Vol. Processado</h3>
+              <ng-icon hlm name="lucideActivity" class="text-zinc-400" size="sm"></ng-icon>
             </div>
-            <p class="text-[1.75rem] font-bold tracking-tight text-zinc-900 relative z-10">{{ (metrics()!.processing.totalVolume / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.processing.totalVolume / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
           </div>
 
           <!-- Ticket Médio -->
-          <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm flex flex-col justify-between hover:border-indigo-500/30 transition-colors group relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-amber-50 to-transparent opacity-50 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100"></div>
-            <div class="flex items-center justify-between mb-3 relative z-10">
-               <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide">Ticket Médio</h3>
-               <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center ring-1 ring-amber-100/50 group-hover:scale-110 transition-transform">
-                 <ng-icon hlm name="lucideTrendingUp" size="sm"></ng-icon>
-               </div>
+          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+               <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Ticket Médio</h3>
+               <ng-icon hlm name="lucideTrendingUp" class="text-zinc-400" size="sm"></ng-icon>
             </div>
-            <p class="text-[1.75rem] font-bold tracking-tight text-zinc-900 relative z-10">{{ (metrics()!.processing.averageTicket / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.processing.averageTicket / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
           </div>
 
           <!-- Vendas -->
-          <div class="bg-white rounded-xl border border-zinc-200/80 p-6 shadow-sm flex flex-col justify-between hover:border-indigo-500/30 transition-colors group relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-transparent opacity-50 rounded-bl-full pointer-events-none transition-opacity group-hover:opacity-100"></div>
-            <div class="flex items-center justify-between mb-3 relative z-10">
-               <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide">Qtd. Vendas</h3>
-               <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center ring-1 ring-blue-100/50 group-hover:scale-110 transition-transform">
-                 <ng-icon hlm name="lucideCreditCard" size="sm"></ng-icon>
-               </div>
+          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+               <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Qtd. Vendas</h3>
+               <ng-icon hlm name="lucideCreditCard" class="text-zinc-400" size="sm"></ng-icon>
             </div>
-            <p class="text-[1.75rem] font-bold tracking-tight text-zinc-900 relative z-10 flex items-end gap-2">
+            <p class="text-3xl font-semibold tracking-tight text-zinc-950 flex items-baseline gap-1.5">
               {{ metrics()!.processing.salesCount }}
-              <span class="text-sm font-normal text-zinc-400 mb-1.5 lowercase">transações</span>
+              <span class="text-sm font-medium text-zinc-400">transações</span>
             </p>
           </div>
         </div>
 
         <!-- Chart -->
-        <div class="bg-white rounded-xl border border-zinc-200/80 shadow-sm flex flex-col min-h-[450px]">
-          <div class="p-6 pb-4 border-b border-zinc-100/80 flex items-center justify-between bg-zinc-50/30 rounded-t-xl">
-             <div class="flex items-center gap-3">
-               <div class="w-10 h-10 rounded-lg bg-white border border-zinc-200/60 flex items-center justify-center shadow-sm">
-                 <ng-icon hlm name="lucideLineChart" class="text-indigo-600 text-lg"></ng-icon>
-               </div>
-               <div>
-                 <h3 class="text-base font-bold tracking-tight text-zinc-900">Volume Financeiro Diário</h3>
-                 <p class="text-sm text-zinc-500 mt-0.5">Vendas líquidas processadas por dia no período.</p>
-               </div>
-             </div>
+        <div class="bg-white rounded-xl border border-zinc-200/60 flex flex-col min-h-[450px] mt-2">
+          <div class="p-6 pb-2">
+             <h3 class="text-base font-semibold tracking-tight text-zinc-950">Volume Financeiro</h3>
           </div>
           
-          <div class="p-6 flex-1 relative flex flex-col">
+          <div class="p-4 flex-1 relative flex flex-col">
             @if (metrics()?.processing?.salesCount === 0) {
-               <!-- Elegant Empty State -->
-               <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-white rounded-b-xl">
-                 <div class="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-5 shadow-sm">
-                   <ng-icon hlm name="lucideLineChart" size="xl" class="text-indigo-600 opacity-80" strokeWidth="1.5"></ng-icon>
-                 </div>
-                 <h3 class="text-base font-semibold text-zinc-900 mb-1.5">Ainda não há dados para exibição</h3>
-                 <p class="text-sm text-zinc-500 max-w-sm mt-1 mb-6">
-                   Você ainda não processou vendas neste período. Volte aqui em breve para visualizar as métricas do seu crescimento.
-                 </p>
+               <!-- Minimal Empty State -->
+               <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                 <p class="text-sm text-zinc-500">Sem dados no período selecionado.</p>
                </div>
             } @else {
                <div class="-mx-2 -mb-2 mt-2 flex-1 relative min-h-[350px]">
@@ -215,13 +186,11 @@ export class Overview implements OnInit {
     if (!data || data.processing.salesCount === 0) return {};
 
     const categories = data.chartData.map(item => {
-      // Format YYYY-MM-DD to DD/MM
       const parts = item.date.split('-');
       if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
       return item.date;
     });
 
-    // Convert to reais
     const seriesData = data.chartData.map(item => item.volume / 100);
 
     return {
@@ -237,7 +206,7 @@ export class Overview implements OnInit {
         toolbar: { show: false },
         fontFamily: 'Inter, sans-serif'
       },
-      colors: ['#4f46e5'], // indigo-600
+      colors: ['#09090b'], // zinc-950
       dataLabels: {
         enabled: false
       },
@@ -249,18 +218,16 @@ export class Overview implements OnInit {
         type: "gradient",
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: 0.35,
-          opacityTo: 0.05,
-          stops: [0, 90, 100]
+          opacityFrom: 0.1,
+          opacityTo: 0.0,
+          stops: [0, 100]
         }
       },
       markers: {
-        size: 5,
-        colors: ['#ffffff'],
-        strokeColors: '#4f46e5',
-        strokeWidth: 2,
+        size: 0,
         hover: {
-          size: 7
+          size: 4,
+          colors: ['#09090b']
         }
       },
       xaxis: {
@@ -269,14 +236,11 @@ export class Overview implements OnInit {
         axisTicks: { show: false },
         labels: {
           style: {
-            colors: '#71717a' // zinc-500
+            colors: '#a1a1aa' // zinc-400
           }
         },
         tooltip: {
-          enabled: true,
-          style: {
-            fontFamily: 'Inter, sans-serif'
-          }
+          enabled: false
         }
       },
       yaxis: {
@@ -285,13 +249,13 @@ export class Overview implements OnInit {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
           },
           style: {
-            colors: '#71717a'
+            colors: '#a1a1aa'
           }
         }
       },
       grid: {
         borderColor: '#f4f4f5', // zinc-100
-        strokeDashArray: 0,
+        strokeDashArray: 4,
         padding: {
           top: 0,
           right: 0,
@@ -309,23 +273,20 @@ export class Overview implements OnInit {
         enabled: true,
         shared: true,
         intersect: false,
+        theme: 'light',
         custom: function ({ series, seriesIndex, dataPointIndex, w }) {
           const value = series[seriesIndex][dataPointIndex];
           const date = w.globals.categoryLabels[dataPointIndex];
           const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
           return `
-            <div class="bg-white border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-xl overflow-hidden font-sans min-w-[160px]">
-              <div class="bg-zinc-50/80 px-4 py-2 border-b border-zinc-100/80 flex justify-between items-center">
-                <span class="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Período</span>
-                <span class="text-[11px] font-bold text-zinc-700">${date}</span>
+            <div class="bg-white border border-zinc-200 shadow-sm rounded-lg overflow-hidden font-sans min-w-[140px]">
+              <div class="px-3 py-2 border-b border-zinc-100 flex justify-between items-center">
+                <span class="text-xs font-medium text-zinc-500">${date}</span>
               </div>
-              <div class="px-4 py-3.5 bg-white flex items-center gap-3">
-                <div class="w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-50"></div>
-                <div class="flex flex-col">
-                  <span class="text-[11px] text-zinc-400 font-medium mb-0.5 uppercase tracking-wide">Volume</span>
-                  <span class="text-sm font-bold text-zinc-900">${formattedValue}</span>
-                </div>
+              <div class="px-3 py-2 flex flex-col">
+                <span class="text-[10px] text-zinc-400 uppercase tracking-widest font-medium mb-1">Volume</span>
+                <span class="text-sm font-semibold text-zinc-950">${formattedValue}</span>
               </div>
             </div>
           `;
@@ -335,31 +296,22 @@ export class Overview implements OnInit {
   });
 
   constructor() {
-    // React to store changes by reloading metrics
     effect(() => {
       const store = this.storeService.currentStore();
-      // Only load if we have a valid store selected
       if (store) {
         this.loadMetrics();
       }
     }, { allowSignalWrites: true });
   }
 
-  ngOnInit() {
-    // The effect above perfectly handles the initial load when the store becomes available. 
-    // We remove the duplicate/racing call here.
-  }
+  ngOnInit() {}
 
   setFilter(filter: 'today' | '7days' | '30days') {
     this.activeFilter.set(filter);
-
-    // In a real scenario, we would parse dates here and call loadMetrics with them.
-    // For now, it stays fixed to 30 days on the backend, serving as visual only.
   }
 
   loadMetrics() {
     this.isLoading.set(true);
-    // Fixed param payload mimicking frontend mockup bounds
     this.dashboardService.getMetrics().subscribe({
       next: (data) => {
         this.metrics.set(data);
@@ -367,7 +319,6 @@ export class Overview implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load dashboard metrics', err);
-        // Fallback or empty state could be handled here
         this.isLoading.set(false);
       }
     });

@@ -1,0 +1,8 @@
+<div class="flex flex-col gap-4 max-w-7xl mx-auto w-full pb-10">
+  <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    Use chaves de API somente no backend da loja. O frontend deve chamar o servidor do merchant, não
+    a HockPay diretamente.
+  </div>
+
+  <app-api-keys [embedded]="true" [headerVariant]="'compact'" />
+</div>
