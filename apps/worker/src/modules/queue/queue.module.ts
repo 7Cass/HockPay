@@ -2,13 +2,16 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CoreModule, EXPIRATION_QUEUE_PORT } from '../core/core.module';
 import { WebhookProcessor } from '../../infra/queues/webhook.processor';
+import { AlertProcessor } from '../../infra/queues/alert.processor';
 import { ExpirationProcessor } from '../../infra/queues/expiration.processor';
 import { ExpirationQueue } from '../../infra/queues/expiration.queue';
 import { WebhookQueue } from '../../infra/queues/webhook.queue';
+import { AlertQueue } from '../../infra/queues/alert.queue';
 import { ExpirePaymentUseCase, IPaymentRepository, IOutboxRepository } from '@hockpay/core';
 
 // Token for IWebhookQueuePort (exported for use in OutboxDispatcherJob)
 export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
+export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
 
 /**
  * Queue Module
@@ -41,11 +44,24 @@ export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
       {
         name: 'payment-expiration',
       },
+      {
+        name: 'alert-delivery',
+        defaultJobOptions: {
+          removeOnComplete: {
+            count: 1000,
+            age: 24 * 60 * 60,
+          },
+          removeOnFail: {
+            age: 7 * 24 * 60 * 60,
+          },
+        },
+      },
     ),
     CoreModule,
   ],
   providers: [
     WebhookProcessor,
+    AlertProcessor,
     ExpirationProcessor,
     // Expiration Queue
     {
@@ -56,6 +72,10 @@ export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
     {
       provide: WEBHOOK_QUEUE_PORT,
       useClass: WebhookQueue,
+    },
+    {
+      provide: ALERT_QUEUE_PORT,
+      useClass: AlertQueue,
     },
     // ExpirePaymentUseCase with repository interfaces
     {
@@ -68,6 +88,6 @@ export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
       inject: ['IPaymentRepository', 'IOutboxRepository', EXPIRATION_QUEUE_PORT],
     },
   ],
-  exports: [EXPIRATION_QUEUE_PORT, WEBHOOK_QUEUE_PORT, ExpirePaymentUseCase],
+  exports: [EXPIRATION_QUEUE_PORT, WEBHOOK_QUEUE_PORT, ALERT_QUEUE_PORT, ExpirePaymentUseCase],
 })
 export class QueueModule {}

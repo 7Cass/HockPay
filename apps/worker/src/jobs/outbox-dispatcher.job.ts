@@ -1,7 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { IWebhookQueuePort, IOutboxRepository } from '@hockpay/core';
-import { WEBHOOK_QUEUE_PORT } from '../modules/queue/queue.module';
+import { IAlertQueuePort, IWebhookQueuePort, IOutboxRepository } from '@hockpay/core';
+import { ALERT_QUEUE_PORT, WEBHOOK_QUEUE_PORT } from '../modules/queue/queue.module';
 
 /**
  * Outbox Dispatcher Job
@@ -19,6 +19,8 @@ export class OutboxDispatcherJob {
     private readonly outboxRepository: IOutboxRepository,
     @Inject(WEBHOOK_QUEUE_PORT)
     private readonly webhookQueue: IWebhookQueuePort,
+    @Inject(ALERT_QUEUE_PORT)
+    private readonly alertQueue: IAlertQueuePort,
   ) { }
 
   /**
@@ -50,6 +52,7 @@ export class OutboxDispatcherJob {
 
           // 2. Hand it over to BullMQ which will manage the 5 exponential retries natively
           await this.webhookQueue.enqueue(event.id);
+          await this.alertQueue.enqueue(event.id);
           this.logger.debug(`Dispatched event ${event.id} (${event.eventType}) to BullMQ`);
         } catch (error) {
           // If BullMQ fails to even accept the job, we should mark it as failed in the DB

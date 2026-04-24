@@ -8,6 +8,9 @@ import {
   PaymentRepository,
   WebhookConfigRepository,
   WebhookLogRepository,
+  AlertConfigRepository,
+  AlertDeliveryLogRepository,
+  DiscordAlertSenderService,
   IdempotencyKeyRepository,
   UnitOfWork,
 } from '@hockpay/infrastructure';
@@ -22,6 +25,7 @@ import { EncryptionService } from '../../infra/services/encryption.service';
 // Use Cases
 import {
   ProcessWebhookUseCase,
+  ProcessAlertDeliveryUseCase,
   ReleasePaymentUseCase,
   CleanupLogsUseCase,
   DetectAnomaliesUseCase,
@@ -29,6 +33,8 @@ import {
   IOutboxRepository,
   IWebhookConfigRepository,
   IWebhookLogRepository,
+  IAlertConfigRepository,
+  IAlertDeliveryLogRepository,
   IUnitOfWork,
 } from '@hockpay/core';
 
@@ -66,6 +72,16 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       inject: [PrismaService],
     },
     {
+      provide: 'IAlertConfigRepository',
+      useFactory: (prisma: PrismaService) => new AlertConfigRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IAlertDeliveryLogRepository',
+      useFactory: (prisma: PrismaService) => new AlertDeliveryLogRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
       provide: 'IIdempotencyKeyRepository',
       useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
       inject: [PrismaService],
@@ -84,6 +100,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     HmacSignerService,
     WebhookHttpClientService,
     EncryptionService,
+    DiscordAlertSenderService,
 
     // Use Cases
     {
@@ -119,6 +136,30 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       inject: ['IUnitOfWork'],
     },
     {
+      provide: ProcessAlertDeliveryUseCase,
+      useFactory: (
+        outboxRepository: IOutboxRepository,
+        alertConfigRepository: IAlertConfigRepository,
+        alertLogRepository: IAlertDeliveryLogRepository,
+        alertSender: DiscordAlertSenderService,
+        encryption: EncryptionService,
+      ) =>
+        new ProcessAlertDeliveryUseCase(
+          outboxRepository,
+          alertConfigRepository,
+          alertLogRepository,
+          alertSender,
+          encryption,
+        ),
+      inject: [
+        'IOutboxRepository',
+        'IAlertConfigRepository',
+        'IAlertDeliveryLogRepository',
+        DiscordAlertSenderService,
+        EncryptionService,
+      ],
+    },
+    {
       provide: CleanupLogsUseCase,
       useFactory: (
         webhookLogRepository: IWebhookLogRepository,
@@ -139,11 +180,14 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     'IOutboxRepository',
     'IWebhookConfigRepository',
     'IWebhookLogRepository',
+    'IAlertConfigRepository',
+    'IAlertDeliveryLogRepository',
     'IIdempotencyKeyRepository',
     AccountRepository,
     TransactionRepository,
     // Use Cases
     ProcessWebhookUseCase,
+    ProcessAlertDeliveryUseCase,
     ReleasePaymentUseCase,
     CleanupLogsUseCase,
     DetectAnomaliesUseCase,
