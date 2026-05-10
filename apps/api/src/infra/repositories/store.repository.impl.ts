@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { IStoreRepository, Store as DomainStore } from '@hockpay/core';
+import {
+  Account,
+  IStoreRepository,
+  Store as DomainStore,
+} from '@hockpay/core';
 import { Store as PrismaStore } from '@hockpay/database';
 
 /**
@@ -15,6 +19,8 @@ export class StoreRepository implements IStoreRepository {
 
   async save(store: DomainStore): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      const account = Account.create({ storeId: store.id });
+
       // 1. Create the store
       await tx.store.create({
         data: {
@@ -35,11 +41,13 @@ export class StoreRepository implements IStoreRepository {
       // 2. Create the associated account initialized with 0 balances
       await tx.account.create({
         data: {
-          storeId: store.id,
-          available: 0,
-          pending: 0,
-          blocked: 0,
-          currency: 'BRL',
+          id: account.id,
+          storeId: account.storeId,
+          available: account.available,
+          pending: account.pending,
+          blocked: account.blocked,
+          currency: account.currency,
+          updatedAt: account.updatedAt,
         },
       });
     });
