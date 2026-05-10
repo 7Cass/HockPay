@@ -1,17 +1,17 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Job } from "bullmq";
+import { Injectable, Logger } from "@nestjs/common";
 import {
   ProcessWebhookUseCase,
   IProcessWebhookInput,
   WebhookJobData,
-} from '@hockpay/core';
+} from "@hockpay/core";
 
 /**
  * BullMQ processor for webhook delivery jobs.
  */
 @Injectable()
-@Processor('webhook-delivery')
+@Processor("webhook-delivery")
 export class WebhookProcessor extends WorkerHost {
   private readonly logger = new Logger(WebhookProcessor.name);
 
@@ -20,7 +20,9 @@ export class WebhookProcessor extends WorkerHost {
   }
 
   async process(job: Job<WebhookJobData>): Promise<void> {
-    this.logger.debug(`Processing webhook job ${job.id} for event ${job.data.eventId}`);
+    this.logger.debug(
+      `Processing webhook job ${job.id} for event ${job.data.eventId}`,
+    );
 
     const input: IProcessWebhookInput = {
       eventId: job.data.eventId,
@@ -33,10 +35,7 @@ export class WebhookProcessor extends WorkerHost {
         `Webhook delivery failed for event ${job.data.eventId}: ${result.error}`,
       );
 
-      // If the event can retry, throw to trigger BullMQ retry
-      if (result.event.status === 'PENDING') {
-        throw new Error(result.error ?? 'Webhook delivery failed');
-      }
+      throw new Error(result.error ?? "Webhook delivery failed");
     }
 
     this.logger.debug(`Webhook job ${job.id} completed`);

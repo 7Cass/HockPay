@@ -65,6 +65,14 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^@hockpay/core$": "<rootDir>/../../../packages/core/src",
+      "^@hockpay/core/(.*)$": "<rootDir>/../../../packages/core/src/$1",
+      "^@hockpay/database$": "<rootDir>/../../../packages/database/src",
+      "^@hockpay/database/(.*)$": "<rootDir>/../../../packages/database/src/$1",
+      "^@hockpay/infrastructure$": "<rootDir>/../../../packages/infrastructure/src",
+      "^@hockpay/infrastructure/(.*)$": "<rootDir>/../../../packages/infrastructure/src/$1"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

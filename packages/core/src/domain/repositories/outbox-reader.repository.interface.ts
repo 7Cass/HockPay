@@ -1,7 +1,7 @@
 import {
   OutboxEvent,
   OutboxEventStatus,
-} from '../entities/outbox-event.entity';
+} from "../entities/outbox-event.entity";
 
 /**
  * Segregated interface for reading outbox events.
@@ -22,6 +22,16 @@ export interface IOutboxReader {
    * @param limit - Maximum number of events to return
    */
   findPendingEvents(limit: number): Promise<OutboxEvent[]>;
+
+  /**
+   * Find events that should be enqueued or re-enqueued by the dispatcher.
+   * Includes ready PENDING events, retryable FAILED events, and DISPATCHED
+   * events whose watchdog has expired.
+   *
+   * @param limit - Maximum number of events to return
+   * @param now - Optional reference time, useful for deterministic tests
+   */
+  findDispatchableEvents(limit: number, now?: Date): Promise<OutboxEvent[]>;
 
   /**
    * Find events by aggregate type and ID.

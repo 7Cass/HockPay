@@ -2,10 +2,10 @@
  * OutboxEvent Status Enum
  */
 export enum OutboxEventStatus {
-  PENDING = 'PENDING',
-  DISPATCHED = 'DISPATCHED',
-  PROCESSED = 'PROCESSED',
-  FAILED = 'FAILED',
+  PENDING = "PENDING",
+  DISPATCHED = "DISPATCHED",
+  PROCESSED = "PROCESSED",
+  FAILED = "FAILED",
 }
 
 /**
@@ -137,7 +137,11 @@ export class OutboxEvent {
   }
 
   isReadyForRetry(): boolean {
-    return this.isPending() && (!this._nextRetryAt || this._nextRetryAt <= new Date());
+    return (
+      (this.isPending() || this.isFailed()) &&
+      this.canRetry() &&
+      (!this._nextRetryAt || this._nextRetryAt <= new Date())
+    );
   }
 
   // Business methods
@@ -145,8 +149,10 @@ export class OutboxEvent {
   /**
    * Mark the event as dispatched to the queue.
    */
-  markAsDispatched(): void {
+  markAsDispatched(nextRetryAt: Date): void {
     this._status = OutboxEventStatus.DISPATCHED;
+    this._nextRetryAt = nextRetryAt;
+    this._errorMessage = undefined;
   }
 
   /**
@@ -155,6 +161,7 @@ export class OutboxEvent {
   markAsProcessed(): void {
     this._status = OutboxEventStatus.PROCESSED;
     this._processedAt = new Date();
+    this._nextRetryAt = undefined;
     this._errorMessage = undefined;
   }
 
@@ -162,9 +169,10 @@ export class OutboxEvent {
    * Mark the event as failed.
    * Native backoff in BullMQ replaces custom domain retries.
    */
-  markAsFailed(error: string): void {
+  markAsFailed(error: string, nextRetryAt?: Date): void {
     this._retryCount++;
     this._status = OutboxEventStatus.FAILED;
+    this._nextRetryAt = nextRetryAt;
     this._errorMessage = error;
   }
 

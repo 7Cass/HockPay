@@ -3,8 +3,8 @@ import {
   OutboxEvent,
   OutboxEventProps,
   OutboxEventStatus,
-} from '@hockpay/core';
-import { PrismaClient, OutboxStatus, Prisma } from '@hockpay/database';
+} from "@hockpay/core";
+import { PrismaClient, OutboxStatus, Prisma } from "@hockpay/database";
 
 /**
  * Shared implementation of IOutboxRepository using Prisma.
@@ -13,7 +13,11 @@ import { PrismaClient, OutboxStatus, Prisma } from '@hockpay/database';
  * Each app provides its own PrismaClient instance.
  */
 export class OutboxRepository implements IOutboxRepository {
-  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) { }
+  private static readonly LEGACY_DISPATCHED_STALE_MS = 45 * 60 * 1000;
+
+  constructor(
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
+  ) {}
 
   async save(event: OutboxEvent): Promise<void> {
     await this.prisma.outboxEvent.create({
@@ -63,9 +67,49 @@ export class OutboxRepository implements IOutboxRepository {
     const events = await this.prisma.outboxEvent.findMany({
       where: {
         status: OutboxStatus.PENDING,
-        nextRetryAt: { lte: new Date() },
+        OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
+
+    return events.map((e) => this.toDomain(e));
+  }
+
+  async findDispatchableEvents(
+    limit: number,
+    now = new Date(),
+  ): Promise<OutboxEvent[]> {
+    const legacyDispatchedCutoff = new Date(
+      now.getTime() - OutboxRepository.LEGACY_DISPATCHED_STALE_MS,
+    );
+
+    const events = await this.prisma.outboxEvent.findMany({
+      where: {
+        OR: [
+          {
+            status: OutboxStatus.PENDING,
+            OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
+          },
+          {
+            status: OutboxStatus.FAILED,
+            retryCount: { lt: this.prisma.outboxEvent.fields.maxRetries },
+            OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
+          },
+          {
+            status: OutboxStatus.DISPATCHED,
+            processedAt: null,
+            nextRetryAt: { lte: now },
+          },
+          {
+            status: OutboxStatus.DISPATCHED,
+            processedAt: null,
+            nextRetryAt: null,
+            createdAt: { lte: legacyDispatchedCutoff },
+          },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
       take: limit,
     });
 
@@ -81,7 +125,7 @@ export class OutboxRepository implements IOutboxRepository {
         aggregateType,
         aggregateId,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return events.map((e) => this.toDomain(e));

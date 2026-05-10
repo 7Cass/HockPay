@@ -2,23 +2,23 @@ import {
   OutboxEvent,
   OutboxEventObject,
   OutboxEventStatus,
-} from '../../domain/entities/outbox-event.entity';
+} from "../../domain/entities/outbox-event.entity";
 import {
   WebhookConfig,
   WebhookConfigObject,
-} from '../../domain/entities/webhook-config.entity';
-import { WebhookLog } from '../../domain/entities/webhook-log.entity';
-import { IOutboxRepository } from '../../domain/repositories/outbox.repository.interface';
-import { IWebhookConfigRepository } from '../../domain/repositories/webhook-config.repository.interface';
-import { IWebhookLogRepository } from '../../domain/repositories/webhook-log.repository.interface';
-import { IWebhookSenderPort } from '../ports/webhook-sender.port';
-import { IHmacSignerPort } from '../ports/hmac-signer.port';
-import { IEncryptionPort } from '../ports/encryption.port';
+} from "../../domain/entities/webhook-config.entity";
+import { WebhookLog } from "../../domain/entities/webhook-log.entity";
+import { IOutboxRepository } from "../../domain/repositories/outbox.repository.interface";
+import { IWebhookConfigRepository } from "../../domain/repositories/webhook-config.repository.interface";
+import { IWebhookLogRepository } from "../../domain/repositories/webhook-log.repository.interface";
+import { IWebhookSenderPort } from "../ports/webhook-sender.port";
+import { IHmacSignerPort } from "../ports/hmac-signer.port";
+import { IEncryptionPort } from "../ports/encryption.port";
 import {
   buildWebhookEventPayload,
   WebhookEventPayload,
-} from '../services/webhook-payload-builder.service';
-import { PaymentObject } from '../../domain/entities/payment.entity';
+} from "../services/webhook-payload-builder.service";
+import { PaymentObject } from "../../domain/entities/payment.entity";
 
 /**
  * Input DTO for ProcessWebhookUseCase.
@@ -60,7 +60,7 @@ export class ProcessWebhookUseCase {
     private readonly webhookSender: IWebhookSenderPort,
     private readonly hmacSigner: IHmacSignerPort,
     private readonly encryption: IEncryptionPort,
-  ) { }
+  ) {}
 
   async execute(input: IProcessWebhookInput): Promise<IProcessWebhookOutput> {
     // Find event
@@ -70,9 +70,9 @@ export class ProcessWebhookUseCase {
       return {
         event: {
           id: input.eventId,
-          aggregateType: '',
-          aggregateId: '',
-          eventType: '',
+          aggregateType: "",
+          aggregateId: "",
+          eventType: "",
           payload: {},
           status: OutboxEventStatus.FAILED,
           retryCount: 0,
@@ -80,7 +80,7 @@ export class ProcessWebhookUseCase {
           createdAt: new Date(),
         },
         delivered: false,
-        error: 'Event not found',
+        error: "Event not found",
       };
     }
 
@@ -95,16 +95,18 @@ export class ProcessWebhookUseCase {
     // Get store ID from payload
     const payload = event.payload as Record<string, unknown>;
 
-    // Outbox events from payment might nest the data under 'payment' or another key depending on serialization 
+    // Outbox events from payment might nest the data under 'payment' or another key depending on serialization
     // Wait, let's just make sure we find the storeId anywhere in the payload
     let storeId = payload.storeId as string | undefined;
 
     if (!storeId && payload.payment) {
-      storeId = (payload.payment as Record<string, unknown>).storeId as string | undefined;
+      storeId = (payload.payment as Record<string, unknown>).storeId as
+        | string
+        | undefined;
     }
 
     if (!storeId) {
-      // If we genuinely cannot find a storeId in the payload, the webhook is untargetable. 
+      // If we genuinely cannot find a storeId in the payload, the webhook is untargetable.
       // We must mark it as processed to stop the dispatch infinite loop.
       event.markAsProcessed();
       await this.outboxRepository.update(event);
@@ -142,16 +144,10 @@ export class ProcessWebhookUseCase {
       }
     }
 
-    // Update event status
     if (allSucceeded) {
       event.markAsProcessed();
-    } else if (event.canRetry()) {
-      event.markAsFailed(lastError ?? 'Webhook delivery failed');
-    } else {
-      event.markAsFailed(lastError ?? 'Max retries exceeded');
+      await this.outboxRepository.update(event);
     }
-
-    await this.outboxRepository.update(event);
 
     return {
       event: event.toObject(),
@@ -191,18 +187,20 @@ export class ProcessWebhookUseCase {
     // Create log entry with envelope payload
     const log = WebhookLog.create({
       configId: config.id,
-      paymentId: (event.payload as Record<string, unknown>).id as string | undefined,
+      paymentId: (event.payload as Record<string, unknown>).id as
+        | string
+        | undefined,
       eventType: event.eventType,
       payload: webhookPayload as unknown as Record<string, unknown>,
     });
 
     // Set headers
     const headers = {
-      'Content-Type': 'application/json',
-      'X-Hockpay-Signature': signature,
-      'X-Hockpay-Timestamp': String(timestamp),
-      'X-Hockpay-Webhook-Id': webhookId,
-      'User-Agent': 'Hockpay-Webhook/1.0',
+      "Content-Type": "application/json",
+      "X-Hockpay-Signature": signature,
+      "X-Hockpay-Timestamp": String(timestamp),
+      "X-Hockpay-Webhook-Id": webhookId,
+      "User-Agent": "Hockpay-Webhook/1.0",
     };
 
     log.setRequestHeaders(headers);
@@ -224,7 +222,8 @@ export class ProcessWebhookUseCase {
         return { success: false, error: `HTTP ${response.statusCode}` };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       log.recordFailure(0, errorMessage);
       await this.webhookLogRepository.save(log);
       return { success: false, error: errorMessage };
