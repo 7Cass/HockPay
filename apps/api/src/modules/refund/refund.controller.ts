@@ -6,7 +6,6 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ConflictException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -14,12 +13,7 @@ import {
   CreateRefundUseCase,
   PaymentNotFoundError,
   InvalidRefundAmountError,
-  IRefundRepository,
-  IAccountRepository,
-  ITransactionRepository,
-  IOutboxWriter,
 } from '@hockpay/core';
-import { RefundRepository } from '@hockpay/infrastructure';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CreateRefundDto } from './dtos/create-refund.dto';

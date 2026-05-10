@@ -115,6 +115,27 @@ export class Account {
    * Withdraw from available balance.
    */
   withdraw(amount: number): void {
+    this.deductFromAvailable(amount);
+  }
+
+  /**
+   * Deduct from pending balance (for refunds before settlement).
+   */
+  deductFromPending(amount: number): void {
+    this.validateAmount(amount);
+
+    if (amount > this._pending) {
+      throw new Error('Insufficient pending balance');
+    }
+
+    this._pending -= amount;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * Deduct from available balance (for refunds after settlement and withdrawals).
+   */
+  deductFromAvailable(amount: number): void {
     this.validateAmount(amount);
 
     if (amount > this._available) {

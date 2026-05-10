@@ -1,5 +1,6 @@
 export * from "./repositories/outbox.repository";
 export * from "./repositories/payment.repository";
+export * from "./repositories/customer.repository";
 export * from "./repositories/account.repository";
 export * from "./repositories/transaction.repository";
 export * from "./repositories/idempotency-key.repository";

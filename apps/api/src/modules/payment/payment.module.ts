@@ -92,19 +92,13 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: CreatePaymentUseCase,
       useFactory: (
-        paymentRepo: IPaymentRepository,
-        customerRepo: CustomerRepository,
-        storeRepo: StoreRepository,
-        outboxRepo: IOutboxRepository,
+        unitOfWork: IUnitOfWork,
         pixGenerator: PixQrCodeGeneratorService,
         expirationQueue: ExpirationQueue,
         feePolicy: FeePolicy,
       ) => {
         return new CreatePaymentUseCase(
-          paymentRepo,
-          customerRepo,
-          storeRepo,
-          outboxRepo,
+          unitOfWork,
           pixGenerator,
           expirationQueue,
           feePolicy,
@@ -112,10 +106,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
         );
       },
       inject: [
-        'IPaymentRepository',
-        CustomerRepository,
-        StoreRepository,
-        'IOutboxRepository',
+        'IUnitOfWork',
         PixQrCodeGeneratorService,
         ExpirationQueue,
         FeePolicy,
@@ -124,10 +115,10 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: GetPaymentUseCase,
-      useFactory: (repo: IPaymentRepository) => {
-        return new GetPaymentUseCase(repo);
+      useFactory: (unitOfWork: IUnitOfWork) => {
+        return new GetPaymentUseCase(unitOfWork);
       },
-      inject: ['IPaymentRepository'],
+      inject: ['IUnitOfWork'],
     },
 
     {

@@ -7,6 +7,8 @@ import { BankAccountRepository } from "./bank-account.repository";
 import { OutboxRepository } from "./outbox.repository";
 import { ReceiptRepository } from "./receipt.repository";
 import { StoreRepository } from "./store.repository";
+import { RefundRepository } from "./refund.repository";
+import { CustomerRepository } from "./customer.repository";
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -25,12 +27,14 @@ export class UnitOfWork implements IUnitOfWork {
       async (tx) => {
         const repos: ITransactedRepositories = {
           paymentRepository: new PaymentRepository(tx),
+          refundRepository: new RefundRepository(tx),
           accountRepository: new AccountRepository(tx),
           transactionRepository: new TransactionRepository(tx),
           bankAccountRepository: new BankAccountRepository(tx),
           outboxWriter: new OutboxRepository(tx),
           receiptRepository: new ReceiptRepository(tx),
           storeRepository: new StoreRepository(tx),
+          customerRepository: new CustomerRepository(tx),
         };
 
         return work(repos);

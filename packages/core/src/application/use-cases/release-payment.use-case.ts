@@ -76,12 +76,27 @@ export class ReleasePaymentUseCase {
         throw new AccountNotFoundError(payment.storeId);
       }
 
+      const processedRefunds = (
+        await repos.refundRepository.findByPaymentId(payment.id)
+      ).filter((refund) => refund.isProcessed());
+      const refundedAmount = processedRefunds.reduce(
+        (total, refund) => total + refund.amount,
+        0,
+      );
+      const refundedFee = processedRefunds.reduce(
+        (total, refund) => total + refund.feeRefunded,
+        0,
+      );
+      const releaseAmount = payment.amount - refundedAmount;
+      const releaseFee = payment.fee - refundedFee;
+      const releaseNetAmount = releaseAmount - releaseFee;
+
       // Release the payment
       payment.release();
       await repos.paymentRepository.update(payment);
 
       // Move funds from pending to available
-      account.releaseFromPending(payment.netAmount);
+      account.releaseFromPending(releaseNetAmount);
       await repos.accountRepository.update(account);
 
       // Create transaction record
@@ -89,9 +104,9 @@ export class ReleasePaymentUseCase {
       const transaction = Transaction.create({
         accountId: account.id,
         type: TransactionType.PAYMENT_RELEASED,
-        amount: payment.amount,
-        fee: payment.fee,
-        netAmount: payment.netAmount,
+        amount: releaseAmount,
+        fee: releaseFee,
+        netAmount: releaseNetAmount,
         balanceAfter,
         referenceType: 'Payment',
         referenceId: payment.id,

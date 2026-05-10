@@ -2,18 +2,10 @@ import { Module } from '@nestjs/common';
 import { RefundController } from './refund.controller';
 import {
   CreateRefundUseCase,
-  IRefundRepository,
-  IPaymentRepository,
-  IAccountRepository,
-  ITransactionRepository,
-  IOutboxWriter,
+  IUnitOfWork,
 } from '@hockpay/core';
 import {
-  RefundRepository,
-  PaymentRepository,
-  AccountRepository,
-  TransactionRepository,
-  OutboxRepository,
+  UnitOfWork,
 } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
@@ -29,55 +21,17 @@ import { JwtService } from 'src/infra/services/jwt.service';
     JwtService,
     CombinedAuthGuard,
     {
-      provide: 'IRefundRepository',
-      useFactory: (prisma: PrismaService) => new RefundRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IPaymentRepository',
-      useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IAccountRepository',
-      useFactory: (prisma: PrismaService) => new AccountRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'ITransactionRepository',
-      useFactory: (prisma: PrismaService) => new TransactionRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IOutboxWriter',
-      useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
     {
       provide: CreateRefundUseCase,
-      useFactory: (
-        refundRepo: IRefundRepository,
-        paymentRepo: IPaymentRepository,
-        accountRepo: IAccountRepository,
-        transactionRepo: ITransactionRepository,
-        outboxWriter: IOutboxWriter,
-      ) =>
-        new CreateRefundUseCase(
-          refundRepo,
-          paymentRepo,
-          accountRepo,
-          transactionRepo,
-          outboxWriter,
-        ),
-      inject: [
-        'IRefundRepository',
-        'IPaymentRepository',
-        'IAccountRepository',
-        'ITransactionRepository',
-        'IOutboxWriter',
-      ],
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new CreateRefundUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
   ],
-  exports: [CreateRefundUseCase, 'IRefundRepository'],
+  exports: [CreateRefundUseCase],
 })
 export class RefundModule {}

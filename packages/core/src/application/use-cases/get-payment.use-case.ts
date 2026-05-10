@@ -1,5 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 
 /**
@@ -27,26 +28,36 @@ export interface IGetPaymentOutput {
  * - If payment is PENDING and has expired, it will be expired (lazy check)
  */
 export class GetPaymentUseCase {
-  constructor(private readonly paymentRepository: IPaymentRepository) {}
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
 
   async execute(input: IGetPaymentInput): Promise<IGetPaymentOutput> {
-    const payment = await this.paymentRepository.findByIdAndStoreId(
-      input.paymentId,
-      input.storeId,
-    );
+    return this.unitOfWork.execute(async (repos) => {
+      const payment = await repos.paymentRepository.findByIdAndStoreId(
+        input.paymentId,
+        input.storeId,
+      );
 
-    if (!payment) {
-      throw new PaymentNotFoundError(input.paymentId);
-    }
+      if (!payment) {
+        throw new PaymentNotFoundError(input.paymentId);
+      }
 
-    // Lazy expiration check: if pending and expired, expire it
-    if (payment.isPending() && payment.hasExpired()) {
-      payment.expire();
-      await this.paymentRepository.update(payment);
-    }
+      // Lazy expiration check: if pending and expired, expire it
+      if (payment.isPending() && payment.hasExpired()) {
+        payment.expire();
+        await repos.paymentRepository.update(payment);
 
-    return {
-      payment: payment.toObject(),
-    };
+        const outboxEvent = OutboxEvent.create({
+          aggregateType: 'Payment',
+          aggregateId: payment.id,
+          eventType: 'payment.expired',
+          payload: payment.toObject() as unknown as Record<string, unknown>,
+        });
+        await repos.outboxWriter.save(outboxEvent);
+      }
+
+      return {
+        payment: payment.toObject(),
+      };
+    });
   }
 }

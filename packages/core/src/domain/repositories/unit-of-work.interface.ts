@@ -5,18 +5,22 @@ import { IOutboxWriter } from "./outbox-writer.repository.interface";
 import { IBankAccountRepository } from "./bank-account.repository.interface";
 import { IReceiptRepository } from "./receipt.repository.interface";
 import { IStoreRepository } from "./store.repository.interface";
+import { IRefundRepository } from "./refund.repository.interface";
+import { ICustomerRepository } from "./customer.repository.interface";
 
 /**
  * Interface containing transacted repositories.
  */
 export interface ITransactedRepositories {
   paymentRepository: IPaymentRepository;
+  refundRepository: IRefundRepository;
   accountRepository: IAccountRepository;
   transactionRepository: ITransactionRepository;
   bankAccountRepository: IBankAccountRepository;
   outboxWriter: IOutboxWriter;
   receiptRepository: IReceiptRepository;
   storeRepository: IStoreRepository;
+  customerRepository: ICustomerRepository;
 }
 
 /**

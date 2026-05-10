@@ -58,6 +58,7 @@ describe('ConfirmPaymentUseCase', () => {
           storeRepository: {
             findById: vi.fn().mockResolvedValue(store),
           },
+          customerRepository: {},
         }),
     };
 
@@ -124,6 +125,7 @@ describe('ConfirmPaymentUseCase', () => {
           storeRepository: {
             findById: vi.fn().mockResolvedValue(store),
           },
+          customerRepository: {},
         }),
     };
 

@@ -227,6 +227,12 @@ export class PaymentRepository implements IPaymentRepository {
       payerEmail: (prismaPayment as any).payerEmail ?? undefined,
       status: prismaPayment.status as PaymentStatus,
       environment: (prismaPayment as any).environment as Environment,
+      paymentMethod: (prismaPayment as any).paymentMethod,
+      paymentDetails:
+        ((prismaPayment as any).paymentDetails as Record<string, unknown>) ??
+        undefined,
+      acquirerId: (prismaPayment as any).acquirerId ?? undefined,
+      totalRefunded: (prismaPayment as any).totalRefunded ?? 0,
       pixQrCode: prismaPayment.pixQrCode ?? undefined,
       pixCopyPaste: prismaPayment.pixCopyPaste ?? undefined,
       pixTxId: prismaPayment.pixTxId ?? undefined,
