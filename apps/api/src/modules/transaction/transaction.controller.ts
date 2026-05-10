@@ -20,7 +20,7 @@ export class TransactionController {
     constructor(private readonly listTransactionsUseCase: ListTransactionsUseCase) { }
 
     /**
-     * GET /v1/transactions
+     * GET /api/v1/transactions
      * 
      * Retrieves a paginated list of transactions for the current store.
      * Can be filtered by date range and transaction type.

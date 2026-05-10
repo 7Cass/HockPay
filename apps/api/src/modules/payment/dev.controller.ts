@@ -48,7 +48,7 @@ export class DevController {
   ) { }
 
   /**
-   * POST /v1/dev/simulate/:id/confirm
+   * POST /api/v1/dev/simulate/:id/confirm
    *
    * Simulates a payment confirmation (as if customer paid the Pix).
    */
@@ -81,7 +81,7 @@ export class DevController {
   }
 
   /**
-   * POST /v1/dev/simulate/:id/expire
+   * POST /api/v1/dev/simulate/:id/expire
    *
    * Simulates a payment expiration.
    */
@@ -107,7 +107,7 @@ export class DevController {
   }
 
   /**
-   * POST /v1/dev/simulate/:id/fail
+   * POST /api/v1/dev/simulate/:id/fail
    *
    * Simulates a payment failure.
    * Optional reason query parameter: ?reason=insufficient_funds

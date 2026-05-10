@@ -69,7 +69,7 @@ export class WebhookController {
   ) {}
 
   /**
-   * POST /v1/webhooks
+   * POST /api/v1/webhooks
    *
    * Creates a new webhook config.
    * Returns the plain secret only once!
@@ -117,7 +117,7 @@ export class WebhookController {
   }
 
   /**
-   * GET /v1/webhooks
+   * GET /api/v1/webhooks
    *
    * Lists all webhook configs for the store.
    */
@@ -140,7 +140,7 @@ export class WebhookController {
   }
 
   /**
-   * GET /v1/webhooks/:id
+   * GET /api/v1/webhooks/:id
    *
    * Gets a webhook config by ID.
    */
@@ -179,7 +179,7 @@ export class WebhookController {
   }
 
   /**
-   * PATCH /v1/webhooks/:id
+   * PATCH /api/v1/webhooks/:id
    *
    * Updates a webhook config.
    */
@@ -230,7 +230,7 @@ export class WebhookController {
   }
 
   /**
-   * DELETE /v1/webhooks/:id
+   * DELETE /api/v1/webhooks/:id
    *
    * Deletes a webhook config.
    */
@@ -265,7 +265,7 @@ export class WebhookController {
   }
 
   /**
-   * POST /v1/webhooks/:id/test
+   * POST /api/v1/webhooks/:id/test
    *
    * Sends a test webhook to the configured URL.
    */
@@ -308,7 +308,7 @@ export class WebhookController {
   }
 
   /**
-   * GET /v1/webhooks/:id/logs
+   * GET /api/v1/webhooks/:id/logs
    *
    * Lists delivery logs for a webhook config.
    */
@@ -354,7 +354,7 @@ export class WebhookController {
   }
 
   /**
-   * POST /v1/webhooks/:id/logs/:logId/retry
+   * POST /api/v1/webhooks/:id/logs/:logId/retry
    *
    * Retries a failed webhook delivery.
    */

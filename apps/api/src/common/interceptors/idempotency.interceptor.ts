@@ -77,7 +77,6 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (!idempotencyKey) {
       // If required=true, reject request without idempotency key
       if (options.required === true) {
-        console.log('teste');
         return throwError(
           () =>
             new BadRequestException({

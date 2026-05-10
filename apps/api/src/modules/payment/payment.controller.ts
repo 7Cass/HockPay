@@ -61,7 +61,7 @@ export class PaymentController {
   ) { }
 
   /**
-   * POST /v1/payments
+   * POST /api/v1/payments
    *
    * Creates a new payment with customer on-the-fly creation.
    * Supports idempotency via Idempotency-Key header.
@@ -135,7 +135,7 @@ export class PaymentController {
   }
 
   /**
-   * GET /v1/payments/:id
+   * GET /api/v1/payments/:id
    *
    * Gets a payment by ID with lazy expiration check.
    */
@@ -175,7 +175,7 @@ export class PaymentController {
   }
 
   /**
-   * GET /v1/payments
+   * GET /api/v1/payments
    *
    * Lists payments with pagination and filters.
    */
@@ -207,7 +207,7 @@ export class PaymentController {
   }
 
   /**
-   * POST /v1/payments/:id/simulate/:action
+   * POST /api/v1/payments/:id/simulate/:action
    * 
    * Simulates a payment action for TEST environment payments.
    * Publicly accessible for the checkout dev UI.

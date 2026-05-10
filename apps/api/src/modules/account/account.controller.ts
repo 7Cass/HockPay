@@ -21,7 +21,7 @@ export class AccountController {
     constructor(private readonly getAccountUseCase: GetAccountUseCase) { }
 
     /**
-     * GET /v1/accounts/me
+     * GET /api/v1/accounts/me
      *
      * Gets the account balance for the currently authenticated store.
      * Returns balances in raw cents.

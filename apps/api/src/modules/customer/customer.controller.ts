@@ -62,7 +62,7 @@ export class CustomerController {
   ) {}
 
   /**
-   * POST /v1/customers
+   * POST /api/v1/customers
    *
    * Creates a new customer or updates an existing one (if update_existing=true).
    */
@@ -127,7 +127,7 @@ export class CustomerController {
   }
 
   /**
-   * GET /v1/customers
+   * GET /api/v1/customers
    *
    * Lists customers with pagination.
    */
@@ -154,7 +154,7 @@ export class CustomerController {
   }
 
   /**
-   * GET /v1/customers/:externalId
+   * GET /api/v1/customers/:externalId
    *
    * Gets a customer by externalId.
    */
@@ -193,7 +193,7 @@ export class CustomerController {
   }
 
   /**
-   * PATCH /v1/customers/:externalId
+   * PATCH /api/v1/customers/:externalId
    *
    * Updates a customer by externalId.
    */
