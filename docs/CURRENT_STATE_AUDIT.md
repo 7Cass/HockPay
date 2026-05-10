@@ -25,7 +25,17 @@ Resumo curto e auditado do estado atual do repositório.
 - PostgreSQL local via Docker Compose
 - Redis local via Docker Compose
 - BullMQ sobre Redis
+- API base atual: `/api/v1`
+- Store/account: toda store deve ter uma account; a migration `20260510000100_backfill_store_accounts` corrige stores antigas sem account
+- Checkout local: default de `NEXT_PUBLIC_API_URL` aponta para `http://localhost:3000/api/v1`
+- Study case P0 atual: `apps/demo-mediakit`, com checkout hospedado e webhook assinado
 - Sem LocalStack/SQS configurado
+
+## Known Non-P0
+
+- Products e PaymentItems existem no schema, mas nao fazem parte do fluxo P0 validado.
+- Withdrawals existem no modelo, mas ficam fora desta etapa.
+- Marketplace, split de pagamento e multi-seller ficam fora desta etapa.
 
 ## Divergências importantes
 

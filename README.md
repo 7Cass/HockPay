@@ -68,6 +68,10 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - Banco: PostgreSQL 15 via Docker Compose
 - Cache/fila: Redis 7 via Docker Compose
 - Filas assíncronas: BullMQ sobre Redis
+- Fluxo completo local: PostgreSQL + Redis + API + worker são obrigatórios
+- Invariante P0: toda `store` deve ter exatamente uma `account`; a migration atual faz backfill de stores antigas sem account
+- Checkout hospedado: o default local usa `http://localhost:3000/api/v1`
+- Study case atual validado: `apps/demo-mediakit`
 - Não existe LocalStack nem SQS configurado no estado atual
 
 ## Scripts de Workspace Disponíveis
@@ -89,6 +93,7 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - [TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md): visão arquitetural dual-state, separando implementação atual e arquitetura alvo
 - [DATA_MODELING.md](./DATA_MODELING.md): modelo de dados atual, cobertura runtime e modelo alvo
 - [docs/CURRENT_STATE_AUDIT.md](./docs/CURRENT_STATE_AUDIT.md): resumo auditado do estado atual do repositório
+- [docs/P0_RUNBOOK.md](./docs/P0_RUNBOOK.md): operação reproduzível do fluxo P0 local
 - [docs/TECH_SPEC.md](./docs/TECH_SPEC.md): especificação alvo, com status atual de implementação
 - [docs/BUSINESS_PRD.md](./docs/BUSINESS_PRD.md): visão de produto e cobertura atual do MVP
 - [CLAUDE.md](./CLAUDE.md): instruções locais de desenvolvimento para agentes

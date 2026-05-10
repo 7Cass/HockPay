@@ -66,4 +66,4 @@ pnpm --filter @hockpay/demo-mediakit dev
 
 - O storage da demo é in-memory.
 - O checkout Hockpay coleta os dados mínimos do pagador no fluxo hospedado.
-- O endpoint de webhook no exemplo precisa usar o path versionado atual da API do Hockpay.
+- A API base do Hockpay usada pela demo deve apontar para `http://localhost:3000`; as chamadas internas usam `/api/v1`.
