@@ -4,6 +4,7 @@ import { IPaymentRepository } from '../../domain/repositories/payment.repository
 import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
+import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 
 /**
  * Input DTO for FailPaymentUseCase.
@@ -19,6 +20,7 @@ export interface IFailPaymentInput {
  */
 export interface IFailPaymentOutput {
   payment: PaymentObject;
+  alreadyFailed?: boolean;
 }
 
 /**
@@ -50,6 +52,15 @@ export class FailPaymentUseCase {
       throw new PaymentNotFoundError(input.paymentId);
     }
 
+    if (payment.status === PaymentStatus.FAILED) {
+      await this.expirationQueue.cancelExpiration(payment.id);
+
+      return {
+        payment: payment.toObject(),
+        alreadyFailed: true,
+      };
+    }
+
     // Attempt to fail - will throw InvalidPaymentStatusError if not PENDING
     const reason = input.reason ?? 'Payment failed';
     payment.fail(reason);
@@ -62,6 +73,7 @@ export class FailPaymentUseCase {
       aggregateType: 'Payment',
       aggregateId: payment.id,
       eventType: 'payment.failed',
+      storeId: payment.storeId,
       payload: payment.toObject() as unknown as Record<string, unknown>,
     });
     await this.outboxWriter.save(outboxEvent);

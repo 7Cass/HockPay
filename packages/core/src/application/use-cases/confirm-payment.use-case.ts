@@ -147,6 +147,7 @@ export class ConfirmPaymentUseCase {
         aggregateType: "Payment",
         aggregateId: payment.id,
         eventType: "payment.confirmed",
+        storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);

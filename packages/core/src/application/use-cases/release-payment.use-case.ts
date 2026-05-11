@@ -52,16 +52,18 @@ export class ReleasePaymentUseCase {
         throw new PaymentNotFoundError(input.paymentId);
       }
 
-      // Check if already released (idempotent)
-      if (payment.isTerminal() && payment.status !== 'CONFIRMED') {
-        if (payment.releasedAt) {
-          const account = await repos.accountRepository.findByStoreId(payment.storeId);
-          return {
-            payment: payment.toObject(),
-            account: account?.toObject() as AccountObject,
-            alreadyReleased: true,
-          };
+      if (payment.isReleased()) {
+        const account = await repos.accountRepository.findByStoreId(payment.storeId);
+
+        if (!account) {
+          throw new AccountNotFoundError(payment.storeId);
         }
+
+        return {
+          payment: payment.toObject(),
+          account: account.toObject(),
+          alreadyReleased: true,
+        };
       }
 
       // Validate payment is confirmed
@@ -119,6 +121,7 @@ export class ReleasePaymentUseCase {
         aggregateType: 'Payment',
         aggregateId: payment.id,
         eventType: 'payment.released',
+        storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);

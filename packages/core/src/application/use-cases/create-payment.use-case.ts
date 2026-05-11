@@ -280,6 +280,7 @@ export class CreatePaymentUseCase {
           aggregateType: "Payment",
           aggregateId: payment.id,
           eventType: "payment.created",
+          storeId: payment.storeId,
           payload: payment.toObject() as unknown as Record<string, unknown>,
         });
         await outboxWriter.save(outboxEvent);

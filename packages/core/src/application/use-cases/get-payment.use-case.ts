@@ -50,6 +50,7 @@ export class GetPaymentUseCase {
           aggregateType: 'Payment',
           aggregateId: payment.id,
           eventType: 'payment.expired',
+          storeId: payment.storeId,
           payload: payment.toObject() as unknown as Record<string, unknown>,
         });
         await repos.outboxWriter.save(outboxEvent);

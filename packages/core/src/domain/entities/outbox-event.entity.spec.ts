@@ -51,4 +51,22 @@ describe("OutboxEvent", () => {
     expect(event.nextRetryAt).toBeUndefined();
     expect(event.errorMessage).toBeUndefined();
   });
+
+  it("adds an explicit top-level storeId to the payload when provided", () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Payment",
+      aggregateId: "payment-1",
+      eventType: "payment.created",
+      storeId: "store-1",
+      payload: {
+        id: "payment-1",
+        storeId: "stale-store",
+      },
+    });
+
+    expect(event.payload).toMatchObject({
+      id: "payment-1",
+      storeId: "store-1",
+    });
+  });
 });

@@ -92,22 +92,11 @@ export class ProcessWebhookUseCase {
       };
     }
 
-    // Get store ID from payload
     const payload = event.payload as Record<string, unknown>;
-
-    // Outbox events from payment might nest the data under 'payment' or another key depending on serialization
-    // Wait, let's just make sure we find the storeId anywhere in the payload
-    let storeId = payload.storeId as string | undefined;
-
-    if (!storeId && payload.payment) {
-      storeId = (payload.payment as Record<string, unknown>).storeId as
-        | string
-        | undefined;
-    }
+    const storeId =
+      typeof payload.storeId === "string" ? payload.storeId : undefined;
 
     if (!storeId) {
-      // If we genuinely cannot find a storeId in the payload, the webhook is untargetable.
-      // We must mark it as processed to stop the dispatch infinite loop.
       event.markAsProcessed();
       await this.outboxRepository.update(event);
       return {
@@ -131,18 +120,13 @@ export class ProcessWebhookUseCase {
       };
     }
 
-    // Send webhooks
-    let allSucceeded = true;
-    let lastError: string | undefined;
-
-    for (const config of configs) {
-      const result = await this.sendWebhook(event, config);
-
-      if (!result.success) {
-        allSucceeded = false;
-        lastError = result.error;
-      }
-    }
+    const results = await Promise.all(
+      configs.map((config) => this.sendWebhookSafely(event, config)),
+    );
+    const allSucceeded = results.every((result) => result.success);
+    const lastError = [...results]
+      .reverse()
+      .find((result) => !result.success)?.error;
 
     if (allSucceeded) {
       event.markAsProcessed();
@@ -159,6 +143,20 @@ export class ProcessWebhookUseCase {
   /**
    * Send webhook to a single config.
    */
+  private async sendWebhookSafely(
+    event: OutboxEvent,
+    config: WebhookConfig,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await this.sendWebhook(event, config);
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
   private async sendWebhook(
     event: OutboxEvent,
     config: WebhookConfig,

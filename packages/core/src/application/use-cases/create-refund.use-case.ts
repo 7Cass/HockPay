@@ -101,6 +101,7 @@ export class CreateRefundUseCase {
         aggregateType: "Payment",
         aggregateId: payment.id,
         eventType: "payment.refunded",
+        storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);

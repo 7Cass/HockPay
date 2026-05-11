@@ -47,12 +47,16 @@ export class OutboxEvent {
    * Factory method to create a new OutboxEvent.
    */
   static create(props: CreateOutboxEventProps): OutboxEvent {
+    const payload = props.storeId
+      ? { ...props.payload, storeId: props.storeId }
+      : props.payload;
+
     return new OutboxEvent({
       id: crypto.randomUUID(),
       aggregateType: props.aggregateType,
       aggregateId: props.aggregateId,
       eventType: props.eventType,
-      payload: props.payload,
+      payload,
       status: OutboxEventStatus.PENDING,
       retryCount: 0,
       maxRetries: props.maxRetries ?? 5,
@@ -204,6 +208,7 @@ export interface CreateOutboxEventProps {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  storeId?: string;
   payload: Record<string, unknown>;
   maxRetries?: number;
 }

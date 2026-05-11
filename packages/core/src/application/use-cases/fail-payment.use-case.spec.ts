@@ -87,6 +87,26 @@ describe('FailPaymentUseCase', () => {
     expect(expirationQueue.cancelExpiration).toHaveBeenCalledWith(payment.id);
   });
 
+  it('returns an already failed payment without duplicating persistence or outbox', async () => {
+    const payment = makePayment();
+    payment.fail('Payment declined');
+    const { useCase, paymentRepository, outboxWriter, expirationQueue } =
+      makeUseCase(payment);
+
+    const result = await useCase.execute({
+      storeId: 'store-1',
+      paymentId: payment.id,
+      reason: 'Retry failure',
+    });
+
+    expect(result.alreadyFailed).toBe(true);
+    expect(result.payment.status).toBe(PaymentStatus.FAILED);
+    expect(result.payment.failedReason).toBe('Payment declined');
+    expect(paymentRepository.update).not.toHaveBeenCalled();
+    expect(outboxWriter.save).not.toHaveBeenCalled();
+    expect(expirationQueue.cancelExpiration).toHaveBeenCalledWith(payment.id);
+  });
+
   it('keeps domain error for invalid status and does not create outbox or cancel expiration', async () => {
     const payment = makePayment();
     payment.confirm();

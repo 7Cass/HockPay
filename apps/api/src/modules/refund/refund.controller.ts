@@ -16,6 +16,7 @@ import {
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { CreateRefundDto } from './dtos/create-refund.dto';
 import {
   CreateRefundResponseDto,
@@ -29,6 +30,7 @@ export class RefundController {
   constructor(private readonly createRefundUseCase: CreateRefundUseCase) {}
 
   @Post()
+  @Idempotent({ required: true })
   @HttpCode(HttpStatus.CREATED)
   async createRefund(
     @Body() dto: CreateRefundDto,

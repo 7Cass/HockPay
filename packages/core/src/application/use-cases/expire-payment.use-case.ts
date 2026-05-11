@@ -66,6 +66,7 @@ export class ExpirePaymentUseCase {
         aggregateType: 'Payment',
         aggregateId: payment.id,
         eventType: 'payment.expired',
+        storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });
       await this.outboxWriter.save(outboxEvent);
