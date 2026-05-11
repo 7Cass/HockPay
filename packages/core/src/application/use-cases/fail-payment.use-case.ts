@@ -3,6 +3,7 @@ import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 
 /**
  * Input DTO for FailPaymentUseCase.
@@ -36,6 +37,7 @@ export class FailPaymentUseCase {
   constructor(
     private readonly paymentRepository: IPaymentRepository,
     private readonly outboxWriter: IOutboxWriter,
+    private readonly expirationQueue: IExpirationQueuePort,
   ) {}
 
   async execute(input: IFailPaymentInput): Promise<IFailPaymentOutput> {
@@ -63,6 +65,8 @@ export class FailPaymentUseCase {
       payload: payment.toObject() as unknown as Record<string, unknown>,
     });
     await this.outboxWriter.save(outboxEvent);
+
+    await this.expirationQueue.cancelExpiration(payment.id);
 
     return {
       payment: payment.toObject(),

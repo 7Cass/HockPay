@@ -39,6 +39,7 @@ import {
   ListPaymentsQueryDto,
   ListPaymentsResponseDto,
 } from './dtos/list-payments.dto';
+import { SimulatePaymentDto } from './dtos/simulate-payment.dto';
 
 /**
  * Controller for Payment endpoints.
@@ -218,10 +219,12 @@ export class PaymentController {
   async simulatePayment(
     @Param('id') id: string,
     @Param('action') action: 'confirm' | 'expire' | 'fail',
+    @Body() dto: SimulatePaymentDto,
   ) {
     try {
       const result = await this.simulatePaymentUseCase.execute({
         paymentId: id,
+        checkoutToken: dto.checkoutToken,
         action,
       });
 

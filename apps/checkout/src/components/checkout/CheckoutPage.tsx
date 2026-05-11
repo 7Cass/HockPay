@@ -226,7 +226,7 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
               <CopyPasteButton pixCopyPaste={payment.pixCopyPaste} />
             </div>
 
-            <DevSimulateButton paymentId={payment.id} onSimulated={(action, updatedPayment) => {
+            <DevSimulateButton paymentId={payment.id} checkoutToken={token} onSimulated={(action, updatedPayment) => {
               if (updatedPayment) {
                 handleSessionChange({ ...session, payment: updatedPayment });
               } else {

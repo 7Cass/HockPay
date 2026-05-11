@@ -13,10 +13,11 @@ import {
   FeePolicy,
   IPaymentRepository,
   IOutboxRepository,
-  ITokenGeneratorPort,
   IUnitOfWork,
+  ICheckoutSessionRepository,
 } from '@hockpay/core';
 import {
+  CheckoutSessionRepository,
   PaymentRepository,
   OutboxRepository,
   UnitOfWork,
@@ -75,6 +76,12 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: 'IUnitOfWork',
       useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'ICheckoutSessionRepository',
+      useFactory: (prisma: PrismaService) =>
+        new CheckoutSessionRepository(prisma),
       inject: [PrismaService],
     },
 
@@ -154,22 +161,28 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: FailPaymentUseCase,
-      useFactory: (repo: IPaymentRepository, outboxRepo: IOutboxRepository) => {
-        return new FailPaymentUseCase(repo, outboxRepo);
+      useFactory: (
+        repo: IPaymentRepository,
+        outboxRepo: IOutboxRepository,
+        queue: ExpirationQueue,
+      ) => {
+        return new FailPaymentUseCase(repo, outboxRepo, queue);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository'],
+      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue],
     },
 
     {
       provide: SimulateCheckoutPaymentUseCase,
       useFactory: (
         paymentRepo: IPaymentRepository,
+        checkoutSessionRepo: ICheckoutSessionRepository,
         confirmUseCase: ConfirmPaymentUseCase,
         expireUseCase: ExpirePaymentUseCase,
         failUseCase: FailPaymentUseCase,
       ) => {
         return new SimulateCheckoutPaymentUseCase(
           paymentRepo,
+          checkoutSessionRepo,
           confirmUseCase,
           expireUseCase,
           failUseCase,
@@ -177,6 +190,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
       },
       inject: [
         'IPaymentRepository',
+        'ICheckoutSessionRepository',
         ConfirmPaymentUseCase,
         ExpirePaymentUseCase,
         FailPaymentUseCase,
@@ -192,6 +206,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
     FailPaymentUseCase,
     SimulateCheckoutPaymentUseCase,
     'IPaymentRepository',
+    'ICheckoutSessionRepository',
   ],
 })
 export class PaymentModule {}

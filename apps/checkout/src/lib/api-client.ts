@@ -52,11 +52,16 @@ export async function fulfillCheckoutSession(
 
 export async function simulatePayment(
   paymentId: string,
+  checkoutToken: string,
   action: 'confirm' | 'expire' | 'fail'
 ): Promise<{ success: boolean; payment?: CheckoutPayment; error?: string }> {
   try {
     const response = await fetch(`${env.apiUrl}/payments/${paymentId}/simulate/${action}`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ checkoutToken }),
     });
 
     if (!response.ok) {

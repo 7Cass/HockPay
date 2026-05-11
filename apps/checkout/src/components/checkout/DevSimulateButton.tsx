@@ -9,10 +9,11 @@ import type { CheckoutPayment } from '@/types/checkout';
 
 interface DevSimulateButtonProps {
   paymentId: string;
+  checkoutToken: string;
   onSimulated: (action: 'confirm' | 'expire' | 'fail', payment?: CheckoutPayment) => void;
 }
 
-export function DevSimulateButton({ paymentId, onSimulated }: DevSimulateButtonProps) {
+export function DevSimulateButton({ paymentId, checkoutToken, onSimulated }: DevSimulateButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
 
   if (!env.devMode) {
@@ -22,7 +23,7 @@ export function DevSimulateButton({ paymentId, onSimulated }: DevSimulateButtonP
   const handleSimulate = async (action: 'confirm' | 'expire' | 'fail') => {
     setLoading(action);
     try {
-      const result = await simulatePayment(paymentId, action);
+      const result = await simulatePayment(paymentId, checkoutToken, action);
       if (result.success) {
         onSimulated(action, result.payment);
       } else {

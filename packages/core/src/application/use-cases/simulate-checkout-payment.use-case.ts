@@ -1,6 +1,7 @@
 import { PaymentObject } from "../../domain/entities/payment.entity";
 import { Environment } from "../../domain/value-objects/environment.vo";
 import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
+import { ICheckoutSessionRepository } from "../../domain/repositories/checkout-session.repository.interface";
 import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.error";
 import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
@@ -17,6 +18,7 @@ export type SimulateAction = "confirm" | "expire" | "fail";
  */
 export interface ISimulateCheckoutInput {
   paymentId: string;
+  checkoutToken: string;
   action: SimulateAction;
 }
 
@@ -45,6 +47,7 @@ export interface ISimulateCheckoutOutput {
 export class SimulateCheckoutPaymentUseCase {
   constructor(
     private readonly paymentRepository: IPaymentRepository,
+    private readonly checkoutSessionRepository: ICheckoutSessionRepository,
     private readonly confirmPaymentUseCase: ConfirmPaymentUseCase,
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
     private readonly failPaymentUseCase: FailPaymentUseCase,
@@ -53,10 +56,22 @@ export class SimulateCheckoutPaymentUseCase {
   async execute(
     input: ISimulateCheckoutInput,
   ): Promise<ISimulateCheckoutOutput> {
+    const session = await this.checkoutSessionRepository.findByToken(
+      input.checkoutToken,
+    );
+
+    if (!session?.paymentId || session.paymentId !== input.paymentId) {
+      throw new PaymentNotFoundError(input.paymentId);
+    }
+
     // Find payment to validate environment before delegating
     const payment = await this.paymentRepository.findById(input.paymentId);
 
     if (!payment) {
+      throw new PaymentNotFoundError(input.paymentId);
+    }
+
+    if (payment.storeId !== session.storeId) {
       throw new PaymentNotFoundError(input.paymentId);
     }
 
