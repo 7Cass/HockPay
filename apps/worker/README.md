@@ -27,8 +27,7 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 |-----|-------------------|--------|
 | `OutboxDispatcherJob` | a cada 10 segundos | lê `OutboxEvent` pendente e empilha no BullMQ |
 | `PaymentExpirationJob` | a cada 1 minuto | expira pagamentos pendentes vencidos |
-| `PaymentReleaseJob` | diariamente à meia-noite | libera pagamentos confirmados conforme `settlementDays` |
-| `SettlementJob` | diariamente à meia-noite | processamento semelhante de release/settlement |
+| `SettlementJob` | diariamente à meia-noite | libera pagamentos confirmados conforme `settlementDays` |
 | `CleanupLogsJob` | diariamente às 03:00 | remove logs antigos e eventos processados |
 | `CleanupIdempotencyKeysJob` | diariamente às 04:00 | remove chaves expiradas |
 | `AntiFraudJob` | a cada 1 hora | varredura simulada de anomalias |

@@ -6,7 +6,6 @@ import { CleanupLogsJob } from '../../jobs/cleanup-logs.job';
 import { AntiFraudJob } from '../../jobs/anti-fraud.job';
 import { OutboxDispatcherJob } from '../../jobs/outbox-dispatcher.job';
 import { PaymentExpirationJob } from '../../jobs/payment-expiration.job';
-import { PaymentReleaseJob } from '../../jobs/payment-release.job';
 import { CleanupIdempotencyKeysJob } from '../../jobs/cleanup-idempotency-keys.job';
 
 /**
@@ -22,7 +21,6 @@ import { CleanupIdempotencyKeysJob } from '../../jobs/cleanup-idempotency-keys.j
     AntiFraudJob,
     OutboxDispatcherJob,
     PaymentExpirationJob,
-    PaymentReleaseJob,
     CleanupIdempotencyKeysJob,
   ],
   exports: [],
