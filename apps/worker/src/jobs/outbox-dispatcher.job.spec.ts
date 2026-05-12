@@ -109,4 +109,35 @@ describe("OutboxDispatcherJob", () => {
     expect(outboxRepository.update).toHaveBeenCalledTimes(1);
     expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
   });
+
+  it("logs dispatched outbox and payment identifiers", async () => {
+    const event = createEvent();
+    const logger = {
+      log: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
+    const outboxRepository = {
+      findDispatchableEvents: jest.fn().mockResolvedValue([event]),
+      update: jest.fn(),
+    };
+    const webhookQueue = { enqueue: jest.fn().mockResolvedValue(undefined) };
+    const alertQueue = { enqueue: jest.fn().mockResolvedValue(undefined) };
+    const job = new OutboxDispatcherJob(
+      outboxRepository as any,
+      webhookQueue as any,
+      alertQueue as any,
+    );
+    (job as any).logger = logger;
+
+    await job.handleDispatch();
+
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`outboxEventId=${event.id}`),
+    );
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("paymentId=payment-1"),
+    );
+  });
 });

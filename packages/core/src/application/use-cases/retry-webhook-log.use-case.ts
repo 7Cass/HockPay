@@ -9,6 +9,11 @@ import {
   WebhookResponse,
 } from '../..';
 
+type OperationalLogger = {
+  debug(message: string): void;
+  warn(message: string): void;
+};
+
 /**
  * Input for retrying a webhook log.
  */
@@ -38,6 +43,7 @@ export class RetryWebhookLogUseCase {
     private readonly webhookSender: IWebhookSenderPort,
     private readonly hmacSigner: IHmacSignerPort,
     private readonly encryption: IEncryptionPort,
+    private readonly logger?: OperationalLogger,
   ) {}
 
   async execute(input: IRetryWebhookLogInput): Promise<IRetryWebhookLogOutput> {
@@ -75,6 +81,9 @@ export class RetryWebhookLogUseCase {
     };
 
     log.setRequestHeaders(headers);
+    this.logger?.debug(
+      `Retrying webhook logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
+    );
 
     try {
       // Send the webhook
@@ -86,8 +95,14 @@ export class RetryWebhookLogUseCase {
 
       if (response.success) {
         log.recordSuccess(response.statusCode, response.body);
+        this.logger?.debug(
+          `Webhook retry delivered logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
+        );
       } else {
         log.recordFailure(response.statusCode ?? 0, response.body);
+        this.logger?.warn(
+          `Webhook retry rejected logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} statusCode=${response.statusCode ?? 0}`,
+        );
       }
 
       // Update log
@@ -103,6 +118,9 @@ export class RetryWebhookLogUseCase {
       const errorMessage = error instanceof Error ? error.message : String(error);
       log.recordFailure(0, errorMessage);
       await this.webhookLogRepository.update(log);
+      this.logger?.warn(
+        `Webhook retry failed logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} error=${errorMessage}`,
+      );
 
       return {
         success: false,

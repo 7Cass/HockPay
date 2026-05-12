@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { PrismaModule } from '../../infra/database/prisma.module';
 import { PrismaService } from '../../infra/database/prisma.service';
 
@@ -120,6 +120,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
           webhookSender,
           hmacSigner,
           encryption,
+          new Logger(ProcessWebhookUseCase.name),
         ),
       inject: [
         'IOutboxRepository',

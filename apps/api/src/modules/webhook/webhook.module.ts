@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { WebhookController } from './webhook.controller';
 import {
   CreateWebhookConfigUseCase,
@@ -166,6 +166,7 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
           webhookSender,
           hmacSigner,
           encryption,
+          new Logger(RetryWebhookLogUseCase.name),
         );
       },
       inject: [

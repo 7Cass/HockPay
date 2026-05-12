@@ -57,6 +57,8 @@ export class OutboxDispatcherJob {
       );
 
       for (const event of events) {
+        const paymentId =
+          typeof event.payload.id === "string" ? event.payload.id : event.aggregateId;
         try {
           // BullMQ must accept the webhook job before the outbox leaves a dispatchable state.
           await this.webhookQueue.enqueue(event.id);
@@ -68,13 +70,13 @@ export class OutboxDispatcherJob {
             await this.alertQueue.enqueue(event.id);
           } catch (error) {
             this.logger.warn(
-              `Failed to enqueue alert delivery for event ${event.id}`,
+              `Failed to enqueue alert delivery outboxEventId=${event.id} paymentId=${paymentId}`,
               error,
             );
           }
 
           this.logger.debug(
-            `Dispatched event ${event.id} (${event.eventType}) to BullMQ`,
+            `Dispatched webhook event outboxEventId=${event.id} paymentId=${paymentId} eventType=${event.eventType}`,
           );
         } catch (error) {
           event.markAsFailed(
@@ -82,7 +84,10 @@ export class OutboxDispatcherJob {
             this.nextEnqueueRetry(),
           );
           await this.outboxRepository.update(event);
-          this.logger.error(`Failed to dispatch event ${event.id}`, error);
+          this.logger.error(
+            `Failed to dispatch webhook event outboxEventId=${event.id} paymentId=${paymentId}`,
+            error,
+          );
         }
       }
     } catch (error) {

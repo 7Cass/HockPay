@@ -21,7 +21,7 @@ export class WebhookProcessor extends WorkerHost {
 
   async process(job: Job<WebhookJobData>): Promise<void> {
     this.logger.debug(
-      `Processing webhook job ${job.id} for event ${job.data.eventId}`,
+      `Processing webhook job jobId=${job.id} outboxEventId=${job.data.eventId}`,
     );
 
     const input: IProcessWebhookInput = {
@@ -32,12 +32,14 @@ export class WebhookProcessor extends WorkerHost {
 
     if (!result.delivered) {
       this.logger.warn(
-        `Webhook delivery failed for event ${job.data.eventId}: ${result.error}`,
+        `Webhook delivery failed jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}: ${result.error}`,
       );
 
       throw new Error(result.error ?? "Webhook delivery failed");
     }
 
-    this.logger.debug(`Webhook job ${job.id} completed`);
+    this.logger.debug(
+      `Webhook job completed jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}`,
+    );
   }
 }
