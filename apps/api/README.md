@@ -63,6 +63,53 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
   -H "Authorization: Bearer hk_test_xxx"
 ```
 
+### Criar checkout hosted e fulfill
+
+```bash
+curl -X POST http://localhost:3000/api/v1/checkout-sessions \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 2500,
+    "description": "Media kit premium",
+    "successUrl": "http://localhost:3005/success",
+    "cancelUrl": "http://localhost:3005/"
+  }'
+```
+
+Use o `checkoutToken` retornado para preencher o pagador:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/checkout-sessions/{checkout_token}/fulfill \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "document": "52998224725"
+    }
+  }'
+```
+
+### Registrar webhook e consultar logs
+
+```bash
+curl -X POST http://localhost:3000/api/v1/webhooks \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "http://localhost:3999/webhook",
+    "events": ["payment.confirmed", "payment.expired", "payment.failed"]
+  }'
+```
+
+Destinos HTTP são aceitos apenas em `localhost` ou `127.0.0.1`; webhooks remotos devem usar HTTPS.
+
+```bash
+curl "http://localhost:3000/api/v1/webhooks/{webhook_id}/logs?page=1&limit=20&status=delivered" \
+  -H "Authorization: Bearer hk_test_xxx"
+```
+
 ### Login do dashboard
 
 ```bash
@@ -93,6 +140,7 @@ pnpm dev
 pnpm build
 pnpm test
 pnpm test:e2e
+pnpm run smoke:p0
 pnpm start:prod
 ```
 

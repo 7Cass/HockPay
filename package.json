@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "test:cov": "turbo run test:cov",
     "test:e2e": "turbo run test:e2e",
+    "smoke:p0": "node scripts/smoke-p0.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "db:generate": "pnpm --filter @hockpay/database db:generate",

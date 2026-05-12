@@ -46,6 +46,34 @@ Portas esperadas:
 - Checkout: `http://localhost:3333`
 - Demo Media Kit: `http://localhost:3005`
 
+## Smoke Automatizado P0
+
+Com PostgreSQL, Redis, API e worker já rodando, execute:
+
+```bash
+pnpm run smoke:p0
+```
+
+O smoke cria merchant, store, API key TEST, webhook local, payment direto e confirmação simulada. Em seguida, aguarda o worker entregar `payment.confirmed` para um receiver HTTP efêmero em `127.0.0.1` e valida o log persistido em `GET /webhooks/:id/logs`.
+
+Configuração opcional:
+
+```bash
+HOCKPAY_API_URL=http://localhost:3000/api/v1 \
+HOCKPAY_SMOKE_WEBHOOK_PORT=3999 \
+HOCKPAY_SMOKE_TIMEOUT_MS=30000 \
+pnpm run smoke:p0
+```
+
+Ao concluir, o comando imprime os IDs principais do fluxo. Ele não sobe containers nem processos dev; falhas de conexão indicam que a API, o banco ou o worker ainda não estão prontos.
+
+Troubleshooting rápido:
+
+- `Could not reach .../health/live`: a API não está rodando na URL configurada.
+- `.../health/ready` falha: confira PostgreSQL e migrations.
+- `Could not start the local webhook receiver`: a porta configurada já está ocupada.
+- `Delivered webhook log was not observed`: confira se o worker e o Redis estão rodando; o dispatcher de outbox precisa consumir o evento.
+
 ## Preparar Merchant, Store e API Key
 
 Crie um merchant:
@@ -61,10 +89,12 @@ curl -X POST http://localhost:3000/api/v1/merchants \
   }'
 ```
 
-Faca login e guarde o `accessToken`:
+Faca login e guarde os cookies de dashboard:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies \
   -H "Content-Type: application/json" \
   -d '{
     "email": "demo@hockpay.local",
@@ -76,7 +106,8 @@ Crie a store:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/stores \
-  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Media Kit Demo",
@@ -84,18 +115,28 @@ curl -X POST http://localhost:3000/api/v1/stores \
   }'
 ```
 
+Selecione a store criada para renovar o cookie `hockpay_at` com contexto de store:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/switch-store/STORE_ID \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies
+```
+
 Confirme que a account existe:
 
 ```bash
 curl http://localhost:3000/api/v1/accounts/me \
-  -H "Authorization: Bearer STORE_ACCESS_TOKEN"
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies
 ```
 
 Crie uma API key de teste e guarde o `plainKey`:
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/api-keys \
-  -H "Authorization: Bearer STORE_ACCESS_TOKEN" \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Demo Media Kit",
@@ -132,6 +173,8 @@ HOCKPAY_WEBHOOK_SECRET=whsec_xxx
 ```
 
 Reinicie `apps/demo-mediakit` se alterar `.env.local`.
+
+Para desenvolvimento local, a API aceita webhook HTTP somente em `localhost` ou `127.0.0.1`. Destinos remotos continuam exigindo HTTPS.
 
 ## Executar Fluxo de Checkout
 
