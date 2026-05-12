@@ -12,6 +12,7 @@ describe("ProcessWebhookUseCase", () => {
       aggregateType: "Payment",
       aggregateId: "payment-1",
       eventType: "payment.created",
+      requestId: "req-1",
       payload: {
         id: "payment-1",
         storeId: "store-1",
@@ -122,7 +123,16 @@ describe("ProcessWebhookUseCase", () => {
     expect(result.delivered).toBe(true);
     expect(result.event.status).toBe(OutboxEventStatus.PROCESSED);
     expect(sender.send).toHaveBeenCalledTimes(2);
+    expect(sender.send).toHaveBeenCalledWith(
+      "https://example.com/one",
+      expect.any(Object),
+      expect.objectContaining({
+        "X-Request-ID": "req-1",
+      }),
+    );
     expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
+    expect(webhookLogRepository.save.mock.calls[0][0].requestId).toBe("req-1");
+    expect(webhookLogRepository.save.mock.calls[0][0].outboxEventId).toBe(event.id);
     expect(outboxRepository.update).toHaveBeenCalledWith(event);
   });
 
@@ -199,7 +209,7 @@ describe("ProcessWebhookUseCase", () => {
     expect(result.event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(sender.send).toHaveBeenCalledTimes(1);
     expect(outboxRepository.update).not.toHaveBeenCalled();
-    expect(webhookLogRepository.save).toHaveBeenCalledTimes(1);
+    expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
   });
 
   it("does not infer storeId from nested payload data", async () => {

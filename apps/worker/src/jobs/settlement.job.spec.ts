@@ -62,12 +62,15 @@ describe('SettlementJob', () => {
     expect(releasePaymentUseCase.execute).toHaveBeenCalledTimes(3);
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(1, {
       paymentId: 'payment-1',
+      requestId: 'worker:settlement:payment-1',
     });
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(2, {
       paymentId: 'payment-2',
+      requestId: 'worker:settlement:payment-2',
     });
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(3, {
       paymentId: 'payment-3',
+      requestId: 'worker:settlement:payment-3',
     });
   });
 
@@ -122,7 +125,7 @@ describe('SettlementJob', () => {
 
     expect(releasePaymentUseCase.execute).toHaveBeenCalledTimes(3);
     expect(Logger.prototype.error).toHaveBeenCalledWith(
-      'Failed to release payment payment-2:',
+      'Failed to release payment payment-2 requestId=worker:settlement:payment-2:',
       expect.any(Error),
     );
   });

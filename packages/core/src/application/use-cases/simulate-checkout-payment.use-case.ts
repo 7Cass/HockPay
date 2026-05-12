@@ -20,6 +20,7 @@ export interface ISimulateCheckoutInput {
   paymentId: string;
   checkoutToken: string;
   action: SimulateAction;
+  requestId?: string;
 }
 
 /**
@@ -85,17 +86,20 @@ export class SimulateCheckoutPaymentUseCase {
         return this.confirmPaymentUseCase.execute({
           storeId: payment.storeId,
           paymentId: payment.id,
+          requestId: input.requestId,
         });
 
       case "expire":
         return this.expirePaymentUseCase.execute({
           paymentId: payment.id,
+          requestId: input.requestId,
         });
 
       case "fail":
         return this.failPaymentUseCase.execute({
           paymentId: payment.id,
           storeId: payment.storeId,
+          requestId: input.requestId,
           reason: "Simulated failure",
         });
 

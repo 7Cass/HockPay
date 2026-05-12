@@ -46,6 +46,7 @@ export enum CustomerPromotionPolicy {
  */
 export interface ICreatePaymentInput {
   storeId: string;
+  requestId?: string;
   externalId?: string;
   amount: number;
   description?: string;
@@ -280,6 +281,7 @@ export class CreatePaymentUseCase {
           aggregateType: "Payment",
           aggregateId: payment.id,
           eventType: "payment.created",
+          requestId: input.requestId,
           storeId: payment.storeId,
           payload: payment.toObject() as unknown as Record<string, unknown>,
         });
@@ -298,6 +300,7 @@ export class CreatePaymentUseCase {
       await this.expirationQueue.scheduleExpiration(
         output.payment.id,
         output.payment.expiresAt,
+        input.requestId,
       );
     } catch {
       // Best effort by design: do not fail payment creation after commit.

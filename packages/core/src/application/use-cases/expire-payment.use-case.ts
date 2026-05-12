@@ -10,6 +10,7 @@ import { IExpirationQueuePort } from '../ports/expiration-queue.port';
  */
 export interface IExpirePaymentInput {
   paymentId: string;
+  requestId?: string;
 }
 
 /**
@@ -66,6 +67,7 @@ export class ExpirePaymentUseCase {
         aggregateType: 'Payment',
         aggregateId: payment.id,
         eventType: 'payment.expired',
+        requestId: input.requestId,
         storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });

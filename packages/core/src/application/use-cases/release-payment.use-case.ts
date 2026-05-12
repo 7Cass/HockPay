@@ -12,6 +12,7 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
  */
 export interface IReleasePaymentInput {
   paymentId: string;
+  requestId?: string;
 }
 
 /**
@@ -121,6 +122,7 @@ export class ReleasePaymentUseCase {
         aggregateType: 'Payment',
         aggregateId: payment.id,
         eventType: 'payment.released',
+        requestId: input.requestId,
         storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });

@@ -6,6 +6,7 @@ import {
   IProcessWebhookInput,
   WebhookJobData,
 } from "@hockpay/core";
+import { createWorkerRequestId } from "../../common/request-id";
 
 /**
  * BullMQ processor for webhook delivery jobs.
@@ -20,26 +21,29 @@ export class WebhookProcessor extends WorkerHost {
   }
 
   async process(job: Job<WebhookJobData>): Promise<void> {
+    const requestId =
+      job.data.requestId ?? createWorkerRequestId("webhook-delivery", job.id);
     this.logger.debug(
-      `Processing webhook job jobId=${job.id} outboxEventId=${job.data.eventId}`,
+      `Processing webhook job requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId}`,
     );
 
     const input: IProcessWebhookInput = {
       eventId: job.data.eventId,
+      requestId,
     };
 
     const result = await this.processWebhookUseCase.execute(input);
 
     if (!result.delivered) {
       this.logger.warn(
-        `Webhook delivery failed jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}: ${result.error}`,
+        `Webhook delivery failed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}: ${result.error}`,
       );
 
       throw new Error(result.error ?? "Webhook delivery failed");
     }
 
     this.logger.debug(
-      `Webhook job completed jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}`,
+      `Webhook job completed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} paymentId=${result.event.aggregateId}`,
     );
   }
 }

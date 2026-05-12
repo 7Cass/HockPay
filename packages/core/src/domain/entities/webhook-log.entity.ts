@@ -8,6 +8,8 @@ export class WebhookLog {
   private readonly _id: string;
   private readonly _configId: string;
   private readonly _paymentId?: string;
+  private readonly _outboxEventId?: string;
+  private _requestId?: string;
   private readonly _eventType: string;
   private readonly _payload: Record<string, unknown>;
   private _requestHeaders?: Record<string, string>;
@@ -23,6 +25,8 @@ export class WebhookLog {
     this._id = props.id;
     this._configId = props.configId;
     this._paymentId = props.paymentId;
+    this._outboxEventId = props.outboxEventId;
+    this._requestId = props.requestId;
     this._eventType = props.eventType;
     this._payload = props.payload;
     this._requestHeaders = props.requestHeaders;
@@ -43,6 +47,8 @@ export class WebhookLog {
       id: crypto.randomUUID(),
       configId: props.configId,
       paymentId: props.paymentId,
+      outboxEventId: props.outboxEventId,
+      requestId: props.requestId,
       eventType: props.eventType,
       payload: props.payload,
       attempt: 1,
@@ -70,6 +76,14 @@ export class WebhookLog {
 
   get paymentId(): string | undefined {
     return this._paymentId;
+  }
+
+  get outboxEventId(): string | undefined {
+    return this._outboxEventId;
+  }
+
+  get requestId(): string | undefined {
+    return this._requestId;
   }
 
   get eventType(): string {
@@ -160,6 +174,10 @@ export class WebhookLog {
     this._requestHeaders = headers;
   }
 
+  setRequestId(requestId: string): void {
+    this._requestId = requestId;
+  }
+
   /**
    * Calculate next retry time with exponential backoff.
    */
@@ -179,6 +197,8 @@ export class WebhookLog {
       id: this._id,
       configId: this._configId,
       paymentId: this._paymentId,
+      outboxEventId: this._outboxEventId,
+      requestId: this._requestId,
       eventType: this._eventType,
       payload: this._payload,
       requestHeaders: this._requestHeaders,
@@ -199,6 +219,8 @@ export class WebhookLog {
 export interface CreateWebhookLogProps {
   configId: string;
   paymentId?: string;
+  outboxEventId?: string;
+  requestId?: string;
   eventType: string;
   payload: Record<string, unknown>;
   maxAttempts?: number;
@@ -211,6 +233,8 @@ export interface WebhookLogProps {
   id: string;
   configId: string;
   paymentId?: string;
+  outboxEventId?: string;
+  requestId?: string;
   eventType: string;
   payload: Record<string, unknown>;
   requestHeaders?: Record<string, string>;
@@ -230,6 +254,8 @@ export interface WebhookLogObject {
   id: string;
   configId: string;
   paymentId?: string;
+  outboxEventId?: string;
+  requestId?: string;
   eventType: string;
   payload: Record<string, unknown>;
   requestHeaders?: Record<string, string>;

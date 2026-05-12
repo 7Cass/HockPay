@@ -29,7 +29,7 @@ export class ExpirationQueue implements IExpirationQueuePort, OnModuleInit, OnMo
     }
   }
 
-  async scheduleExpiration(paymentId: string, expiresAt: Date): Promise<void> {
+  async scheduleExpiration(paymentId: string, expiresAt: Date, requestId?: string): Promise<void> {
     if (!this.queue) {
       throw new Error('Queue not initialized');
     }
@@ -38,7 +38,7 @@ export class ExpirationQueue implements IExpirationQueuePort, OnModuleInit, OnMo
 
     await this.queue.add(
       'expire',
-      { paymentId },
+      { paymentId, requestId },
       {
         delay,
         jobId: `expire-${paymentId}`,

@@ -30,6 +30,7 @@ type OperationalLogger = {
  */
 export interface IProcessWebhookInput {
   eventId: string;
+  requestId?: string;
 }
 
 /**
@@ -127,7 +128,9 @@ export class ProcessWebhookUseCase {
     }
 
     const results = await Promise.all(
-      configs.map((config) => this.sendWebhookSafely(event, config)),
+      configs.map((config) =>
+        this.sendWebhookSafely(event, config, event.requestId ?? input.requestId),
+      ),
     );
     const allSucceeded = results.every((result) => result.success);
     const lastError = [...results]
@@ -152,9 +155,10 @@ export class ProcessWebhookUseCase {
   private async sendWebhookSafely(
     event: OutboxEvent,
     config: WebhookConfig,
+    requestId?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      return await this.sendWebhook(event, config);
+      return await this.sendWebhook(event, config, requestId);
     } catch (error) {
       return {
         success: false,
@@ -166,9 +170,9 @@ export class ProcessWebhookUseCase {
   private async sendWebhook(
     event: OutboxEvent,
     config: WebhookConfig,
+    requestId?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const timestamp = Date.now();
-    const webhookId = crypto.randomUUID();
     const paymentId = (event.payload as Record<string, unknown>).id as
       | string
       | undefined;
@@ -181,39 +185,37 @@ export class ProcessWebhookUseCase {
       event.payload as unknown as PaymentObject,
     );
 
-    // Decrypt the secret before signing
-    const plainSecret = this.encryption.decrypt(config.secret);
-
-    // Sign the envelope payload with decrypted secret
-    const signature = this.hmacSigner.sign(
-      plainSecret,
-      webhookPayload as unknown as Record<string, unknown>,
-      timestamp,
-    );
-
-    // Create log entry with envelope payload
     const log = WebhookLog.create({
       configId: config.id,
       paymentId,
+      outboxEventId: event.id,
+      requestId,
       eventType: event.eventType,
       payload: webhookPayload as unknown as Record<string, unknown>,
     });
+    const webhookId = log.id;
 
-    // Set headers
-    const headers = {
-      "Content-Type": "application/json",
-      "X-Hockpay-Signature": signature,
-      "X-Hockpay-Timestamp": String(timestamp),
-      "X-Hockpay-Webhook-Id": webhookId,
-      "User-Agent": "Hockpay-Webhook/1.0",
-    };
-
-    log.setRequestHeaders(headers);
     this.logger?.debug(
-      `Sending webhook outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
+      `Sending webhook requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
     );
 
     try {
+      const plainSecret = this.encryption.decrypt(config.secret);
+      const signature = this.hmacSigner.sign(
+        plainSecret,
+        webhookPayload as unknown as Record<string, unknown>,
+        timestamp,
+      );
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Hockpay-Signature": signature,
+        "X-Hockpay-Timestamp": String(timestamp),
+        "X-Hockpay-Webhook-Id": webhookId,
+        ...(requestId ? { "X-Request-ID": requestId } : {}),
+        "User-Agent": "Hockpay-Webhook/1.0",
+      };
+
+      log.setRequestHeaders(headers);
       const response = await this.webhookSender.send(
         config.url,
         webhookPayload as unknown as Record<string, unknown>,
@@ -224,14 +226,14 @@ export class ProcessWebhookUseCase {
         log.recordSuccess(response.statusCode, response.body);
         await this.webhookLogRepository.save(log);
         this.logger?.debug(
-          `Webhook delivered outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
+          `Webhook delivered requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
         );
         return { success: true };
       } else {
         log.recordFailure(response.statusCode, response.body);
         await this.webhookLogRepository.save(log);
         this.logger?.warn(
-          `Webhook delivery rejected outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} statusCode=${response.statusCode}`,
+          `Webhook delivery rejected requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} statusCode=${response.statusCode}`,
         );
         return { success: false, error: `HTTP ${response.statusCode}` };
       }
@@ -241,7 +243,7 @@ export class ProcessWebhookUseCase {
       log.recordFailure(0, errorMessage);
       await this.webhookLogRepository.save(log);
       this.logger?.warn(
-        `Webhook delivery failed outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} error=${errorMessage}`,
+        `Webhook delivery failed requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} error=${errorMessage}`,
       );
       return { success: false, error: errorMessage };
     }

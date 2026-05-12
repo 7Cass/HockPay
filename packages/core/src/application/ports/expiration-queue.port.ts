@@ -11,7 +11,7 @@ export interface IExpirationQueuePort {
    * @param paymentId - The ID of the payment to expire
    * @param expiresAt - When the payment should expire
    */
-  scheduleExpiration(paymentId: string, expiresAt: Date): Promise<void>;
+  scheduleExpiration(paymentId: string, expiresAt: Date, requestId?: string): Promise<void>;
 
   /**
    * Cancel a scheduled expiration job.

@@ -1,6 +1,7 @@
 import { Receipt, ReceiptObject } from "../../domain/entities/receipt.entity";
 import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
 import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.error";
+import { buildReceiptNumber } from "./receipt-number";
 
 /**
  * Input DTO for CreateReceiptUseCase.
@@ -31,7 +32,7 @@ export interface ICreateReceiptOutput {
  * Use Case: Create Receipt
  *
  * Creates a payment receipt with an auto-generated sequential number.
- * The receipt number format is: RCP-YYYYMMDD-XXXXX
+ * The receipt number format is: RCP-YYYYMMDD-STOREID-XXXXX
  *
  * Business rules:
  * - Receipt number is generated atomically using a counter table
@@ -49,7 +50,11 @@ export class CreateReceiptUseCase {
       dateStr,
     );
 
-    const receiptNumber = `RCP-${dateStr}-${String(sequence).padStart(5, "0")}`;
+    const receiptNumber = buildReceiptNumber(
+      input.storeId,
+      dateStr,
+      sequence,
+    );
 
     const receipt = Receipt.create({
       receiptNumber,

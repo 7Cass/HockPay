@@ -8,7 +8,10 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { randomUUID } from 'crypto';
+import {
+  getOrCreateRequestId,
+  RESPONSE_REQUEST_ID_HEADER,
+} from '../request-id';
 
 /**
  * Interceptor for structured logging of HTTP requests and responses.
@@ -28,28 +31,19 @@ export class LoggingInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
-    // Generate or retrieve request ID
-    const requestId =
-      (request.headers['x-request-id'] as string | undefined) || randomUUID();
-
-    // Store request ID for use in filters
-    (request as any).id = requestId;
+    const requestId = getOrCreateRequestId(request);
+    response.setHeader(RESPONSE_REQUEST_ID_HEADER, requestId);
 
     const startTime = Date.now();
     const { method, url, ip } = request;
     const userAgent = request.headers['user-agent'];
 
-    // Sanitize body for logging (hide sensitive fields)
-    const sanitizedBody = this.sanitizeBody(request.body);
-
-    // Log incoming request
     this.logger.log({
       requestId,
       method,
       url,
       ip,
       userAgent,
-      body: sanitizedBody,
       msg: 'Incoming request',
     });
 
@@ -59,10 +53,6 @@ export class LoggingInterceptor implements NestInterceptor {
           const duration = Date.now() - startTime;
           const statusCode = response.statusCode;
 
-          // Add request ID to response headers
-          response.setHeader('X-Request-ID', requestId);
-
-          // Log successful response
           this.logger.log({
             requestId,
             method,
@@ -76,12 +66,10 @@ export class LoggingInterceptor implements NestInterceptor {
       catchError((error) => {
         const duration = Date.now() - startTime;
 
-        // Add request ID to response headers if not already set
-        if (!response.getHeader('X-Request-ID')) {
-          response.setHeader('X-Request-ID', requestId);
+        if (!response.getHeader(RESPONSE_REQUEST_ID_HEADER)) {
+          response.setHeader(RESPONSE_REQUEST_ID_HEADER, requestId);
         }
 
-        // Log error
         this.logger.error({
           requestId,
           method,
@@ -98,37 +86,5 @@ export class LoggingInterceptor implements NestInterceptor {
         return throwError(() => error);
       }),
     );
-  }
-
-  /**
-   * Sanitize request body to hide sensitive fields.
-   */
-  private sanitizeBody(body: any): any {
-    if (!body) return undefined;
-
-    const sensitiveFields = [
-      'password',
-      'confirmPassword',
-      'currentPassword',
-      'newPassword',
-      'token',
-      'accessToken',
-      'refreshToken',
-      'apiKey',
-      'secret',
-      'cardNumber',
-      'cvv',
-      'ssn',
-    ];
-
-    const sanitized = { ...body };
-
-    for (const field of sensitiveFields) {
-      if (field in sanitized) {
-        sanitized[field] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
   }
 }

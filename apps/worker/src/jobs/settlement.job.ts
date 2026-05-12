@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReleasePaymentUseCase, PaymentStatus } from '@hockpay/core';
 import { PrismaService } from '../infra/database/prisma.service';
+import { createWorkerRequestId } from '../common/request-id';
 
 /**
  * Settlement Job
@@ -71,11 +72,12 @@ export class SettlementJob {
 
     let released = 0;
     for (const payment of payments) {
+      const requestId = createWorkerRequestId('settlement', payment.id);
       try {
-        await this.releasePaymentUseCase.execute({ paymentId: payment.id });
+        await this.releasePaymentUseCase.execute({ paymentId: payment.id, requestId });
         released++;
       } catch (error) {
-        this.logger.error(`Failed to release payment ${payment.id}:`, error);
+        this.logger.error(`Failed to release payment ${payment.id} requestId=${requestId}:`, error);
       }
     }
 

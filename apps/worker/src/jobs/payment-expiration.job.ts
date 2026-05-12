@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../infra/database/prisma.service';
 import { PaymentStatus } from '@hockpay/database';
 import { ExpirePaymentUseCase } from '@hockpay/core';
+import { createWorkerRequestId } from '../common/request-id';
 
 /**
  * Job que expira pagamentos pendentes que passaram do prazo
@@ -51,18 +52,20 @@ export class PaymentExpirationJob {
     this.logger.log(`Found ${expiredPayments.length} expired payments, expiring...`);
 
     for (const payment of expiredPayments) {
+      const requestId = createWorkerRequestId('payment-expiration-scan', payment.id);
       try {
         const result = await this.expirePaymentUseCase.execute({
           paymentId: payment.id,
+          requestId,
         });
 
         if (result.alreadyExpired) {
-          this.logger.debug(`Payment ${payment.id} was already expired`);
+          this.logger.debug(`Payment ${payment.id} was already expired requestId=${requestId}`);
         } else {
-          this.logger.debug(`Payment ${payment.id} expired successfully`);
+          this.logger.debug(`Payment ${payment.id} expired successfully requestId=${requestId}`);
         }
       } catch (error) {
-        this.logger.error(`Failed to expire payment ${payment.id}`, error);
+        this.logger.error(`Failed to expire payment ${payment.id} requestId=${requestId}`, error);
       }
     }
   }

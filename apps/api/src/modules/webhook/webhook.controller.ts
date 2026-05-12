@@ -43,6 +43,7 @@ import {
   mapWebhookLogToDto,
 } from './dtos/webhook-response.dto';
 import { ListWebhookLogsQueryDto } from './dtos/list-webhook-logs.dto';
+import { getRequestId } from '../../common/request-id';
 
 /**
  * Controller for Webhook endpoints.
@@ -285,6 +286,7 @@ export class WebhookController {
       const result = await this.testWebhookConfigUseCase.execute({
         configId: id,
         storeId,
+        requestId: getRequestId(req),
       });
 
       return {
@@ -375,6 +377,7 @@ export class WebhookController {
       const result = await this.retryWebhookLogUseCase.execute({
         logId,
         storeId,
+        requestId: getRequestId(req),
       });
 
       return {

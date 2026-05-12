@@ -30,6 +30,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
+import { getRequestId } from '../../common/request-id';
 import { CreatePaymentDto } from './dtos/create-payment.dto';
 import {
   GetPaymentResponseDto,
@@ -85,6 +86,7 @@ export class PaymentController {
 
       const result = await this.createPaymentUseCase.execute({
         storeId,
+        requestId: getRequestId(req),
         externalId: dto.externalId,
         amount: dto.amount,
         description: dto.description,
@@ -157,6 +159,7 @@ export class PaymentController {
       const result = await this.getPaymentUseCase.execute({
         storeId,
         paymentId: id,
+        requestId: getRequestId(req),
       });
 
       return {
@@ -220,12 +223,14 @@ export class PaymentController {
     @Param('id') id: string,
     @Param('action') action: 'confirm' | 'expire' | 'fail',
     @Body() dto: SimulatePaymentDto,
+    @Req() req?: Request,
   ) {
     try {
       const result = await this.simulatePaymentUseCase.execute({
         paymentId: id,
         checkoutToken: dto.checkoutToken,
         action,
+        requestId: getRequestId(req),
       });
 
       return {

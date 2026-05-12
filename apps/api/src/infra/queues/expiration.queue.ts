@@ -22,12 +22,12 @@ export class ExpirationQueue implements IExpirationQueuePort, OnModuleInit {
     });
   }
 
-  async scheduleExpiration(paymentId: string, expiresAt: Date): Promise<void> {
+  async scheduleExpiration(paymentId: string, expiresAt: Date, requestId?: string): Promise<void> {
     const delay = Math.max(0, expiresAt.getTime() - Date.now());
 
     await this.queue.add(
       'expire',
-      { paymentId },
+      { paymentId, requestId },
       {
         delay,
         jobId: `expire-${paymentId}`,

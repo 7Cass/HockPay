@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { OutboxEvent } from "@hockpay/core";
 import { OutboxRepository } from "./outbox.repository";
 
 describe("OutboxRepository", () => {
@@ -43,6 +44,31 @@ describe("OutboxRepository", () => {
       },
       orderBy: { createdAt: "asc" },
       take: 50,
+    });
+  });
+
+  it("persists request ids with outbox events", async () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Payment",
+      aggregateId: "payment-1",
+      eventType: "payment.created",
+      requestId: "req-1",
+      payload: { id: "payment-1" },
+    });
+    const prisma = {
+      outboxEvent: {
+        create: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const repository = new OutboxRepository(prisma as any);
+
+    await repository.save(event);
+
+    expect(prisma.outboxEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: event.id,
+        requestId: "req-1",
+      }),
     });
   });
 });

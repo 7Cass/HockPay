@@ -431,6 +431,8 @@ model WebhookLog {
   id              String        @id @default(uuid())
   configId        String        @map("config_id")
   paymentId       String?       @map("payment_id")
+  outboxEventId   String?       @map("outbox_event_id")
+  requestId       String?       @map("request_id")
   eventType       String        @map("event_type")
   payload         Json
   requestHeaders  Json?         @map("request_headers")
@@ -446,6 +448,8 @@ model WebhookLog {
   payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@index([configId, deliveredAt])
+  @@index([outboxEventId])
+  @@index([requestId])
   @@map("webhook_logs")
 }
 
@@ -507,6 +511,7 @@ model OutboxEvent {
   aggregateType String       @map("aggregate_type")
   aggregateId   String       @map("aggregate_id")
   eventType     String       @map("event_type")
+  requestId     String?      @map("request_id")
   payload       Json
   status        OutboxStatus @default(PENDING)
   processedAt   DateTime?    @map("processed_at")
@@ -517,6 +522,7 @@ model OutboxEvent {
   createdAt     DateTime     @default(now()) @map("created_at")
 
   @@index([status, nextRetryAt])
+  @@index([requestId])
   @@map("outbox_events")
 }
 

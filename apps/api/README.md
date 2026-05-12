@@ -36,6 +36,8 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Nem toda mutação é idempotente hoje. O fluxo claramente obrigatório é `POST /api/v1/payments`.
 - A API usa `CombinedAuthGuard` em vários endpoints públicos para aceitar API key ou cookie JWT.
 - O checkout hospedado não consulta `payments/:id` como contrato primário; ele usa `checkout-sessions/:token`.
+- A API aceita `X-Request-ID` em qualquer chamada. Se o header não vier, a API gera um ID e sempre devolve `X-Request-ID` na resposta.
+- Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
 
 ## Exemplos Atuais
 
@@ -108,6 +110,26 @@ Destinos HTTP são aceitos apenas em `localhost` ou `127.0.0.1`; webhooks remoto
 ```bash
 curl "http://localhost:3000/api/v1/webhooks/{webhook_id}/logs?page=1&limit=20&status=delivered" \
   -H "Authorization: Bearer hk_test_xxx"
+```
+
+Cada item retornado em `logs` inclui `requestId`, `outboxEventId`, `deliveryId` e `paymentId` quando disponíveis. Use esses IDs para cruzar a chamada HTTP original, o evento outbox, o job do worker e a tentativa de entrega.
+
+Exemplo para iniciar uma trilha com ID próprio:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payments \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: pedido-123" \
+  -H "X-Request-ID: demo-trace-001" \
+  -d '{
+    "amount": 1500,
+    "customer": {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "document": "52998224725"
+    }
+  }'
 ```
 
 ### Login do dashboard

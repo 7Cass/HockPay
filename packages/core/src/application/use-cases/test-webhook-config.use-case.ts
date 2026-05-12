@@ -16,6 +16,7 @@ import {
 export interface ITestWebhookConfigInput {
   configId: string;
   storeId: string;
+  requestId?: string;
 }
 
 /**
@@ -70,23 +71,24 @@ export class TestWebhookConfigUseCase {
     // Sign the payload
     const signature = this.hmacSigner.sign(plainSecret, testPayload, timestamp);
 
-    // Build headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Hockpay-Signature': signature,
-      'X-Hockpay-Timestamp': timestamp.toString(),
-      'X-Hockpay-Webhook-Id': crypto.randomUUID(),
-      'X-Hockpay-Test': 'true',
-      'User-Agent': 'Hockpay-Webhook/1.0',
-    };
-
-    // Create log entry
     const log = WebhookLog.create({
       configId: webhookConfig.id,
+      requestId: input.requestId,
       eventType: 'webhook.test',
       payload: testPayload,
       maxAttempts: 1,
     });
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Hockpay-Signature': signature,
+      'X-Hockpay-Timestamp': timestamp.toString(),
+      'X-Hockpay-Webhook-Id': log.id,
+      ...(input.requestId ? { 'X-Request-ID': input.requestId } : {}),
+      'X-Hockpay-Test': 'true',
+      'User-Agent': 'Hockpay-Webhook/1.0',
+    };
+
     log.setRequestHeaders(headers);
 
     try {

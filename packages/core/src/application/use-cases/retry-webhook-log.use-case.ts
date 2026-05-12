@@ -20,6 +20,7 @@ type OperationalLogger = {
 export interface IRetryWebhookLogInput {
   logId: string;
   storeId: string;
+  requestId?: string;
 }
 
 /**
@@ -77,12 +78,16 @@ export class RetryWebhookLogUseCase {
       'X-Hockpay-Signature': signature,
       'X-Hockpay-Timestamp': timestamp.toString(),
       'X-Hockpay-Webhook-Id': log.id,
+      ...(input.requestId ? { 'X-Request-ID': input.requestId } : {}),
       'User-Agent': 'Hockpay-Webhook/1.0',
     };
 
+    if (input.requestId) {
+      log.setRequestId(input.requestId);
+    }
     log.setRequestHeaders(headers);
     this.logger?.debug(
-      `Retrying webhook logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
+      `Retrying webhook requestId=${input.requestId ?? log.requestId ?? 'unknown'} logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
     );
 
     try {
@@ -96,12 +101,12 @@ export class RetryWebhookLogUseCase {
       if (response.success) {
         log.recordSuccess(response.statusCode, response.body);
         this.logger?.debug(
-          `Webhook retry delivered logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
+          `Webhook retry delivered requestId=${input.requestId ?? log.requestId ?? 'unknown'} logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
         );
       } else {
         log.recordFailure(response.statusCode ?? 0, response.body);
         this.logger?.warn(
-          `Webhook retry rejected logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} statusCode=${response.statusCode ?? 0}`,
+          `Webhook retry rejected requestId=${input.requestId ?? log.requestId ?? 'unknown'} logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} statusCode=${response.statusCode ?? 0}`,
         );
       }
 
@@ -119,7 +124,7 @@ export class RetryWebhookLogUseCase {
       log.recordFailure(0, errorMessage);
       await this.webhookLogRepository.update(log);
       this.logger?.warn(
-        `Webhook retry failed logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} error=${errorMessage}`,
+        `Webhook retry failed requestId=${input.requestId ?? log.requestId ?? 'unknown'} logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id} error=${errorMessage}`,
       );
 
       return {

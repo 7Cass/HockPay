@@ -12,6 +12,7 @@ import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 export interface IFailPaymentInput {
   storeId: string;
   paymentId: string;
+  requestId?: string;
   reason?: string;
 }
 
@@ -73,6 +74,7 @@ export class FailPaymentUseCase {
       aggregateType: 'Payment',
       aggregateId: payment.id,
       eventType: 'payment.failed',
+      requestId: input.requestId,
       storeId: payment.storeId,
       payload: payment.toObject() as unknown as Record<string, unknown>,
     });

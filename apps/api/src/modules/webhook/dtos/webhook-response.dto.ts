@@ -60,8 +60,12 @@ export class WebhookLogDto {
   id: string;
   configId: string;
   paymentId?: string;
+  outboxEventId?: string;
+  requestId?: string;
+  deliveryId: string;
   eventType: string;
   payload: Record<string, unknown>;
+  requestHeaders?: Record<string, string>;
   responseStatus?: number;
   responseBody?: string;
   attempt: number;
@@ -115,8 +119,12 @@ export function mapWebhookLogToDto(log: WebhookLogObject): WebhookLogDto {
     id: log.id,
     configId: log.configId,
     paymentId: log.paymentId,
+    outboxEventId: log.outboxEventId,
+    requestId: log.requestId,
+    deliveryId: log.id,
     eventType: log.eventType,
     payload: log.payload,
+    requestHeaders: sanitizeRequestHeaders(log.requestHeaders),
     responseStatus: log.responseStatus,
     responseBody: log.responseBody,
     attempt: log.attempt,
@@ -125,4 +133,24 @@ export function mapWebhookLogToDto(log: WebhookLogObject): WebhookLogDto {
     deliveredAt: log.deliveredAt,
     createdAt: log.createdAt,
   };
+}
+
+function sanitizeRequestHeaders(
+  headers?: Record<string, string>,
+): Record<string, string> | undefined {
+  if (!headers) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => {
+      if (key.toLowerCase() === 'x-hockpay-signature') {
+        return [key, maskHeaderValue(value)];
+      }
+      return [key, value];
+    }),
+  );
+}
+
+function maskHeaderValue(value: string): string {
+  if (value.length <= 12) return '[REDACTED]';
+  return `${value.slice(0, 8)}...[REDACTED]`;
 }

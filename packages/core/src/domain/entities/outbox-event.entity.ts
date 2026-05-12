@@ -19,6 +19,7 @@ export class OutboxEvent {
   private readonly _aggregateType: string;
   private readonly _aggregateId: string;
   private readonly _eventType: string;
+  private readonly _requestId?: string;
   private readonly _payload: Record<string, unknown>;
   private _status: OutboxEventStatus;
   private _processedAt?: Date;
@@ -33,6 +34,7 @@ export class OutboxEvent {
     this._aggregateType = props.aggregateType;
     this._aggregateId = props.aggregateId;
     this._eventType = props.eventType;
+    this._requestId = props.requestId;
     this._payload = props.payload;
     this._status = props.status;
     this._processedAt = props.processedAt;
@@ -56,6 +58,7 @@ export class OutboxEvent {
       aggregateType: props.aggregateType,
       aggregateId: props.aggregateId,
       eventType: props.eventType,
+      requestId: props.requestId,
       payload,
       status: OutboxEventStatus.PENDING,
       retryCount: 0,
@@ -88,6 +91,10 @@ export class OutboxEvent {
 
   get eventType(): string {
     return this._eventType;
+  }
+
+  get requestId(): string | undefined {
+    return this._requestId;
   }
 
   get payload(): Record<string, unknown> {
@@ -189,6 +196,7 @@ export class OutboxEvent {
       aggregateType: this._aggregateType,
       aggregateId: this._aggregateId,
       eventType: this._eventType,
+      requestId: this._requestId,
       payload: this._payload,
       status: this._status,
       processedAt: this._processedAt,
@@ -208,6 +216,7 @@ export interface CreateOutboxEventProps {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  requestId?: string;
   storeId?: string;
   payload: Record<string, unknown>;
   maxRetries?: number;
@@ -221,6 +230,7 @@ export interface OutboxEventProps {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  requestId?: string;
   payload: Record<string, unknown>;
   status: OutboxEventStatus;
   processedAt?: Date;
@@ -239,6 +249,7 @@ export interface OutboxEventObject {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  requestId?: string;
   payload: Record<string, unknown>;
   status: OutboxEventStatus;
   processedAt?: Date;

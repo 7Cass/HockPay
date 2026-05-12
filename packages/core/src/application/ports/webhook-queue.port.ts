@@ -11,7 +11,7 @@ export interface IWebhookQueuePort {
    * @param eventId - The outbox event ID to process
    * @param delay - Optional delay in milliseconds
    */
-  enqueue(eventId: string, delay?: number): Promise<void>;
+  enqueue(eventId: string, delay?: number, requestId?: string): Promise<void>;
 
   /**
    * Enqueue a webhook for retry with exponential backoff.
@@ -28,4 +28,5 @@ export interface IWebhookQueuePort {
 export interface WebhookJobData {
   eventId: string;
   attempt: number;
+  requestId?: string;
 }

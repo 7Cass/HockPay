@@ -69,4 +69,17 @@ describe("OutboxEvent", () => {
       storeId: "store-1",
     });
   });
+
+  it("preserves the request id for async traceability", () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Payment",
+      aggregateId: "payment-1",
+      eventType: "payment.created",
+      requestId: "req-1",
+      payload: { id: "payment-1" },
+    });
+
+    expect(event.requestId).toBe("req-1");
+    expect(event.toObject().requestId).toBe("req-1");
+  });
 });

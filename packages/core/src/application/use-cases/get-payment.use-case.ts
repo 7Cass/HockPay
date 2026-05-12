@@ -9,6 +9,7 @@ import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.erro
 export interface IGetPaymentInput {
   storeId: string;
   paymentId: string;
+  requestId?: string;
 }
 
 /**
@@ -50,6 +51,7 @@ export class GetPaymentUseCase {
           aggregateType: 'Payment',
           aggregateId: payment.id,
           eventType: 'payment.expired',
+          requestId: input.requestId,
           storeId: payment.storeId,
           payload: payment.toObject() as unknown as Record<string, unknown>,
         });

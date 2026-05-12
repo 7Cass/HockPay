@@ -29,6 +29,9 @@ export interface WebhookLog {
     id: string;
     configId: string;
     paymentId?: string;
+    outboxEventId?: string;
+    requestId?: string;
+    deliveryId: string;
     eventType: string;
     payload: any;
     requestHeaders?: any;

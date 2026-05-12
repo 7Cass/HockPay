@@ -11,6 +11,7 @@ import {
 } from "../../domain/entities/transaction.entity";
 import { Receipt } from "../../domain/entities/receipt.entity";
 import { ICustomerRepository } from "../../domain/repositories/customer.repository.interface";
+import { buildReceiptNumber } from "./receipt-number";
 
 /**
  * Input DTO for ConfirmPaymentUseCase.
@@ -18,6 +19,7 @@ import { ICustomerRepository } from "../../domain/repositories/customer.reposito
 export interface IConfirmPaymentInput {
   storeId: string;
   paymentId: string;
+  requestId?: string;
   pixTxId?: string;
 }
 
@@ -119,7 +121,11 @@ export class ConfirmPaymentUseCase {
         input.storeId,
         dateStr,
       );
-      const receiptNumber = `RCP-${dateStr}-${String(sequence).padStart(5, "0")}`;
+      const receiptNumber = buildReceiptNumber(
+        input.storeId,
+        dateStr,
+        sequence,
+      );
 
       const customer = payment.customerId
         ? await this.customerRepository.findById(payment.customerId)
@@ -147,6 +153,7 @@ export class ConfirmPaymentUseCase {
         aggregateType: "Payment",
         aggregateId: payment.id,
         eventType: "payment.confirmed",
+        requestId: input.requestId,
         storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });

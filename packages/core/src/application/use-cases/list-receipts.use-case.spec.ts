@@ -6,7 +6,7 @@ describe('ListReceiptsUseCase', () => {
   it('forwards store-scoped pagination and filters to the repository', async () => {
     const receiptObject = {
       id: 'receipt-1',
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       paymentId: 'payment-1',
       storeId: 'store-1',
       payeeName: 'Hockpay Store',
@@ -37,12 +37,12 @@ describe('ListReceiptsUseCase', () => {
       storeId: 'store-1',
       page: 2,
       limit: 10,
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       customerId: 'customer-1',
     });
 
     expect(repository.findByStoreId).toHaveBeenCalledWith('store-1', 2, 10, {
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       customerId: 'customer-1',
     });
     expect(result.receipts).toEqual([receiptObject]);

@@ -7,7 +7,7 @@ describe('GetReceiptUseCase', () => {
   it('loads a receipt by receipt number and enforces store scoping', async () => {
     const receiptObject = {
       id: 'receipt-1',
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       paymentId: 'payment-1',
       storeId: 'store-1',
       payeeName: 'Hockpay Store',
@@ -32,12 +32,12 @@ describe('GetReceiptUseCase', () => {
 
     const useCase = new GetReceiptUseCase(repository as IReceiptRepository);
     const result = await useCase.execute({
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       storeId: 'store-1',
     });
 
     expect(repository.findByReceiptNumber).toHaveBeenCalledWith(
-      'RCP-20260419-00001',
+      'RCP-20260419-STORE1-00001',
     );
     expect(result.receipt).toEqual(receiptObject);
   });
@@ -56,7 +56,7 @@ describe('GetReceiptUseCase', () => {
 
     await expect(
       useCase.execute({
-        receiptNumber: 'RCP-20260419-00099',
+        receiptNumber: 'RCP-20260419-STORE1-00099',
         storeId: 'store-1',
       }),
     ).rejects.toThrow(ReceiptNotFoundError);

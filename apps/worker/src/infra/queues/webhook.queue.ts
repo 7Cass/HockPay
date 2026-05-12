@@ -26,14 +26,14 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
     }
   }
 
-  async enqueue(eventId: string, delay?: number): Promise<void> {
+  async enqueue(eventId: string, delay?: number, requestId?: string): Promise<void> {
     if (!this.queue) {
       throw new Error('Queue not initialized');
     }
 
     await this.queue.add(
       'deliver',
-      { eventId, attempt: 1 },
+      { eventId, attempt: 1, requestId },
       {
         delay: delay ?? 0,
         jobId: `webhook-${eventId}`,

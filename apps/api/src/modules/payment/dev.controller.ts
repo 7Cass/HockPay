@@ -25,6 +25,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { GetPaymentResponseDto } from './dtos/payment-response.dto';
 import { Environment } from '@hockpay/core';
+import { getRequestId } from '../../common/request-id';
 
 /**
  * Controller for Dev/Simulation endpoints.
@@ -70,6 +71,7 @@ export class DevController {
       const result = await this.confirmPaymentUseCase.execute({
         storeId,
         paymentId: id,
+        requestId: getRequestId(req),
       });
 
       return {
@@ -96,6 +98,7 @@ export class DevController {
     try {
       const result = await this.expirePaymentUseCase.execute({
         paymentId: id,
+        requestId: getRequestId(req),
       });
 
       return {
@@ -131,6 +134,7 @@ export class DevController {
       const result = await this.failPaymentUseCase.execute({
         storeId,
         paymentId: id,
+        requestId: getRequestId(req),
         reason: reason ?? 'Payment failed (simulated)',
       });
 

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { WebhookLog } from "@hockpay/core";
 import { WebhookLogRepository } from "./webhook-log.repository";
 
 describe("WebhookLogRepository", () => {
@@ -53,5 +54,60 @@ describe("WebhookLogRepository", () => {
       take: 10,
     });
     expect(prisma.webhookLog.count).toHaveBeenCalledWith({ where });
+  });
+
+  it("persists trace identifiers for delivery logs", async () => {
+    const log = WebhookLog.create({
+      configId: "config-1",
+      paymentId: "payment-1",
+      outboxEventId: "outbox-1",
+      requestId: "req-1",
+      eventType: "payment.confirmed",
+      payload: { id: "payment-1" },
+    });
+    const prisma = {
+      webhookLog: {
+        create: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const repository = new WebhookLogRepository(prisma as any);
+
+    await repository.save(log);
+
+    expect(prisma.webhookLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: log.id,
+        outboxEventId: "outbox-1",
+        requestId: "req-1",
+      }),
+    });
+  });
+
+  it("persists trace identifiers and headers when updating delivery logs", async () => {
+    const log = WebhookLog.create({
+      configId: "config-1",
+      eventType: "payment.confirmed",
+      payload: { id: "payment-1" },
+    });
+    log.setRequestId("req-retry-1");
+    log.setRequestHeaders({ "X-Request-ID": "req-retry-1" });
+    log.recordFailure(500, "error");
+
+    const prisma = {
+      webhookLog: {
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const repository = new WebhookLogRepository(prisma as any);
+
+    await repository.update(log);
+
+    expect(prisma.webhookLog.update).toHaveBeenCalledWith({
+      where: { id: log.id },
+      data: expect.objectContaining({
+        requestId: "req-retry-1",
+        requestHeaders: { "X-Request-ID": "req-retry-1" },
+      }),
+    });
   });
 });

@@ -88,6 +88,13 @@ export class Webhooks implements OnInit {
     { id: 'payment.released', label: 'Repasse Liberado' },
   ];
 
+  logStatusOptions: Array<'all' | 'delivered' | 'failed' | 'pending'> = [
+    'all',
+    'delivered',
+    'failed',
+    'pending',
+  ];
+
   createDialogState = signal<'closed' | 'open'>('closed');
 
   // Secret Modal State
@@ -109,6 +116,8 @@ export class Webhooks implements OnInit {
   logsDialogState = signal<'closed' | 'open'>('closed');
   hookForLogs = signal<WebhookConfig | null>(null);
   webhookLogs = signal<WebhookLog[]>([]);
+  logsStatus = signal<'all' | 'delivered' | 'failed' | 'pending'>('all');
+  logsTotal = signal(0);
   isLogsLoading = signal<boolean>(false);
   logsError = signal<string | null>(null);
   isRetrying = signal<{ [logId: string]: boolean }>({});
@@ -246,6 +255,7 @@ export class Webhooks implements OnInit {
   // --- LOGS (Delivery History) ---
   openLogsDialog(hook: WebhookConfig) {
     this.hookForLogs.set(hook);
+    this.logsStatus.set('all');
     this.logsDialogState.set('open');
     this.loadLogs(hook.id);
   }
@@ -255,6 +265,7 @@ export class Webhooks implements OnInit {
     setTimeout(() => {
       this.hookForLogs.set(null);
       this.webhookLogs.set([]);
+      this.logsTotal.set(0);
     }, 200);
   }
 
@@ -262,11 +273,15 @@ export class Webhooks implements OnInit {
     this.isLogsLoading.set(true);
     this.logsError.set(null);
     this.webhookLogs.set([]);
+    this.logsTotal.set(0);
 
-    // Query 50 most recent logs roughly
-    this.webhookService.listLogs(hookId, { limit: 50 }).subscribe({
+    const selectedStatus = this.logsStatus();
+    const status: 'delivered' | 'failed' | 'pending' | undefined =
+      selectedStatus === 'all' ? undefined : selectedStatus;
+    this.webhookService.listLogs(hookId, { limit: 50, status }).subscribe({
       next: (response) => {
         this.webhookLogs.set(response.logs);
+        this.logsTotal.set(response.total);
         this.isLogsLoading.set(false);
       },
       error: (err) => {
@@ -275,6 +290,24 @@ export class Webhooks implements OnInit {
         this.isLogsLoading.set(false);
       },
     });
+  }
+
+  setLogsStatus(status: 'all' | 'delivered' | 'failed' | 'pending') {
+    this.logsStatus.set(status);
+    const hook = this.hookForLogs();
+    if (hook) {
+      this.loadLogs(hook.id);
+    }
+  }
+
+  copyId(value?: string) {
+    if (!value) return;
+    void navigator.clipboard?.writeText(value);
+  }
+
+  shortId(value?: string): string {
+    if (!value) return '-';
+    return value.length > 12 ? `${value.slice(0, 8)}...` : value;
   }
 
   retryLog(log: WebhookLog) {

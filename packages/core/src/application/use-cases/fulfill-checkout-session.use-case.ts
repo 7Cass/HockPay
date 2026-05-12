@@ -10,6 +10,7 @@ import { CustomerCollectionMode } from "../../domain/entities/checkout-session.e
 
 export interface IFulfillCheckoutSessionInput {
   token: string;
+  requestId?: string;
   customer?: PaymentCustomerInput;
   environment: Environment;
 }
@@ -64,6 +65,7 @@ export class FulfillCheckoutSessionUseCase {
       amount: session.amount,
       description: session.description ?? undefined,
       customer,
+      requestId: input.requestId,
       customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
       environment: input.environment,
       metadata: session.metadata ?? undefined,

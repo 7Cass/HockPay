@@ -78,7 +78,7 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
                 (input)="onReceiptNumberInput($any($event.target).value)"
                 (keydown.enter)="applySearch()"
                 class="pl-10"
-                placeholder="RCP-20260419-00001"
+                placeholder="RCP-20260419-STORE1-00001"
               />
             </div>
           </div>

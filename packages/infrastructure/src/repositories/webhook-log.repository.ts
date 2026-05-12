@@ -22,6 +22,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
         id: log.id,
         configId: log.configId,
         paymentId: log.paymentId,
+        outboxEventId: log.outboxEventId,
+        requestId: log.requestId,
         eventType: log.eventType,
         payload: log.payload as any,
         requestHeaders: log.requestHeaders as any,
@@ -40,6 +42,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     await this.prisma.webhookLog.update({
       where: { id: log.id },
       data: {
+        requestId: log.requestId,
+        requestHeaders: log.requestHeaders as any,
         responseStatus: log.responseStatus,
         responseBody: log.responseBody,
         attempt: log.attempt,
@@ -146,6 +150,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     id: string;
     configId: string;
     paymentId: string | null;
+    outboxEventId: string | null;
+    requestId: string | null;
     eventType: string;
     payload: any;
     requestHeaders: any;
@@ -161,6 +167,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       id: prismaLog.id,
       configId: prismaLog.configId,
       paymentId: prismaLog.paymentId ?? undefined,
+      outboxEventId: prismaLog.outboxEventId ?? undefined,
+      requestId: prismaLog.requestId ?? undefined,
       eventType: prismaLog.eventType,
       payload: prismaLog.payload as Record<string, unknown>,
       requestHeaders: prismaLog.requestHeaders as Record<string, string> | undefined,

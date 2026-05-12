@@ -5,6 +5,7 @@ import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckou
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import type { Request } from 'express';
+import { getRequestId } from '../../common/request-id';
 
 @Controller('checkout-sessions')
 @Public()
@@ -62,6 +63,7 @@ export class CheckoutSessionController {
 
       return await this.fulfillUseCase.execute({
         token,
+        requestId: getRequestId(req),
         customer: dto.customer,
         environment,
       });

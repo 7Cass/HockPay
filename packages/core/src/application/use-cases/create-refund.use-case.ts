@@ -13,6 +13,7 @@ import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 export interface ICreateRefundInput {
   storeId: string;
   paymentId: string;
+  requestId?: string;
   amount: number;
   reason?: string;
 }
@@ -101,6 +102,7 @@ export class CreateRefundUseCase {
         aggregateType: "Payment",
         aggregateId: payment.id,
         eventType: "payment.refunded",
+        requestId: input.requestId,
         storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,
       });

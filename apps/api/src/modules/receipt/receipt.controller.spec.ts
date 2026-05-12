@@ -44,7 +44,7 @@ describe('ReceiptController', () => {
       {
         page: 1,
         limit: 20,
-        receiptNumber: 'RCP-20260419-00001',
+        receiptNumber: 'RCP-20260419-STORE1-00001',
         customerId: 'customer-1',
       },
       {
@@ -56,7 +56,7 @@ describe('ReceiptController', () => {
       storeId: 'store-1',
       page: 1,
       limit: 20,
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       customerId: 'customer-1',
     });
   });
@@ -65,7 +65,7 @@ describe('ReceiptController', () => {
     getReceiptUseCase.execute.mockResolvedValue({
       receipt: {
         id: 'receipt-1',
-        receiptNumber: 'RCP-20260419-00001',
+        receiptNumber: 'RCP-20260419-STORE1-00001',
         paymentId: 'payment-1',
         storeId: 'store-1',
         payeeName: 'Hockpay Store',
@@ -80,23 +80,23 @@ describe('ReceiptController', () => {
       },
     });
 
-    await controller.getReceiptByNumber('RCP-20260419-00001', {
+    await controller.getReceiptByNumber('RCP-20260419-STORE1-00001', {
       store: { id: 'store-1' },
     } as any);
 
     expect(getReceiptUseCase.execute).toHaveBeenCalledWith({
-      receiptNumber: 'RCP-20260419-00001',
+      receiptNumber: 'RCP-20260419-STORE1-00001',
       storeId: 'store-1',
     });
   });
 
   it('maps receipt-not-found errors to NotFoundException on receipt-number lookups', async () => {
     getReceiptUseCase.execute.mockRejectedValue(
-      new ReceiptNotFoundError('RCP-20260419-99999'),
+      new ReceiptNotFoundError('RCP-20260419-STORE1-99999'),
     );
 
     await expect(
-      controller.getReceiptByNumber('RCP-20260419-99999', {
+      controller.getReceiptByNumber('RCP-20260419-STORE1-99999', {
         store: { id: 'store-1' },
       } as any),
     ).rejects.toThrow(NotFoundException);

@@ -17,6 +17,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
+import { getRequestId } from '../../common/request-id';
 import { CreateRefundDto } from './dtos/create-refund.dto';
 import {
   CreateRefundResponseDto,
@@ -46,6 +47,7 @@ export class RefundController {
       const result = await this.createRefundUseCase.execute({
         storeId,
         paymentId: dto.paymentId,
+        requestId: getRequestId(req),
         amount: dto.amount,
         reason: dto.reason,
       });

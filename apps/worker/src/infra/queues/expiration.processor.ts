@@ -5,6 +5,7 @@ import {
   ExpirePaymentUseCase,
   IExpirePaymentInput,
 } from '@hockpay/core';
+import { createWorkerRequestId } from '../../common/request-id';
 
 /**
  * BullMQ processor for payment expiration jobs.
@@ -24,12 +25,17 @@ export class ExpirationProcessor extends WorkerHost {
   }
 
   async process(job: Job<IExpirePaymentInput>): Promise<void> {
-    this.logger.debug(`Processing expiration job ${job.id} for payment ${job.data.paymentId}`);
+    const requestId =
+      job.data.requestId ?? createWorkerRequestId('payment-expiration', job.id);
+    this.logger.debug(
+      `Processing expiration job requestId=${requestId} jobId=${job.id} paymentId=${job.data.paymentId}`,
+    );
 
     await this.expirePaymentUseCase.execute({
       paymentId: job.data.paymentId,
+      requestId,
     });
 
-    this.logger.debug(`Expiration job ${job.id} completed`);
+    this.logger.debug(`Expiration job requestId=${requestId} jobId=${job.id} completed`);
   }
 }

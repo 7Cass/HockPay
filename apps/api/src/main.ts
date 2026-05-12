@@ -9,6 +9,10 @@ import {
   TimeoutInterceptor,
 } from './common';
 import cookieParser from 'cookie-parser';
+import {
+  getOrCreateRequestId,
+  RESPONSE_REQUEST_ID_HEADER,
+} from './common/request-id';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -21,6 +25,12 @@ async function bootstrap() {
 
   // Security
   app.use(helmet());
+
+  app.use((req, res, next) => {
+    const requestId = getOrCreateRequestId(req);
+    res.setHeader(RESPONSE_REQUEST_ID_HEADER, requestId);
+    next();
+  });
 
   // Cookie parser middleware
   app.use(cookieParser());

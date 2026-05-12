@@ -74,6 +74,35 @@ Troubleshooting rápido:
 - `Could not start the local webhook receiver`: a porta configurada já está ocupada.
 - `Delivered webhook log was not observed`: confira se o worker e o Redis estão rodando; o dispatcher de outbox precisa consumir o evento.
 
+## Rastrear Request e Webhook
+
+Toda resposta da API inclui `X-Request-ID`. Você também pode enviar esse header para criar uma trilha conhecida:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payments \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: trace-demo-001" \
+  -H "X-Request-ID: trace-demo-001" \
+  -d '{
+    "amount": 1500,
+    "customer": {
+      "name": "Cliente Trace",
+      "email": "trace@hockpay.local",
+      "document": "52998224725"
+    }
+  }'
+```
+
+Depois da entrega, consulte os logs do webhook:
+
+```bash
+curl "http://localhost:3000/api/v1/webhooks/WEBHOOK_ID/logs?status=delivered" \
+  -H "Authorization: Bearer hk_test_xxx"
+```
+
+Cada log mostra `requestId`, `outboxEventId`, `deliveryId` e `paymentId`. Esses campos ligam a chamada original, o registro em `outbox_events`, o job do worker e a tentativa de POST no endpoint do integrador. No dashboard, abra Webhooks -> Histórico para ver e copiar os mesmos IDs.
+
 ## Preparar Merchant, Store e API Key
 
 Crie um merchant:

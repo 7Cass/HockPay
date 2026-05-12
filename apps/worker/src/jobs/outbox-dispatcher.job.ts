@@ -9,6 +9,7 @@ import {
   ALERT_QUEUE_PORT,
   WEBHOOK_QUEUE_PORT,
 } from "../modules/queue/queue.module";
+import { createWorkerRequestId } from "../common/request-id";
 
 /**
  * Outbox Dispatcher Job
@@ -57,11 +58,13 @@ export class OutboxDispatcherJob {
       );
 
       for (const event of events) {
+        const requestId =
+          event.requestId ?? createWorkerRequestId("outbox-dispatcher", event.id);
         const paymentId =
           typeof event.payload.id === "string" ? event.payload.id : event.aggregateId;
         try {
           // BullMQ must accept the webhook job before the outbox leaves a dispatchable state.
-          await this.webhookQueue.enqueue(event.id);
+          await this.webhookQueue.enqueue(event.id, undefined, requestId);
 
           event.markAsDispatched(this.nextDispatchWatchdog());
           await this.outboxRepository.update(event);
@@ -70,13 +73,13 @@ export class OutboxDispatcherJob {
             await this.alertQueue.enqueue(event.id);
           } catch (error) {
             this.logger.warn(
-              `Failed to enqueue alert delivery outboxEventId=${event.id} paymentId=${paymentId}`,
+              `Failed to enqueue alert delivery requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId}`,
               error,
             );
           }
 
           this.logger.debug(
-            `Dispatched webhook event outboxEventId=${event.id} paymentId=${paymentId} eventType=${event.eventType}`,
+            `Dispatched webhook event requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId} eventType=${event.eventType}`,
           );
         } catch (error) {
           event.markAsFailed(
@@ -85,7 +88,7 @@ export class OutboxDispatcherJob {
           );
           await this.outboxRepository.update(event);
           this.logger.error(
-            `Failed to dispatch webhook event outboxEventId=${event.id} paymentId=${paymentId}`,
+            `Failed to dispatch webhook event requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId}`,
             error,
           );
         }

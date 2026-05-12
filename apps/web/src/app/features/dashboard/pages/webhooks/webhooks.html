@@ -605,8 +605,39 @@
           <p class="text-sm text-zinc-500 mt-1">
             Destino: <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
           </p>
+          <p class="text-xs text-zinc-400 mt-1">
+            {{ logsTotal() }} registros encontrados
+          </p>
         </div>
         <app-dialog-close />
+      </div>
+
+      <div class="shrink-0 border-b border-zinc-100 bg-white px-6 py-3">
+        <div class="flex flex-wrap items-center gap-2">
+          @for (status of logStatusOptions; track status) {
+            <button
+              type="button"
+              hlmBtn
+              size="sm"
+              variant="outline"
+              class="h-8"
+              [class.bg-zinc-900]="logsStatus() === status"
+              [class.text-white]="logsStatus() === status"
+              [class.border-zinc-900]="logsStatus() === status"
+              (click)="setLogsStatus(status)"
+            >
+              {{
+                status === 'all'
+                  ? 'Todos'
+                  : status === 'delivered'
+                    ? 'Entregues'
+                    : status === 'failed'
+                      ? 'Falhas'
+                      : 'Pendentes'
+              }}
+            </button>
+          }
+        </div>
       </div>
 
       <div class="flex-1 overflow-y-auto bg-zinc-50/30 p-6 min-h-[400px]">
@@ -702,6 +733,82 @@
                       </button>
                     }
                   </div>
+                </div>
+                <div
+                  class="grid gap-2 border-t border-zinc-100/80 bg-white px-3.5 py-3 text-xs sm:grid-cols-2"
+                >
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Request ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="log.requestId || 'não disponível'"
+                      (click)="copyId(log.requestId)"
+                    >
+                      {{ shortId(log.requestId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Outbox Event
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="log.outboxEventId || 'não disponível'"
+                      (click)="copyId(log.outboxEventId)"
+                    >
+                      {{ shortId(log.outboxEventId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Delivery ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="log.deliveryId"
+                      (click)="copyId(log.deliveryId)"
+                    >
+                      {{ shortId(log.deliveryId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Payment ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="log.paymentId || 'não disponível'"
+                      (click)="copyId(log.paymentId)"
+                    >
+                      {{ shortId(log.paymentId) }}
+                    </button>
+                  </div>
+                  @if (log.nextRetryAt) {
+                    <div class="min-w-0">
+                      <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                        Próximo retry
+                      </div>
+                      <div class="mt-1 text-zinc-700">
+                        {{ log.nextRetryAt | date: 'dd/MM HH:mm:ss' }}
+                      </div>
+                    </div>
+                  }
+                  @if (log.deliveredAt) {
+                    <div class="min-w-0">
+                      <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                        Entregue em
+                      </div>
+                      <div class="mt-1 text-zinc-700">
+                        {{ log.deliveredAt | date: 'dd/MM HH:mm:ss' }}
+                      </div>
+                    </div>
+                  }
                 </div>
                 @if (log.responseBody) {
                   <div class="bg-zinc-50/50 border-t border-zinc-100/80 p-3 pt-2">
