@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@hockpay/database';
 import {
   IWebhookLogRepository,
+  FindWebhookLogsByConfigIdOptions,
+  WebhookLogStatus,
   WebhookLog,
   WebhookLogProps,
 } from '@hockpay/core';
@@ -59,10 +61,16 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     return this.toDomain(prismaLog);
   }
 
-  async findByConfigId(configId: string, limit = 50): Promise<WebhookLog[]> {
+  async findByConfigId(
+    configId: string,
+    options: FindWebhookLogsByConfigIdOptions = {},
+  ): Promise<WebhookLog[]> {
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 50;
     const logs = await this.prisma.webhookLog.findMany({
-      where: { configId },
+      where: this.buildConfigStatusWhere(configId, options.status),
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
       take: limit,
     });
 
@@ -104,13 +112,34 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     return result.count;
   }
 
-  async countByConfigId(configId: string, delivered: boolean): Promise<number> {
+  async countByConfigId(configId: string, status?: WebhookLogStatus): Promise<number> {
     return this.prisma.webhookLog.count({
-      where: {
-        configId,
-        deliveredAt: delivered ? { not: null } : null,
-      },
+      where: this.buildConfigStatusWhere(configId, status),
     });
+  }
+
+  private buildConfigStatusWhere(configId: string, status?: WebhookLogStatus) {
+    switch (status) {
+      case 'delivered':
+        return {
+          configId,
+          deliveredAt: { not: null },
+        };
+      case 'failed':
+        return {
+          configId,
+          deliveredAt: null,
+          attempt: { gt: 1 },
+        };
+      case 'pending':
+        return {
+          configId,
+          deliveredAt: null,
+          attempt: 1,
+        };
+      default:
+        return { configId };
+    }
   }
 
   private toDomain(prismaLog: {

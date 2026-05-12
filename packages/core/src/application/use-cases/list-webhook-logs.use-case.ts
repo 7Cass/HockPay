@@ -46,12 +46,18 @@ export class ListWebhookLogsUseCase {
         throw new WebhookConfigNotFoundError(input.configId);
       }
 
-      const logs = await this.webhookLogRepository.findByConfigId(input.configId, limit);
-      const filteredLogs = this.filterByStatus(logs, input.status);
+      const [logs, total] = await Promise.all([
+        this.webhookLogRepository.findByConfigId(input.configId, {
+          page,
+          limit,
+          status: input.status,
+        }),
+        this.webhookLogRepository.countByConfigId(input.configId, input.status),
+      ]);
 
       return {
-        logs: filteredLogs,
-        total: filteredLogs.length,
+        logs,
+        total,
         page,
         limit,
       };
@@ -62,7 +68,7 @@ export class ListWebhookLogsUseCase {
     const allLogs: WebhookLog[] = [];
 
     for (const config of configs) {
-      const logs = await this.webhookLogRepository.findByConfigId(config.id, limit);
+      const logs = await this.webhookLogRepository.findByConfigId(config.id, { limit });
       allLogs.push(...logs);
     }
 
@@ -87,7 +93,7 @@ export class ListWebhookLogsUseCase {
       case 'delivered':
         return logs.filter((log) => log.isDelivered());
       case 'failed':
-        return logs.filter((log) => !log.isDelivered() && log.attempt > 0);
+        return logs.filter((log) => !log.isDelivered() && log.attempt > 1);
       case 'pending':
         return logs.filter((log) => !log.isDelivered() && log.attempt === 1);
       default:

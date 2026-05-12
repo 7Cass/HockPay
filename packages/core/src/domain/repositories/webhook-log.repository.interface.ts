@@ -1,5 +1,13 @@
 import { WebhookLog, WebhookLogProps } from '../entities/webhook-log.entity';
 
+export type WebhookLogStatus = 'pending' | 'delivered' | 'failed';
+
+export interface FindWebhookLogsByConfigIdOptions {
+  page?: number;
+  limit?: number;
+  status?: WebhookLogStatus;
+}
+
 /**
  * Repository interface for WebhookLog entity.
  *
@@ -24,7 +32,10 @@ export interface IWebhookLogRepository {
   /**
    * Find logs by webhook config ID.
    */
-  findByConfigId(configId: string, limit?: number): Promise<WebhookLog[]>;
+  findByConfigId(
+    configId: string,
+    options?: FindWebhookLogsByConfigIdOptions,
+  ): Promise<WebhookLog[]>;
 
   /**
    * Find logs by payment ID.
@@ -47,5 +58,5 @@ export interface IWebhookLogRepository {
   /**
    * Count logs by config ID and delivery status.
    */
-  countByConfigId(configId: string, delivered: boolean): Promise<number>;
+  countByConfigId(configId: string, status?: WebhookLogStatus): Promise<number>;
 }
