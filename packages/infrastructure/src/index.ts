@@ -14,5 +14,8 @@ export * from "./repositories/bank-account.repository";
 export * from "./repositories/receipt.repository";
 export * from "./repositories/refund.repository";
 export * from "./repositories/store.repository";
+export * from "./queues/expiration.queue";
 export * from "./services/encryption.service";
+export * from "./services/hmac-signer.service";
+export * from "./services/webhook-http-client.service";
 export * from "./services/discord-alert-sender.service";

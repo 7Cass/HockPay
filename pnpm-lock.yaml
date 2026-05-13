@@ -515,6 +515,9 @@ importers:
       '@hockpay/database':
         specifier: workspace:*
         version: link:../database
+      bullmq:
+        specifier: ^5.0.0
+        version: 5.69.3
     devDependencies:
       '@types/node':
         specifier: ^20.19.0

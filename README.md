@@ -41,7 +41,11 @@ pnpm run dev
 
 ## Integração Atual da API
 
-A API usa prefixo global `/api` e versionamento por URI. Os exemplos atuais devem usar `/api/v1/...`.
+A API local escuta em `http://localhost:3000` e usa prefixo global `/api` com versionamento por URI. A base dos exemplos atuais é:
+
+```text
+http://localhost:3000/api/v1
+```
 
 ```bash
 # Criar um pagamento
@@ -69,10 +73,23 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - Cache/fila: Redis 7 via Docker Compose
 - Filas assíncronas: BullMQ sobre Redis
 - Fluxo completo local: PostgreSQL + Redis + API + worker são obrigatórios
+- PostgreSQL é obrigatório para Prisma, autenticação, payments, accounts, receipts, outbox e logs
+- Redis é obrigatório para BullMQ, expiração agendada, entrega de webhooks e cache operacional de idempotência/throttling
+- API sem worker cria dados e outbox, mas não entrega webhooks nem processa jobs assíncronos
 - Invariante P0: toda `store` deve ter exatamente uma `account`; a migration atual faz backfill de stores antigas sem account
 - Checkout hospedado: o default local usa `http://localhost:3000/api/v1`
 - Study case atual validado: `apps/demo-mediakit`
 - Não existe LocalStack nem SQS configurado no estado atual
+
+## Troubleshooting Rápido
+
+| Sintoma | Verificação |
+|---------|-------------|
+| `health/live` não responde | confirme que `apps/api` está rodando na porta `3000` |
+| `health/ready` falha | confira `DATABASE_URL`, PostgreSQL e migrations |
+| Pagamento cria mas webhook não chega | confirme Redis e `apps/worker` rodando |
+| Jobs BullMQ não processam | confira `REDIS_HOST`/`REDIS_PORT` nos processos API e worker |
+| Endpoints de dashboard retornam `401` | use cookie JWT de login; API key é para endpoints de integração |
 
 ## Scripts de Workspace Disponíveis
 

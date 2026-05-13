@@ -8,9 +8,12 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Prefixo HTTP: `/api`
 - Versionamento: URI, versão padrão `v1`
 - Porta padrão: `3000`
+- Base local atual: `http://localhost:3000/api/v1`
 - Autenticação:
   - cookie JWT para dashboard
   - API key `hk_test_...` / `hk_live_...` para integrações públicas
+- PostgreSQL é obrigatório para o runtime da API.
+- Redis é obrigatório para BullMQ, idempotência/cache operacional e throttling.
 
 ## Módulos Relevantes
 
@@ -38,6 +41,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - O checkout hospedado não consulta `payments/:id` como contrato primário; ele usa `checkout-sessions/:token`.
 - A API aceita `X-Request-ID` em qualquer chamada. Se o header não vier, a API gera um ID e sempre devolve `X-Request-ID` na resposta.
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
+- A API cria outbox e agenda jobs, mas a entrega efetiva de webhook depende do worker conectado ao mesmo Redis/PostgreSQL.
 
 ## Exemplos Atuais
 
@@ -149,11 +153,21 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 |----------|-----|
 | `PORT` | Porta HTTP da API |
 | `DATABASE_URL` | Conexão Prisma/PostgreSQL |
-| `REDIS_HOST` / `REDIS_PORT` | Redis para throttling e infra relacionada |
+| `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e cache operacional |
 | `JWT_SECRET` | Assinatura de tokens |
 | `ENCRYPTION_KEY` | Criptografia de dados sensíveis |
 | `PIX_KEY` | Chave Pix simulada usada no payload do pagamento |
 | `CORS_ORIGIN` | Lista de origens permitidas |
+
+## Troubleshooting
+
+| Sintoma | Causa provável | Ação |
+|---------|----------------|------|
+| `GET /health/live` falha | API fora do ar ou porta errada | conferir `PORT` e processo `@hockpay/api` |
+| `GET /health/ready` falha | banco indisponível ou migrations pendentes | subir PostgreSQL e rodar `pnpm run db:deploy` ou `pnpm run db:migrate` em dev |
+| Payment confirmado sem webhook entregue | worker ou Redis indisponível | subir `@hockpay/worker` e conferir `REDIS_HOST`/`REDIS_PORT` |
+| `401` em endpoints dashboard-only | cookie JWT ausente/expirado | fazer login usando cookie jar (`curl -c/-b`) |
+| `401` em endpoints de integração | API key ausente/revogada/ambiente errado | usar `Authorization: Bearer hk_test_...` ou `hk_live_...` |
 
 ## Scripts
 

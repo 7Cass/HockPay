@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DetectAnomaliesUseCase } from '@hockpay/core';
+import { runExclusiveCronJob } from '../common/cron-guard';
 
 /**
  * Anti-Fraud Job
@@ -16,8 +17,10 @@ export class AntiFraudJob {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleAntiFraud(): Promise<void> {
-    this.logger.log('Starting anti-fraud scan...');
-    await this.runAntiFraudScan();
+    await runExclusiveCronJob(AntiFraudJob.name, this.logger, async () => {
+      this.logger.log('Starting anti-fraud scan...');
+      await this.runAntiFraudScan();
+    });
   }
 
   async runAntiFraudScan(): Promise<void> {

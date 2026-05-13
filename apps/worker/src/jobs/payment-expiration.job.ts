@@ -4,6 +4,7 @@ import { PrismaService } from '../infra/database/prisma.service';
 import { PaymentStatus } from '@hockpay/database';
 import { ExpirePaymentUseCase } from '@hockpay/core';
 import { createWorkerRequestId } from '../common/request-id';
+import { runExclusiveCronJob } from '../common/cron-guard';
 
 /**
  * Job que expira pagamentos pendentes que passaram do prazo
@@ -24,7 +25,9 @@ export class PaymentExpirationJob {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async handleExpiration(): Promise<void> {
-    await this.expirePendingPayments();
+    await runExclusiveCronJob(PaymentExpirationJob.name, this.logger, () =>
+      this.expirePendingPayments(),
+    );
   }
 
   /**

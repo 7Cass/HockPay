@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { IIdempotencyKeyRepository } from '@hockpay/core';
+import { runExclusiveCronJob } from '../common/cron-guard';
 
 /**
  * Cleanup Idempotency Keys Job
@@ -19,8 +20,10 @@ export class CleanupIdempotencyKeysJob {
 
     @Cron(CronExpression.EVERY_DAY_AT_4AM)
     async handleCleanup(): Promise<void> {
-        this.logger.log('Starting idempotency keys cleanup job...');
-        await this.runCleanup();
+        await runExclusiveCronJob(CleanupIdempotencyKeysJob.name, this.logger, async () => {
+            this.logger.log('Starting idempotency keys cleanup job...');
+            await this.runCleanup();
+        });
     }
 
     async runCleanup(): Promise<void> {

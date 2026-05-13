@@ -7,6 +7,7 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 - Framework: NestJS 11
 - Porta padrão: `3001`
 - Filas: BullMQ sobre Redis
+- Cron jobs usam guard in-process para evitar sobreposição dentro do mesmo worker
 - Papel principal:
   - despachar eventos do outbox para a fila
   - processar entrega de webhooks
@@ -20,6 +21,7 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 |------|-----|
 | `webhook-delivery` | entrega de webhooks |
 | `payment-expiration` | agendamento/processamento de expiração |
+| `alert-delivery` | entrega de alertas operacionais |
 
 ## Jobs Atuais
 
@@ -37,7 +39,7 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 1. A API cria um `Payment`.
 2. Na mesma operação, grava um `OutboxEvent`.
 3. `OutboxDispatcherJob` busca eventos pendentes do outbox.
-4. O job marca o evento como `DISPATCHED` e o envia para BullMQ.
+4. O job envia o evento para BullMQ e só então marca o outbox como `DISPATCHED`.
 5. `WebhookProcessor` consome a fila.
 6. `ProcessWebhookUseCase`:
    - resolve configs ativas
@@ -53,6 +55,7 @@ Headers relevantes atualmente enviados ao merchant:
 - `X-Hockpay-Signature`
 - `X-Hockpay-Timestamp`
 - `X-Hockpay-Webhook-Id`
+- `X-Request-ID`
 
 ## Variáveis de Ambiente Relevantes
 
@@ -67,6 +70,7 @@ Headers relevantes atualmente enviados ao merchant:
 
 - O worker atual usa Redis/BullMQ; SQS/LocalStack não fazem parte do runtime atual.
 - A documentação antiga dizia que o outbox partia de `WebhookLog`; isso não é mais verdade no código atual.
+- O guard de cron atual é in-process. Ele evita execuções simultâneas no mesmo processo, mas não é lock distribuído para múltiplas réplicas.
 
 ## Scripts
 

@@ -13,12 +13,12 @@ import {
   IWebhookLogRepository,
 } from '@hockpay/core';
 import {
+  EncryptionService,
+  HmacSignerService,
+  WebhookHttpClientService,
   WebhookConfigRepository,
   WebhookLogRepository,
 } from '@hockpay/infrastructure';
-import { EncryptionService } from '../../infra/services/encryption.service';
-import { HmacSignerService } from '../../infra/services/hmac-signer.service';
-import { WebhookHttpClientService } from '../../infra/services/webhook-http-client.service';
 import { TokenGeneratorService } from '../../infra/services/token-generator.service';
 import { JwtService } from '../../infra/services/jwt.service';
 import { PrismaService } from '../../infra/database/prisma.service';
@@ -45,9 +45,21 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
     // Infrastructure
     PrismaService,
     JwtService,
-    EncryptionService,
-    HmacSignerService,
-    WebhookHttpClientService,
+    {
+      provide: EncryptionService,
+      useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),
+    },
+    {
+      provide: HmacSignerService,
+      useFactory: () => new HmacSignerService(),
+    },
+    {
+      provide: WebhookHttpClientService,
+      useFactory: () =>
+        new WebhookHttpClientService({
+          logger: new Logger(WebhookHttpClientService.name),
+        }),
+    },
     TokenGeneratorService,
 
     // CombinedAuthGuard (uses ValidateApiKeyUseCase from ApiKeyModule, JwtService)
@@ -190,3 +202,11 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
   ],
 })
 export class WebhookModule {}
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}

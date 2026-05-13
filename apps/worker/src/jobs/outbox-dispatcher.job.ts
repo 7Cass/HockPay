@@ -10,6 +10,7 @@ import {
   WEBHOOK_QUEUE_PORT,
 } from "../modules/queue/queue.module";
 import { createWorkerRequestId } from "../common/request-id";
+import { runExclusiveCronJob } from "../common/cron-guard";
 
 /**
  * Outbox Dispatcher Job
@@ -23,7 +24,6 @@ export class OutboxDispatcherJob {
   private static readonly ENQUEUE_RETRY_MS = 60 * 1000;
 
   private readonly logger = new Logger(OutboxDispatcherJob.name);
-  private isProcessing = false;
 
   constructor(
     @Inject("IOutboxRepository")
@@ -40,12 +40,12 @@ export class OutboxDispatcherJob {
    */
   @Cron("*/10 * * * * *")
   async handleDispatch(): Promise<void> {
-    if (this.isProcessing) {
-      return;
-    }
+    await runExclusiveCronJob(OutboxDispatcherJob.name, this.logger, () =>
+      this.dispatchEvents(),
+    );
+  }
 
-    this.isProcessing = true;
-
+  private async dispatchEvents(): Promise<void> {
     try {
       const events = await this.outboxRepository.findDispatchableEvents(50);
 
@@ -95,8 +95,6 @@ export class OutboxDispatcherJob {
       }
     } catch (error) {
       this.logger.error("Error in outbox dispatcher", error);
-    } finally {
-      this.isProcessing = false;
     }
   }
 

@@ -15,9 +15,9 @@ import {
   AlertConfigRepository,
   AlertDeliveryLogRepository,
   DiscordAlertSenderService,
+  EncryptionService,
 } from '@hockpay/infrastructure';
 import { PrismaService } from '../../infra/database/prisma.service';
-import { EncryptionService } from '../../infra/services/encryption.service';
 import { AlertController } from './alert.controller';
 import { RequireStoreGuard } from '../auth/guards/require-store.guard';
 
@@ -25,7 +25,10 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
   controllers: [AlertController],
   providers: [
     PrismaService,
-    EncryptionService,
+    {
+      provide: EncryptionService,
+      useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),
+    },
     DiscordAlertSenderService,
     RequireStoreGuard,
     {
@@ -125,3 +128,11 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
   ],
 })
 export class AlertModule {}
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}

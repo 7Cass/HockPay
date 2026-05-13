@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReleasePaymentUseCase, PaymentStatus } from '@hockpay/core';
 import { PrismaService } from '../infra/database/prisma.service';
 import { createWorkerRequestId } from '../common/request-id';
+import { runExclusiveCronJob } from '../common/cron-guard';
 
 /**
  * Settlement Job
@@ -21,8 +22,10 @@ export class SettlementJob {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleSettlement(): Promise<void> {
-    this.logger.log('Starting settlement job...');
-    await this.processSettlements();
+    await runExclusiveCronJob(SettlementJob.name, this.logger, async () => {
+      this.logger.log('Starting settlement job...');
+      await this.processSettlements();
+    });
   }
 
   async processSettlements(): Promise<void> {

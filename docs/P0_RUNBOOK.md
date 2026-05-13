@@ -71,8 +71,12 @@ Troubleshooting rápido:
 
 - `Could not reach .../health/live`: a API não está rodando na URL configurada.
 - `.../health/ready` falha: confira PostgreSQL e migrations.
+- Erros de conexão Redis/BullMQ: confira `REDIS_HOST`, `REDIS_PORT` e se o container Redis está rodando.
+- Payment cria, mas webhook não chega: confira se o worker está rodando e conectado ao mesmo Redis/PostgreSQL da API.
 - `Could not start the local webhook receiver`: a porta configurada já está ocupada.
 - `Delivered webhook log was not observed`: confira se o worker e o Redis estão rodando; o dispatcher de outbox precisa consumir o evento.
+- `401 Unauthorized` em `/stores`, `/accounts/me` ou `/api-keys`: esses endpoints usam cookie JWT de dashboard; faça login com `curl -c /tmp/hockpay.cookies -b /tmp/hockpay.cookies`.
+- `401 Unauthorized` em `/payments`, `/webhooks` ou `/refunds`: confira `Authorization: Bearer hk_test_xxx` ou `hk_live_xxx`.
 
 ## Rastrear Request e Webhook
 

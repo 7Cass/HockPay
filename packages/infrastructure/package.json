@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@hockpay/core": "workspace:*",
-    "@hockpay/database": "workspace:*"
+    "@hockpay/database": "workspace:*",
+    "bullmq": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.0",

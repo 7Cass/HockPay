@@ -18,6 +18,7 @@ import {
 } from '@hockpay/core';
 import {
   CheckoutSessionRepository,
+  ExpirationQueue,
   PaymentRepository,
   OutboxRepository,
   UnitOfWork,
@@ -27,7 +28,6 @@ import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
-import { ExpirationQueue } from 'src/infra/queues/expiration.queue';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -60,7 +60,10 @@ import { JwtService } from 'src/infra/services/jwt.service';
     JwtService,
     PixQrCodeGeneratorService,
     TokenGeneratorService,
-    ExpirationQueue,
+    {
+      provide: ExpirationQueue,
+      useFactory: () => new ExpirationQueue(getRedisConnection()),
+    },
 
     // Factory providers for shared repositories (from @hockpay/infrastructure)
     {
@@ -210,3 +213,10 @@ import { JwtService } from 'src/infra/services/jwt.service';
   ],
 })
 export class PaymentModule {}
+
+function getRedisConnection() {
+  return {
+    host: process.env.REDIS_HOST ?? 'localhost',
+    port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+  };
+}

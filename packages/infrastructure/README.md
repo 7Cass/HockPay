@@ -4,11 +4,12 @@ Pacote de infraestrutura compartilhada do monorepo.
 
 ## Estado Atual
 
-Hoje este pacote não centraliza toda a infraestrutura do sistema. Ele expõe principalmente:
+Hoje este pacote centraliza a infraestrutura compartilhada entre API e worker. Ele expõe principalmente:
 
 - repositórios Prisma compartilhados
 - `UnitOfWork`
-- `EncryptionService`
+- serviços criptográficos e HTTP compartilhados
+- fila BullMQ de expiração de pagamento
 
 ## O que realmente está aqui
 
@@ -16,13 +17,14 @@ Hoje este pacote não centraliza toda a infraestrutura do sistema. Ele expõe pr
 |------|-----------------|
 | Repositories | `PaymentRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `StoreRepository` |
 | Coordenação transacional | `UnitOfWork` |
-| Serviço utilitário | `EncryptionService` |
+| Serviços utilitários | `EncryptionService`, `HmacSignerService`, `WebhookHttpClientService`, `DiscordAlertSenderService` |
+| Filas | `ExpirationQueue` |
 
 ## O que não está consolidado aqui
 
-- toda a camada HTTP
-- toda a infraestrutura de BullMQ
-- todos os serviços de HMAC/JWT/cache
+- controllers, guards e módulos Nest das apps
+- processors BullMQ e cron jobs do worker
+- JWT, password hasher, QR code, slug/token generator e cache de idempotência
 - geração de QR code
 
 Parte relevante dessas implementações ainda vive dentro de `apps/api` e `apps/worker`.

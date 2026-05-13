@@ -1,20 +1,28 @@
-import { Injectable, Logger } from '@nestjs/common';
-import {
-  IWebhookSenderPort,
-  WebhookResponse,
-} from '@hockpay/core';
+import { IWebhookSenderPort, WebhookResponse } from "@hockpay/core";
+
+type WebhookHttpLogger = {
+  debug(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+};
+
+export interface WebhookHttpClientOptions {
+  timeoutMs?: number;
+  logger?: WebhookHttpLogger;
+}
 
 /**
  * Implementation of IWebhookSenderPort using native fetch.
  */
-@Injectable()
 export class WebhookHttpClientService implements IWebhookSenderPort {
-  private readonly logger = new Logger(WebhookHttpClientService.name);
-  private readonly timeout = 30000; // 30 seconds
+  private readonly timeoutMs: number;
+  private readonly logger?: WebhookHttpLogger;
 
-  /**
-   * Send a webhook to the target URL.
-   */
+  constructor(options: WebhookHttpClientOptions = {}) {
+    this.timeoutMs = options.timeoutMs ?? 30_000;
+    this.logger = options.logger;
+  }
+
   async send(
     url: string,
     payload: Record<string, unknown>,
@@ -22,10 +30,10 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
   ): Promise<WebhookResponse> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -36,7 +44,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       const body = await response.text();
 
       if (response.ok) {
-        this.logger.debug(`Webhook sent successfully to ${url}`);
+        this.logger?.debug(`Webhook sent successfully to ${url}`);
         return {
           statusCode: response.status,
           body,
@@ -44,7 +52,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         };
       }
 
-      this.logger.warn(`Webhook returned ${response.status} for ${url}: ${body}`);
+      this.logger?.warn(`Webhook returned ${response.status} for ${url}: ${body}`);
       return {
         statusCode: response.status,
         body,
@@ -52,7 +60,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to send webhook to ${url}: ${errorMessage}`);
+      this.logger?.error(`Failed to send webhook to ${url}: ${errorMessage}`);
 
       return {
         statusCode: 0,

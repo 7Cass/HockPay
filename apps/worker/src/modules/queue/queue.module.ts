@@ -4,10 +4,10 @@ import { CoreModule, EXPIRATION_QUEUE_PORT } from '../core/core.module';
 import { WebhookProcessor } from '../../infra/queues/webhook.processor';
 import { AlertProcessor } from '../../infra/queues/alert.processor';
 import { ExpirationProcessor } from '../../infra/queues/expiration.processor';
-import { ExpirationQueue } from '../../infra/queues/expiration.queue';
 import { WebhookQueue } from '../../infra/queues/webhook.queue';
 import { AlertQueue } from '../../infra/queues/alert.queue';
 import { ExpirePaymentUseCase, IPaymentRepository, IOutboxRepository } from '@hockpay/core';
+import { ExpirationQueue } from '@hockpay/infrastructure';
 
 // Token for IWebhookQueuePort (exported for use in OutboxDispatcherJob)
 export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
@@ -66,7 +66,7 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
     // Expiration Queue
     {
       provide: EXPIRATION_QUEUE_PORT,
-      useClass: ExpirationQueue,
+      useFactory: () => new ExpirationQueue(getRedisConnection()),
     },
     // Webhook Queue
     {
@@ -91,3 +91,10 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
   exports: [EXPIRATION_QUEUE_PORT, WEBHOOK_QUEUE_PORT, ALERT_QUEUE_PORT, ExpirePaymentUseCase],
 })
 export class QueueModule {}
+
+function getRedisConnection() {
+  return {
+    host: process.env.REDIS_HOST ?? 'localhost',
+    port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+  };
+}

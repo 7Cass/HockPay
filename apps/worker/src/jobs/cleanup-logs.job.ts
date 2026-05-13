@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CleanupLogsUseCase } from '@hockpay/core';
+import { runExclusiveCronJob } from '../common/cron-guard';
 
 /**
  * Cleanup Logs Job
@@ -16,8 +17,10 @@ export class CleanupLogsJob {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async handleCleanup(): Promise<void> {
-    this.logger.log('Starting cleanup job...');
-    await this.runCleanup();
+    await runExclusiveCronJob(CleanupLogsJob.name, this.logger, async () => {
+      this.logger.log('Starting cleanup job...');
+      await this.runCleanup();
+    });
   }
 
   async runCleanup(): Promise<void> {

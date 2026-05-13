@@ -11,16 +11,14 @@ import {
   AlertConfigRepository,
   AlertDeliveryLogRepository,
   DiscordAlertSenderService,
+  EncryptionService,
+  HmacSignerService,
   IdempotencyKeyRepository,
   UnitOfWork,
+  WebhookHttpClientService,
 } from '@hockpay/infrastructure';
 import { AccountRepository } from '../../infra/repositories/account.repository.impl';
 import { TransactionRepository } from '../../infra/repositories/transaction.repository.impl';
-
-// Services
-import { HmacSignerService } from '../../infra/crypto/hmac-signer.service';
-import { WebhookHttpClientService } from '../../infra/http/webhook-http-client.service';
-import { EncryptionService } from '../../infra/services/encryption.service';
 
 // Use Cases
 import {
@@ -97,9 +95,21 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     TransactionRepository,
 
     // Services
-    HmacSignerService,
-    WebhookHttpClientService,
-    EncryptionService,
+    {
+      provide: HmacSignerService,
+      useFactory: () => new HmacSignerService(),
+    },
+    {
+      provide: WebhookHttpClientService,
+      useFactory: () =>
+        new WebhookHttpClientService({
+          logger: new Logger(WebhookHttpClientService.name),
+        }),
+    },
+    {
+      provide: EncryptionService,
+      useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),
+    },
     DiscordAlertSenderService,
 
     // Use Cases
@@ -195,3 +205,11 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
   ],
 })
 export class CoreModule { }
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+  return value;
+}
