@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { DatePipe, CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { PaymentService, PaymentStatus } from '../../../../core/services/payment.service';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-payments',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, HlmTableImports, HlmBadgeImports, HlmSpinnerImports, HlmButtonImports, HlmIconImports],
+  imports: [DatePipe, CurrencyPipe, RouterLink, HlmTableImports, HlmBadgeImports, HlmSpinnerImports, HlmButtonImports, HlmIconImports],
   providers: [
     provideIcons({
       lucideFilter,
@@ -108,7 +109,7 @@ import {
               
               <tbody hlmTBody class="divide-y divide-zinc-100">
                 @for (payment of paymentService.payments(); track payment.id) {
-                  <tr hlmTr class="hover:bg-zinc-50/80 transition-colors border-none group">
+                  <tr hlmTr [routerLink]="['/dashboard/payments', payment.id]" class="hover:bg-zinc-50/80 transition-colors border-none group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                     <td hlmTd class="py-3.5 pl-6">
                       <div class="flex flex-col">
                         <span class="text-sm font-medium text-zinc-900">{{ payment.createdAt | date:'dd/MM/yyyy' }}</span>

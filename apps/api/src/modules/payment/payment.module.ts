@@ -5,6 +5,7 @@ import { DevController } from './dev.controller';
 import {
   CreatePaymentUseCase,
   GetPaymentUseCase,
+  GetPaymentTimelineUseCase,
   ListPaymentsUseCase,
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
@@ -15,13 +16,21 @@ import {
   IOutboxRepository,
   IUnitOfWork,
   ICheckoutSessionRepository,
+  IReceiptRepository,
+  IRefundRepository,
+  ITransactionRepository,
+  IWebhookLogRepository,
 } from '@hockpay/core';
 import {
   CheckoutSessionRepository,
   ExpirationQueue,
   PaymentRepository,
   OutboxRepository,
+  ReceiptRepository,
+  RefundRepository,
+  TransactionRepository,
   UnitOfWork,
+  WebhookLogRepository,
 } from '@hockpay/infrastructure';
 import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
 import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
@@ -87,6 +96,26 @@ import { JwtService } from 'src/infra/services/jwt.service';
         new CheckoutSessionRepository(prisma),
       inject: [PrismaService],
     },
+    {
+      provide: 'IReceiptRepository',
+      useFactory: (prisma: PrismaService) => new ReceiptRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IRefundRepository',
+      useFactory: (prisma: PrismaService) => new RefundRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'ITransactionRepository',
+      useFactory: (prisma: PrismaService) => new TransactionRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IWebhookLogRepository',
+      useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
+      inject: [PrismaService],
+    },
 
     // Local repositories (still using @Injectable)
     CustomerRepository,
@@ -129,6 +158,35 @@ import { JwtService } from 'src/infra/services/jwt.service';
         return new GetPaymentUseCase(unitOfWork);
       },
       inject: ['IUnitOfWork'],
+    },
+
+    {
+      provide: GetPaymentTimelineUseCase,
+      useFactory: (
+        paymentRepo: IPaymentRepository,
+        receiptRepo: IReceiptRepository,
+        refundRepo: IRefundRepository,
+        checkoutSessionRepo: ICheckoutSessionRepository,
+        transactionRepo: ITransactionRepository,
+        webhookLogRepo: IWebhookLogRepository,
+      ) => {
+        return new GetPaymentTimelineUseCase(
+          paymentRepo,
+          receiptRepo,
+          refundRepo,
+          checkoutSessionRepo,
+          transactionRepo,
+          webhookLogRepo,
+        );
+      },
+      inject: [
+        'IPaymentRepository',
+        'IReceiptRepository',
+        'IRefundRepository',
+        'ICheckoutSessionRepository',
+        'ITransactionRepository',
+        'IWebhookLogRepository',
+      ],
     },
 
     {
@@ -203,6 +261,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
   exports: [
     CreatePaymentUseCase,
     GetPaymentUseCase,
+    GetPaymentTimelineUseCase,
     ListPaymentsUseCase,
     ConfirmPaymentUseCase,
     ExpirePaymentUseCase,
@@ -210,6 +269,10 @@ import { JwtService } from 'src/infra/services/jwt.service';
     SimulateCheckoutPaymentUseCase,
     'IPaymentRepository',
     'ICheckoutSessionRepository',
+    'IReceiptRepository',
+    'IRefundRepository',
+    'ITransactionRepository',
+    'IWebhookLogRepository',
   ],
 })
 export class PaymentModule {}

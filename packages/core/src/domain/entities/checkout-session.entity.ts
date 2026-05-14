@@ -30,6 +30,25 @@ export interface CheckoutSessionProps {
   updatedAt?: Date;
 }
 
+export interface CheckoutSessionObject {
+  id: string;
+  storeId: string;
+  amount: number;
+  currency: string;
+  description: string | null;
+  customerCollectionMode: CustomerCollectionMode;
+  prefillCustomer: CheckoutSessionPrefillCustomer | null;
+  paymentId: string | null;
+  checkoutToken: string;
+  status: SessionStatus;
+  expiresAt: Date;
+  successUrl: string | null;
+  cancelUrl: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class CheckoutSession {
   private props: Required<CheckoutSessionProps>;
 
@@ -91,7 +110,7 @@ export class CheckoutSession {
     }
   }
 
-  public toObject() {
+  public toObject(): CheckoutSessionObject {
     return { ...this.props };
   }
 }

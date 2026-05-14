@@ -17,6 +17,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import {
   CreatePaymentUseCase,
+  GetPaymentTimelineUseCase,
   GetPaymentUseCase,
   ListPaymentsUseCase,
   SimulateCheckoutPaymentUseCase,
@@ -35,12 +36,14 @@ import { CreatePaymentDto } from './dtos/create-payment.dto';
 import {
   GetPaymentResponseDto,
   CreatePaymentResponseDto,
+  GetPaymentTimelineResponseDto,
 } from './dtos/payment-response.dto';
 import {
   ListPaymentsQueryDto,
   ListPaymentsResponseDto,
 } from './dtos/list-payments.dto';
 import { SimulatePaymentDto } from './dtos/simulate-payment.dto';
+import { mapWebhookLogToDto } from '../webhook/dtos/webhook-response.dto';
 
 /**
  * Controller for Payment endpoints.
@@ -58,6 +61,7 @@ export class PaymentController {
   constructor(
     private readonly createPaymentUseCase: CreatePaymentUseCase,
     private readonly getPaymentUseCase: GetPaymentUseCase,
+    private readonly getPaymentTimelineUseCase: GetPaymentTimelineUseCase,
     private readonly listPaymentsUseCase: ListPaymentsUseCase,
     private readonly simulatePaymentUseCase: SimulateCheckoutPaymentUseCase,
   ) { }
@@ -127,6 +131,47 @@ export class PaymentController {
       }
       if (error instanceof StoreNotApprovedError) {
         throw new UnprocessableEntityException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/v1/payments/:id/timeline
+   *
+   * Gets a payment and its related operational timeline.
+   */
+  @Get(':id/timeline')
+  @UseGuards(CombinedAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async getPaymentTimeline(
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ): Promise<GetPaymentTimelineResponseDto> {
+    try {
+      const storeId = (req as any)?.store?.id;
+
+      if (!storeId) {
+        throw new Error('Store ID not found in request');
+      }
+
+      const result = await this.getPaymentTimelineUseCase.execute({
+        storeId,
+        paymentId: id,
+      });
+
+      return {
+        ...result,
+        webhookLogs: result.webhookLogs.map((log) => mapWebhookLogToDto(log)),
+      };
+    } catch (error) {
+      if (error instanceof PaymentNotFoundError) {
+        throw new NotFoundException({
           error: {
             code: error.code,
             message: error.message,

@@ -56,6 +56,15 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
     return this.toDomain(prismaSession);
   }
 
+  async findByPaymentId(paymentId: string): Promise<DomainCheckoutSession | null> {
+    const prismaSession = await this.prisma.checkoutSession.findUnique({
+      where: { paymentId },
+    });
+
+    if (!prismaSession) return null;
+    return this.toDomain(prismaSession);
+  }
+
   private toDomain(prismaSession: CheckoutSession): DomainCheckoutSession {
     return DomainCheckoutSession.create({
       id: prismaSession.id,

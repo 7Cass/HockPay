@@ -1,4 +1,12 @@
 import { PaymentStatus, PaymentMethod } from '@hockpay/core';
+import type {
+  CheckoutSessionObject,
+  PaymentTimelineEvent,
+  ReceiptObject,
+  RefundObject,
+  TransactionObject,
+} from '@hockpay/core';
+import type { WebhookLogDto } from '../../webhook/dtos/webhook-response.dto';
 
 /**
  * Response DTO for payment data.
@@ -48,4 +56,17 @@ export class CreatePaymentResponseDto {
  */
 export class GetPaymentResponseDto {
   payment: PaymentResponseDto;
+}
+
+/**
+ * Response DTO for payment timeline endpoint.
+ */
+export class GetPaymentTimelineResponseDto {
+  payment: PaymentResponseDto;
+  checkoutSession?: CheckoutSessionObject | null;
+  receipt?: ReceiptObject | null;
+  refunds: RefundObject[];
+  transactions: TransactionObject[];
+  webhookLogs: WebhookLogDto[];
+  timeline: PaymentTimelineEvent[];
 }

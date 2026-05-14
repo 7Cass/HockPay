@@ -2,6 +2,7 @@ import { Injectable, computed, signal, inject } from '@angular/core';
 import { ApiClientService } from './api-client.service';
 import { HttpParams } from '@angular/common/http';
 import { finalize } from 'rxjs';
+import type { ReceiptObject } from './receipt.service';
 
 export enum PaymentStatus {
     PENDING = 'PENDING',
@@ -26,6 +27,11 @@ export interface PaymentObject {
     payerDocument?: string;
     payerEmail?: string;
     status: PaymentStatus;
+    environment?: string;
+    paymentMethod?: string;
+    paymentDetails?: Record<string, any>;
+    acquirerId?: string;
+    totalRefunded?: number;
     pixTxId?: string;
     checkoutUrl?: string;
     expiresAt: Date;
@@ -35,6 +41,105 @@ export interface PaymentObject {
     metadata?: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface CheckoutSessionObject {
+    id: string;
+    storeId: string;
+    amount: number;
+    currency: string;
+    description?: string | null;
+    customerCollectionMode: string;
+    prefillCustomer?: Record<string, any> | null;
+    paymentId?: string | null;
+    checkoutToken: string;
+    status: string;
+    expiresAt: Date | string;
+    successUrl?: string | null;
+    cancelUrl?: string | null;
+    metadata?: Record<string, any> | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+}
+
+export interface RefundObject {
+    id: string;
+    paymentId: string;
+    amount: number;
+    feeRefunded: number;
+    reason?: string;
+    status: string;
+    processedAt?: Date | string;
+    createdAt: Date | string;
+}
+
+export interface TransactionObject {
+    id: string;
+    accountId: string;
+    type: string;
+    amount: number;
+    fee: number;
+    netAmount: number;
+    balanceAfter: number;
+    referenceType?: string;
+    referenceId?: string;
+    description?: string;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+}
+
+export interface WebhookLogDto {
+    id: string;
+    configId: string;
+    paymentId?: string;
+    outboxEventId?: string;
+    requestId?: string;
+    deliveryId: string;
+    eventType: string;
+    payload: Record<string, any>;
+    requestHeaders?: Record<string, string>;
+    responseStatus?: number;
+    responseBody?: string;
+    attempt: number;
+    maxAttempts: number;
+    nextRetryAt?: Date | string;
+    deliveredAt?: Date | string;
+    createdAt: Date | string;
+}
+
+export type PaymentTimelineEventType =
+    | 'payment.created'
+    | 'checkout.completed'
+    | 'payment.confirmed'
+    | 'payment.expired'
+    | 'payment.failed'
+    | 'payment.released'
+    | 'payment.refunded'
+    | 'receipt.issued'
+    | 'transaction.recorded'
+    | 'webhook.delivered'
+    | 'webhook.failed'
+    | 'webhook.pending';
+
+export interface PaymentTimelineEvent {
+    id: string;
+    type: PaymentTimelineEventType;
+    status: 'completed' | 'pending' | 'failed' | 'neutral';
+    title: string;
+    description?: string;
+    occurredAt: Date | string;
+    entityId?: string;
+    metadata?: Record<string, any>;
+}
+
+export interface GetPaymentTimelineResponseDto {
+    payment: PaymentObject;
+    checkoutSession?: CheckoutSessionObject | null;
+    receipt?: ReceiptObject | null;
+    refunds: RefundObject[];
+    transactions: TransactionObject[];
+    webhookLogs: WebhookLogDto[];
+    timeline: PaymentTimelineEvent[];
 }
 
 export interface ListPaymentsResponseDto {
@@ -65,12 +170,18 @@ export class PaymentService {
     private totalState = signal<number>(0);
     private isLoadingState = signal<boolean>(false);
     private errorState = signal<string | null>(null);
+    private currentTimelineState = signal<GetPaymentTimelineResponseDto | null>(null);
+    private isTimelineLoadingState = signal<boolean>(false);
+    private timelineErrorState = signal<string | null>(null);
 
     // Expose computed signals for components to consume
     readonly payments = computed(() => this.paymentsState());
     readonly total = computed(() => this.totalState());
     readonly isLoading = computed(() => this.isLoadingState());
     readonly error = computed(() => this.errorState());
+    readonly currentTimeline = computed(() => this.currentTimelineState());
+    readonly isTimelineLoading = computed(() => this.isTimelineLoadingState());
+    readonly timelineError = computed(() => this.timelineErrorState());
 
     /**
      * Fetches paginated payments from the backend API.
@@ -104,5 +215,33 @@ export class PaymentService {
                     this.errorState.set(err.message || 'Erro ao carregar os pagamentos');
                 }
             });
+    }
+
+    getPaymentTimeline(paymentId: string) {
+        return this.apiClient.get<GetPaymentTimelineResponseDto>(`/payments/${paymentId}/timeline`);
+    }
+
+    loadPaymentTimeline(paymentId: string): void {
+        this.isTimelineLoadingState.set(true);
+        this.timelineErrorState.set(null);
+        this.currentTimelineState.set(null);
+
+        this.getPaymentTimeline(paymentId)
+            .pipe(finalize(() => this.isTimelineLoadingState.set(false)))
+            .subscribe({
+                next: (response) => {
+                    this.currentTimelineState.set(response);
+                },
+                error: (err) => {
+                    console.error('Failed to load payment timeline:', err);
+                    this.timelineErrorState.set(err.message || 'Erro ao carregar o pagamento');
+                }
+            });
+    }
+
+    clearTimelineState(): void {
+        this.currentTimelineState.set(null);
+        this.timelineErrorState.set(null);
+        this.isTimelineLoadingState.set(false);
     }
 }

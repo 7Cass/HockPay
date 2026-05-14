@@ -140,6 +140,7 @@ export * from "./application/use-cases/get-customer.use-case";
 export * from "./application/use-cases/update-customer.use-case";
 export * from "./application/use-cases/create-payment.use-case";
 export * from "./application/use-cases/get-payment.use-case";
+export * from "./application/use-cases/get-payment-timeline.use-case";
 export * from "./application/use-cases/list-payments.use-case";
 export * from "./application/use-cases/confirm-payment.use-case";
 export * from "./application/use-cases/expire-payment.use-case";

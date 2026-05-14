@@ -406,6 +406,13 @@ class InMemoryCheckoutSessionRepository {
       ) ?? null
     );
   }
+
+  async findByPaymentId(paymentId: string): Promise<CheckoutSession | null> {
+    return (
+      [...this.items.values()].find((session) => session.paymentId === paymentId) ??
+      null
+    );
+  }
 }
 
 class InMemoryPaymentRepository {
