@@ -9,6 +9,7 @@ export class ReceiptRepository implements IReceiptRepository {
   async findById(id: string): Promise<Receipt | null> {
     const data = await this.prisma.receipt.findUnique({
       where: { id },
+      include: { payment: { select: { customerId: true } } },
     });
 
     if (!data) return null;
@@ -18,6 +19,7 @@ export class ReceiptRepository implements IReceiptRepository {
   async findByPaymentId(paymentId: string): Promise<Receipt | null> {
     const data = await this.prisma.receipt.findUnique({
       where: { paymentId },
+      include: { payment: { select: { customerId: true } } },
     });
 
     if (!data) return null;
@@ -27,6 +29,7 @@ export class ReceiptRepository implements IReceiptRepository {
   async findByReceiptNumber(receiptNumber: string): Promise<Receipt | null> {
     const data = await this.prisma.receipt.findUnique({
       where: { receiptNumber },
+      include: { payment: { select: { customerId: true } } },
     });
 
     if (!data) return null;
@@ -60,6 +63,7 @@ export class ReceiptRepository implements IReceiptRepository {
     const [items, total] = await Promise.all([
       this.prisma.receipt.findMany({
         where,
+        include: { payment: { select: { customerId: true } } },
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
@@ -125,6 +129,7 @@ export class ReceiptRepository implements IReceiptRepository {
       id: data.id,
       receiptNumber: data.receiptNumber,
       paymentId: data.paymentId,
+      customerId: data.payment?.customerId ?? undefined,
       storeId: data.storeId,
       payerName: data.payerName ?? undefined,
       payerDocument: data.payerDocument ?? undefined,

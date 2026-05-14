@@ -10,6 +10,7 @@ import {
   lucideClock,
   lucideCode2,
   lucideCreditCard,
+  lucideExternalLink,
   lucideFileText,
   lucideReceipt,
   lucideSend,
@@ -51,6 +52,7 @@ import {
       lucideClock,
       lucideCode2,
       lucideCreditCard,
+      lucideExternalLink,
       lucideFileText,
       lucideReceipt,
       lucideSend,
@@ -256,6 +258,15 @@ import {
                   <dd class="text-right font-mono text-xs font-medium text-zinc-900">{{ data.payment.externalId || '-' }}</dd>
                 </div>
               </dl>
+              @if (data.payment.customerId) {
+                <a
+                  [routerLink]="['/dashboard/customers', data.payment.customerId]"
+                  class="mt-5 flex items-center justify-between gap-3 rounded-lg border border-zinc-200/80 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-white hover:text-zinc-900"
+                >
+                  <span>Ver cliente</span>
+                  <ng-icon hlm name="lucideExternalLink" class="text-zinc-400" size="xs"></ng-icon>
+                </a>
+              }
             </section>
 
             <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">

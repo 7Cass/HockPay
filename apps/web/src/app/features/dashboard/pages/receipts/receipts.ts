@@ -1,6 +1,6 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
@@ -11,6 +11,7 @@ import { provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
   lucideCheckCircle2,
+  lucideExternalLink,
   lucideReceipt,
   lucideRefreshCcw,
   lucideSearch,
@@ -31,11 +32,13 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
     HlmButtonImports,
     HlmIconImports,
     HlmInputImports,
+    RouterLink,
   ],
   providers: [
     provideIcons({
       lucideArrowRight,
       lucideCheckCircle2,
+      lucideExternalLink,
       lucideReceipt,
       lucideRefreshCcw,
       lucideSearch,
@@ -160,10 +163,23 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
                       </div>
                     </td>
                     <td hlmTd class="py-3.5">
-                      <div class="flex flex-col">
-                        <span class="text-sm font-medium text-zinc-900">{{ receipt.payerName || 'Cliente não identificado' }}</span>
-                        <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dado adicional' }}</span>
-                      </div>
+                      @if (receipt.customerId) {
+                        <a
+                          [routerLink]="['/dashboard/customers', receipt.customerId]"
+                          class="inline-flex max-w-xs flex-col rounded-md px-2 py-1 -ml-2 text-left transition-colors hover:bg-indigo-50"
+                        >
+                          <span class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700">
+                            {{ receipt.payerName || 'Cliente não identificado' }}
+                            <ng-icon hlm name="lucideExternalLink" size="xs" class="text-indigo-500"></ng-icon>
+                          </span>
+                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dado adicional' }}</span>
+                        </a>
+                      } @else {
+                        <div class="flex flex-col">
+                          <span class="text-sm font-medium text-zinc-900">{{ receipt.payerName || 'Cliente não identificado' }}</span>
+                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dado adicional' }}</span>
+                        </div>
+                      }
                     </td>
                     <td hlmTd class="py-3.5 text-right">
                       <span class="text-sm font-semibold text-emerald-600">{{ receipt.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>

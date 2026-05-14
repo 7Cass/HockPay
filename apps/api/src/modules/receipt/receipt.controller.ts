@@ -169,6 +169,7 @@ export class ReceiptController {
       id: receipt.id,
       receiptNumber: receipt.receiptNumber,
       paymentId: receipt.paymentId,
+      customerId: receipt.customerId,
       storeId: receipt.storeId,
       payerName: receipt.payerName,
       payerDocument: receipt.payerDocument,

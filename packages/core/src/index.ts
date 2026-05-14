@@ -137,6 +137,7 @@ export * from "./application/use-cases/list-stores.use-case";
 export * from "./application/use-cases/create-customer.use-case";
 export * from "./application/use-cases/list-customers.use-case";
 export * from "./application/use-cases/get-customer.use-case";
+export * from "./application/use-cases/get-customer-by-id.use-case";
 export * from "./application/use-cases/update-customer.use-case";
 export * from "./application/use-cases/create-payment.use-case";
 export * from "./application/use-cases/get-payment.use-case";

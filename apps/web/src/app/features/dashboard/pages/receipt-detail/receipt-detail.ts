@@ -9,6 +9,7 @@ import { provideIcons } from '@ng-icons/core';
 import {
   lucideArrowLeft,
   lucideCheckCircle2,
+  lucideExternalLink,
   lucideFileText,
   lucideReceipt,
   lucideXCircle,
@@ -32,6 +33,7 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
     provideIcons({
       lucideArrowLeft,
       lucideCheckCircle2,
+      lucideExternalLink,
       lucideFileText,
       lucideReceipt,
       lucideXCircle,
@@ -104,6 +106,15 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
                   <p class="mt-2 text-sm font-semibold text-zinc-900">{{ receipt.payerName || 'Cliente não identificado' }}</p>
                   <p class="mt-1 text-sm text-zinc-500">{{ receipt.payerEmail || 'E-mail não informado' }}</p>
                   <p class="mt-1 text-sm text-zinc-500">{{ receipt.payerDocument || 'Documento não informado' }}</p>
+                  @if (receipt.customerId) {
+                    <a
+                      [routerLink]="['/dashboard/customers', receipt.customerId]"
+                      class="mt-3 inline-flex items-center gap-2 rounded-md border border-zinc-200/80 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-white hover:text-zinc-900"
+                    >
+                      Ver cliente
+                      <ng-icon hlm name="lucideExternalLink" class="text-zinc-400" size="xs"></ng-icon>
+                    </a>
+                  }
                 </div>
 
                 <div>

@@ -17,6 +17,7 @@ import {
 import type { Request } from 'express';
 import {
   CreateCustomerUseCase,
+  GetCustomerByIdUseCase,
   ListCustomersUseCase,
   GetCustomerUseCase,
   UpdateCustomerUseCase,
@@ -58,6 +59,7 @@ export class CustomerController {
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly listCustomersUseCase: ListCustomersUseCase,
     private readonly getCustomerUseCase: GetCustomerUseCase,
+    private readonly getCustomerByIdUseCase: GetCustomerByIdUseCase,
     private readonly updateCustomerUseCase: UpdateCustomerUseCase,
   ) {}
 
@@ -151,6 +153,45 @@ export class CustomerController {
     });
 
     return result;
+  }
+
+  /**
+   * GET /api/v1/customers/id/:id
+   *
+   * Gets a customer by internal ID for dashboard navigation.
+   */
+  @Get('id/:id')
+  @HttpCode(HttpStatus.OK)
+  async getCustomerById(
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ): Promise<GetCustomerResponseDto> {
+    try {
+      const storeId = (req as any)?.store?.id;
+
+      if (!storeId) {
+        throw new Error('Store ID not found in request');
+      }
+
+      const result = await this.getCustomerByIdUseCase.execute({
+        storeId,
+        customerId: id,
+      });
+
+      return {
+        customer: result.customer,
+      };
+    } catch (error) {
+      if (error instanceof CustomerNotFoundError) {
+        throw new NotFoundException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
+    }
   }
 
   /**

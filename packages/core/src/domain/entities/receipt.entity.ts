@@ -9,6 +9,7 @@ export class Receipt {
   private readonly _id: string;
   private readonly _receiptNumber: string;
   private readonly _paymentId: string;
+  private readonly _customerId?: string;
   private readonly _storeId: string;
   private _payerName?: string;
   private _payerDocument?: string;
@@ -29,6 +30,7 @@ export class Receipt {
     this._id = props.id;
     this._receiptNumber = props.receiptNumber;
     this._paymentId = props.paymentId;
+    this._customerId = props.customerId;
     this._storeId = props.storeId;
     this._payerName = props.payerName;
     this._payerDocument = props.payerDocument;
@@ -81,6 +83,9 @@ export class Receipt {
   }
   get paymentId(): string {
     return this._paymentId;
+  }
+  get customerId(): string | undefined {
+    return this._customerId;
   }
   get storeId(): string {
     return this._storeId;
@@ -149,6 +154,7 @@ export class Receipt {
       id: this._id,
       receiptNumber: this._receiptNumber,
       paymentId: this._paymentId,
+      customerId: this._customerId,
       storeId: this._storeId,
       payerName: this._payerName,
       payerDocument: this._payerDocument,
@@ -193,6 +199,7 @@ export interface ReceiptProps {
   id: string;
   receiptNumber: string;
   paymentId: string;
+  customerId?: string;
   storeId: string;
   payerName?: string;
   payerDocument?: string;

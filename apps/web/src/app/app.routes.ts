@@ -61,6 +61,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/dashboard/pages/customers/customers').then(m => m.Customers),
             },
             {
+                path: 'customers/:id',
+                loadComponent: () => import('./features/dashboard/pages/customer-detail/customer-detail').then(m => m.CustomerDetail),
+            },
+            {
                 path: 'api',
                 loadComponent: () => import('./features/dashboard/pages/api/api').then(m => m.Api),
             },

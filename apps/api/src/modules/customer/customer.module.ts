@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CustomerController } from './customer.controller';
 import {
   CreateCustomerUseCase,
+  GetCustomerByIdUseCase,
   ListCustomersUseCase,
   GetCustomerUseCase,
   UpdateCustomerUseCase,
@@ -61,6 +62,15 @@ import { JwtService } from 'src/infra/services/jwt.service';
       inject: [CustomerRepository],
     },
 
+    // GetCustomerByIdUseCase
+    {
+      provide: GetCustomerByIdUseCase,
+      useFactory: (repo: CustomerRepository) => {
+        return new GetCustomerByIdUseCase(repo);
+      },
+      inject: [CustomerRepository],
+    },
+
     // UpdateCustomerUseCase
     {
       provide: UpdateCustomerUseCase,
@@ -74,6 +84,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
     CreateCustomerUseCase,
     ListCustomersUseCase,
     GetCustomerUseCase,
+    GetCustomerByIdUseCase,
     UpdateCustomerUseCase,
   ],
 })

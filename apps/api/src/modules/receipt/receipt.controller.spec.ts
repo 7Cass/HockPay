@@ -62,11 +62,16 @@ describe('ReceiptController', () => {
   });
 
   it('loads a receipt by receipt number', async () => {
+    const issuedAt = new Date();
+    const createdAt = new Date();
+    const updatedAt = new Date();
+
     getReceiptUseCase.execute.mockResolvedValue({
       receipt: {
         id: 'receipt-1',
         receiptNumber: 'RCP-20260419-STORE1-00001',
         paymentId: 'payment-1',
+        customerId: 'customer-1',
         storeId: 'store-1',
         payeeName: 'Hockpay Store',
         amount: 1000,
@@ -74,19 +79,24 @@ describe('ReceiptController', () => {
         netAmount: 900,
         currency: 'BRL',
         status: 'ISSUED',
-        issuedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        issuedAt,
+        createdAt,
+        updatedAt,
       },
     });
 
-    await controller.getReceiptByNumber('RCP-20260419-STORE1-00001', {
+    const response = await controller.getReceiptByNumber('RCP-20260419-STORE1-00001', {
       store: { id: 'store-1' },
     } as any);
 
     expect(getReceiptUseCase.execute).toHaveBeenCalledWith({
       receiptNumber: 'RCP-20260419-STORE1-00001',
       storeId: 'store-1',
+    });
+    expect(response.receipt).toMatchObject({
+      id: 'receipt-1',
+      paymentId: 'payment-1',
+      customerId: 'customer-1',
     });
   });
 

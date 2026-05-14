@@ -4,6 +4,7 @@ export class ReceiptResponseDto {
   id: string;
   receiptNumber: string;
   paymentId: string;
+  customerId?: string;
   storeId: string;
   payerName?: string;
   payerDocument?: string;
