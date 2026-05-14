@@ -1,5 +1,8 @@
+import 'reflect-metadata';
 import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { CreateWebhookDto } from './create-webhook.dto';
+import { ListWebhookLogsQueryDto } from './list-webhook-logs.dto';
 import { UpdateWebhookDto } from './update-webhook.dto';
 
 describe('Webhook URL DTO validation', () => {
@@ -34,5 +37,15 @@ describe('Webhook URL DTO validation', () => {
     });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
+  });
+
+  it('treats status=undefined as an absent webhook-log filter', async () => {
+    const dto = plainToInstance(ListWebhookLogsQueryDto, {
+      limit: '50',
+      status: 'undefined',
+    });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.status).toBeUndefined();
   });
 });

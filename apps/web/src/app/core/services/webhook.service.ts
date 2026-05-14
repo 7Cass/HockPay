@@ -97,7 +97,10 @@ export class WebhookService {
      * List webhook delivery logs
      */
     listLogs(id: string, params?: { page?: number; limit?: number; status?: 'delivered' | 'failed' | 'pending' }): Observable<{ logs: WebhookLog[]; total: number; page: number; limit: number }> {
-        return this.apiClient.get<{ logs: WebhookLog[]; total: number; page: number; limit: number }>(`/webhooks/${id}/logs`, { params: params as any });
+        const cleanParams = Object.fromEntries(
+            Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== null),
+        );
+        return this.apiClient.get<{ logs: WebhookLog[]; total: number; page: number; limit: number }>(`/webhooks/${id}/logs`, { params: cleanParams as any });
     }
 
     /**

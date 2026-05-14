@@ -1,5 +1,5 @@
 import { IsOptional, IsInt, Min, Max, IsIn } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 /**
  * Query DTO for listing webhook logs.
@@ -23,6 +23,11 @@ export class ListWebhookLogsQueryDto {
   limit?: number = 50;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === '' || value === 'undefined'
+      ? undefined
+      : value,
+  )
   @IsIn(['pending', 'delivered', 'failed'])
   status?: 'pending' | 'delivered' | 'failed';
 }

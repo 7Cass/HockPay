@@ -278,7 +278,14 @@ export class Webhooks implements OnInit {
     const selectedStatus = this.logsStatus();
     const status: 'delivered' | 'failed' | 'pending' | undefined =
       selectedStatus === 'all' ? undefined : selectedStatus;
-    this.webhookService.listLogs(hookId, { limit: 50, status }).subscribe({
+    const params: { limit: number; status?: 'delivered' | 'failed' | 'pending' } = {
+      limit: 50,
+    };
+    if (status) {
+      params.status = status;
+    }
+
+    this.webhookService.listLogs(hookId, params).subscribe({
       next: (response) => {
         this.webhookLogs.set(response.logs);
         this.logsTotal.set(response.total);
