@@ -1,82 +1,240 @@
-<div class="px-8 pb-8 pt-4 max-w-7xl mx-auto flex flex-col h-full gap-6">
-    <!-- Header Area -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Financeiro</h1>
-            <p class="text-sm text-zinc-500 mt-1">Acompanhe seu saldo, movimentações e solicite saques.</p>
+            <p class="mt-1 text-sm text-zinc-500">Saldo e extrato financeiro da loja atual.</p>
         </div>
-        <div class="flex items-center gap-3">
+
+        <div class="flex flex-col items-start gap-2 sm:items-end">
             <button
-                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="lucide lucide-arrow-right-left">
-                    <path d="m16 3 4 4-4 4" />
-                    <path d="M20 7H4" />
-                    <path d="m8 21-4-4 4-4" />
-                    <path d="M4 17h16" />
-                </svg>
-                Solicitar Saque
+                hlmBtn
+                variant="outline"
+                size="sm"
+                class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                (click)="reload()"
+            >
+                <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
+                Atualizar
+            </button>
+            <p class="text-xs font-medium text-zinc-500">Saques ainda não estão disponíveis nesta entrega.</p>
+        </div>
+    </div>
+
+    @if (error()) {
+        <div class="flex items-start gap-3 rounded-xl border border-red-200/60 bg-red-50 p-4 text-red-700 shadow-sm">
+            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
+            <div class="flex-1">
+                <h3 class="text-sm font-semibold">Erro ao carregar financeiro</h3>
+                <p class="mt-1 text-sm opacity-90">{{ error() }}</p>
+            </div>
+        </div>
+    }
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Disponível</p>
+                <ng-icon hlm name="lucideWallet" class="text-zinc-400" size="sm"></ng-icon>
+            </div>
+            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
+                {{ ((account()?.available ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
+            </p>
+            <p class="mt-2 text-xs text-zinc-500">Moeda {{ account()?.currency || 'BRL' }}</p>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">A receber</p>
+                <ng-icon hlm name="lucideClock" class="text-zinc-400" size="sm"></ng-icon>
+            </div>
+            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
+                {{ ((account()?.pending ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
+            </p>
+            <p class="mt-2 text-xs text-zinc-500">Pagamentos confirmados aguardando liberação.</p>
+        </div>
+
+        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Bloqueado</p>
+                <ng-icon hlm name="lucideShield" class="text-zinc-400" size="sm"></ng-icon>
+            </div>
+            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
+                {{ ((account()?.blocked ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
+            </p>
+            <p class="mt-2 text-xs text-zinc-500">Valores retidos por operação financeira.</p>
+        </div>
+    </div>
+
+    <div class="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm">
+        <div class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto] lg:items-end">
+            <label class="block">
+                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Tipo</span>
+                <select
+                    class="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    [value]="typeFilter()"
+                    (change)="setType($any($event.target).value)"
+                >
+                    @for (type of transactionTypes; track type.value) {
+                        <option [value]="type.value">{{ type.label }}</option>
+                    }
+                </select>
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Início</span>
+                <input
+                    hlmInput
+                    type="date"
+                    [value]="startDate()"
+                    (input)="setStartDate($any($event.target).value)"
+                />
+            </label>
+
+            <label class="block">
+                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Fim</span>
+                <input
+                    hlmInput
+                    type="date"
+                    [value]="endDate()"
+                    (input)="setEndDate($any($event.target).value)"
+                />
+            </label>
+
+            <button
+                hlmBtn
+                variant="outline"
+                size="sm"
+                class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                (click)="clearFilters()"
+            >
+                Limpar
+            </button>
+
+            <button
+                hlmBtn
+                size="sm"
+                class="gap-2 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700"
+                (click)="applyFilters()"
+            >
+                <ng-icon hlm name="lucideCalendar" size="xs"></ng-icon>
+                Filtrar
             </button>
         </div>
     </div>
 
-    <!-- Cards Overveiew -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div
-            class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div class="flex items-center gap-2 mb-2 text-zinc-500 z-10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-                    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-                </svg>
-                <span class="text-sm font-semibold uppercase tracking-wider">Saldo Disponível</span>
+    <div class="flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm">
+        @if (isLoading()) {
+            <div class="flex flex-1 flex-col items-center justify-center py-24">
+                <hlm-spinner class="h-6 w-6 animate-spin text-indigo-600" />
+                <p class="mt-4 text-sm font-medium text-zinc-500">Carregando extrato...</p>
             </div>
-            <div class="text-3xl font-bold tracking-tight text-zinc-900 z-10">
-                R$ 0,00
-            </div>
-        </div>
+        }
 
-        <div
-            class="bg-zinc-50 rounded-xl ring-1 ring-zinc-200/80 shadow-sm p-5 flex flex-col justify-between h-32 relative overflow-hidden">
-            <div class="flex items-center gap-2 mb-2 text-zinc-500 z-10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <span class="text-sm font-semibold uppercase tracking-wider">A Receber</span>
+        @if (!isLoading() && !error() && transactions().length === 0) {
+            <div class="flex flex-1 flex-col items-center justify-center bg-zinc-50/30 px-6 py-24 text-center">
+                <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 shadow-sm">
+                    <ng-icon hlm name="lucideArrowRightLeft" size="xl" class="text-indigo-600 opacity-80" strokeWidth="1.5"></ng-icon>
+                </div>
+                <h3 class="mb-1.5 text-base font-semibold text-zinc-900">Nenhum lançamento encontrado</h3>
+                <p class="mx-auto max-w-sm text-sm text-zinc-500">Quando houver pagamentos, liberações ou estornos, os lançamentos aparecerão aqui.</p>
             </div>
-            <div class="text-3xl font-bold tracking-tight text-zinc-700 z-10">
-                R$ 0,00
-            </div>
-        </div>
-    </div>
+        }
 
-    <!-- Content -->
-    <div class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-        <!-- Empty State (Placeholder until table is built) -->
-        <div
-            class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center">
-            <div
-                class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-                    class="text-zinc-400">
-                    <path d="M14 4c0-1.1.9-2 2-2" />
-                    <path d="M20 2c1.1 0 2 .9 2 2" />
-                    <path d="M22 8c0 1.1-.9 2-2 2" />
-                    <path d="M16 10c-1.1 0-2-.9-2-2" />
-                    <path d="m3 7 3 3 3-3" />
-                    <path d="M6 10V5c0-1.7 1.3-3 3-3h1" />
-                    <rect width="8" height="8" x="2" y="14" rx="2" />
-                </svg>
+        @if (!isLoading() && transactions().length > 0) {
+            <div class="flex-1 overflow-x-auto">
+                <table hlmTable class="w-full">
+                    <thead hlmTHead class="border-b border-zinc-200/80 bg-zinc-50/50">
+                        <tr hlmTr class="border-none hover:bg-transparent">
+                            <th hlmTh class="py-3.5 pl-6 text-xs font-semibold uppercase tracking-wider text-zinc-500">Data</th>
+                            <th hlmTh class="py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">Tipo</th>
+                            <th hlmTh class="py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Bruto</th>
+                            <th hlmTh class="hidden py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500 sm:table-cell">Taxa</th>
+                            <th hlmTh class="py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Líquido</th>
+                            <th hlmTh class="hidden py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500 lg:table-cell">Saldo após</th>
+                            <th hlmTh class="py-3.5 pr-6 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Referência</th>
+                        </tr>
+                    </thead>
+
+                    <tbody hlmTBody class="divide-y divide-zinc-100">
+                        @for (transaction of transactions(); track transaction.id) {
+                            <tr hlmTr class="border-none transition-colors hover:bg-zinc-50/80">
+                                <td hlmTd class="py-3.5 pl-6">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-medium text-zinc-900">{{ transaction.createdAt | date:'dd/MM/yyyy' }}</span>
+                                        <span class="mt-0.5 text-xs text-zinc-400">{{ transaction.createdAt | date:'HH:mm:ss' }}</span>
+                                    </div>
+                                </td>
+                                <td hlmTd class="py-3.5">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-semibold text-zinc-900">{{ formatTransactionType(transaction.type) }}</span>
+                                        <span class="mt-0.5 max-w-[18rem] truncate text-xs text-zinc-400">{{ transaction.description || shortId(transaction.id) }}</span>
+                                    </div>
+                                </td>
+                                <td hlmTd class="py-3.5 text-right">
+                                    <span class="text-sm font-medium text-zinc-700">{{ transaction.amount / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
+                                </td>
+                                <td hlmTd class="hidden py-3.5 text-right sm:table-cell">
+                                    <span class="text-sm font-medium text-red-500">-{{ transaction.fee / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
+                                </td>
+                                <td hlmTd class="py-3.5 text-right">
+                                    <span class="text-sm font-semibold" [class]="getNetAmountClasses(transaction)">
+                                        {{ transaction.netAmount / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
+                                    </span>
+                                </td>
+                                <td hlmTd class="hidden py-3.5 text-right lg:table-cell">
+                                    <span class="text-sm font-medium text-zinc-700">{{ transaction.balanceAfter / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
+                                </td>
+                                <td hlmTd class="py-3.5 pr-6 text-right">
+                                    @if (isPaymentReference(transaction)) {
+                                        <a
+                                            [routerLink]="['/dashboard/payments', transaction.referenceId]"
+                                            class="inline-flex items-center justify-end gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                                        >
+                                            {{ shortId(transaction.referenceId) }}
+                                            <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
+                                        </a>
+                                    } @else {
+                                        <span class="font-mono text-xs text-zinc-500">
+                                            {{ transaction.referenceType || '-' }} {{ shortId(transaction.referenceId) }}
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
-            <h3 class="text-base font-semibold text-zinc-900 mb-1">Extrato Vazio</h3>
-            <p class="text-sm text-zinc-500 max-w-sm mx-auto mb-6">Nenhuma transação foi processada nesta loja ainda.
-            </p>
-        </div>
+
+            <div class="flex flex-col gap-3 border-t border-zinc-200/80 bg-zinc-50/50 px-6 py-4 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                    Exibindo <span class="font-semibold text-zinc-900">{{ transactions().length }}</span>
+                    de <span class="font-semibold text-zinc-900">{{ meta().total }}</span> lançamentos
+                </span>
+
+                <div class="flex items-center gap-3 self-end sm:self-auto">
+                    <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                        [disabled]="meta().page <= 1"
+                        (click)="changePage(-1)"
+                    >
+                        Anterior
+                    </button>
+                    <span class="font-medium text-zinc-600">Página {{ meta().page }} de {{ meta().totalPages }}</span>
+                    <button
+                        hlmBtn
+                        variant="outline"
+                        size="sm"
+                        class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                        [disabled]="meta().page >= meta().totalPages"
+                        (click)="changePage(1)"
+                    >
+                        Próxima
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 </div>

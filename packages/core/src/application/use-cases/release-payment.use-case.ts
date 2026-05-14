@@ -111,7 +111,7 @@ export class ReleasePaymentUseCase {
         fee: releaseFee,
         netAmount: releaseNetAmount,
         balanceAfter,
-        referenceType: 'Payment',
+        referenceType: 'PAYMENT',
         referenceId: payment.id,
         description: `Release of payment ${payment.id}`,
       });

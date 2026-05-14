@@ -109,7 +109,7 @@ export class SidebarComponent implements OnInit {
             label: 'Financeiro',
             items: [
                 { label: 'Comprovantes', icon: 'lucideReceipt', route: '/dashboard/receipts' },
-                { label: 'Saldo e Saques', icon: 'lucideArrowRightLeft', route: '/dashboard/financials' },
+                { label: 'Saldo e Extrato', icon: 'lucideArrowRightLeft', route: '/dashboard/financials' },
             ],
         },
         {

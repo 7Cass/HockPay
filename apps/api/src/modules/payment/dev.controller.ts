@@ -17,9 +17,12 @@ import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
+  ReleasePaymentUseCase,
   PaymentNotFoundError,
   PaymentExpiredError,
   InvalidPaymentStatusError,
+  PaymentNotConfirmedError,
+  AccountNotFoundError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -46,6 +49,7 @@ export class DevController {
     private readonly confirmPaymentUseCase: ConfirmPaymentUseCase,
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
     private readonly failPaymentUseCase: FailPaymentUseCase,
+    private readonly releasePaymentUseCase: ReleasePaymentUseCase,
   ) { }
 
   /**
@@ -146,6 +150,33 @@ export class DevController {
     }
   }
 
+  /**
+   * POST /api/v1/dev/simulate/:id/release
+   *
+   * Simulates settlement release from pending balance to available balance.
+   */
+  @Post(':id/release')
+  @HttpCode(HttpStatus.OK)
+  async releasePayment(
+    @Param('id') id: string,
+    @Req() req?: Request,
+  ): Promise<GetPaymentResponseDto> {
+    this.validateTestEnvironment(req);
+
+    try {
+      const result = await this.releasePaymentUseCase.execute({
+        paymentId: id,
+        requestId: getRequestId(req),
+      });
+
+      return {
+        payment: result.payment,
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+
 
   /**
    * Validates that the request is from a TEST environment.
@@ -187,6 +218,22 @@ export class DevController {
     }
     if (error instanceof InvalidPaymentStatusError) {
       throw new UnprocessableEntityException({
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+    }
+    if (error instanceof PaymentNotConfirmedError) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+    }
+    if (error instanceof AccountNotFoundError) {
+      throw new NotFoundException({
         error: {
           code: error.code,
           message: error.message,

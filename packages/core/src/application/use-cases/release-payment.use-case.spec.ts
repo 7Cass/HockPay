@@ -76,6 +76,8 @@ describe('ReleasePaymentUseCase', () => {
     expect(transaction.fee).toBe(750);
     expect(transaction.netAmount).toBe(6_750);
     expect(transaction.balanceAfter).toBe(6_750);
+    expect(transaction.referenceType).toBe('PAYMENT');
+    expect(transaction.referenceId).toBe(payment.id);
   });
 
   it('returns an already released payment without side effects', async () => {

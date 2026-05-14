@@ -10,6 +10,7 @@ import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
+  ReleasePaymentUseCase,
   SimulateCheckoutPaymentUseCase,
   FeePolicy,
   IPaymentRepository,
@@ -233,6 +234,14 @@ import { JwtService } from 'src/infra/services/jwt.service';
     },
 
     {
+      provide: ReleasePaymentUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) => {
+        return new ReleasePaymentUseCase(unitOfWork);
+      },
+      inject: ['IUnitOfWork'],
+    },
+
+    {
       provide: SimulateCheckoutPaymentUseCase,
       useFactory: (
         paymentRepo: IPaymentRepository,
@@ -266,6 +275,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
     ConfirmPaymentUseCase,
     ExpirePaymentUseCase,
     FailPaymentUseCase,
+    ReleasePaymentUseCase,
     SimulateCheckoutPaymentUseCase,
     'IPaymentRepository',
     'ICheckoutSessionRepository',
