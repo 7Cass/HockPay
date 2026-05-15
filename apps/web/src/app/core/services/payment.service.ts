@@ -44,7 +44,7 @@ export interface PaymentObject {
         pixTxId: string;
         pixQrCode?: string;
         pixCopyPaste?: string;
-        expiresAt: Date | string;
+        expiresAt?: Date | string | null;
     };
     checkoutUrl?: string;
     expiresAt: Date;

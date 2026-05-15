@@ -32,7 +32,7 @@ export interface PaymentLinkItem {
         id: string;
         status: string;
         pixTxId: string;
-        expiresAt: string;
+        expiresAt: string | null;
     };
 }
 
@@ -63,15 +63,17 @@ export class PaymentLinkService {
 
     private readonly linksState = signal<PaymentLinkItem[]>([]);
     private readonly statsState = signal<PaymentLinkStats | null>(null);
+    private readonly totalState = signal(0);
     private readonly isLoadingState = signal(false);
     private readonly errorState = signal<string | null>(null);
 
     readonly links = computed(() => this.linksState());
     readonly stats = computed(() => this.statsState());
+    readonly total = computed(() => this.totalState());
     readonly isLoading = computed(() => this.isLoadingState());
     readonly error = computed(() => this.errorState());
 
-    load(query: { page?: number; limit?: number; status?: PaymentLinkStatus } = {}) {
+    load(query: { page?: number; limit?: number; status?: PaymentLinkStatus; hasFailures?: boolean } = {}) {
         this.isLoadingState.set(true);
         this.errorState.set(null);
 
@@ -79,6 +81,7 @@ export class PaymentLinkService {
         if (query.page) params = params.set('page', query.page);
         if (query.limit) params = params.set('limit', query.limit);
         if (query.status) params = params.set('status', query.status);
+        if (query.hasFailures !== undefined) params = params.set('hasFailures', String(query.hasFailures));
 
         this.apiClient.get<ListPaymentLinksResponse>('/payment-links', { params })
             .pipe(finalize(() => this.isLoadingState.set(false)))
@@ -86,6 +89,7 @@ export class PaymentLinkService {
                 next: response => {
                     this.linksState.set(response.items);
                     this.statsState.set(response.stats);
+                    this.totalState.set(response.total);
                 },
                 error: err => this.errorState.set(err.message || 'Erro ao carregar links de pagamento'),
             });
