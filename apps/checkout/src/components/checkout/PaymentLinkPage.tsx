@@ -23,7 +23,11 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
   const [loadingAction, setLoadingAction] = useState<'pay' | 'fail' | null>(null);
   const payment = session.lastPayment;
   const isPaid = session.paymentLink.status === 'PAID' || payment?.status === 'CONFIRMED' || payment?.status === 'RELEASED';
-  const isUnavailable = session.paymentLink.status === 'EXPIRED' || session.paymentLink.status === 'CANCELLED';
+  const isUnavailable =
+    session.paymentLink.status === 'EXPIRED' ||
+    session.paymentLink.status === 'CANCELLED' ||
+    session.pixCharge.status === 'EXPIRED' ||
+    session.pixCharge.status === 'CANCELLED';
 
   useEffect(() => {
     if (isPaid || isUnavailable) return;
@@ -92,11 +96,11 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
             <div className="flex justify-center mb-4">
               <Timer
                 expiresAt={session.pixCharge.expiresAt}
-                onExpire={() => setSession({
-                  ...session,
-                  paymentLink: { ...session.paymentLink, status: 'EXPIRED' },
-                  pixCharge: { ...session.pixCharge, status: 'EXPIRED' },
-                })}
+                onExpire={() => setSession((current) => ({
+                  ...current,
+                  paymentLink: { ...current.paymentLink, status: 'EXPIRED' },
+                  pixCharge: { ...current.pixCharge, status: 'EXPIRED' },
+                }))}
               />
             </div>
             <div className="flex justify-center mb-6">

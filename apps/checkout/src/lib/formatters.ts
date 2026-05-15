@@ -26,9 +26,17 @@ export function formatDate(date: string | Date): string {
 /**
  * Calculate remaining time in seconds until expiration
  */
-export function getRemainingSeconds(expiresAt: string): number {
+export function getRemainingSeconds(expiresAt: string | null | undefined): number | null {
+  if (!expiresAt) {
+    return null;
+  }
+
   const now = new Date();
   const expiration = new Date(expiresAt);
+  if (!Number.isFinite(expiration.getTime())) {
+    return null;
+  }
+
   const diff = Math.floor((expiration.getTime() - now.getTime()) / 1000);
   return Math.max(0, diff);
 }

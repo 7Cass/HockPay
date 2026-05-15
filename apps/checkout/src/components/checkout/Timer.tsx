@@ -5,7 +5,7 @@ import { Clock } from 'lucide-react';
 import { getRemainingSeconds, formatTimeRemaining } from '@/lib/formatters';
 
 interface TimerProps {
-  expiresAt: string;
+  expiresAt: string | null;
   onExpire?: () => void;
 }
 
@@ -18,13 +18,28 @@ export function Timer({ expiresAt, onExpire }: TimerProps) {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const updateRemaining = () => {
       const seconds = getRemainingSeconds(expiresAt);
       setRemaining(seconds);
 
       if (seconds === 0 && onExpire) {
         onExpire();
       }
+    };
+
+    const initialRemaining = getRemainingSeconds(expiresAt);
+    setRemaining(initialRemaining);
+
+    if (initialRemaining === 0 && onExpire) {
+      onExpire();
+    }
+
+    if (initialRemaining === null) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      updateRemaining();
     }, 1000);
 
     return () => clearInterval(interval);
@@ -34,6 +49,15 @@ export function Timer({ expiresAt, onExpire }: TimerProps) {
     return (
       <div className="flex items-center gap-2 text-gray-700 h-[28px]">
         {/* Placeholder para evitar layout shift */}
+      </div>
+    );
+  }
+
+  if (remaining === null) {
+    return (
+      <div className="flex items-center gap-2 text-gray-700">
+        <Clock className="w-5 h-5" />
+        <span className="font-medium">Sem expiração</span>
       </div>
     );
   }

@@ -31,7 +31,7 @@ export interface PixCharge {
   pixQrCode: string;
   pixCopyPaste: string;
   pixTxId: string;
-  expiresAt: string;
+  expiresAt: string | null;
 }
 
 export interface CheckoutSession {
