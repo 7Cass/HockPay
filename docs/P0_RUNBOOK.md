@@ -67,6 +67,42 @@ pnpm run smoke:p0
 
 Ao concluir, o comando imprime os IDs principais do fluxo. Ele não sobe containers nem processos dev; falhas de conexão indicam que a API, o banco ou o worker ainda não estão prontos.
 
+## Smoke Automatizado de Payment Link
+
+Com PostgreSQL, Redis e API rodando, execute:
+
+```bash
+pnpm run smoke:payment-link
+```
+
+O smoke cria merchant e store, cria um Payment Link sem expiração, abre o detalhe via `GET /payment-links/:id`, simula uma falha autenticada em `/payment-links/:id/fail`, valida que o link e a PixCharge seguem abertos, simula pagamento em `/payment-links/:id/pay` e valida `PAID`, duas tentativas agrupadas e conversão positiva na listagem.
+
+Fluxo manual equivalente:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payment-links \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies \
+  -H "Content-Type: application/json" \
+  -d '{"amount":2500,"title":"Cobrança avulsa"}'
+
+curl http://localhost:3000/api/v1/payment-links/PAYMENT_LINK_ID \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies
+
+curl -X POST http://localhost:3000/api/v1/payment-links/PAYMENT_LINK_ID/fail \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"manual test"}'
+
+curl -X POST http://localhost:3000/api/v1/payment-links/PAYMENT_LINK_ID/pay \
+  -c /tmp/hockpay.cookies \
+  -b /tmp/hockpay.cookies
+```
+
+No dashboard, abra `/dashboard/payment-links/PAYMENT_LINK_ID`. A tela deve mostrar uma única `PixCharge`, as tentativas `Payment` numeradas, falhas sem fechar a cobrança e pagamento confirmado fechando a PixCharge como `PAID`.
+
 Troubleshooting rápido:
 
 - `Could not reach .../health/live`: a API não está rodando na URL configurada.

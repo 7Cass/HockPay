@@ -31,6 +31,7 @@ Resumo curto e auditado do estado atual do repositório.
 - Checkout local: default de `NEXT_PUBLIC_API_URL` aponta para `http://localhost:3000/api/v1`
 - Study case P0 validado: `apps/demo-mediakit`, com checkout hospedado e webhook assinado
 - Smoke local validado por `pnpm run smoke:p0`
+- Smoke de Payment Link disponivel por `pnpm run smoke:payment-link`
 - Webhooks locais aceitam HTTP somente em `localhost`/`127.0.0.1`; destinos remotos exigem HTTPS
 - Sem LocalStack/SQS configurado
 
@@ -50,6 +51,7 @@ Resumo curto e auditado do estado atual do repositório.
 - Confirmação, expiração, falha, refund e release têm caminho de outbox para webhook.
 - Webhook delivery persiste `requestId`, `outboxEventId`, `deliveryId` e `paymentId`.
 - Dashboard já permite investigar entregas de webhook sem consulta direta ao banco.
+- Payment Link segue o modelo `PaymentLink -> PixCharge -> Payment attempts`: o link e a PixCharge representam a cobranca comercial principal; cada falha ou pagamento gera um `Payment` como tentativa numerada; falha nao fecha o link nem a PixCharge, confirmacao fecha a PixCharge como `PAID`.
 - Account, receipt e transaction existem, mas ainda precisam de melhor caminho visual de validação em P3.
 - O próximo gate prático é P3: timeline de payment, validação financeira no dashboard, template de study-case e revisão de placeholders.
 
