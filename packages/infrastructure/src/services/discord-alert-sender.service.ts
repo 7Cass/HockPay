@@ -60,6 +60,24 @@ function buildDiscordPayload(input: AlertSendInput): Record<string, unknown> {
     { name: 'Valor', value: amount, inline: true },
     { name: 'Payment ID', value: stringify(payment.id ?? '-'), inline: false },
   ];
+  const paymentLinkId = stringValue(payment.paymentLinkId) ?? metadataString(payment, 'paymentLinkId');
+  const pixChargeId = stringValue(payment.pixChargeId) ?? nestedString(payment.pixCharge, 'id');
+  const pixTxId = nestedString(payment.pixCharge, 'pixTxId');
+  const attemptNumber = numberValue(payment.attemptNumber);
+  const attemptCount = numberValue(payment.attemptCount);
+
+  if (paymentLinkId) {
+    fields.push({ name: 'Payment Link', value: paymentLinkId, inline: true });
+  }
+  if (pixChargeId) {
+    fields.push({ name: 'PixCharge', value: pixChargeId, inline: true });
+  }
+  if (attemptNumber && attemptCount) {
+    fields.push({ name: 'Tentativa', value: `#${attemptNumber} de ${attemptCount}`, inline: true });
+  }
+  if (pixTxId) {
+    fields.push({ name: 'Pix TxID', value: pixTxId, inline: false });
+  }
 
   if (payment.externalId) {
     fields.push({ name: 'External ID', value: stringify(payment.externalId), inline: true });
@@ -140,6 +158,25 @@ function formatCurrency(amountInCents: number): string {
 function stringify(value: unknown): string {
   if (value === null || value === undefined) return '-';
   return String(value);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function metadataString(payment: Record<string, unknown>, key: string): string | undefined {
+  const metadata = payment.metadata;
+  if (!metadata || typeof metadata !== 'object') return undefined;
+  return stringValue((metadata as Record<string, unknown>)[key]);
+}
+
+function nestedString(value: unknown, key: string): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  return stringValue((value as Record<string, unknown>)[key]);
 }
 
 function truncate(value: string, max: number): string {
