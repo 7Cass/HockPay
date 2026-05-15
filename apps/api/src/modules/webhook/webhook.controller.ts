@@ -17,12 +17,14 @@ import {
 import type { Request } from 'express';
 import {
   CreateWebhookConfigUseCase,
+  CreateWebhookInboxUseCase,
   ListWebhookConfigsUseCase,
   GetWebhookConfigUseCase,
   UpdateWebhookConfigUseCase,
   DeleteWebhookConfigUseCase,
   TestWebhookConfigUseCase,
   ListWebhookLogsUseCase,
+  ListWebhookInboxEventsUseCase,
   RetryWebhookLogUseCase,
   WebhookConfigNotFoundError,
   InvalidWebhookEventsError,
@@ -38,11 +40,15 @@ import {
   GetWebhookResponseDto,
   TestWebhookResponseDto,
   ListWebhookLogsResponseDto,
+  ListWebhookInboxEventsResponseDto,
   RetryWebhookResponseDto,
+  mapWebhookInboxEventToDto,
   mapWebhookConfigToDto,
   mapWebhookLogToDto,
 } from './dtos/webhook-response.dto';
 import { ListWebhookLogsQueryDto } from './dtos/list-webhook-logs.dto';
+import { CreateWebhookInboxDto } from './dtos/create-webhook-inbox.dto';
+import { ListWebhookInboxEventsQueryDto } from './dtos/list-webhook-inbox-events.dto';
 import { getRequestId } from '../../common/request-id';
 
 /**
@@ -60,12 +66,14 @@ import { getRequestId } from '../../common/request-id';
 export class WebhookController {
   constructor(
     private readonly createWebhookConfigUseCase: CreateWebhookConfigUseCase,
+    private readonly createWebhookInboxUseCase: CreateWebhookInboxUseCase,
     private readonly listWebhookConfigsUseCase: ListWebhookConfigsUseCase,
     private readonly getWebhookConfigUseCase: GetWebhookConfigUseCase,
     private readonly updateWebhookConfigUseCase: UpdateWebhookConfigUseCase,
     private readonly deleteWebhookConfigUseCase: DeleteWebhookConfigUseCase,
     private readonly testWebhookConfigUseCase: TestWebhookConfigUseCase,
     private readonly listWebhookLogsUseCase: ListWebhookLogsUseCase,
+    private readonly listWebhookInboxEventsUseCase: ListWebhookInboxEventsUseCase,
     private readonly retryWebhookLogUseCase: RetryWebhookLogUseCase,
   ) {}
 
@@ -90,7 +98,7 @@ export class WebhookController {
     try {
       const result = await this.createWebhookConfigUseCase.execute({
         storeId,
-        url: dto.url,
+        url: this.validateWebhookTargetUrl(dto.url),
         events: dto.events,
       });
 
@@ -98,6 +106,53 @@ export class WebhookController {
         id: result.webhookConfig.id,
         url: result.webhookConfig.url,
         secret: result.plainSecret, // Only shown once!
+        prefix: result.webhookConfig.prefix,
+        events: result.webhookConfig.events,
+        isActive: result.webhookConfig.isActive,
+        createdAt: result.webhookConfig.createdAt,
+        updatedAt: result.webhookConfig.updatedAt,
+      };
+    } catch (error) {
+      if (error instanceof InvalidWebhookEventsError) {
+        throw new BadRequestException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/v1/webhooks/inbox
+   *
+   * Creates an internal test inbox webhook config.
+   */
+  @Post('inbox')
+  @HttpCode(HttpStatus.CREATED)
+  async createInbox(
+    @Body() dto: CreateWebhookInboxDto,
+    @Req() req: Request,
+  ): Promise<WebhookConfigCreatedDto> {
+    const storeId = (req as any)?.store?.id;
+
+    if (!storeId) {
+      throw new Error('Store ID not found in request');
+    }
+
+    try {
+      const result = await this.createWebhookInboxUseCase.execute({
+        storeId,
+        events: dto.events,
+        baseUrl: this.resolvePublicApiBaseUrl(req),
+      });
+
+      return {
+        id: result.webhookConfig.id,
+        url: result.webhookConfig.url,
+        secret: result.plainSecret,
         prefix: result.webhookConfig.prefix,
         events: result.webhookConfig.events,
         isActive: result.webhookConfig.isActive,
@@ -201,7 +256,7 @@ export class WebhookController {
       const result = await this.updateWebhookConfigUseCase.execute({
         configId: id,
         storeId,
-        url: dto.url,
+        url: dto.url ? this.validateWebhookTargetUrl(dto.url) : undefined,
         events: dto.events,
         isActive: dto.isActive,
       });
@@ -237,10 +292,7 @@ export class WebhookController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(
-    @Param('id') id: string,
-    @Req() req: Request,
-  ): Promise<void> {
+  async delete(@Param('id') id: string, @Req() req: Request): Promise<void> {
     const storeId = (req as any)?.store?.id;
 
     if (!storeId) {
@@ -356,6 +408,53 @@ export class WebhookController {
   }
 
   /**
+   * GET /api/v1/webhooks/:id/inbox-events
+   *
+   * Lists events received by an internal test inbox webhook.
+   */
+  @Get(':id/inbox-events')
+  @HttpCode(HttpStatus.OK)
+  async listInboxEvents(
+    @Param('id') id: string,
+    @Query() query: ListWebhookInboxEventsQueryDto,
+    @Req() req: Request,
+  ): Promise<ListWebhookInboxEventsResponseDto> {
+    const storeId = (req as any)?.store?.id;
+
+    if (!storeId) {
+      throw new Error('Store ID not found in request');
+    }
+
+    try {
+      const result = await this.listWebhookInboxEventsUseCase.execute({
+        storeId,
+        configId: id,
+        page: query.page,
+        limit: query.limit,
+      });
+
+      return {
+        events: result.events.map((event) =>
+          mapWebhookInboxEventToDto(event.toObject()),
+        ),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    } catch (error) {
+      if (error instanceof WebhookConfigNotFoundError) {
+        throw new NotFoundException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
    * POST /api/v1/webhooks/:id/logs/:logId/retry
    *
    * Retries a failed webhook delivery.
@@ -406,5 +505,42 @@ export class WebhookController {
       }
       throw error;
     }
+  }
+
+  private validateWebhookTargetUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      const normalizedPath = parsed.pathname.replace(/\/+$/, '');
+      if (normalizedPath === '/api/v1/webhooks') {
+        throw new BadRequestException({
+          error: {
+            code: 'INVALID_WEBHOOK_TARGET_URL',
+            message:
+              'This URL is the Hockpay webhook management endpoint. Use the internal test inbox or a receiver endpoint such as /api/webhook.',
+          },
+        });
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+    }
+
+    return url;
+  }
+
+  private resolvePublicApiBaseUrl(req: Request): string {
+    const configured =
+      process.env.PUBLIC_API_BASE_URL ?? process.env.APP_URL ?? undefined;
+    if (configured) {
+      return configured;
+    }
+
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const proto = Array.isArray(forwardedProto)
+      ? forwardedProto[0]
+      : forwardedProto;
+    const protocol = proto ?? req.protocol ?? 'http';
+    return `${protocol}://${req.get('host')}`;
   }
 }

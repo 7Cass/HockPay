@@ -172,6 +172,7 @@ model Store {
   checkoutSessions CheckoutSession[]
   paymentLinks    PaymentLink[]
   webhookConfigs  WebhookConfig[]
+  webhookInboxEvents WebhookInboxEvent[]
   alertConfigs    AlertConfig[]
   idempotencyKeys IdempotencyKey[]
   receipts        Receipt[]
@@ -359,6 +360,7 @@ model Payment {
   refunds       Refund[]
   receipt       Receipt?
   webhookLogs   WebhookLog[]
+  webhookInboxEvents WebhookInboxEvent[]
 
   @@index([storeId, status])
   @@index([storeId, createdAt(sort: Desc)])
@@ -481,8 +483,33 @@ model WebhookConfig {
 
   store       Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   webhookLogs WebhookLog[]
+  inboxEvents WebhookInboxEvent[]
 
   @@map("webhook_configs")
+}
+
+model WebhookInboxEvent {
+  id              String        @id @default(uuid())
+  storeId         String        @map("store_id")
+  configId        String        @map("config_id")
+  eventType       String        @map("event_type")
+  payload         Json
+  requestHeaders  Json?         @map("request_headers")
+  requestId       String?       @map("request_id")
+  deliveryId      String?       @map("delivery_id")
+  outboxEventId   String?       @map("outbox_event_id")
+  paymentId       String?       @map("payment_id")
+  signatureValid  Boolean       @default(false) @map("signature_valid")
+  receivedAt      DateTime      @default(now()) @map("received_at")
+
+  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  config          WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([configId, receivedAt])
+  @@index([storeId, receivedAt])
+  @@index([outboxEventId])
+  @@map("webhook_inbox_events")
 }
 
 model WebhookLog {

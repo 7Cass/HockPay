@@ -9,6 +9,7 @@ export * from "./repositories/idempotency-key.repository";
 export * from "./repositories/checkout-session.repository";
 export * from "./repositories/webhook-config.repository";
 export * from "./repositories/webhook-log.repository";
+export * from "./repositories/webhook-inbox-event.repository";
 export * from "./repositories/alert-config.repository";
 export * from "./repositories/alert-delivery-log.repository";
 export * from "./repositories/unit-of-work";

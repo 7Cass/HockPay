@@ -1,15 +1,20 @@
 import { Logger, Module } from '@nestjs/common';
 import { WebhookController } from './webhook.controller';
+import { WebhookInboxController } from './webhook-inbox.controller';
 import {
   CreateWebhookConfigUseCase,
+  CreateWebhookInboxUseCase,
   ListWebhookConfigsUseCase,
   GetWebhookConfigUseCase,
   UpdateWebhookConfigUseCase,
   DeleteWebhookConfigUseCase,
   TestWebhookConfigUseCase,
   ListWebhookLogsUseCase,
+  ListWebhookInboxEventsUseCase,
+  ReceiveWebhookInboxEventUseCase,
   RetryWebhookLogUseCase,
   IWebhookConfigRepository,
+  IWebhookInboxEventRepository,
   IWebhookLogRepository,
 } from '@hockpay/core';
 import {
@@ -17,6 +22,7 @@ import {
   HmacSignerService,
   WebhookHttpClientService,
   WebhookConfigRepository,
+  WebhookInboxEventRepository,
   WebhookLogRepository,
 } from '@hockpay/infrastructure';
 import { TokenGeneratorService } from '../../infra/services/token-generator.service';
@@ -40,7 +46,7 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
     AuthModule,
     ApiKeyModule, // Provides ValidateApiKeyUseCase
   ],
-  controllers: [WebhookController],
+  controllers: [WebhookController, WebhookInboxController],
   providers: [
     // Infrastructure
     PrismaService,
@@ -68,12 +74,19 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
     // Factory providers for shared repositories (from @hockpay/infrastructure)
     {
       provide: 'IWebhookConfigRepository',
-      useFactory: (prisma: PrismaService) => new WebhookConfigRepository(prisma),
+      useFactory: (prisma: PrismaService) =>
+        new WebhookConfigRepository(prisma),
       inject: [PrismaService],
     },
     {
       provide: 'IWebhookLogRepository',
       useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IWebhookInboxEventRepository',
+      useFactory: (prisma: PrismaService) =>
+        new WebhookInboxEventRepository(prisma),
       inject: [PrismaService],
     },
 
@@ -91,7 +104,31 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
           encryption,
         );
       },
-      inject: ['IWebhookConfigRepository', TokenGeneratorService, EncryptionService],
+      inject: [
+        'IWebhookConfigRepository',
+        TokenGeneratorService,
+        EncryptionService,
+      ],
+    },
+
+    {
+      provide: CreateWebhookInboxUseCase,
+      useFactory: (
+        webhookConfigRepo: IWebhookConfigRepository,
+        tokenGenerator: TokenGeneratorService,
+        encryption: EncryptionService,
+      ) => {
+        return new CreateWebhookInboxUseCase(
+          webhookConfigRepo,
+          tokenGenerator,
+          encryption,
+        );
+      },
+      inject: [
+        'IWebhookConfigRepository',
+        TokenGeneratorService,
+        EncryptionService,
+      ],
     },
 
     {
@@ -164,6 +201,43 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
     },
 
     {
+      provide: ListWebhookInboxEventsUseCase,
+      useFactory: (
+        webhookInboxEventRepo: IWebhookInboxEventRepository,
+        webhookConfigRepo: IWebhookConfigRepository,
+      ) => {
+        return new ListWebhookInboxEventsUseCase(
+          webhookInboxEventRepo,
+          webhookConfigRepo,
+        );
+      },
+      inject: ['IWebhookInboxEventRepository', 'IWebhookConfigRepository'],
+    },
+
+    {
+      provide: ReceiveWebhookInboxEventUseCase,
+      useFactory: (
+        webhookConfigRepo: IWebhookConfigRepository,
+        webhookInboxEventRepo: IWebhookInboxEventRepository,
+        hmacSigner: HmacSignerService,
+        encryption: EncryptionService,
+      ) => {
+        return new ReceiveWebhookInboxEventUseCase(
+          webhookConfigRepo,
+          webhookInboxEventRepo,
+          hmacSigner,
+          encryption,
+        );
+      },
+      inject: [
+        'IWebhookConfigRepository',
+        'IWebhookInboxEventRepository',
+        HmacSignerService,
+        EncryptionService,
+      ],
+    },
+
+    {
       provide: RetryWebhookLogUseCase,
       useFactory: (
         webhookLogRepo: IWebhookLogRepository,
@@ -192,12 +266,15 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
   ],
   exports: [
     CreateWebhookConfigUseCase,
+    CreateWebhookInboxUseCase,
     ListWebhookConfigsUseCase,
     GetWebhookConfigUseCase,
     UpdateWebhookConfigUseCase,
     DeleteWebhookConfigUseCase,
     TestWebhookConfigUseCase,
     ListWebhookLogsUseCase,
+    ListWebhookInboxEventsUseCase,
+    ReceiveWebhookInboxEventUseCase,
     RetryWebhookLogUseCase,
   ],
 })

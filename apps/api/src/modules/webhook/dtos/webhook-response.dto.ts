@@ -1,4 +1,9 @@
-import { WebhookConfigObject, WebhookConfigPublicObject, WebhookLogObject } from '@hockpay/core';
+import {
+  WebhookConfigObject,
+  WebhookConfigPublicObject,
+  WebhookInboxEventObject,
+  WebhookLogObject,
+} from '@hockpay/core';
 
 /**
  * Response DTO for creating a webhook config.
@@ -75,6 +80,28 @@ export class WebhookLogDto {
   createdAt: Date;
 }
 
+export class WebhookInboxEventDto {
+  id: string;
+  storeId: string;
+  configId: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+  requestHeaders?: Record<string, string>;
+  requestId?: string;
+  deliveryId?: string;
+  outboxEventId?: string;
+  paymentId?: string;
+  signatureValid: boolean;
+  receivedAt: Date;
+}
+
+export class ListWebhookInboxEventsResponseDto {
+  events: WebhookInboxEventDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 /**
  * Response DTO for listing webhook logs.
  */
@@ -99,7 +126,9 @@ export class RetryWebhookResponseDto {
 /**
  * Helper to map WebhookConfig to DTO.
  */
-export function mapWebhookConfigToDto(config: WebhookConfigPublicObject | WebhookConfigObject): WebhookConfigDto {
+export function mapWebhookConfigToDto(
+  config: WebhookConfigPublicObject | WebhookConfigObject,
+): WebhookConfigDto {
   return {
     id: config.id,
     url: config.url,
@@ -132,6 +161,25 @@ export function mapWebhookLogToDto(log: WebhookLogObject): WebhookLogDto {
     nextRetryAt: log.nextRetryAt,
     deliveredAt: log.deliveredAt,
     createdAt: log.createdAt,
+  };
+}
+
+export function mapWebhookInboxEventToDto(
+  event: WebhookInboxEventObject,
+): WebhookInboxEventDto {
+  return {
+    id: event.id,
+    storeId: event.storeId,
+    configId: event.configId,
+    eventType: event.eventType,
+    payload: event.payload,
+    requestHeaders: sanitizeRequestHeaders(event.requestHeaders),
+    requestId: event.requestId,
+    deliveryId: event.deliveryId,
+    outboxEventId: event.outboxEventId,
+    paymentId: event.paymentId,
+    signatureValid: event.signatureValid,
+    receivedAt: event.receivedAt,
   };
 }
 
