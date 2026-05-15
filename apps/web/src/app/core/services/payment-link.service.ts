@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { ApiClientService } from './api-client.service';
+import type { PaymentObject } from './payment.service';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
 
@@ -30,10 +31,20 @@ export interface PaymentLinkItem {
     lastFailedAt: string | null;
     pixCharge: {
         id: string;
+        storeId?: string;
+        amount?: number;
+        currency?: string;
         status: string;
+        pixQrCode?: string;
+        pixCopyPaste?: string;
         pixTxId: string;
         expiresAt: string | null;
+        paidAt?: string | null;
+        cancelledAt?: string | null;
+        createdAt?: string;
+        updatedAt?: string;
     };
+    attempts?: PaymentObject[];
 }
 
 export interface PaymentLinkStats {
@@ -107,5 +118,17 @@ export class PaymentLinkService {
 
     cancel(id: string) {
         return this.apiClient.post<{ paymentLink: PaymentLinkItem }>(`/payment-links/${id}/cancel`, {});
+    }
+
+    get(id: string) {
+        return this.apiClient.get<{ paymentLink: PaymentLinkItem }>(`/payment-links/${id}`);
+    }
+
+    simulatePay(id: string) {
+        return this.apiClient.post<{ payment: PaymentObject }>(`/payment-links/${id}/pay`, {});
+    }
+
+    simulateFail(id: string) {
+        return this.apiClient.post<{ payment: PaymentObject }>(`/payment-links/${id}/fail`, {});
     }
 }

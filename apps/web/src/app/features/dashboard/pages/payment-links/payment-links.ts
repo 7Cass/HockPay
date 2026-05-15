@@ -8,7 +8,7 @@ import {
     ValidationErrors,
     Validators,
 } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
     lucideAlertTriangle,
@@ -126,6 +126,7 @@ function expirationValidator(control: AbstractControl): ValidationErrors | null 
 })
 export class PaymentLinks implements OnInit {
     readonly service = inject(PaymentLinkService);
+    private readonly router = inject(Router);
     readonly copiedId = signal<string | null>(null);
     readonly isCreating = signal(false);
     readonly sheetState = signal<'open' | 'closed'>('closed');
@@ -226,6 +227,10 @@ export class PaymentLinks implements OnInit {
     cancel(link: PaymentLinkItem) {
         if (!this.canCancel(link)) return;
         this.service.cancel(link.id).subscribe(() => this.loadLinks());
+    }
+
+    openDetail(link: PaymentLinkItem) {
+        this.router.navigate(['/dashboard/payment-links', link.id]);
     }
 
     copy(link: PaymentLinkItem) {

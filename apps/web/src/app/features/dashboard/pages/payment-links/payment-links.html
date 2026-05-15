@@ -188,7 +188,7 @@
         </thead>
         <tbody hlmTBody class="divide-y divide-zinc-100 bg-white">
           @for (link of service.links(); track link.id) {
-            <tr hlmTr class="hover:bg-zinc-50/70">
+            <tr hlmTr class="cursor-pointer hover:bg-zinc-50/70" role="button" tabindex="0" (click)="openDetail(link)" (keydown.enter)="openDetail(link)">
               <td hlmTd class="px-5 py-4">
                 <div class="min-w-0">
                   <p class="truncate text-sm font-semibold text-zinc-900">{{ paymentTitle(link) }}</p>
@@ -214,18 +214,21 @@
               </td>
               <td hlmTd class="px-5 py-4">
                 <div class="flex justify-end gap-2">
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'" (click)="copy(link)">
+                  <a hlmBtn variant="outline" size="sm" class="h-8 gap-2 border-zinc-200" [routerLink]="['/dashboard/payment-links', link.id]" title="Ver detalhes" (click)="$event.stopPropagation()">
+                    Ver detalhes
+                  </a>
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'" (click)="$event.stopPropagation(); copy(link)">
                     <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
                   </button>
-                  <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [href]="link.checkoutUrl" target="_blank" rel="noreferrer" title="Abrir link">
+                  <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [href]="link.checkoutUrl" target="_blank" rel="noreferrer" title="Abrir link" (click)="$event.stopPropagation()">
                     <ng-icon hlm name="lucideExternalLink" size="xs"></ng-icon>
                   </a>
                   @if (link.lastPaymentId) {
-                    <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [routerLink]="['/dashboard/payments', link.lastPaymentId]" title="Ver pagamento">
+                    <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [routerLink]="['/dashboard/payments', link.lastPaymentId]" title="Ver pagamento" (click)="$event.stopPropagation()">
                       <ng-icon hlm name="lucideReceipt" size="xs"></ng-icon>
                     </a>
                   }
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-red-200 text-red-700 hover:bg-red-50" title="Cancelar link" [disabled]="!canCancel(link)" (click)="cancel(link)">
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-red-200 text-red-700 hover:bg-red-50" title="Cancelar link" [disabled]="!canCancel(link)" (click)="$event.stopPropagation(); cancel(link)">
                     <ng-icon hlm name="lucideXCircle" size="xs"></ng-icon>
                   </button>
                 </div>
