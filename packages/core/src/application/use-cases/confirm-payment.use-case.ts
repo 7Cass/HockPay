@@ -11,6 +11,7 @@ import {
 } from "../../domain/entities/transaction.entity";
 import { Receipt } from "../../domain/entities/receipt.entity";
 import { ICustomerRepository } from "../../domain/repositories/customer.repository.interface";
+import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
 import { buildReceiptNumber } from "./receipt-number";
 
 /**
@@ -177,10 +178,19 @@ export class ConfirmPaymentUseCase {
       });
       await repos.receiptRepository.save(receipt);
 
-      const paymentPayload = {
-        ...payment.toObject(),
-        pixCharge: pixCharge?.toObject() ?? payment.pixCharge,
-      };
+      const relatedAttempts = payment.pixChargeId
+        ? await repos.paymentRepository.findByPixChargeIdAndStoreId(
+            payment.pixChargeId,
+            input.storeId,
+          )
+        : [payment];
+      const paymentPayload = enrichPaymentAttempt(
+        {
+          ...payment.toObject(),
+          pixCharge: pixCharge?.toObject() ?? payment.pixCharge,
+        },
+        relatedAttempts.map((attempt) => attempt.toObject()),
+      );
 
       // Create outbox event for webhook notification
       const outboxEvent = OutboxEvent.create({

@@ -460,6 +460,11 @@ export interface PaymentObject {
   storeId: string;
   customerId?: string;
   pixChargeId?: string;
+  paymentLinkId?: string;
+  paymentOrigin?: string;
+  attemptNumber?: number;
+  attemptCount?: number;
+  isLatestAttempt?: boolean;
   externalId?: string;
   amount: number;
   fee: number;

@@ -458,6 +458,41 @@ class InMemoryPaymentRepository {
     };
   }
 
+  async findByPixChargeIdAndStoreId(
+    pixChargeId: string,
+    storeId: string,
+  ): Promise<Payment[]> {
+    return [...this.items.values()]
+      .filter(
+        (payment) =>
+          payment.pixChargeId === pixChargeId && payment.storeId === storeId,
+      )
+      .sort(
+        (a, b) =>
+          a.createdAt.getTime() - b.createdAt.getTime() ||
+          a.id.localeCompare(b.id),
+      );
+  }
+
+  async listByPixChargeIdsAndStoreId(
+    pixChargeIds: string[],
+    storeId: string,
+  ): Promise<Payment[]> {
+    const ids = new Set(pixChargeIds);
+    return [...this.items.values()]
+      .filter(
+        (payment) =>
+          Boolean(payment.pixChargeId) &&
+          ids.has(payment.pixChargeId!) &&
+          payment.storeId === storeId,
+      )
+      .sort(
+        (a, b) =>
+          a.createdAt.getTime() - b.createdAt.getTime() ||
+          a.id.localeCompare(b.id),
+      );
+  }
+
   async update(payment: Payment): Promise<void> {
     this.items.set(payment.id, payment);
   }

@@ -72,6 +72,22 @@ export interface IPaymentRepository {
   list(options: ListPaymentsOptions): Promise<ListPaymentsResult>;
 
   /**
+   * List payments that belong to a Pix charge and store.
+   */
+  findByPixChargeIdAndStoreId(
+    pixChargeId: string,
+    storeId: string,
+  ): Promise<Payment[]>;
+
+  /**
+   * List payments for multiple Pix charges in the same store.
+   */
+  listByPixChargeIdsAndStoreId(
+    pixChargeIds: string[],
+    storeId: string,
+  ): Promise<Payment[]>;
+
+  /**
    * Update a payment.
    */
   update(payment: Payment): Promise<void>;

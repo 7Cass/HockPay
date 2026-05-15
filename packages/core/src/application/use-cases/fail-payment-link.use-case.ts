@@ -6,6 +6,7 @@ import { Environment } from "../../domain/value-objects/environment.vo";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
 import { FeePolicy } from "../services/fee-policy.service";
+import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
 import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
 import { PaymentLinkUnavailableError } from "./open-payment-link.use-case";
 
@@ -65,6 +66,14 @@ export class FailPaymentLinkUseCase {
 
       payment.fail(input.reason ?? "Payment link simulated failure");
       await repos.paymentRepository.save(payment);
+      const relatedAttempts = await repos.paymentRepository.findByPixChargeIdAndStoreId(
+        item.pixCharge.id,
+        item.storeId,
+      );
+      const paymentPayload = enrichPaymentAttempt(
+        payment.toObject(),
+        relatedAttempts.map((attempt) => attempt.toObject()),
+      );
 
       const outboxEvent = OutboxEvent.create({
         aggregateType: "Payment",
@@ -72,12 +81,12 @@ export class FailPaymentLinkUseCase {
         eventType: "payment.failed",
         requestId: input.requestId,
         storeId: payment.storeId,
-        payload: payment.toObject() as unknown as Record<string, unknown>,
+        payload: paymentPayload as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);
 
       return {
-        payment: payment.toObject(),
+        payment: paymentPayload,
       };
     });
   }

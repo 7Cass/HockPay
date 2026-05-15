@@ -14,6 +14,10 @@ import { IReceiptRepository } from '../../domain/repositories/receipt.repository
 import { IRefundRepository } from '../../domain/repositories/refund.repository.interface';
 import { ITransactionRepository } from '../../domain/repositories/transaction.repository.interface';
 import { IWebhookLogRepository } from '../../domain/repositories/webhook-log.repository.interface';
+import {
+  enrichPaymentAttempt,
+  enrichPaymentAttempts,
+} from '../services/payment-attempt-context.service';
 
 export type PaymentTimelineEventType =
   | 'payment.created'
@@ -53,6 +57,7 @@ export interface IGetPaymentTimelineInput {
 
 export interface IGetPaymentTimelineOutput {
   payment: PaymentObject;
+  relatedAttempts: PaymentObject[];
   checkoutSession?: CheckoutSessionObject | null;
   receipt?: ReceiptObject | null;
   refunds: RefundObject[];
@@ -83,13 +88,26 @@ export class GetPaymentTimelineUseCase {
       throw new PaymentNotFoundError(input.paymentId);
     }
 
-    const [receipt, refunds, checkoutSession, paymentTransactions, webhookLogs] =
+    const [
+      receipt,
+      refunds,
+      checkoutSession,
+      paymentTransactions,
+      webhookLogs,
+      relatedPayments,
+    ] =
       await Promise.all([
         this.receiptRepository.findByPaymentId(payment.id),
         this.refundRepository.findByPaymentId(payment.id),
         this.checkoutSessionRepository.findByPaymentId(payment.id),
         this.transactionRepository.findByReference('PAYMENT', payment.id),
         this.webhookLogRepository.findByPaymentId(payment.id),
+        payment.pixChargeId
+          ? this.paymentRepository.findByPixChargeIdAndStoreId(
+              payment.pixChargeId,
+              input.storeId,
+            )
+          : Promise.resolve([payment]),
       ]);
 
     const refundTransactionGroups = await Promise.all(
@@ -102,7 +120,13 @@ export class GetPaymentTimelineUseCase {
       ...refundTransactionGroups.flat(),
     ];
 
-    const paymentObject = payment.toObject();
+    const relatedAttemptObjects = enrichPaymentAttempts(
+      relatedPayments.map((relatedPayment) => relatedPayment.toObject()),
+    );
+    const paymentObject = enrichPaymentAttempt(
+      payment.toObject(),
+      relatedAttemptObjects,
+    );
     const receiptObject = receipt?.toObject() ?? null;
     const refundObjects = refunds.map((refund) => refund.toObject());
     const checkoutSessionObject = checkoutSession?.toObject() ?? null;
@@ -113,6 +137,7 @@ export class GetPaymentTimelineUseCase {
 
     return {
       payment: paymentObject,
+      relatedAttempts: relatedAttemptObjects,
       checkoutSession: checkoutSessionObject,
       receipt: receiptObject,
       refunds: refundObjects,

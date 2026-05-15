@@ -16,6 +16,11 @@ export class PaymentResponseDto {
   storeId: string;
   customerId?: string;
   externalId?: string;
+  paymentLinkId?: string;
+  paymentOrigin?: string;
+  attemptNumber?: number;
+  attemptCount?: number;
+  isLatestAttempt?: boolean;
   amount: number;
   fee: number;
   netAmount: number;
@@ -69,6 +74,7 @@ export class GetPaymentResponseDto {
  */
 export class GetPaymentTimelineResponseDto {
   payment: PaymentResponseDto;
+  relatedAttempts: PaymentResponseDto[];
   checkoutSession?: CheckoutSessionObject | null;
   receipt?: ReceiptObject | null;
   refunds: RefundObject[];

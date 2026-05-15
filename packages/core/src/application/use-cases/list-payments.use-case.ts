@@ -5,6 +5,7 @@ import {
   ListPaymentsOptions,
   ListPaymentsResult,
 } from '../../domain/repositories/payment.repository.interface';
+import { enrichPaymentAttempts } from '../services/payment-attempt-context.service';
 
 /**
  * Input DTO for ListPaymentsUseCase.
@@ -53,8 +54,30 @@ export class ListPaymentsUseCase {
 
     const result: ListPaymentsResult = await this.paymentRepository.list(options);
 
+    const payments = result.payments.map((p) => p.toObject());
+    const pixChargeIds = payments
+      .map((payment) => payment.pixChargeId)
+      .filter((pixChargeId): pixChargeId is string => Boolean(pixChargeId));
+    const relatedAttempts = await this.paymentRepository.listByPixChargeIdsAndStoreId(
+      pixChargeIds,
+      input.storeId,
+    );
+    const relatedAttemptObjects = relatedAttempts.map((payment) =>
+      payment.toObject(),
+    );
+    const enrichedAttempts = enrichPaymentAttempts([
+      ...relatedAttemptObjects,
+      ...payments.filter(
+        (payment) =>
+          !relatedAttemptObjects.some((attempt) => attempt.id === payment.id),
+      ),
+    ]);
+    const enrichedById = new Map(
+      enrichedAttempts.map((payment) => [payment.id, payment]),
+    );
+
     return {
-      payments: result.payments.map((p) => p.toObject()),
+      payments: payments.map((payment) => enrichedById.get(payment.id) ?? payment),
       total: result.total,
       page: result.page,
       limit: result.limit,

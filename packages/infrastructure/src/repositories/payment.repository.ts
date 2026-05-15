@@ -176,6 +176,41 @@ export class PaymentRepository implements IPaymentRepository {
     };
   }
 
+  async findByPixChargeIdAndStoreId(
+    pixChargeId: string,
+    storeId: string,
+  ): Promise<DomainPayment[]> {
+    const prismaPayments = await this.prisma.payment.findMany({
+      where: {
+        pixChargeId,
+        storeId,
+      },
+      include: this.includePixCharge(),
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+
+    return prismaPayments.map((p) => this.toDomain(p));
+  }
+
+  async listByPixChargeIdsAndStoreId(
+    pixChargeIds: string[],
+    storeId: string,
+  ): Promise<DomainPayment[]> {
+    const uniquePixChargeIds = [...new Set(pixChargeIds)].filter(Boolean);
+    if (uniquePixChargeIds.length === 0) return [];
+
+    const prismaPayments = await this.prisma.payment.findMany({
+      where: {
+        pixChargeId: { in: uniquePixChargeIds },
+        storeId,
+      },
+      include: this.includePixCharge(),
+      orderBy: [{ pixChargeId: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    });
+
+    return prismaPayments.map((p) => this.toDomain(p));
+  }
+
   async update(payment: DomainPayment): Promise<void> {
     await this.prisma.payment.update({
       where: { id: payment.id },

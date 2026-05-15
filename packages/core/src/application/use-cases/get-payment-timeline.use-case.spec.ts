@@ -112,6 +112,53 @@ describe('GetPaymentTimelineUseCase', () => {
     });
   });
 
+  it('returns grouped attempts for payments that share a Pix charge', async () => {
+    const failedAttempt = makePayment({
+      id: 'payment-failed',
+      pixChargeId: 'charge-1',
+      status: PaymentStatus.FAILED,
+      failedReason: 'saldo insuficiente',
+      metadata: {
+        origin: 'payment_link',
+        paymentLinkId: 'link-1',
+      },
+      createdAt: new Date('2026-01-01T10:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T10:01:00.000Z'),
+    });
+    const confirmedAttempt = makePayment({
+      id: 'payment-confirmed',
+      pixChargeId: 'charge-1',
+      status: PaymentStatus.CONFIRMED,
+      metadata: {
+        origin: 'payment_link',
+        paymentLinkId: 'link-1',
+      },
+      createdAt: new Date('2026-01-01T10:02:00.000Z'),
+      updatedAt: new Date('2026-01-01T10:03:00.000Z'),
+    });
+    const { useCase } = makeUseCase({
+      payment: confirmedAttempt,
+      relatedPayments: [failedAttempt, confirmedAttempt],
+    });
+
+    const result = await useCase.execute({
+      storeId: 'store-1',
+      paymentId: confirmedAttempt.id,
+    });
+
+    expect(result.payment.attemptNumber).toBe(2);
+    expect(result.payment.attemptCount).toBe(2);
+    expect(result.payment.paymentLinkId).toBe('link-1');
+    expect(result.relatedAttempts.map((attempt) => attempt.id)).toEqual([
+      'payment-failed',
+      'payment-confirmed',
+    ]);
+    expect(result.relatedAttempts.map((attempt) => attempt.attemptNumber)).toEqual([
+      1,
+      2,
+    ]);
+  });
+
   it('throws PaymentNotFoundError when payment does not belong to the store', async () => {
     const { useCase } = makeUseCase({ payment: null });
 
@@ -167,11 +214,15 @@ function makeUseCase(input: {
   checkoutSession?: CheckoutSession | null;
   transactionsByReference?: Map<string, Transaction[]>;
   webhookLogs?: WebhookLog[];
+  relatedPayments?: Payment[];
 }) {
   const transactionsByReference = input.transactionsByReference ?? new Map();
   const repos = {
     paymentRepository: {
       findByIdAndStoreId: vi.fn().mockResolvedValue(input.payment),
+      findByPixChargeIdAndStoreId: vi.fn().mockResolvedValue(
+        input.relatedPayments ?? (input.payment ? [input.payment] : []),
+      ),
     },
     receiptRepository: {
       findByPaymentId: vi.fn().mockResolvedValue(input.receipt ?? null),

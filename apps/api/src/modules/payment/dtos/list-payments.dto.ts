@@ -57,6 +57,11 @@ export class ListPaymentsResponseDto {
     storeId: string;
     customerId?: string;
     externalId?: string;
+    paymentLinkId?: string;
+    paymentOrigin?: string;
+    attemptNumber?: number;
+    attemptCount?: number;
+    isLatestAttempt?: boolean;
     amount: number;
     fee: number;
     netAmount: number;
