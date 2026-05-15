@@ -54,6 +54,7 @@ export interface PaymentLinkListItem extends PaymentLinkObject {
   lastPaymentStatus: PaymentStatus | null;
   lastPayment?: PaymentObject | null;
   lastFailedAt: Date | null;
+  attempts?: PaymentObject[];
 }
 
 export interface PaymentLinkStats {

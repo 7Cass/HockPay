@@ -6,6 +6,7 @@ import {
   PaymentLink,
   PaymentLinkListItem,
   PaymentLinkStats,
+  PaymentObject,
   PaymentStatus,
   PixChargeStatus,
 } from "@hockpay/core";
@@ -195,6 +196,17 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       createdAt: row.pixCharge.createdAt,
       updatedAt: row.pixCharge.updatedAt,
     };
+    const attempts = this.enrichPaymentAttempts(
+      [...payments]
+        .sort((a: any, b: any) => {
+          const createdDiff =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          if (createdDiff !== 0) return createdDiff;
+          return a.id.localeCompare(b.id);
+        })
+        .map((attempt: any) => this.toPaymentObject(attempt, pixCharge)),
+    );
+
     return {
       ...link,
       checkoutUrl: `${this.checkoutBaseUrl}/pay/${link.publicToken}`,
@@ -210,38 +222,61 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       lastPaymentId: payment?.id ?? null,
       lastPaymentStatus: paymentStatus,
       lastPayment: payment
-        ? {
-            id: payment.id,
-            storeId: payment.storeId,
-            customerId: payment.customerId ?? undefined,
-            pixChargeId: payment.pixChargeId ?? undefined,
-            externalId: payment.externalId ?? undefined,
-            amount: payment.amount,
-            fee: payment.fee,
-            netAmount: payment.netAmount,
-            currency: payment.currency,
-            description: payment.description ?? undefined,
-            payerName: payment.payerName ?? undefined,
-            payerDocument: payment.payerDocument ?? undefined,
-            payerEmail: payment.payerEmail ?? undefined,
-            status: payment.status as PaymentStatus,
-            environment: payment.environment,
-            paymentMethod: payment.paymentMethod,
-            paymentDetails: payment.paymentDetails ?? undefined,
-            acquirerId: payment.acquirerId ?? undefined,
-            totalRefunded: payment.totalRefunded ?? 0,
-            pixCharge,
-            expiresAt: payment.expiresAt,
-            paidAt: payment.paidAt ?? undefined,
-            releasedAt: payment.releasedAt ?? undefined,
-            failedReason: payment.failedReason ?? undefined,
-            metadata: payment.metadata ?? undefined,
-            createdAt: payment.createdAt,
-            updatedAt: payment.updatedAt,
-          }
+        ? this.toPaymentObject(payment, pixCharge)
         : null,
       lastFailedAt: lastFailedPayment?.updatedAt ?? null,
+      attempts,
     };
+  }
+
+  private toPaymentObject(payment: any, pixCharge: PaymentLinkListItem["pixCharge"]) {
+    return {
+      id: payment.id,
+      storeId: payment.storeId,
+      customerId: payment.customerId ?? undefined,
+      pixChargeId: payment.pixChargeId ?? undefined,
+      externalId: payment.externalId ?? undefined,
+      amount: payment.amount,
+      fee: payment.fee,
+      netAmount: payment.netAmount,
+      currency: payment.currency,
+      description: payment.description ?? undefined,
+      payerName: payment.payerName ?? undefined,
+      payerDocument: payment.payerDocument ?? undefined,
+      payerEmail: payment.payerEmail ?? undefined,
+      status: payment.status as PaymentStatus,
+      environment: payment.environment,
+      paymentMethod: payment.paymentMethod,
+      paymentDetails: payment.paymentDetails ?? undefined,
+      acquirerId: payment.acquirerId ?? undefined,
+      totalRefunded: payment.totalRefunded ?? 0,
+      pixCharge,
+      expiresAt: payment.expiresAt,
+      paidAt: payment.paidAt ?? undefined,
+      releasedAt: payment.releasedAt ?? undefined,
+      failedReason: payment.failedReason ?? undefined,
+      metadata: payment.metadata ?? undefined,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    };
+  }
+
+  private enrichPaymentAttempts(payments: PaymentObject[]): PaymentObject[] {
+    const attemptCount = payments.length;
+
+    return payments.map((payment, index) => ({
+      ...payment,
+      paymentLinkId: this.getStringMetadata(payment, "paymentLinkId"),
+      paymentOrigin: this.getStringMetadata(payment, "origin"),
+      attemptNumber: index + 1,
+      attemptCount,
+      isLatestAttempt: index === attemptCount - 1,
+    }));
+  }
+
+  private getStringMetadata(payment: PaymentObject, key: string): string | undefined {
+    const value = payment.metadata?.[key];
+    return typeof value === "string" && value.length > 0 ? value : undefined;
   }
 
   private buildStats(items: PaymentLinkListItem[]): PaymentLinkStats {

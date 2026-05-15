@@ -124,6 +124,7 @@ export * from "./application/ports/encryption.port";
 
 // Application - Services
 export * from "./application/services/fee-policy.service";
+export * from "./application/services/payment-attempt-context.service";
 export * from "./application/services/webhook-payload-builder.service";
 
 // Application - Use Cases
