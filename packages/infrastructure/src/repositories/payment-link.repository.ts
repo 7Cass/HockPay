@@ -247,15 +247,16 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   private buildStats(items: PaymentLinkListItem[]): PaymentLinkStats {
     const paidItems = items.filter((item) => item.status === "PAID");
     const opened = items.filter((item) => item.openedAt).length;
+    const total = items.length;
     return {
-      total: items.length,
+      total,
       active: items.filter((item) => item.status === "ACTIVE").length,
       opened,
       pending: items.filter((item) => item.status === "OPENED").length,
       paid: paidItems.length,
       expired: items.filter((item) => item.status === "EXPIRED").length,
       cancelled: items.filter((item) => item.status === "CANCELLED").length,
-      conversionRate: opened > 0 ? paidItems.length / opened : 0,
+      conversionRate: total > 0 ? paidItems.length / total : 0,
       paidAmount: paidItems.reduce((sum, item) => sum + item.amount, 0),
     };
   }
