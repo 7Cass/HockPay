@@ -45,6 +45,8 @@ export class PayPaymentLinkUseCase {
         feePercent: store.feePercent,
         feeFixed: store.feeFixed,
       });
+      const paymentExpiresAt =
+        item.pixCharge.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
       const payment = Payment.create({
         storeId: item.storeId,
@@ -57,7 +59,7 @@ export class PayPaymentLinkUseCase {
         environment: input.environment,
         paymentMethod: PaymentMethod.PIX,
         pixCharge: item.pixCharge,
-        expiresAt: item.pixCharge.expiresAt,
+        expiresAt: paymentExpiresAt,
         metadata: {
           origin: "payment_link",
           paymentLinkId: item.id,

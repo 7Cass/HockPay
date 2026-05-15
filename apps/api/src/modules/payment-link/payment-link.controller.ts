@@ -23,6 +23,7 @@ import {
   OpenPaymentLinkUseCase,
   PayPaymentLinkUseCase,
   FailPaymentLinkUseCase,
+  PaymentLinkInvalidExpirationError,
   PaymentLinkCannotBeCancelledError,
   PaymentLinkNotFoundError,
   PaymentLinkUnavailableError,
@@ -82,6 +83,7 @@ export class PaymentLinkController {
       page: query.page,
       limit: query.limit,
       status: query.status,
+      hasFailures: query.hasFailures,
     });
   }
 
@@ -164,6 +166,7 @@ export class PaymentLinkController {
     if (
       error instanceof StoreInactiveError ||
       error instanceof StoreNotApprovedError ||
+      error instanceof PaymentLinkInvalidExpirationError ||
       error instanceof PaymentLinkUnavailableError
     ) {
       throw new UnprocessableEntityException({ error: { code: (error as any).code, message: (error as Error).message } });

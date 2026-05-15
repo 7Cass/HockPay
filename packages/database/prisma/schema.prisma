@@ -378,7 +378,7 @@ model PixCharge {
   pixQrCode     String          @map("pix_qr_code")
   pixCopyPaste  String          @map("pix_copy_paste") @db.Text
   pixTxId       String          @unique @map("pix_tx_id")
-  expiresAt     DateTime        @map("expires_at")
+  expiresAt     DateTime?       @map("expires_at")
   paidAt        DateTime?       @map("paid_at")
   cancelledAt   DateTime?       @map("cancelled_at")
   createdAt     DateTime        @default(now()) @map("created_at")

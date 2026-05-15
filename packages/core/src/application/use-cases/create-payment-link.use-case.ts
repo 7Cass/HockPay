@@ -25,6 +25,14 @@ export interface ICreatePaymentLinkOutput {
   paymentLink: PaymentLinkListItem;
 }
 
+export class PaymentLinkInvalidExpirationError extends Error {
+  readonly code = "PAYMENT_LINK_INVALID_EXPIRATION";
+
+  constructor() {
+    super("Payment link expiration must be a future date");
+  }
+}
+
 export class CreatePaymentLinkUseCase {
   constructor(
     private readonly paymentLinkRepository: IPaymentLinkRepository,
@@ -46,8 +54,7 @@ export class CreatePaymentLinkUseCase {
     const linkId = crypto.randomUUID();
 
     const txId = this.generateTxId();
-    const expiresAt =
-      input.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    const expiresAt = this.validateExpiresAt(input.expiresAt);
     const qrCodeResult = await this.pixQrCodeGenerator.generate({
       pixKey: this.pixKey,
       amountInCents: input.amount,
@@ -74,7 +81,7 @@ export class CreatePaymentLinkUseCase {
       title: input.title,
       description: input.description,
       internalReference: input.internalReference,
-      expiresAt: input.expiresAt,
+      expiresAt,
     });
 
     await this.pixChargeRepository.save(pixCharge);
@@ -100,5 +107,13 @@ export class CreatePaymentLinkUseCase {
     const timestamp = Date.now().toString(36);
     const random = crypto.randomUUID().split("-")[0];
     return `HPL${timestamp}${random}`.substring(0, 35);
+  }
+
+  private validateExpiresAt(expiresAt?: Date): Date | undefined {
+    if (!expiresAt) return undefined;
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
+      throw new PaymentLinkInvalidExpirationError();
+    }
+    return expiresAt;
   }
 }

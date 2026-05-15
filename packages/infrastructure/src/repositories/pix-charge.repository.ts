@@ -81,7 +81,7 @@ export class PixChargeRepository implements IPixChargeRepository {
       pixQrCode: row.pixQrCode,
       pixCopyPaste: row.pixCopyPaste,
       pixTxId: row.pixTxId,
-      expiresAt: row.expiresAt,
+      expiresAt: row.expiresAt ?? null,
       paidAt: row.paidAt ?? undefined,
       cancelledAt: row.cancelledAt ?? undefined,
       createdAt: row.createdAt,

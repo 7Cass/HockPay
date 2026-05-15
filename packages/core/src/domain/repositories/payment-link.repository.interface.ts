@@ -10,6 +10,7 @@ export interface ListPaymentLinksOptions {
   page?: number;
   limit?: number;
   status?: PaymentLinkStatus;
+  hasFailures?: boolean;
 }
 
 export interface ListPaymentLinksResult {

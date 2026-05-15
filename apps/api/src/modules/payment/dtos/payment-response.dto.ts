@@ -42,7 +42,7 @@ export class PaymentResponseDto {
     pixQrCode: string;
     pixCopyPaste: string;
     pixTxId: string;
-    expiresAt: Date;
+    expiresAt?: Date | null;
   };
   checkoutUrl?: string;
   expiresAt: Date;

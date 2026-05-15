@@ -96,10 +96,13 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     ]);
 
     const allItems = allRows.map((row: any) => this.toListItem(row));
-    const filtered = options.status
-      ? allItems.filter((item: PaymentLinkListItem) => item.status === options.status)
-      : allItems;
-    const pageItems = options.status
+    const filtered = allItems.filter((item: PaymentLinkListItem) => {
+      if (options.status && item.status !== options.status) return false;
+      if (options.hasFailures && item.failedPaymentCount <= 0) return false;
+      return true;
+    });
+    const shouldFilterBeforePagination = Boolean(options.status || options.hasFailures);
+    const pageItems = shouldFilterBeforePagination
       ? filtered.slice(skip, skip + limit)
       : rows.map((row: any) => this.toListItem(row));
 
@@ -155,7 +158,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       title: row.title ?? undefined,
       description: row.description ?? undefined,
       internalReference: row.internalReference ?? undefined,
-      expiresAt: row.expiresAt ?? undefined,
+      expiresAt: row.expiresAt ?? null,
       openedAt: row.openedAt ?? undefined,
       cancelledAt: row.cancelledAt ?? undefined,
       createdAt: row.createdAt,
@@ -186,7 +189,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       pixQrCode: row.pixCharge.pixQrCode,
       pixCopyPaste: row.pixCharge.pixCopyPaste,
       pixTxId: row.pixCharge.pixTxId,
-      expiresAt: row.pixCharge.expiresAt,
+      expiresAt: row.pixCharge.expiresAt ?? null,
       paidAt: row.pixCharge.paidAt ?? undefined,
       cancelledAt: row.pixCharge.cancelledAt ?? undefined,
       createdAt: row.pixCharge.createdAt,

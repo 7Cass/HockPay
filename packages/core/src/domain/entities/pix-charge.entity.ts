@@ -14,7 +14,7 @@ export interface PixChargeProps {
   pixQrCode: string;
   pixCopyPaste: string;
   pixTxId: string;
-  expiresAt: Date;
+  expiresAt?: Date | null;
   paidAt?: Date;
   cancelledAt?: Date;
   createdAt: Date;
@@ -28,7 +28,7 @@ export interface CreatePixChargeProps {
   pixQrCode: string;
   pixCopyPaste: string;
   pixTxId: string;
-  expiresAt: Date;
+  expiresAt?: Date | null;
 }
 
 export type PixChargeObject = PixChargeProps;
@@ -66,7 +66,7 @@ export class PixCharge {
   get pixQrCode(): string { return this.props.pixQrCode; }
   get pixCopyPaste(): string { return this.props.pixCopyPaste; }
   get pixTxId(): string { return this.props.pixTxId; }
-  get expiresAt(): Date { return this.props.expiresAt; }
+  get expiresAt(): Date | null | undefined { return this.props.expiresAt; }
   get paidAt(): Date | undefined { return this.props.paidAt; }
   get cancelledAt(): Date | undefined { return this.props.cancelledAt; }
   get createdAt(): Date { return this.props.createdAt; }
@@ -81,7 +81,7 @@ export class PixCharge {
   }
 
   hasExpired(now = new Date()): boolean {
-    return this.isOpen() && now > this.props.expiresAt;
+    return Boolean(this.isOpen() && this.props.expiresAt && now > this.props.expiresAt);
   }
 
   markPaid(): void {
