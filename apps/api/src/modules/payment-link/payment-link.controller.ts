@@ -159,6 +159,73 @@ export class PaymentLinkController {
     }
   }
 
+  @Post(':id/pay')
+  @UseGuards(CombinedAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async payAuthenticated(@Param('id') id: string, @Req() req?: Request) {
+    try {
+      this.validateTestEnvironment(req);
+      const storeId = (req as any)?.store?.id;
+      if (!storeId) throw new Error('Store ID not found in request');
+
+      const { paymentLink } = await this.getUseCase.execute({
+        storeId,
+        paymentLinkId: id,
+      });
+
+      return await this.payUseCase.execute({
+        publicToken: paymentLink.publicToken,
+        requestId: getRequestId(req),
+        environment: Environment.TEST,
+      });
+    } catch (error) {
+      this.mapError(error);
+    }
+  }
+
+  @Post(':id/fail')
+  @UseGuards(CombinedAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async failAuthenticated(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+    @Req() req?: Request,
+  ) {
+    try {
+      this.validateTestEnvironment(req);
+      const storeId = (req as any)?.store?.id;
+      if (!storeId) throw new Error('Store ID not found in request');
+
+      const { paymentLink } = await this.getUseCase.execute({
+        storeId,
+        paymentLinkId: id,
+      });
+
+      return await this.failUseCase.execute({
+        publicToken: paymentLink.publicToken,
+        requestId: getRequestId(req),
+        environment: Environment.TEST,
+        reason: reason ?? 'Payment link simulated failure',
+      });
+    } catch (error) {
+      this.mapError(error);
+    }
+  }
+
+  private validateTestEnvironment(req?: Request): void {
+    const environment = (req as any)?.environment as Environment | undefined;
+
+    if (environment === Environment.LIVE) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'LIVE_ENVIRONMENT_NOT_ALLOWED',
+          message:
+            'Payment link dev simulation endpoints are not available in LIVE environment',
+        },
+      });
+    }
+  }
+
   private mapError(error: unknown): never {
     if (error instanceof PaymentLinkNotFoundError || error instanceof StoreNotFoundError) {
       throw new NotFoundException({ error: { code: (error as any).code, message: (error as Error).message } });
