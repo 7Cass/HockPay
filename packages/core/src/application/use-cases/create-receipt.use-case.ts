@@ -8,6 +8,7 @@ import { buildReceiptNumber } from "./receipt-number";
  */
 export interface ICreateReceiptInput {
   paymentId: string;
+  customerId?: string;
   storeId: string;
   payerName?: string;
   payerDocument?: string;
@@ -59,6 +60,7 @@ export class CreateReceiptUseCase {
     const receipt = Receipt.create({
       receiptNumber,
       paymentId: input.paymentId,
+      customerId: input.customerId,
       storeId: input.storeId,
       payerName: input.payerName,
       payerDocument: input.payerDocument,

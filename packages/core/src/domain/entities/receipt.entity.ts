@@ -53,6 +53,7 @@ export class Receipt {
       id: crypto.randomUUID(),
       receiptNumber: props.receiptNumber,
       paymentId: props.paymentId,
+      customerId: props.customerId,
       storeId: props.storeId,
       payerName: props.payerName,
       payerDocument: props.payerDocument,
@@ -182,6 +183,7 @@ export enum ReceiptStatus {
 export interface CreateReceiptProps {
   receiptNumber: string;
   paymentId: string;
+  customerId?: string;
   storeId: string;
   payerName?: string;
   payerDocument?: string;
@@ -221,6 +223,7 @@ export interface ReceiptObject {
   id: string;
   receiptNumber: string;
   paymentId: string;
+  customerId?: string;
   storeId: string;
   payerName?: string;
   payerDocument?: string;
