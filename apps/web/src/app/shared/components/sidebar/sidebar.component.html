@@ -3,12 +3,13 @@
     [class]="isCollapsed() ? 'w-16 min-w-[64px]' : 'w-64 min-w-[256px]'">
 
     <!-- Logo & Toggle -->
-    <div class="h-14 flex items-center justify-between border-b border-zinc-100"
-        [class]="isCollapsed() ? 'px-3 justify-center' : 'px-5'">
-        <!-- Logo -->
+    <div class="h-14 flex items-center justify-between border-b border-zinc-100/80"
+        [class]="isCollapsed() ? 'px-3 justify-center' : 'px-4'">
         <a routerLink="/dashboard"
-            class="flex items-center gap-2.5 font-bold text-base tracking-tight text-zinc-900 overflow-hidden">
-            <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white flex-shrink-0">
+            class="flex items-center gap-3 font-bold text-base tracking-tight text-zinc-950 overflow-hidden"
+            [title]="isCollapsed() ? 'Hockpay' : ''">
+            <div
+                class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow-sm shadow-indigo-600/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2v20" />
@@ -20,37 +21,34 @@
             }
         </a>
 
-        <!-- Toggle Collapse Button -->
         @if (!isCollapsed()) {
         <button (click)="toggleCollapse()" title="Recolher sidebar"
-            class="p-1.5 -mr-2 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors flex-shrink-0">
+            class="p-1.5 -mr-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors flex-shrink-0">
             <ng-icon hlm name="lucidePanelLeftClose" size="xs"></ng-icon>
         </button>
         }
     </div>
 
     <!-- Store Switcher -->
-    <div class="px-3 pt-3 pb-1 relative">
+    <div class="px-3 pt-3 pb-2 relative">
         @if (isCollapsed()) {
-        <!-- Collapsed: icon-only store button -->
         <button (click)="toggleStoreDropdown($event)"
-            class="w-10 h-10 flex mx-auto items-center justify-center rounded-lg border border-zinc-200/80 bg-zinc-50/50 hover:bg-zinc-100/80 transition-colors"
+            class="w-10 h-10 flex mx-auto items-center justify-center rounded-xl border border-zinc-200/80 bg-white hover:bg-zinc-50 transition-colors shadow-sm"
             [title]="storeService.currentStore()?.name || 'Selecionar loja'">
             <ng-icon hlm name="lucideStore" size="xs" class="text-indigo-600"></ng-icon>
         </button>
         } @else {
-        <!-- Expanded: full store switcher -->
         <button (click)="toggleStoreDropdown($event)"
-            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-zinc-200/80 bg-zinc-50/50 hover:bg-zinc-100/80 transition-colors text-left">
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-zinc-200/80 bg-white hover:bg-zinc-50 transition-colors text-left shadow-sm">
             <div
-                class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
                 <ng-icon hlm name="lucideStore" size="xs"></ng-icon>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-zinc-800 truncate">
+                <p class="text-sm font-semibold text-zinc-900 truncate">
                     {{ storeService.currentStore()?.name || 'Selecionar loja' }}
                 </p>
-                <p class="text-[10px] text-zinc-400 truncate">
+                <p class="text-xs text-zinc-400 truncate">
                     {{ storeService.currentStore()?.slug || 'Nenhuma loja selecionada' }}
                 </p>
             </div>
@@ -60,7 +58,6 @@
         </button>
         }
 
-        <!-- Dropdown Menu -->
         @if (isStoreDropdownOpen) {
         <div class="absolute left-3 right-3 top-full mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg z-50 py-1 max-h-48 overflow-y-auto"
             [class]="isCollapsed() ? 'left-0 right-auto w-56' : ''">
@@ -82,7 +79,6 @@
             <div class="px-3 py-4 text-center text-xs text-zinc-400">Nenhuma loja encontrada</div>
             }
 
-            <!-- Create Store Option -->
             <div class="border-t border-zinc-100 mt-1 pt-1">
                 <button (click)="openCreateStoreDialog()"
                     class="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-indigo-50 text-indigo-600 transition-colors">
@@ -96,31 +92,53 @@
         }
     </div>
 
+    <!-- Primary Action -->
+    <div class="px-3 pb-3">
+        @if (isCollapsed()) {
+        <button (click)="createPaymentLink()" title="Criar link"
+            class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 transition-colors">
+            <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
+        </button>
+        } @else {
+        <button (click)="createPaymentLink()"
+            class="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors">
+            <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
+            Criar link
+        </button>
+        }
+    </div>
+
     <!-- Navigation Groups -->
-    <nav class="flex-1 overflow-y-auto py-3 px-3 space-y-4">
+    <nav class="flex-1 overflow-y-auto px-3 pb-3 space-y-4">
         @for (group of menuGroups; track group.label; let isFirst = $first) {
-        <!-- Divider (except first group) -->
         @if (!isFirst) {
-        <div class="border-t border-zinc-100 pt-3"></div>
+        <div class="border-t border-zinc-100 pt-3" [class]="isCollapsed() ? 'mx-2' : ''"></div>
         }
 
-        <!-- Group Label -->
         @if (!isCollapsed()) {
-        <p class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+        <p class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
             {{ group.label }}
         </p>
         }
 
-        <!-- Group Items -->
-        <div class="space-y-0.5">
+        <div class="space-y-1">
             @for (item of group.items; track item.label) {
-            <a [routerLink]="item.route" routerLinkActive="bg-zinc-100 text-zinc-900 font-semibold"
-                [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}"
-                class="flex items-center gap-2.5 py-2 text-[13px] text-zinc-500 rounded-lg hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
-                [class]="isCollapsed() ? 'justify-center px-0' : 'px-3'" [title]="isCollapsed() ? item.label : ''">
-                <ng-icon hlm [name]="item.icon" size="sm" class="flex-shrink-0"></ng-icon>
+            <a [routerLink]="item.route"
+                class="relative flex items-center gap-3 py-2.5 text-sm rounded-xl transition-colors group hover:bg-zinc-50 hover:text-zinc-800"
+                [class]="isCollapsed() ? 'justify-center px-0' : 'px-3'"
+                [class.bg-indigo-50]="isActiveRoute(item.route)" [class.text-zinc-950]="isActiveRoute(item.route)"
+                [class.font-semibold]="isActiveRoute(item.route)" [class.text-zinc-500]="!isActiveRoute(item.route)"
+                [title]="isCollapsed() ? item.label : ''">
+                @if (!isCollapsed() && isActiveRoute(item.route)) {
+                <span class="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-indigo-600"></span>
+                }
+                <ng-icon hlm [name]="item.icon" size="sm" class="flex-shrink-0"
+                    [class.text-zinc-950]="isActiveRoute(item.route)"
+                    [class.text-zinc-500]="!isActiveRoute(item.route)"></ng-icon>
                 @if (!isCollapsed()) {
-                <span>{{ item.label }}</span>
+                <span class="truncate">{{ item.label }}</span>
+                } @else if (isActiveRoute(item.route)) {
+                <span class="absolute -left-3 top-2 bottom-2 w-0.5 rounded-full bg-indigo-600"></span>
                 }
             </a>
             }
@@ -128,11 +146,10 @@
         }
     </nav>
 
-    <!-- Expand button when collapsed is positioned inside the footer area but as a standalone action -->
     @if (isCollapsed()) {
-    <div class="px-3 py-2 flex justify-center">
+    <div class="px-3 py-2 flex justify-center border-t border-zinc-100">
         <button (click)="toggleCollapse()" title="Expandir sidebar"
-            class="w-10 h-10 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+            class="w-10 h-10 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors">
             <ng-icon hlm name="lucidePanelLeftOpen" size="xs"></ng-icon>
         </button>
     </div>
@@ -141,7 +158,7 @@
     <!-- Footer Dropdown -->
     <div class="border-t border-zinc-100 p-3 relative">
         <button (click)="toggleUserDropdown($event)"
-            class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-zinc-50 transition-colors text-left"
+            class="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-colors text-left"
             [class]="isCollapsed() ? 'justify-center px-0' : ''"
             [title]="isCollapsed() ? (authService.currentUser()?.name || '') : ''">
             <div
@@ -151,9 +168,9 @@
 
             @if (!isCollapsed()) {
             <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-zinc-800 truncate">{{ authService.currentUser()?.name ||
+                <p class="text-sm font-semibold text-zinc-900 truncate">{{ authService.currentUser()?.name ||
                     'Carregando...' }}</p>
-                <p class="text-[10px] text-zinc-400 truncate">{{ authService.currentUser()?.email || '' }}</p>
+                <p class="text-xs text-zinc-400 truncate">{{ authService.currentUser()?.email || '' }}</p>
             </div>
             <ng-icon hlm name="lucideChevronDown" size="xs"
                 class="text-zinc-400 flex-shrink-0 transition-transform duration-200"
@@ -161,7 +178,6 @@
             }
         </button>
 
-        <!-- User Dropdown Menu -->
         @if (isUserDropdownOpen) {
         <div class="absolute bottom-full left-3 right-3 mb-1 bg-white border border-zinc-200 rounded-lg shadow-lg z-50 py-1"
             [class]="isCollapsed() ? 'left-0 right-auto w-52 bottom-2 ml-14' : ''">
@@ -183,7 +199,6 @@
         }
     </div>
 
-    <!-- Create Store Dialog -->
     <app-create-store-dialog [dialogState]="createStoreDialogState"
         (dialogClosed)="createStoreDialogState = 'closed'" />
 </aside>

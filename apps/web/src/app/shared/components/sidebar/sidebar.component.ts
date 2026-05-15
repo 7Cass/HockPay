@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, output, signal, HostListener, ElementRef } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { provideIcons } from '@ng-icons/core';
@@ -41,7 +41,7 @@ interface MenuGroup {
 @Component({
     selector: 'app-sidebar',
     standalone: true,
-    imports: [RouterLink, RouterLinkActive, HlmButtonImports, HlmIconImports, CreateStoreDialogComponent],
+    imports: [RouterLink, HlmButtonImports, HlmIconImports, CreateStoreDialogComponent],
     providers: [
         provideIcons({
             lucideLayoutDashboard,
@@ -102,10 +102,10 @@ export class SidebarComponent implements OnInit {
             label: 'Principal',
             items: [
                 { label: 'Visão Geral', icon: 'lucideLayoutDashboard', route: '/dashboard' },
-                { label: 'Pagamentos', icon: 'lucideCreditCard', route: '/dashboard/payments' },
                 { label: 'Links de pagamento', icon: 'lucideLink', route: '/dashboard/payment-links' },
-                { label: 'Produtos', icon: 'lucideShoppingBag', route: '/dashboard/products' },
+                { label: 'Pagamentos', icon: 'lucideCreditCard', route: '/dashboard/payments' },
                 { label: 'Clientes', icon: 'lucideUsers', route: '/dashboard/customers' },
+                { label: 'Produtos', icon: 'lucideShoppingBag', route: '/dashboard/products' },
             ],
         },
         {
@@ -121,12 +121,6 @@ export class SidebarComponent implements OnInit {
                 { label: 'API', icon: 'lucideKey', route: '/dashboard/api' },
                 { label: 'Webhooks', icon: 'lucideWebhook', route: '/dashboard/webhooks' },
                 { label: 'Alertas', icon: 'lucideBell', route: '/dashboard/alerts' },
-            ],
-        },
-        {
-            label: 'Configurações',
-            items: [
-                { label: 'Configurações', icon: 'lucideSettings', route: '/dashboard/settings' },
             ],
         },
     ];
@@ -186,5 +180,17 @@ export class SidebarComponent implements OnInit {
             next: () => this.router.navigate(['/login']),
             error: () => this.router.navigate(['/login']),
         });
+    }
+
+    createPaymentLink() {
+        this.router.navigate(['/dashboard/payment-links']);
+    }
+
+    isActiveRoute(route: string) {
+        if (route === '/dashboard') {
+            return this.router.url === route;
+        }
+
+        return this.router.url.startsWith(route);
     }
 }
