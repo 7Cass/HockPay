@@ -32,7 +32,15 @@ export interface PaymentObject {
     paymentDetails?: Record<string, any>;
     acquirerId?: string;
     totalRefunded?: number;
-    pixTxId?: string;
+    pixChargeId?: string;
+    pixCharge?: {
+        id: string;
+        status: string;
+        pixTxId: string;
+        pixQrCode?: string;
+        pixCopyPaste?: string;
+        expiresAt: Date | string;
+    };
     checkoutUrl?: string;
     expiresAt: Date;
     paidAt?: Date;

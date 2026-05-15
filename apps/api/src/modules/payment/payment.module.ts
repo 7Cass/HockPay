@@ -14,6 +14,7 @@ import {
   SimulateCheckoutPaymentUseCase,
   FeePolicy,
   IPaymentRepository,
+  IPixChargeRepository,
   IOutboxRepository,
   IUnitOfWork,
   ICheckoutSessionRepository,
@@ -26,6 +27,7 @@ import {
   CheckoutSessionRepository,
   ExpirationQueue,
   PaymentRepository,
+  PixChargeRepository,
   OutboxRepository,
   ReceiptRepository,
   RefundRepository,
@@ -79,6 +81,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: 'IPaymentRepository',
       useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IPixChargeRepository',
+      useFactory: (prisma: PrismaService) => new PixChargeRepository(prisma),
       inject: [PrismaService],
     },
     {
@@ -215,10 +222,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
         repo: IPaymentRepository,
         outboxRepo: IOutboxRepository,
         queue: ExpirationQueue,
+        pixChargeRepo: IPixChargeRepository,
       ) => {
-        return new ExpirePaymentUseCase(repo, outboxRepo, queue);
+        return new ExpirePaymentUseCase(repo, outboxRepo, queue, pixChargeRepo);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue],
+      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue, 'IPixChargeRepository'],
     },
 
     {
@@ -227,10 +235,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
         repo: IPaymentRepository,
         outboxRepo: IOutboxRepository,
         queue: ExpirationQueue,
+        pixChargeRepo: IPixChargeRepository,
       ) => {
-        return new FailPaymentUseCase(repo, outboxRepo, queue);
+        return new FailPaymentUseCase(repo, outboxRepo, queue, pixChargeRepo);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue],
+      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue, 'IPixChargeRepository'],
     },
 
     {
@@ -278,6 +287,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
     ReleasePaymentUseCase,
     SimulateCheckoutPaymentUseCase,
     'IPaymentRepository',
+    'IPixChargeRepository',
     'ICheckoutSessionRepository',
     'IReceiptRepository',
     'IRefundRepository',

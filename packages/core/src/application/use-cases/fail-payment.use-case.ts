@@ -2,6 +2,7 @@ import { PaymentObject } from '../../domain/entities/payment.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
+import { IPixChargeRepository } from '../../domain/repositories/pix-charge.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
@@ -14,6 +15,7 @@ export interface IFailPaymentInput {
   paymentId: string;
   requestId?: string;
   reason?: string;
+  keepPixChargeOpen?: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ export class FailPaymentUseCase {
     private readonly paymentRepository: IPaymentRepository,
     private readonly outboxWriter: IOutboxWriter,
     private readonly expirationQueue: IExpirationQueuePort,
+    private readonly pixChargeRepository?: IPixChargeRepository,
   ) {}
 
   async execute(input: IFailPaymentInput): Promise<IFailPaymentOutput> {
@@ -68,6 +71,24 @@ export class FailPaymentUseCase {
 
     await this.paymentRepository.update(payment);
 
+    let pixChargeObject = payment.pixCharge;
+    if (!input.keepPixChargeOpen && payment.pixChargeId && this.pixChargeRepository) {
+      const pixCharge = await this.pixChargeRepository.findByIdAndStoreId(
+        payment.pixChargeId,
+        payment.storeId,
+      );
+      if (pixCharge?.isOpen()) {
+        pixCharge.cancel();
+        await this.pixChargeRepository.update(pixCharge);
+      }
+      pixChargeObject = pixCharge?.toObject() ?? payment.pixCharge;
+    }
+
+    const paymentPayload = {
+      ...payment.toObject(),
+      pixCharge: pixChargeObject,
+    };
+
     // Create outbox event for webhook notification
     // Note: The failedReason is already set on the payment entity via payment.fail(reason)
     const outboxEvent = OutboxEvent.create({
@@ -76,14 +97,14 @@ export class FailPaymentUseCase {
       eventType: 'payment.failed',
       requestId: input.requestId,
       storeId: payment.storeId,
-      payload: payment.toObject() as unknown as Record<string, unknown>,
+      payload: paymentPayload as unknown as Record<string, unknown>,
     });
     await this.outboxWriter.save(outboxEvent);
 
     await this.expirationQueue.cancelExpiration(payment.id);
 
     return {
-      payment: payment.toObject(),
+      payment: paymentPayload,
     };
   }
 }

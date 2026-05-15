@@ -6,6 +6,7 @@ import {
   PaymentProps,
   PaymentStatus,
   Environment,
+  PixChargeStatus,
 } from "@hockpay/core";
 import {
   PrismaClient,
@@ -30,6 +31,7 @@ export class PaymentRepository implements IPaymentRepository {
         id: payment.id,
         storeId: payment.storeId,
         customerId: payment.customerId ?? null,
+        pixChargeId: payment.pixChargeId ?? null,
         externalId: payment.externalId,
         amount: payment.amount,
         fee: payment.fee,
@@ -45,9 +47,6 @@ export class PaymentRepository implements IPaymentRepository {
         paymentDetails: payment.paymentDetails as any,
         acquirerId: payment.acquirerId,
         totalRefunded: payment.totalRefunded,
-        pixQrCode: payment.pixQrCode,
-        pixCopyPaste: payment.pixCopyPaste,
-        pixTxId: payment.pixTxId,
         expiresAt: payment.expiresAt,
         paidAt: payment.paidAt,
         releasedAt: payment.releasedAt,
@@ -62,6 +61,7 @@ export class PaymentRepository implements IPaymentRepository {
   async findById(id: string): Promise<DomainPayment | null> {
     const prismaPayment = await this.prisma.payment.findUnique({
       where: { id },
+      include: this.includePixCharge(),
     });
 
     if (!prismaPayment) {
@@ -80,6 +80,7 @@ export class PaymentRepository implements IPaymentRepository {
         id,
         storeId,
       },
+      include: this.includePixCharge(),
     });
 
     if (!prismaPayment) {
@@ -98,6 +99,7 @@ export class PaymentRepository implements IPaymentRepository {
         externalId,
         storeId,
       },
+      include: this.includePixCharge(),
     });
 
     if (!prismaPayment) {
@@ -109,7 +111,10 @@ export class PaymentRepository implements IPaymentRepository {
 
   async findByPixTxId(pixTxId: string): Promise<DomainPayment | null> {
     const prismaPayment = await this.prisma.payment.findFirst({
-      where: { pixTxId },
+      where: {
+        pixCharge: { pixTxId },
+      } as any,
+      include: this.includePixCharge(),
     });
 
     if (!prismaPayment) {
@@ -152,6 +157,7 @@ export class PaymentRepository implements IPaymentRepository {
     const [prismaPayments, total] = await Promise.all([
       this.prisma.payment.findMany({
         where,
+        include: this.includePixCharge(),
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
@@ -175,7 +181,6 @@ export class PaymentRepository implements IPaymentRepository {
       where: { id: payment.id },
       data: {
         status: payment.status as any,
-        pixTxId: payment.pixTxId,
         paidAt: payment.paidAt,
         releasedAt: payment.releasedAt,
         failedReason: payment.failedReason,
@@ -211,11 +216,16 @@ export class PaymentRepository implements IPaymentRepository {
   /**
    * Convert a Prisma Payment to a Domain Payment.
    */
-  private toDomain(prismaPayment: PrismaPayment): DomainPayment {
+  private includePixCharge() {
+    return { pixCharge: true };
+  }
+
+  private toDomain(prismaPayment: PrismaPayment & { pixCharge?: any }): DomainPayment {
     const props: PaymentProps = {
       id: prismaPayment.id,
       storeId: prismaPayment.storeId,
       customerId: prismaPayment.customerId ?? undefined,
+      pixChargeId: (prismaPayment as any).pixChargeId ?? undefined,
       externalId: prismaPayment.externalId ?? undefined,
       amount: prismaPayment.amount,
       fee: prismaPayment.fee,
@@ -233,9 +243,23 @@ export class PaymentRepository implements IPaymentRepository {
         undefined,
       acquirerId: (prismaPayment as any).acquirerId ?? undefined,
       totalRefunded: (prismaPayment as any).totalRefunded ?? 0,
-      pixQrCode: prismaPayment.pixQrCode ?? undefined,
-      pixCopyPaste: prismaPayment.pixCopyPaste ?? undefined,
-      pixTxId: prismaPayment.pixTxId ?? undefined,
+      pixCharge: prismaPayment.pixCharge
+        ? {
+            id: prismaPayment.pixCharge.id,
+            storeId: prismaPayment.pixCharge.storeId,
+            amount: prismaPayment.pixCharge.amount,
+            currency: prismaPayment.pixCharge.currency,
+            status: prismaPayment.pixCharge.status as PixChargeStatus,
+            pixQrCode: prismaPayment.pixCharge.pixQrCode,
+            pixCopyPaste: prismaPayment.pixCharge.pixCopyPaste,
+            pixTxId: prismaPayment.pixCharge.pixTxId,
+            expiresAt: prismaPayment.pixCharge.expiresAt,
+            paidAt: prismaPayment.pixCharge.paidAt ?? undefined,
+            cancelledAt: prismaPayment.pixCharge.cancelledAt ?? undefined,
+            createdAt: prismaPayment.pixCharge.createdAt,
+            updatedAt: prismaPayment.pixCharge.updatedAt,
+          }
+        : undefined,
       expiresAt: prismaPayment.expiresAt,
       paidAt: prismaPayment.paidAt ?? undefined,
       releasedAt: prismaPayment.releasedAt ?? undefined,

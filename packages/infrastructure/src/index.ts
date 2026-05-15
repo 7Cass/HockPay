@@ -1,5 +1,7 @@
 export * from "./repositories/outbox.repository";
 export * from "./repositories/payment.repository";
+export * from "./repositories/pix-charge.repository";
+export * from "./repositories/payment-link.repository";
 export * from "./repositories/customer.repository";
 export * from "./repositories/account.repository";
 export * from "./repositories/transaction.repository";

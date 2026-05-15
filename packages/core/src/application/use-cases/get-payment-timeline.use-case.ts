@@ -179,7 +179,7 @@ export class GetPaymentTimelineUseCase {
         occurredAt: input.payment.paidAt,
         entityId: input.payment.id,
         metadata: {
-          pixTxId: input.payment.pixTxId,
+          pixTxId: input.payment.pixCharge?.pixTxId,
           netAmount: input.payment.netAmount,
         },
       });

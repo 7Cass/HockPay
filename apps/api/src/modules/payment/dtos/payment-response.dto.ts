@@ -30,9 +30,15 @@ export class PaymentResponseDto {
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
   totalRefunded: number;
-  pixQrCode?: string;
-  pixCopyPaste?: string;
-  pixTxId?: string;
+  pixChargeId?: string;
+  pixCharge?: {
+    id: string;
+    status: string;
+    pixQrCode: string;
+    pixCopyPaste: string;
+    pixTxId: string;
+    expiresAt: Date;
+  };
   checkoutUrl?: string;
   expiresAt: Date;
   paidAt?: Date;

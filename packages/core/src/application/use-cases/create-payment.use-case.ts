@@ -3,6 +3,7 @@ import {
   PaymentObject,
   PaymentMethod,
 } from "../../domain/entities/payment.entity";
+import { PixCharge } from "../../domain/entities/pix-charge.entity";
 import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
 import { Document } from "../../domain/value-objects/document.vo";
 import { Environment } from "../../domain/value-objects/environment.vo";
@@ -95,6 +96,7 @@ export class CreatePaymentUseCase {
     const output = await this.unitOfWork.execute(
       async ({
         paymentRepository,
+        pixChargeRepository,
         customerRepository,
         storeRepository,
         outboxWriter,
@@ -250,10 +252,23 @@ export class CreatePaymentUseCase {
         const expiresAt =
           input.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
+        const pixCharge = PixCharge.create({
+          storeId: input.storeId,
+          amount: input.amount,
+          currency: "BRL",
+          pixQrCode: qrCodeResult.qrCodeBase64,
+          pixCopyPaste: qrCodeResult.copyPaste,
+          pixTxId: qrCodeResult.txId,
+          expiresAt,
+        });
+
+        await pixChargeRepository.save(pixCharge);
+
         // 7. Create Payment entity
         const payment = Payment.create({
           storeId: input.storeId,
           customerId: customer?.id,
+          pixChargeId: pixCharge.id,
           externalId: input.externalId,
           amount: input.amount,
           fee: feeResult.feeInCents,
@@ -266,9 +281,7 @@ export class CreatePaymentUseCase {
           paymentMethod: input.paymentMethod ?? PaymentMethod.PIX,
           paymentDetails: input.paymentDetails,
           acquirerId: input.acquirerId,
-          pixQrCode: qrCodeResult.qrCodeBase64,
-          pixCopyPaste: qrCodeResult.copyPaste,
-          pixTxId: qrCodeResult.txId,
+          pixCharge: pixCharge.toObject(),
           expiresAt,
           metadata: input.metadata,
         });

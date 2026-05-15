@@ -2,6 +2,7 @@ import { PaymentObject } from '../../domain/entities/payment.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
+import { IPixChargeRepository } from '../../domain/repositories/pix-charge.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 
@@ -40,6 +41,7 @@ export class ExpirePaymentUseCase {
     private readonly paymentRepository: IPaymentRepository,
     private readonly outboxWriter: IOutboxWriter,
     private readonly expirationQueue: IExpirationQueuePort,
+    private readonly pixChargeRepository?: IPixChargeRepository,
   ) {}
 
   async execute(input: IExpirePaymentInput): Promise<IExpirePaymentOutput> {
@@ -58,9 +60,27 @@ export class ExpirePaymentUseCase {
     }
 
     // Only expire if pending
+    let pixChargeObject = payment.pixCharge;
     if (payment.isPending()) {
       payment.expire();
       await this.paymentRepository.update(payment);
+
+      if (payment.pixChargeId && this.pixChargeRepository) {
+        const pixCharge = await this.pixChargeRepository.findByIdAndStoreId(
+          payment.pixChargeId,
+          payment.storeId,
+        );
+        if (pixCharge?.isOpen()) {
+          pixCharge.expire();
+          await this.pixChargeRepository.update(pixCharge);
+        }
+        pixChargeObject = pixCharge?.toObject() ?? payment.pixCharge;
+      }
+
+      const paymentPayload = {
+        ...payment.toObject(),
+        pixCharge: pixChargeObject,
+      };
 
       // Create outbox event for webhook notification
       const outboxEvent = OutboxEvent.create({
@@ -69,7 +89,7 @@ export class ExpirePaymentUseCase {
         eventType: 'payment.expired',
         requestId: input.requestId,
         storeId: payment.storeId,
-        payload: payment.toObject() as unknown as Record<string, unknown>,
+        payload: paymentPayload as unknown as Record<string, unknown>,
       });
       await this.outboxWriter.save(outboxEvent);
     }
@@ -78,7 +98,10 @@ export class ExpirePaymentUseCase {
     await this.expirationQueue.cancelExpiration(input.paymentId);
 
     return {
-      payment: payment.toObject(),
+      payment: {
+        ...payment.toObject(),
+        pixCharge: pixChargeObject,
+      },
       alreadyExpired: false,
     };
   }

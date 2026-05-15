@@ -1,6 +1,7 @@
 import { IUnitOfWork, ITransactedRepositories } from "@hockpay/core";
 import { PrismaClient } from "@hockpay/database";
 import { PaymentRepository } from "./payment.repository";
+import { PixChargeRepository } from "./pix-charge.repository";
 import { AccountRepository } from "./account.repository";
 import { TransactionRepository } from "./transaction.repository";
 import { BankAccountRepository } from "./bank-account.repository";
@@ -27,6 +28,7 @@ export class UnitOfWork implements IUnitOfWork {
       async (tx) => {
         const repos: ITransactedRepositories = {
           paymentRepository: new PaymentRepository(tx),
+          pixChargeRepository: new PixChargeRepository(tx),
           refundRepository: new RefundRepository(tx),
           accountRepository: new AccountRepository(tx),
           transactionRepository: new TransactionRepository(tx),

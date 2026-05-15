@@ -6,6 +6,7 @@ import { Customer } from '../../domain/entities/customer.entity';
 import { Merchant } from '../../domain/entities/merchant.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Payment } from '../../domain/entities/payment.entity';
+import { PixCharge } from '../../domain/entities/pix-charge.entity';
 import { Receipt } from '../../domain/entities/receipt.entity';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { Store } from '../../domain/entities/store.entity';
@@ -29,6 +30,7 @@ describe('P0 checkout happy path', () => {
     const apiKeys = new InMemoryApiKeyRepository();
     const sessions = new InMemoryCheckoutSessionRepository();
     const payments = new InMemoryPaymentRepository();
+    const pixCharges = new InMemoryPixChargeRepository();
     const customers = new InMemoryCustomerRepository();
     const receipts = new InMemoryReceiptRepository();
     const outbox = new InMemoryOutboxWriter();
@@ -106,6 +108,7 @@ describe('P0 checkout happy path', () => {
         execute: async (work) =>
           work({
             paymentRepository: payments,
+            pixChargeRepository: pixCharges,
             refundRepository: {} as any,
             accountRepository: accounts,
             transactionRepository: transactions,
@@ -177,6 +180,7 @@ describe('P0 checkout happy path', () => {
         execute: async (work) =>
           work({
             paymentRepository: payments,
+            pixChargeRepository: pixCharges,
             refundRepository: {} as any,
             accountRepository: accounts,
             transactionRepository: transactions,
@@ -437,7 +441,9 @@ class InMemoryPaymentRepository {
 
   async findByPixTxId(pixTxId: string): Promise<Payment | null> {
     return (
-      [...this.items.values()].find((payment) => payment.pixTxId === pixTxId) ??
+      [...this.items.values()].find(
+        (payment) => payment.pixCharge?.pixTxId === pixTxId,
+      ) ??
       null
     );
   }
@@ -462,6 +468,31 @@ class InMemoryPaymentRepository {
 
   async externalIdExists(): Promise<boolean> {
     return false;
+  }
+}
+
+class InMemoryPixChargeRepository {
+  private readonly items = new Map<string, PixCharge>();
+
+  async save(charge: PixCharge): Promise<void> {
+    this.items.set(charge.id, charge);
+  }
+
+  async update(charge: PixCharge): Promise<void> {
+    this.items.set(charge.id, charge);
+  }
+
+  async findById(id: string): Promise<PixCharge | null> {
+    return this.items.get(id) ?? null;
+  }
+
+  async findByIdAndStoreId(id: string, storeId: string): Promise<PixCharge | null> {
+    const charge = this.items.get(id);
+    return charge?.storeId === storeId ? charge : null;
+  }
+
+  async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {
+    return [...this.items.values()].find((charge) => charge.pixTxId === pixTxId) ?? null;
   }
 }
 

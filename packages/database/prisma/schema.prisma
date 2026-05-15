@@ -30,6 +30,13 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PixChargeStatus {
+  OPEN
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
 enum SessionStatus {
   OPEN
   COMPLETED
@@ -161,7 +168,9 @@ model Store {
   customers       Customer[]
   products        Product[]
   payments        Payment[]
+  pixCharges      PixCharge[]
   checkoutSessions CheckoutSession[]
+  paymentLinks    PaymentLink[]
   webhookConfigs  WebhookConfig[]
   alertConfigs    AlertConfig[]
   idempotencyKeys IdempotencyKey[]
@@ -318,6 +327,7 @@ model Payment {
   id            String          @id @default(uuid())
   storeId       String          @map("store_id")
   customerId    String?         @map("customer_id")
+  pixChargeId   String?         @map("pix_charge_id")
   externalId    String?         @map("external_id")
   amount        Int
   fee           Int
@@ -333,9 +343,6 @@ model Payment {
   paymentDetails Json?          @map("payment_details")
   acquirerId    String?         @map("acquirer_id")
   totalRefunded Int             @default(0) @map("total_refunded")
-  pixQrCode     String?         @map("pix_qr_code")
-  pixCopyPaste  String?         @map("pix_copy_paste") @db.Text
-  pixTxId       String?         @map("pix_tx_id")
   expiresAt     DateTime        @map("expires_at")
   paidAt        DateTime?       @map("paid_at")
   releasedAt    DateTime?       @map("released_at")
@@ -346,6 +353,7 @@ model Payment {
 
   store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customer      Customer?       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  pixCharge     PixCharge?      @relation(fields: [pixChargeId], references: [id], onDelete: SetNull)
   checkoutSession CheckoutSession?
   items         PaymentItem[]
   refunds       Refund[]
@@ -354,8 +362,33 @@ model Payment {
 
   @@index([storeId, status])
   @@index([storeId, createdAt(sort: Desc)])
+  @@index([pixChargeId])
   @@index([expiresAt])
   @@map("payments")
+}
+
+model PixCharge {
+  id            String          @id @default(uuid())
+  storeId       String          @map("store_id")
+  amount        Int
+  currency      String          @default("BRL")
+  status        PixChargeStatus @default(OPEN)
+  pixQrCode     String          @map("pix_qr_code")
+  pixCopyPaste  String          @map("pix_copy_paste") @db.Text
+  pixTxId       String          @unique @map("pix_tx_id")
+  expiresAt     DateTime        @map("expires_at")
+  paidAt        DateTime?       @map("paid_at")
+  cancelledAt   DateTime?       @map("cancelled_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  paymentLink   PaymentLink?
+
+  @@index([storeId, status])
+  @@index([expiresAt])
+  @@map("pix_charges")
 }
 
 // ============================================================================
@@ -384,6 +417,31 @@ model CheckoutSession {
   payment         Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@map("checkout_sessions")
+}
+
+model PaymentLink {
+  id                String          @id @default(uuid())
+  storeId           String          @map("store_id")
+  pixChargeId       String          @unique @map("pix_charge_id")
+  publicToken       String          @unique @map("public_token")
+  amount            Int
+  currency          String          @default("BRL")
+  title             String?
+  description       String?
+  internalReference String?         @map("internal_reference")
+  expiresAt         DateTime?       @map("expires_at")
+  openedAt          DateTime?       @map("opened_at")
+  cancelledAt       DateTime?       @map("cancelled_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  pixCharge         PixCharge       @relation(fields: [pixChargeId], references: [id], onDelete: Restrict)
+
+  @@index([storeId, createdAt(sort: Desc)])
+  @@index([storeId, openedAt])
+  @@index([storeId, cancelledAt])
+  @@map("payment_links")
 }
 
 // ============================================================================

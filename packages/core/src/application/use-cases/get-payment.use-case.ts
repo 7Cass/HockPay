@@ -45,6 +45,16 @@ export class GetPaymentUseCase {
       // Lazy expiration check: if pending and expired, expire it
       if (payment.isPending() && payment.hasExpired()) {
         payment.expire();
+        if (payment.pixChargeId) {
+          const charge = await repos.pixChargeRepository.findByIdAndStoreId(
+            payment.pixChargeId,
+            payment.storeId,
+          );
+          if (charge?.isOpen()) {
+            charge.expire();
+            await repos.pixChargeRepository.update(charge);
+          }
+        }
         await repos.paymentRepository.update(payment);
 
         const outboxEvent = OutboxEvent.create({

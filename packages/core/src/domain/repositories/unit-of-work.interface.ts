@@ -7,12 +7,14 @@ import { IReceiptRepository } from "./receipt.repository.interface";
 import { IStoreRepository } from "./store.repository.interface";
 import { IRefundRepository } from "./refund.repository.interface";
 import { ICustomerRepository } from "./customer.repository.interface";
+import { IPixChargeRepository } from "./pix-charge.repository.interface";
 
 /**
  * Interface containing transacted repositories.
  */
 export interface ITransactedRepositories {
   paymentRepository: IPaymentRepository;
+  pixChargeRepository: IPixChargeRepository;
   refundRepository: IRefundRepository;
   accountRepository: IAccountRepository;
   transactionRepository: ITransactionRepository;

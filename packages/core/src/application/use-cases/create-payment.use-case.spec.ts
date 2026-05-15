@@ -39,12 +39,14 @@ describe("CreatePaymentUseCase", () => {
     paymentRepository,
     customerRepository,
     storeRepository = { findById: vi.fn().mockResolvedValue(store) },
+    pixChargeRepository = { save: vi.fn() },
     outboxWriter = { save: vi.fn() },
     queue = expirationQueue,
   }: {
     paymentRepository: any;
     customerRepository: any;
     storeRepository?: any;
+    pixChargeRepository?: any;
     outboxWriter?: any;
     queue?: any;
   }) {
@@ -53,6 +55,7 @@ describe("CreatePaymentUseCase", () => {
         execute: vi.fn((work) =>
           work({
             paymentRepository,
+            pixChargeRepository,
             customerRepository,
             storeRepository,
             outboxWriter,
@@ -279,6 +282,12 @@ describe("CreatePaymentUseCase", () => {
         try {
           return await work({
             paymentRepository,
+            pixChargeRepository: {
+              save: vi.fn(async () => {
+                expect(insideTransaction).toBe(true);
+                calls.push("pixCharge");
+              }),
+            },
             customerRepository,
             storeRepository: { findById: vi.fn().mockResolvedValue(store) },
             outboxWriter,
@@ -313,7 +322,7 @@ describe("CreatePaymentUseCase", () => {
     });
 
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(["customer", "payment", "outbox"]);
+    expect(calls).toEqual(["customer", "pixCharge", "payment", "outbox"]);
   });
 
   it("does not schedule expiration when outbox persistence fails", async () => {

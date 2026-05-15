@@ -214,7 +214,7 @@ export class CustomerHistoryController {
       payerEmail: payment.payerEmail,
       status: payment.status,
       paymentMethod: payment.paymentMethod,
-      pixTxId: payment.pixTxId,
+      pixTxId: payment.pixCharge?.pixTxId,
       expiresAt: payment.expiresAt,
       paidAt: payment.paidAt,
       releasedAt: payment.releasedAt,

@@ -5,6 +5,7 @@ import {
 } from "../enums/payment-status.enum";
 import { Environment } from "../value-objects/environment.vo";
 import { InvalidPaymentStatusError } from "../errors/invalid-payment-status.error";
+import { PixChargeObject } from "./pix-charge.entity";
 
 export enum PaymentMethod {
   PIX = "PIX",
@@ -23,6 +24,7 @@ export class Payment {
   private readonly _id: string;
   private readonly _storeId: string;
   private readonly _customerId?: string;
+  private readonly _pixChargeId?: string;
   private _externalId?: string;
   private readonly _amount: number;
   private readonly _fee: number;
@@ -38,9 +40,7 @@ export class Payment {
   private readonly _paymentDetails?: Record<string, unknown>;
   private readonly _acquirerId?: string;
   private _totalRefunded: number;
-  private _pixQrCode?: string;
-  private _pixCopyPaste?: string;
-  private _pixTxId?: string;
+  private readonly _pixCharge?: PixChargeObject;
   private readonly _expiresAt: Date;
   private _paidAt?: Date;
   private _releasedAt?: Date;
@@ -53,6 +53,7 @@ export class Payment {
     this._id = props.id;
     this._storeId = props.storeId;
     this._customerId = props.customerId;
+    this._pixChargeId = props.pixChargeId;
     this._externalId = props.externalId;
     this._amount = props.amount;
     this._fee = props.fee;
@@ -68,9 +69,7 @@ export class Payment {
     this._paymentDetails = props.paymentDetails;
     this._acquirerId = props.acquirerId;
     this._totalRefunded = props.totalRefunded ?? 0;
-    this._pixQrCode = props.pixQrCode;
-    this._pixCopyPaste = props.pixCopyPaste;
-    this._pixTxId = props.pixTxId;
+    this._pixCharge = props.pixCharge;
     this._expiresAt = props.expiresAt;
     this._paidAt = props.paidAt;
     this._releasedAt = props.releasedAt;
@@ -89,6 +88,7 @@ export class Payment {
       id: crypto.randomUUID(),
       storeId: props.storeId,
       customerId: props.customerId,
+      pixChargeId: props.pixChargeId,
       externalId: props.externalId,
       amount: props.amount,
       fee: props.fee,
@@ -104,9 +104,7 @@ export class Payment {
       paymentDetails: props.paymentDetails,
       acquirerId: props.acquirerId,
       totalRefunded: 0,
-      pixQrCode: props.pixQrCode,
-      pixCopyPaste: props.pixCopyPaste,
-      pixTxId: props.pixTxId,
+      pixCharge: props.pixCharge,
       expiresAt: props.expiresAt,
       metadata: props.metadata,
       createdAt: new Date(),
@@ -134,6 +132,10 @@ export class Payment {
 
   get customerId(): string | undefined {
     return this._customerId;
+  }
+
+  get pixChargeId(): string | undefined {
+    return this._pixChargeId;
   }
 
   get externalId(): string | undefined {
@@ -196,16 +198,8 @@ export class Payment {
     return this._totalRefunded;
   }
 
-  get pixQrCode(): string | undefined {
-    return this._pixQrCode;
-  }
-
-  get pixCopyPaste(): string | undefined {
-    return this._pixCopyPaste;
-  }
-
-  get pixTxId(): string | undefined {
-    return this._pixTxId;
+  get pixCharge(): PixChargeObject | undefined {
+    return this._pixCharge;
   }
 
   get expiresAt(): Date {
@@ -279,14 +273,11 @@ export class Payment {
    * Confirm the payment (PENDING → CONFIRMED).
    * Called when the customer successfully pays the Pix QR code.
    */
-  confirm(pixTxId?: string): void {
+  confirm(): void {
     this.validateTransition(PaymentStatus.CONFIRMED);
 
     this._status = PaymentStatus.CONFIRMED;
     this._paidAt = new Date();
-    if (pixTxId) {
-      this._pixTxId = pixTxId;
-    }
     this._updatedAt = new Date();
   }
 
@@ -375,6 +366,7 @@ export class Payment {
       id: this._id,
       storeId: this._storeId,
       customerId: this._customerId,
+      pixChargeId: this._pixChargeId,
       externalId: this._externalId,
       amount: this._amount,
       fee: this._fee,
@@ -390,9 +382,7 @@ export class Payment {
       paymentDetails: this._paymentDetails,
       acquirerId: this._acquirerId,
       totalRefunded: this._totalRefunded,
-      pixQrCode: this._pixQrCode,
-      pixCopyPaste: this._pixCopyPaste,
-      pixTxId: this._pixTxId,
+      pixCharge: this._pixCharge,
       expiresAt: this._expiresAt,
       paidAt: this._paidAt,
       releasedAt: this._releasedAt,
@@ -410,6 +400,7 @@ export class Payment {
 export interface CreatePaymentProps {
   storeId: string;
   customerId?: string;
+  pixChargeId?: string;
   externalId?: string;
   amount: number;
   fee: number;
@@ -423,9 +414,7 @@ export interface CreatePaymentProps {
   paymentMethod?: PaymentMethod;
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
-  pixQrCode?: string;
-  pixCopyPaste?: string;
-  pixTxId?: string;
+  pixCharge?: PixChargeObject;
   expiresAt: Date;
   metadata?: Record<string, unknown>;
 }
@@ -437,6 +426,7 @@ export interface PaymentProps {
   id: string;
   storeId: string;
   customerId?: string;
+  pixChargeId?: string;
   externalId?: string;
   amount: number;
   fee: number;
@@ -452,9 +442,7 @@ export interface PaymentProps {
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
   totalRefunded?: number;
-  pixQrCode?: string;
-  pixCopyPaste?: string;
-  pixTxId?: string;
+  pixCharge?: PixChargeObject;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;
@@ -471,6 +459,7 @@ export interface PaymentObject {
   id: string;
   storeId: string;
   customerId?: string;
+  pixChargeId?: string;
   externalId?: string;
   amount: number;
   fee: number;
@@ -486,9 +475,7 @@ export interface PaymentObject {
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
   totalRefunded: number;
-  pixQrCode?: string;
-  pixCopyPaste?: string;
-  pixTxId?: string;
+  pixCharge?: PixChargeObject;
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;

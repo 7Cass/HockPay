@@ -66,7 +66,12 @@ export class ListPaymentsResponseDto {
     payerDocument?: string;
     payerEmail?: string;
     status: PaymentStatus;
-    pixTxId?: string;
+    pixChargeId?: string;
+    pixCharge?: {
+      id: string;
+      status: string;
+      pixTxId: string;
+    };
     checkoutUrl?: string;
     expiresAt: Date;
     paidAt?: Date;

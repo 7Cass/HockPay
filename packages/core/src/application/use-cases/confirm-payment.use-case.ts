@@ -66,13 +66,36 @@ export class ConfirmPaymentUseCase {
       // Check if expired (lazy check)
       if (payment.isPending() && payment.hasExpired()) {
         payment.expire();
+        if (payment.pixChargeId) {
+          const charge = await repos.pixChargeRepository.findByIdAndStoreId(
+            payment.pixChargeId,
+            input.storeId,
+          );
+          charge?.expire();
+          if (charge) await repos.pixChargeRepository.update(charge);
+        }
+        await repos.paymentRepository.update(payment);
+        throw new PaymentExpiredError(input.paymentId);
+      }
+
+      const pixCharge = payment.pixChargeId
+        ? await repos.pixChargeRepository.findByIdAndStoreId(
+            payment.pixChargeId,
+            input.storeId,
+          )
+        : null;
+
+      if (pixCharge?.hasExpired()) {
+        pixCharge.expire();
+        await repos.pixChargeRepository.update(pixCharge);
+        payment.expire();
         await repos.paymentRepository.update(payment);
         throw new PaymentExpiredError(input.paymentId);
       }
 
       // Attempt to confirm - will throw InvalidPaymentStatusError if not PENDING
       try {
-        payment.confirm(input.pixTxId);
+        payment.confirm();
       } catch (error) {
         if (error instanceof InvalidPaymentStatusError) {
           throw error;
@@ -91,6 +114,11 @@ export class ConfirmPaymentUseCase {
       // Update pending balance
       account.addToPending(payment.netAmount);
       await repos.accountRepository.update(account);
+
+      if (pixCharge?.isOpen()) {
+        pixCharge.markPaid();
+        await repos.pixChargeRepository.update(pixCharge);
+      }
 
       // Save Payment update
       await repos.paymentRepository.update(payment);
@@ -134,6 +162,7 @@ export class ConfirmPaymentUseCase {
       const receipt = Receipt.create({
         receiptNumber,
         paymentId: payment.id,
+        customerId: payment.customerId,
         storeId: input.storeId,
         payerName: payment.payerName ?? customer?.name,
         payerDocument: payment.payerDocument ?? customer?.document.value,
@@ -148,6 +177,11 @@ export class ConfirmPaymentUseCase {
       });
       await repos.receiptRepository.save(receipt);
 
+      const paymentPayload = {
+        ...payment.toObject(),
+        pixCharge: pixCharge?.toObject() ?? payment.pixCharge,
+      };
+
       // Create outbox event for webhook notification
       const outboxEvent = OutboxEvent.create({
         aggregateType: "Payment",
@@ -155,12 +189,12 @@ export class ConfirmPaymentUseCase {
         eventType: "payment.confirmed",
         requestId: input.requestId,
         storeId: payment.storeId,
-        payload: payment.toObject() as unknown as Record<string, unknown>,
+        payload: paymentPayload as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);
 
       return {
-        payment: payment.toObject(),
+        payment: paymentPayload,
       };
     });
   }
