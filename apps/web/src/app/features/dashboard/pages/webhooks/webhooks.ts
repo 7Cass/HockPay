@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angula
 import {
   WebhookService,
   WebhookConfig,
+  WebhookInboxEvent,
   WebhookLog,
 } from '../../../../core/services/webhook.service';
 import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
@@ -75,6 +76,7 @@ export class Webhooks implements OnInit {
 
   // Creation State
   isCreating = signal<boolean>(false);
+  isCreatingInbox = signal<boolean>(false);
   newWebhookForm = new FormGroup({
     url: new FormControl('', [Validators.required, Validators.pattern('https?://.+')]),
     events: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
@@ -121,6 +123,13 @@ export class Webhooks implements OnInit {
   isLogsLoading = signal<boolean>(false);
   logsError = signal<string | null>(null);
   isRetrying = signal<{ [logId: string]: boolean }>({});
+
+  inboxDialogState = signal<'closed' | 'open'>('closed');
+  hookForInbox = signal<WebhookConfig | null>(null);
+  inboxEvents = signal<WebhookInboxEvent[]>([]);
+  inboxTotal = signal(0);
+  isInboxLoading = signal<boolean>(false);
+  inboxError = signal<string | null>(null);
 
   ngOnInit() {
     this.loadWebhooks();
@@ -177,6 +186,27 @@ export class Webhooks implements OnInit {
         this.isCreating.set(false);
         console.error('Failed to create webhook', err);
         alert('Falha ao criar Webhook. Verifique os dados e tente novamente.');
+      },
+    });
+  }
+
+  createInboxWebhook() {
+    if (this.isCreatingInbox()) return;
+
+    this.isCreatingInbox.set(true);
+    this.webhookService.createInbox().subscribe({
+      next: (response) => {
+        this.isCreatingInbox.set(false);
+        const createdConfig: WebhookConfig = { ...response, secret: undefined } as any;
+        this.webhooks.update((hooks) => [createdConfig, ...hooks]);
+        this.newSecret.set(response.secret);
+        this.copied.set(false);
+        this.secretDialogState.set('open');
+      },
+      error: (err) => {
+        this.isCreatingInbox.set(false);
+        console.error('Failed to create webhook inbox', err);
+        alert('Falha ao criar inbox de teste.');
       },
     });
   }
@@ -269,6 +299,48 @@ export class Webhooks implements OnInit {
     }, 200);
   }
 
+  openInboxDialog(hook: WebhookConfig) {
+    this.hookForInbox.set(hook);
+    this.inboxDialogState.set('open');
+    this.loadInboxEvents(hook.id);
+  }
+
+  closeInboxDialog() {
+    this.inboxDialogState.set('closed');
+    setTimeout(() => {
+      this.hookForInbox.set(null);
+      this.inboxEvents.set([]);
+      this.inboxTotal.set(0);
+    }, 200);
+  }
+
+  loadInboxEvents(hookId: string) {
+    this.isInboxLoading.set(true);
+    this.inboxError.set(null);
+    this.inboxEvents.set([]);
+    this.inboxTotal.set(0);
+
+    this.webhookService.listInboxEvents(hookId, { limit: 50 }).subscribe({
+      next: (response) => {
+        this.inboxEvents.set(response.events);
+        this.inboxTotal.set(response.total);
+        this.isInboxLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load webhook inbox events', err);
+        this.inboxError.set('Falha ao carregar os eventos recebidos.');
+        this.isInboxLoading.set(false);
+      },
+    });
+  }
+
+  refreshInboxEvents() {
+    const hook = this.hookForInbox();
+    if (hook) {
+      this.loadInboxEvents(hook.id);
+    }
+  }
+
   loadLogs(hookId: string) {
     this.isLogsLoading.set(true);
     this.logsError.set(null);
@@ -315,6 +387,14 @@ export class Webhooks implements OnInit {
   shortId(value?: string): string {
     if (!value) return '-';
     return value.length > 12 ? `${value.slice(0, 8)}...` : value;
+  }
+
+  isInboxWebhook(hook?: WebhookConfig | null): boolean {
+    return Boolean(hook?.url.includes('/api/v1/dev/webhook-inbox/'));
+  }
+
+  prettyJson(value: unknown): string {
+    return JSON.stringify(value, null, 2);
   }
 
   retryLog(log: WebhookLog) {

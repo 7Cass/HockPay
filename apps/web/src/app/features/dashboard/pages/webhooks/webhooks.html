@@ -13,6 +13,22 @@
 
       <button
         hlmBtn
+        variant="outline"
+        size="sm"
+        class="gap-2 bg-white"
+        (click)="createInboxWebhook()"
+        [disabled]="isCreatingInbox()"
+      >
+        @if (isCreatingInbox()) {
+          <hlm-spinner size="sm" />
+        } @else {
+          <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
+        }
+        Inbox de teste
+      </button>
+
+      <button
+        hlmBtn
         size="sm"
         class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold"
         (click)="openCreateDialog()"
@@ -161,6 +177,12 @@
                       class="text-[11px] font-bold tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-100/60 px-2 py-0.5 rounded-md"
                       >{{ hook.events.length }} eventos</span
                     >
+                    @if (isInboxWebhook(hook)) {
+                      <span
+                        class="text-[11px] font-bold tracking-wide text-violet-700 bg-violet-50 border border-violet-100/60 px-2 py-0.5 rounded-md"
+                        >Inbox</span
+                      >
+                    }
                     <code
                       class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50"
                       >Secret: {{ hook.prefix }}...</code
@@ -179,6 +201,18 @@
                 </td>
                 <td hlmTd class="py-3.5 px-6 text-right">
                   <div class="flex justify-end gap-1">
+                    @if (isInboxWebhook(hook)) {
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="sm"
+                        class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-violet-600 hover:bg-violet-50 flex items-center justify-center transition-colors"
+                        title="Ver Inbox Recebida"
+                        (click)="openInboxDialog(hook)"
+                      >
+                        <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
+                      </button>
+                    }
                     <button
                       hlmBtn
                       variant="ghost"
@@ -261,6 +295,13 @@
               >
                 {{ hook.events.length }} eventos
               </span>
+              @if (isInboxWebhook(hook)) {
+                <span
+                  class="rounded-md border border-violet-100/60 bg-violet-50 px-2 py-0.5 text-[11px] font-bold tracking-wide text-violet-700"
+                >
+                  Inbox
+                </span>
+              }
               <code
                 class="rounded-md border border-zinc-200/50 bg-zinc-100/80 px-2 py-0.5 text-[11px] text-zinc-700"
                 >Secret: {{ hook.prefix }}...</code
@@ -268,6 +309,18 @@
             </div>
 
             <div class="mt-4 flex items-center justify-end gap-1">
+              @if (isInboxWebhook(hook)) {
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="sm"
+                  class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-violet-600 hover:bg-violet-50 flex items-center justify-center transition-colors"
+                  title="Ver Inbox Recebida"
+                  (click)="openInboxDialog(hook)"
+                >
+                  <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
+                </button>
+              }
               <button
                 hlmBtn
                 variant="ghost"
@@ -589,6 +642,189 @@
   </ng-template>
 </brn-dialog>
 
+<!-- Inbox Modal -->
+<brn-dialog [closeDelay]="150" [state]="inboxDialogState()" (closed)="closeInboxDialog()">
+  <ng-template brnDialogContent let-ctx>
+    <app-dialog-overlay />
+    <div
+      class="fixed left-[50%] top-[50%] z-50 w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200/80 shadow-xl p-0 animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-[85vh]"
+    >
+      <div class="p-6 pb-4 shrink-0 flex justify-between items-start border-b border-zinc-100/80">
+        <div class="min-w-0">
+          <h3 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
+            <ng-icon hlm name="lucideNetwork" size="sm" class="text-zinc-400"></ng-icon>
+            Inbox de Webhooks
+          </h3>
+          <p class="text-sm text-zinc-500 mt-1 truncate" [title]="hookForInbox()?.url">
+            Receiver: <strong class="font-medium text-zinc-800">{{ hookForInbox()?.url }}</strong>
+          </p>
+          <p class="text-xs text-zinc-400 mt-1">{{ inboxTotal() }} eventos recebidos</p>
+        </div>
+        <app-dialog-close />
+      </div>
+
+      <div class="flex-1 overflow-y-auto bg-zinc-50/30 p-6 min-h-[400px]">
+        @if (isInboxLoading()) {
+          <div class="flex justify-center items-center h-full flex-col text-zinc-500">
+            <hlm-spinner class="w-6 h-6 text-indigo-600 mb-3" />
+            <span class="text-sm font-medium">Buscando eventos...</span>
+          </div>
+        } @else if (inboxError()) {
+          <div class="bg-red-50 text-red-700 p-4 rounded-lg flex gap-3 border border-red-200/60">
+            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500 shrink-0"></ng-icon>
+            <div>
+              <p class="text-sm font-semibold">Erro</p>
+              <p class="text-sm mt-1 opacity-90">{{ inboxError() }}</p>
+            </div>
+          </div>
+        } @else if (inboxEvents().length === 0) {
+          <div class="flex flex-col items-center justify-center h-full text-center">
+            <div class="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
+              <ng-icon hlm name="lucideNetwork" size="sm" class="text-zinc-400"></ng-icon>
+            </div>
+            <p class="text-sm font-medium text-zinc-900">Nenhum evento recebido ainda.</p>
+            <p class="text-sm text-zinc-500 mt-1 max-w-xs">
+              Pague um link de pagamento ou dispare um teste para capturar o payload aqui.
+            </p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (event of inboxEvents(); track event.id) {
+              <div class="bg-white border text-sm border-zinc-200/80 rounded-lg overflow-hidden">
+                <div class="p-3.5 flex flex-wrap gap-4 justify-between items-center sm:flex-nowrap">
+                  <div class="flex items-center gap-3 min-w-0">
+                    @if (event.signatureValid) {
+                      <div
+                        class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0"
+                      >
+                        <ng-icon
+                          hlm
+                          name="lucideCheck"
+                          size="sm"
+                          class="text-emerald-600"
+                        ></ng-icon>
+                      </div>
+                    } @else {
+                      <div
+                        class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 shrink-0"
+                      >
+                        <ng-icon hlm name="lucideXCircle" size="sm" class="text-red-600"></ng-icon>
+                      </div>
+                    }
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-zinc-900">{{ event.eventType }}</span>
+                        <span class="text-xs text-zinc-400">&bull;</span>
+                        <span class="text-xs text-zinc-500">{{
+                          event.receivedAt | date: 'dd/MM HH:mm:ss'
+                        }}</span>
+                      </div>
+                      <div class="text-xs text-zinc-500 mt-0.5">
+                        Assinatura {{ event.signatureValid ? 'válida' : 'inválida' }}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    class="h-8 gap-1.5 shrink-0 bg-white"
+                    (click)="copyId(prettyJson(event.payload))"
+                  >
+                    <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
+                    Payload
+                  </button>
+                </div>
+
+                <div
+                  class="grid gap-2 border-t border-zinc-100/80 bg-white px-3.5 py-3 text-xs sm:grid-cols-2"
+                >
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Request ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="event.requestId || 'não disponível'"
+                      (click)="copyId(event.requestId)"
+                    >
+                      {{ shortId(event.requestId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Outbox Event
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="event.outboxEventId || 'não disponível'"
+                      (click)="copyId(event.outboxEventId)"
+                    >
+                      {{ shortId(event.outboxEventId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Delivery ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="event.deliveryId || 'não disponível'"
+                      (click)="copyId(event.deliveryId)"
+                    >
+                      {{ shortId(event.deliveryId) }}
+                    </button>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                      Payment ID
+                    </div>
+                    <button
+                      type="button"
+                      class="mt-1 font-mono text-zinc-700 hover:text-indigo-700"
+                      [title]="event.paymentId || 'não disponível'"
+                      (click)="copyId(event.paymentId)"
+                    >
+                      {{ shortId(event.paymentId) }}
+                    </button>
+                  </div>
+                </div>
+                <div class="bg-zinc-50/50 border-t border-zinc-100/80 p-3 pt-2">
+                  <div
+                    class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1"
+                  >
+                    Payload recebido
+                  </div>
+                  <pre
+                    class="max-h-48 overflow-auto rounded-md bg-white border border-zinc-100 p-2 text-xs font-mono text-zinc-700"
+                    >{{ prettyJson(event.payload) }}</pre
+                  >
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="px-6 py-4 border-t border-zinc-100/80 bg-white flex justify-end gap-2 shrink-0">
+        <button hlmBtn variant="outline" class="bg-white" (click)="refreshInboxEvents()">
+          Atualizar
+        </button>
+        <button
+          (click)="ctx.close()"
+          hlmBtn
+          class="bg-zinc-900 border border-zinc-900 hover:bg-zinc-800 text-white shadow-sm"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</brn-dialog>
+
 <!-- History / Logs Modal -->
 <brn-dialog [closeDelay]="150" [state]="logsDialogState()" (closed)="closeLogsDialog()">
   <ng-template brnDialogContent let-ctx>
@@ -605,9 +841,7 @@
           <p class="text-sm text-zinc-500 mt-1">
             Destino: <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
           </p>
-          <p class="text-xs text-zinc-400 mt-1">
-            {{ logsTotal() }} registros encontrados
-          </p>
+          <p class="text-xs text-zinc-400 mt-1">{{ logsTotal() }} registros encontrados</p>
         </div>
         <app-dialog-close />
       </div>
