@@ -1,6 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { provideIcons } from '@ng-icons/core';
 import {
   lucideArrowLeft,
@@ -12,6 +13,7 @@ import {
   lucideCreditCard,
   lucideExternalLink,
   lucideFileText,
+  lucideLink,
   lucideReceipt,
   lucideSend,
   lucideUser,
@@ -27,6 +29,7 @@ import {
   PaymentStatus,
   PaymentTimelineEvent,
   GetPaymentTimelineResponseDto,
+  PaymentObject,
   TransactionObject,
 } from '../../../../core/services/payment.service';
 
@@ -54,6 +57,7 @@ import {
       lucideCreditCard,
       lucideExternalLink,
       lucideFileText,
+      lucideLink,
       lucideReceipt,
       lucideSend,
       lucideUser,
@@ -269,6 +273,89 @@ import {
               }
             </section>
 
+            @if (isPaymentLinkAttempt(data.payment) || data.payment.pixChargeId) {
+              <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                    <ng-icon hlm name="lucideLink" size="sm"></ng-icon>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-zinc-900">Cobrança relacionada</p>
+                    <p class="mt-0.5 text-xs text-zinc-500">{{ formatAttempt(data.payment) }}</p>
+                  </div>
+                </div>
+
+                <dl class="mt-5 space-y-3 text-sm">
+                  @if (data.payment.paymentLinkId) {
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="text-zinc-500">Payment Link</dt>
+                      <dd class="text-right font-mono text-xs font-medium text-zinc-900">{{ shortId(data.payment.paymentLinkId) }}</dd>
+                    </div>
+                  }
+                  @if (data.payment.pixChargeId) {
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="text-zinc-500">PixCharge</dt>
+                      <dd class="text-right font-mono text-xs font-medium text-zinc-900">{{ shortId(data.payment.pixChargeId) }}</dd>
+                    </div>
+                  }
+                  @if (data.payment.pixCharge?.pixTxId) {
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="text-zinc-500">TxID</dt>
+                      <dd class="max-w-[13rem] truncate text-right font-mono text-xs font-medium text-zinc-900">{{ data.payment.pixCharge?.pixTxId }}</dd>
+                    </div>
+                  }
+                  @if (data.payment.pixCharge?.status) {
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="text-zinc-500">Status da cobrança</dt>
+                      <dd class="text-right font-semibold text-zinc-900">{{ data.payment.pixCharge?.status }}</dd>
+                    </div>
+                  }
+                </dl>
+              </section>
+            }
+
+            @if (data.relatedAttempts && data.relatedAttempts.length > 1) {
+              <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-sm font-semibold text-zinc-900">Tentativas desta cobrança</p>
+                  <span class="rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-500">{{ data.relatedAttempts.length }}</span>
+                </div>
+                <div class="mt-4 space-y-3">
+                  @for (attempt of data.relatedAttempts; track attempt.id) {
+                    <a
+                      [routerLink]="['/dashboard/payments', attempt.id]"
+                      class="block rounded-lg border px-3 py-2 transition-colors hover:bg-zinc-50"
+                      [class]="attempt.id === data.payment.id ? 'border-indigo-200 bg-indigo-50/60' : 'border-zinc-200/80 bg-white'"
+                    >
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="text-xs font-semibold text-zinc-700">{{ formatAttempt(attempt) }}</span>
+                        <span class="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold" [class]="getPaymentBadgeClasses(attempt.status)">
+                          <ng-icon hlm [name]="getPaymentStatusIcon(attempt.status)" size="xs"></ng-icon>
+                          {{ formatPaymentStatus(attempt.status) }}
+                        </span>
+                      </div>
+                      <dl class="mt-2 grid gap-1 text-[11px] text-zinc-500">
+                        <div class="flex justify-between gap-3">
+                          <dt>Payment ID</dt>
+                          <dd class="font-mono">{{ shortId(attempt.id) }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                          <dt>Data</dt>
+                          <dd>{{ attempt.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                        </div>
+                        @if (attempt.failedReason) {
+                          <div class="flex justify-between gap-3">
+                            <dt>Motivo</dt>
+                            <dd class="max-w-[10rem] truncate text-right">{{ attempt.failedReason }}</dd>
+                          </div>
+                        }
+                      </dl>
+                    </a>
+                  }
+                </div>
+              </section>
+            }
+
             <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
               <p class="text-sm font-semibold text-zinc-900">Checkout</p>
               @if (data.checkoutSession) {
@@ -436,19 +523,23 @@ import {
 export class PaymentDetail implements OnInit, OnDestroy {
   readonly paymentService = inject(PaymentService);
   private readonly route = inject(ActivatedRoute);
+  private routeSub?: Subscription;
 
   ngOnInit(): void {
-    const paymentId = this.route.snapshot.paramMap.get('id');
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      const paymentId = params.get('id');
 
-    if (!paymentId) {
-      this.paymentService.clearTimelineState();
-      return;
-    }
+      if (!paymentId) {
+        this.paymentService.clearTimelineState();
+        return;
+      }
 
-    this.paymentService.loadPaymentTimeline(paymentId);
+      this.paymentService.loadPaymentTimeline(paymentId);
+    });
   }
 
   ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
     this.paymentService.clearTimelineState();
   }
 
@@ -467,6 +558,16 @@ export class PaymentDetail implements OnInit, OnDestroy {
       REFUNDED: 'Estornado',
     };
     return map[status] || status;
+  }
+
+  isPaymentLinkAttempt(payment: PaymentObject): boolean {
+    return Boolean(payment.paymentLinkId || payment.paymentOrigin === 'payment_link' || payment.metadata?.['origin'] === 'payment_link');
+  }
+
+  formatAttempt(payment: Pick<PaymentObject, 'attemptNumber' | 'attemptCount'>): string {
+    const attemptNumber = payment.attemptNumber ?? 1;
+    const attemptCount = payment.attemptCount ?? 1;
+    return `Tentativa #${attemptNumber} de ${attemptCount}`;
   }
 
   getStateTitle(data: GetPaymentTimelineResponseDto): string {

@@ -16,7 +16,8 @@ import {
   lucideClock,
   lucideXCircle,
   lucideArrowRightLeft,
-  lucideReceipt
+  lucideReceipt,
+  lucideLink
 } from '@ng-icons/lucide';
 
 @Component({
@@ -32,7 +33,8 @@ import {
       lucideClock,
       lucideXCircle,
       lucideArrowRightLeft,
-      lucideReceipt
+      lucideReceipt,
+      lucideLink
     })
   ],
   template: `
@@ -124,6 +126,20 @@ import {
                         <div class="flex flex-col">
                           <span class="text-sm font-medium text-zinc-800">{{ payment.description || 'Pagamento Online' }}</span>
                           <span class="text-xs text-zinc-400 mt-0.5 font-mono">{{ payment.id.split('-')[0] }}...</span>
+                          @if (isPaymentLinkAttempt(payment)) {
+                            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                              <span class="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+                                <ng-icon hlm name="lucideLink" size="xs"></ng-icon>
+                                Link
+                              </span>
+                              <span class="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-zinc-500">
+                                {{ formatAttempt(payment) }}
+                              </span>
+                              <span class="rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-zinc-500">
+                                {{ shortId(payment.pixChargeId || payment.paymentLinkId) }}
+                              </span>
+                            </div>
+                          }
                         </div>
                       </div>
                     </td>
@@ -220,5 +236,20 @@ export class Payments implements OnInit {
       REFUNDED: 'Estornado',
     };
     return map[status] || status;
+  }
+
+  isPaymentLinkAttempt(payment: { paymentLinkId?: string; paymentOrigin?: string; metadata?: Record<string, unknown> }): boolean {
+    return Boolean(payment.paymentLinkId || payment.paymentOrigin === 'payment_link' || payment.metadata?.['origin'] === 'payment_link');
+  }
+
+  formatAttempt(payment: { attemptNumber?: number; attemptCount?: number }): string {
+    const attemptNumber = payment.attemptNumber ?? 1;
+    const attemptCount = payment.attemptCount ?? 1;
+    return `Tentativa #${attemptNumber} de ${attemptCount}`;
+  }
+
+  shortId(value?: string | null): string {
+    if (!value) return '-';
+    return value.length <= 12 ? value : `${value.slice(0, 8)}...`;
   }
 }

@@ -18,6 +18,11 @@ export interface PaymentObject {
     storeId: string;
     customerId?: string;
     externalId?: string;
+    paymentLinkId?: string;
+    paymentOrigin?: string;
+    attemptNumber?: number;
+    attemptCount?: number;
+    isLatestAttempt?: boolean;
     amount: number;
     fee: number;
     netAmount: number;
@@ -142,6 +147,7 @@ export interface PaymentTimelineEvent {
 
 export interface GetPaymentTimelineResponseDto {
     payment: PaymentObject;
+    relatedAttempts: PaymentObject[];
     checkoutSession?: CheckoutSessionObject | null;
     receipt?: ReceiptObject | null;
     refunds: RefundObject[];
