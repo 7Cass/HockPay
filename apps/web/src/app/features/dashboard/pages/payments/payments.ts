@@ -9,8 +9,6 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { provideIcons } from '@ng-icons/core';
 import {
-  lucideFilter,
-  lucideDownload,
   lucideRefreshCcw,
   lucideCheckCircle2,
   lucideClock,
@@ -26,8 +24,6 @@ import {
   imports: [DatePipe, CurrencyPipe, RouterLink, HlmTableImports, HlmBadgeImports, HlmSpinnerImports, HlmButtonImports, HlmIconImports],
   providers: [
     provideIcons({
-      lucideFilter,
-      lucideDownload,
       lucideRefreshCcw,
       lucideCheckCircle2,
       lucideClock,
@@ -51,14 +47,6 @@ import {
           <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white border-zinc-200/80 shadow-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900" (click)="paymentService.loadPayments()">
             <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
             Atualizar
-          </button>
-          <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white border-zinc-200/80 shadow-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900">
-            <ng-icon hlm name="lucideFilter" size="xs"></ng-icon>
-            Filtrar
-          </button>
-          <button hlmBtn size="sm" class="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm border border-transparent">
-            <ng-icon hlm name="lucideDownload" size="xs"></ng-icon>
-            Exportar
           </button>
         </div>
       </div>

@@ -43,8 +43,8 @@ export type ChartOptions = {
       <!-- Page Header & Filters -->
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
         <div>
-          <h1 class="text-3xl font-semibold tracking-tight text-zinc-950">Overview</h1>
-          <p class="text-sm text-zinc-500 mt-1">Real-time metrics and performance.</p>
+          <h1 class="text-3xl font-semibold tracking-tight text-zinc-950">Visão Geral</h1>
+          <p class="text-sm text-zinc-500 mt-1">Métricas e desempenho em tempo real.</p>
         </div>
         
         <!-- Filters -->
@@ -56,7 +56,7 @@ export type ChartOptions = {
             [class.text-zinc-950]="activeFilter() === 'today'"
             [class.text-zinc-500]="activeFilter() !== 'today'"
             class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
-            Today
+            Hoje
           </button>
           <button 
             (click)="setFilter('7days')"

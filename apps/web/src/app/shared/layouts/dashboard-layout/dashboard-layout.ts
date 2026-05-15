@@ -35,7 +35,11 @@ export class DashboardLayout {
   private readonly routeNames: Record<string, string> = {
     'dashboard': 'Visão Geral',
     'payments': 'Pagamentos',
+    'payment-links': 'Links de pagamento',
     'customers': 'Clientes',
+    'receipts': 'Comprovantes',
+    'financials': 'Saldo e Extrato',
+    'products': 'Produtos',
     'api': 'API',
     'api-keys': 'API Keys',
     'webhooks': 'Webhooks',
@@ -58,10 +62,12 @@ export class DashboardLayout {
     const breadcrumbs = [];
     let currentPath = '';
 
-    for (const segment of segments) {
+    for (const [index, segment] of segments.entries()) {
       currentPath += `/${segment}`;
+      const previousSegment = segments[index - 1];
+
       breadcrumbs.push({
-        label: this.routeNames[segment] || segment,
+        label: this.routeNames[segment] || (previousSegment && this.routeNames[previousSegment] ? 'Detalhes' : segment),
         path: currentPath,
         isLast: false // Will be updated
       });
