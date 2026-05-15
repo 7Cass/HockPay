@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
-import type { PaymentStatus, SessionStatus } from '@/types/checkout';
+import type { PaymentLinkStatus, PaymentStatus, SessionStatus } from '@/types/checkout';
 
 interface BadgeProps {
-  status: PaymentStatus | SessionStatus;
+  status: PaymentStatus | SessionStatus | PaymentLinkStatus;
   className?: string;
 }
 
-const statusConfig: Record<PaymentStatus | SessionStatus, { label: string; className: string }> = {
+const statusConfig: Record<PaymentStatus | SessionStatus | PaymentLinkStatus, { label: string; className: string }> = {
   PENDING: {
     label: 'Aguardando',
     className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -34,7 +34,23 @@ const statusConfig: Record<PaymentStatus | SessionStatus, { label: string; class
   COMPLETED: {
     label: 'Processando',
     className: 'bg-blue-100 text-blue-800 border-blue-200',
-  }
+  },
+  ACTIVE: {
+    label: 'Ativo',
+    className: 'bg-blue-100 text-blue-800 border-blue-200',
+  },
+  OPENED: {
+    label: 'Aberto',
+    className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  },
+  PAID: {
+    label: 'Pago',
+    className: 'bg-green-100 text-green-800 border-green-200',
+  },
+  CANCELLED: {
+    label: 'Cancelado',
+    className: 'bg-red-100 text-red-800 border-red-200',
+  },
 };
 
 export function StatusBadge({ status, className }: BadgeProps) {

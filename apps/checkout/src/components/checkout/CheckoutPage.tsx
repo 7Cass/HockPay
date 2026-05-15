@@ -219,11 +219,11 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
             </div>
 
             <div className="flex justify-center mb-6">
-              <QRCodeDisplay qrCodeBase64={payment.pixQrCode} />
+              <QRCodeDisplay qrCodeBase64={payment.pixCharge?.pixQrCode ?? ''} />
             </div>
 
             <div className="max-w-md mx-auto">
-              <CopyPasteButton pixCopyPaste={payment.pixCopyPaste} />
+              <CopyPasteButton pixCopyPaste={payment.pixCharge?.pixCopyPaste ?? ''} />
             </div>
 
             <DevSimulateButton paymentId={payment.id} checkoutToken={token} onSimulated={(action, updatedPayment) => {

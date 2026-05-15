@@ -1,5 +1,5 @@
 import { env } from './env';
-import type { CheckoutSession, CheckoutPayment } from '@/types/checkout';
+import type { CheckoutSession, CheckoutPayment, PaymentLinkPublicSession } from '@/types/checkout';
 
 export async function fetchCheckoutSession(token: string): Promise<CheckoutSession | null> {
   try {
@@ -18,6 +18,51 @@ export async function fetchCheckoutSession(token: string): Promise<CheckoutSessi
   } catch (error) {
     console.error('Error fetching checkout session:', error);
     return null;
+  }
+}
+
+export async function fetchPaymentLinkSession(token: string): Promise<PaymentLinkPublicSession | null> {
+  try {
+    const response = await fetch(`${env.apiUrl}/payment-links/public/${token}`, {
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      if (response.status === 404 || response.status === 422) {
+        return null;
+      }
+      throw new Error(`Failed to fetch payment link: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching payment link:', error);
+    return null;
+  }
+}
+
+export async function simulatePaymentLink(
+  token: string,
+  action: 'pay' | 'fail'
+): Promise<{ success: boolean; payment?: CheckoutPayment; error?: string }> {
+  try {
+    const response = await fetch(`${env.apiUrl}/payment-links/public/${token}/${action}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return { success: false, error: data?.error?.message || `Failed to simulate: ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { success: true, payment: data.payment };
+  } catch (error) {
+    console.error('Error simulating payment link:', error);
+    return { success: false, error: 'Network error' };
   }
 }
 

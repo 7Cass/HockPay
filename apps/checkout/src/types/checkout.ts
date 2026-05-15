@@ -19,11 +19,19 @@ export interface CheckoutPayment {
   description?: string;
   status: PaymentStatus;
   environment: Environment;
-  pixQrCode: string;
-  pixCopyPaste: string;
+  pixCharge?: PixCharge;
   expiresAt: string;
   paidAt?: string;
   createdAt: string;
+}
+
+export interface PixCharge {
+  id: string;
+  status: 'OPEN' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  pixQrCode: string;
+  pixCopyPaste: string;
+  pixTxId: string;
+  expiresAt: string;
 }
 
 export interface CheckoutSession {
@@ -42,6 +50,28 @@ export interface CheckoutSession {
   payment?: CheckoutPayment;
   successUrl: string | null;
   cancelUrl: string | null;
+}
+
+export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+
+export interface PaymentLinkPublicSession {
+  paymentLink: {
+    id: string;
+    publicToken: string;
+    amount: number;
+    currency: string;
+    title: string | null;
+    description: string | null;
+    status: PaymentLinkStatus;
+    expiresAt: string | null;
+    cancelledAt: string | null;
+  };
+  pixCharge: PixCharge;
+  lastPayment?: CheckoutPayment | null;
+  actions: {
+    canPay: boolean;
+    canFail: boolean;
+  };
 }
 
 export const TERMINAL_STATUSES: PaymentStatus[] = ['CONFIRMED', 'RELEASED', 'EXPIRED', 'FAILED'];
