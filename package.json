@@ -13,6 +13,7 @@
     "test:cov": "turbo run test:cov",
     "test:e2e": "turbo run test:e2e",
     "smoke:p0": "node scripts/smoke-p0.mjs",
+    "smoke:payment-link": "node scripts/smoke-payment-link.mjs",
     "smoke:p3:visual": "node scripts/smoke-p3-visual.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",

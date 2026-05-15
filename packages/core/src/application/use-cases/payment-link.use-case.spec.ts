@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PixCharge, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
+import { Payment, PaymentMethod } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   CreatePaymentLinkUseCase,
   PaymentLinkInvalidExpirationError,
 } from './create-payment-link.use-case';
+import { FailPaymentLinkUseCase } from './fail-payment-link.use-case';
+import { GetPaymentLinkUseCase } from './get-payment-link.use-case';
 import { ListPaymentLinksUseCase } from './list-payment-links.use-case';
 import { OpenPaymentLinkUseCase } from './open-payment-link.use-case';
+import { PayPaymentLinkUseCase } from './pay-payment-link.use-case';
 
 describe('PaymentLink use cases', () => {
   it('creates an avulso payment link backed by an open Pix charge without creating a payment', async () => {
@@ -325,4 +330,225 @@ describe('PaymentLink use cases', () => {
     expect(result.lastPayment?.status).toBe(PaymentStatus.FAILED);
     expect(result.actions.canPay).toBe(true);
   });
+
+  it('returns payment link detail attempts from the repository', async () => {
+    const attempts = [
+      { id: 'payment-1', attemptNumber: 1, attemptCount: 2 },
+      { id: 'payment-2', attemptNumber: 2, attemptCount: 2 },
+    ];
+    const repository = {
+      findListItemByIdAndStoreId: vi.fn().mockResolvedValue({
+        id: 'link-1',
+        storeId: 'store-1',
+        attempts,
+      }),
+    };
+    const useCase = new GetPaymentLinkUseCase(repository as any);
+
+    const result = await useCase.execute({
+      storeId: 'store-1',
+      paymentLinkId: 'link-1',
+    });
+
+    expect(repository.findListItemByIdAndStoreId).toHaveBeenCalledWith('link-1', 'store-1');
+    expect(result.paymentLink.attempts).toEqual(attempts);
+  });
+
+  it('creates a failed payment link attempt and keeps the PixCharge open', async () => {
+    const item = makePaymentLinkListItem();
+    let savedPayment: Payment | null = null;
+    const outboxWriter = { save: vi.fn() };
+    const paymentRepository = {
+      save: vi.fn(async (payment: Payment) => {
+        savedPayment = payment;
+      }),
+      findByPixChargeIdAndStoreId: vi.fn(async () => [savedPayment]),
+    };
+    const unitOfWork = {
+      execute: vi.fn((handler) =>
+        handler({
+          storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+          paymentRepository,
+          outboxWriter,
+        }),
+      ),
+    };
+    const useCase = new FailPaymentLinkUseCase(
+      { findPublicByToken: vi.fn().mockResolvedValue(item) } as any,
+      unitOfWork as any,
+      { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
+    );
+
+    const result = await useCase.execute({
+      publicToken: 'public-token',
+      environment: Environment.TEST,
+      reason: 'card_declined',
+    });
+
+    expect(result.payment.status).toBe(PaymentStatus.FAILED);
+    expect(result.payment.failedReason).toBe('card_declined');
+    expect(result.payment.attemptNumber).toBe(1);
+    expect(result.payment.pixCharge?.status).toBe(PixChargeStatus.OPEN);
+    expect(outboxWriter.save.mock.calls[0][0].eventType).toBe('payment.failed');
+  });
+
+  it('numbers multiple failed attempts before a payment link is paid', async () => {
+    const item = makePaymentLinkListItem();
+    const previousPayment = Payment.reconstitute({
+      id: 'payment-1',
+      storeId: 'store-1',
+      pixChargeId: 'charge-1',
+      amount: 5000,
+      fee: 90,
+      netAmount: 4910,
+      currency: 'BRL',
+      status: PaymentStatus.FAILED,
+      environment: Environment.TEST,
+      paymentMethod: PaymentMethod.PIX,
+      totalRefunded: 0,
+      pixCharge: item.pixCharge,
+      expiresAt: new Date(Date.now() + 60_000),
+      failedReason: 'first failure',
+      metadata: {
+        origin: 'payment_link',
+        paymentLinkId: 'link-1',
+      },
+      createdAt: new Date('2026-05-15T10:00:00.000Z'),
+      updatedAt: new Date('2026-05-15T10:00:00.000Z'),
+    });
+    let savedPayment: Payment | null = null;
+    const paymentRepository = {
+      save: vi.fn(async (payment: Payment) => {
+        savedPayment = payment;
+      }),
+      findByPixChargeIdAndStoreId: vi.fn(async () => [previousPayment, savedPayment]),
+    };
+    const useCase = new FailPaymentLinkUseCase(
+      { findPublicByToken: vi.fn().mockResolvedValue(item) } as any,
+      {
+        execute: vi.fn((handler) =>
+          handler({
+            storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+            paymentRepository,
+            outboxWriter: { save: vi.fn() },
+          }),
+        ),
+      } as any,
+      { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
+    );
+
+    const result = await useCase.execute({
+      publicToken: 'public-token',
+      environment: Environment.TEST,
+    });
+
+    expect(result.payment.attemptNumber).toBe(2);
+    expect(result.payment.attemptCount).toBe(2);
+    expect(result.payment.isLatestAttempt).toBe(true);
+  });
+
+  it('creates a payment link attempt and delegates confirmation for pay simulation', async () => {
+    const item = makePaymentLinkListItem();
+    let savedPayment: Payment | null = null;
+    const confirmPaymentUseCase = {
+      execute: vi.fn(async ({ paymentId }) => ({
+        payment: {
+          ...savedPayment!.toObject(),
+          id: paymentId,
+          status: PaymentStatus.CONFIRMED,
+          pixCharge: {
+            ...item.pixCharge,
+            status: PixChargeStatus.PAID,
+          },
+        },
+      })),
+    };
+    const useCase = new PayPaymentLinkUseCase(
+      { findPublicByToken: vi.fn().mockResolvedValue(item) } as any,
+      {
+        execute: vi.fn((handler) =>
+          handler({
+            storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+            paymentRepository: {
+              save: vi.fn(async (payment: Payment) => {
+                savedPayment = payment;
+              }),
+              findByPixChargeIdAndStoreId: vi.fn(async () => [savedPayment]),
+            },
+            outboxWriter: { save: vi.fn() },
+          }),
+        ),
+      } as any,
+      { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
+      confirmPaymentUseCase as any,
+    );
+
+    const result = await useCase.execute({
+      publicToken: 'public-token',
+      environment: Environment.TEST,
+      requestId: 'req-1',
+    });
+
+    expect(confirmPaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentId: savedPayment!.id,
+      requestId: 'req-1',
+    });
+    expect(result.payment.status).toBe(PaymentStatus.CONFIRMED);
+    expect(result.payment.pixCharge?.status).toBe(PixChargeStatus.PAID);
+  });
 });
+
+function makeStore() {
+  return {
+    id: 'store-1',
+    name: 'Hockpay Store',
+    isActive: true,
+    isApproved: true,
+    feePercent: 0,
+    feeFixed: 90,
+  };
+}
+
+function makePaymentLinkListItem() {
+  const now = new Date('2026-05-15T12:00:00.000Z');
+  return {
+    id: 'link-1',
+    storeId: 'store-1',
+    pixChargeId: 'charge-1',
+    publicToken: 'public-token',
+    amount: 5000,
+    currency: 'BRL',
+    title: 'Venda avulsa',
+    description: null,
+    internalReference: 'order-1',
+    expiresAt: null,
+    openedAt: null,
+    cancelledAt: null,
+    createdAt: now,
+    updatedAt: now,
+    checkoutUrl: 'http://localhost:3333/pay/public-token',
+    status: 'ACTIVE',
+    paymentId: null,
+    paymentStatus: null,
+    pixCharge: {
+      id: 'charge-1',
+      storeId: 'store-1',
+      amount: 5000,
+      currency: 'BRL',
+      status: PixChargeStatus.OPEN,
+      pixQrCode: 'qr-code',
+      pixCopyPaste: 'pix-copy-paste',
+      pixTxId: 'pix-tx-id',
+      expiresAt: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+    failedPaymentCount: 0,
+    lastPaymentId: null,
+    lastPaymentStatus: null,
+    lastPayment: null,
+    lastFailedAt: null,
+    attempts: [],
+  };
+}
