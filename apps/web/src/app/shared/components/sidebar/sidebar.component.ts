@@ -21,6 +21,7 @@ import {
     lucideArrowRightLeft,
     lucideReceipt,
     lucideBell,
+    lucideLink,
 } from '@ng-icons/lucide';
 import { StoreService, type Store } from '../../../core/services/store.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -60,6 +61,7 @@ interface MenuGroup {
             lucideArrowRightLeft,
             lucideReceipt,
             lucideBell,
+            lucideLink,
         }),
     ],
     templateUrl: './sidebar.component.html',
@@ -101,6 +103,7 @@ export class SidebarComponent implements OnInit {
             items: [
                 { label: 'Visão Geral', icon: 'lucideLayoutDashboard', route: '/dashboard' },
                 { label: 'Pagamentos', icon: 'lucideCreditCard', route: '/dashboard/payments' },
+                { label: 'Links de pagamento', icon: 'lucideLink', route: '/dashboard/payment-links' },
                 { label: 'Produtos', icon: 'lucideShoppingBag', route: '/dashboard/products' },
                 { label: 'Clientes', icon: 'lucideUsers', route: '/dashboard/customers' },
             ],

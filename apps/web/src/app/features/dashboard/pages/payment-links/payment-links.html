@@ -1,0 +1,132 @@
+<div class="px-8 pb-8 pt-4 max-w-7xl mx-auto flex flex-col h-full gap-6">
+    <div class="flex flex-col gap-1">
+        <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Links de pagamento</h1>
+        <p class="text-sm text-zinc-500">Crie cobranças avulsas para enviar por WhatsApp, sem cliente ou produto vinculado.</p>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-9 gap-3">
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Total</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.total ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Ativos</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.active ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Abertos</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.opened ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Pendentes</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.pending ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Pagos</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.paid ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Expirados</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.expired ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Cancelados</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.cancelled ?? 0 }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Conversão</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ formatPercent(stats()?.conversionRate) }}</p>
+        </div>
+        <div class="rounded-lg border border-zinc-200 bg-white p-4">
+            <p class="text-xs text-zinc-500">Valor pago</p>
+            <p class="mt-1 text-xl font-semibold text-zinc-900">{{ ((stats()?.paidAmount ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
+        <form [formGroup]="form" (ngSubmit)="create()" class="rounded-lg border border-zinc-200 bg-white p-5 h-fit">
+            <h2 class="text-base font-semibold text-zinc-900">Novo link avulso</h2>
+            <div class="mt-4 space-y-4">
+                <label class="block">
+                    <span class="text-sm font-medium text-zinc-700">Valor</span>
+                    <input type="number" min="0.01" step="0.01" formControlName="amount" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="129.90">
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-zinc-700">Título</span>
+                    <input type="text" formControlName="title" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="Compra avulsa">
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-zinc-700">Descrição</span>
+                    <textarea rows="3" formControlName="description" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="Detalhe breve da cobrança"></textarea>
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-zinc-700">Referência interna</span>
+                    <input type="text" formControlName="internalReference" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500" placeholder="Pedido, orçamento ou nota">
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-zinc-700">Validade</span>
+                    <input type="datetime-local" formControlName="expiresAt" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                </label>
+                <button type="submit" class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60" [disabled]="isCreating()">
+                    {{ isCreating() ? 'Criando...' : 'Criar e copiar link' }}
+                </button>
+            </div>
+        </form>
+
+        <div class="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+            <div class="border-b border-zinc-200 px-5 py-4">
+                <h2 class="text-base font-semibold text-zinc-900">Links gerados</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-zinc-200">
+                    <thead class="bg-zinc-50">
+                        <tr>
+                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Cobrança</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Status</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Valor</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Criado</th>
+                            <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100 bg-white">
+                        @for (link of service.links(); track link.id) {
+                            <tr>
+                                <td class="px-5 py-4">
+                                    <p class="font-medium text-zinc-900">{{ link.title || link.description || 'Link avulso' }}</p>
+                                    <p class="mt-1 max-w-md truncate text-xs text-zinc-500">{{ link.checkoutUrl }}</p>
+                                    @if (link.failedPaymentCount > 0) {
+                                        <p class="mt-1 text-xs text-red-600">{{ link.failedPaymentCount }} falha(s) registrada(s)</p>
+                                    }
+                                </td>
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium ring-1" [ngClass]="statusClass(link.status)">
+                                        {{ statusLabel(link.status) }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-sm font-medium text-zinc-900">{{ (link.amount / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+                                <td class="px-5 py-4 text-sm text-zinc-600">{{ link.createdAt | date:'dd/MM HH:mm' }}</td>
+                                <td class="px-5 py-4">
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" class="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50" (click)="copy(link)">
+                                            {{ copiedId() === link.id ? 'Copiado' : 'Copiar' }}
+                                        </button>
+                                        @if (link.lastPaymentId) {
+                                            <a [routerLink]="['/dashboard/payments', link.lastPaymentId]" class="rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50">Payment</a>
+                                        }
+                                        <button type="button" class="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50" [disabled]="link.status === 'PAID' || link.status === 'CANCELLED'" (click)="cancel(link)">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        } @empty {
+                            <tr>
+                                <td colspan="5" class="px-5 py-14 text-center text-sm text-zinc-500">Nenhum link de pagamento criado.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
