@@ -7,7 +7,11 @@ export class StoreListItemDto {
   slug!: string;
   isActive!: boolean;
   isApproved!: boolean;
+  settlementDays!: number;
+  feePercent!: number;
+  feeFixed!: number;
   createdAt!: Date;
+  updatedAt!: Date;
 }
 
 /**

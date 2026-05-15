@@ -9,7 +9,11 @@ export interface Store {
     slug: string;
     isActive: boolean;
     isApproved: boolean;
+    settlementDays: number;
+    feePercent: number;
+    feeFixed: number;
     createdAt: string;
+    updatedAt: string;
 }
 
 export interface ListStoresResponse {
@@ -55,6 +59,13 @@ export class StoreService {
         return this.api.get<ListStoresResponse>('/stores').pipe(
             tap((response) => {
                 this.stores.set(response.stores);
+
+                const selectedStore = this.currentStore();
+                if (selectedStore) {
+                    const refreshedStore = response.stores.find(s => s.id === selectedStore.id);
+                    this.currentStore.set(refreshedStore || selectedStore);
+                    return;
+                }
 
                 // If a store is not yet selected in memory
                 if (!this.currentStore() && response.stores.length > 0) {

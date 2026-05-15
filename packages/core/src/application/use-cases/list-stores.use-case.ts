@@ -9,7 +9,11 @@ export interface StoreListItem {
   slug: string;
   isActive: boolean;
   isApproved: boolean;
+  settlementDays: number;
+  feePercent: number;
+  feeFixed: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -44,7 +48,11 @@ export class ListStoresUseCase {
         slug: store.slug,
         isActive: store.isActive,
         isApproved: store.isApproved,
+        settlementDays: store.settlementDays,
+        feePercent: store.feePercent,
+        feeFixed: store.feeFixed,
         createdAt: store.createdAt,
+        updatedAt: store.updatedAt,
       })),
     };
   }
