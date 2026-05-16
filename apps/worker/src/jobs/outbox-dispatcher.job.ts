@@ -1,5 +1,4 @@
-import { Injectable, Logger, Inject } from "@nestjs/common";
-import { Cron } from "@nestjs/schedule";
+import { Injectable, Logger, Inject, OnModuleInit, Optional } from "@nestjs/common";
 import {
   IAlertQueuePort,
   IWebhookQueuePort,
@@ -11,6 +10,7 @@ import {
 } from "../modules/queue/queue.module";
 import { createWorkerRequestId } from "../common/request-id";
 import { runExclusiveCronJob } from "../common/cron-guard";
+import { WorkerCronScheduler } from "../common/worker-cron-scheduler";
 
 /**
  * Outbox Dispatcher Job
@@ -19,7 +19,7 @@ import { runExclusiveCronJob } from "../common/cron-guard";
  * Runs every 10 seconds for low latency webhook delivery.
  */
 @Injectable()
-export class OutboxDispatcherJob {
+export class OutboxDispatcherJob implements OnModuleInit {
   private static readonly DISPATCH_WATCHDOG_MS = 45 * 60 * 1000;
   private static readonly ENQUEUE_RETRY_MS = 60 * 1000;
 
@@ -32,13 +32,23 @@ export class OutboxDispatcherJob {
     private readonly webhookQueue: IWebhookQueuePort,
     @Inject(ALERT_QUEUE_PORT)
     private readonly alertQueue: IAlertQueuePort,
+    @Optional()
+    private readonly cronScheduler?: WorkerCronScheduler,
   ) {}
+
+  onModuleInit(): void {
+    this.cronScheduler?.registerCronJob({
+      name: OutboxDispatcherJob.name,
+      envName: "WORKER_CRON_OUTBOX_DISPATCHER",
+      defaultExpression: "*/10 * * * * *",
+      onTick: () => this.handleDispatch(),
+    });
+  }
 
   /**
    * Dispatch pending outbox events to webhook queue.
    * Runs every 10 seconds.
    */
-  @Cron("*/10 * * * * *")
   async handleDispatch(): Promise<void> {
     await runExclusiveCronJob(OutboxDispatcherJob.name, this.logger, () =>
       this.dispatchEvents(),

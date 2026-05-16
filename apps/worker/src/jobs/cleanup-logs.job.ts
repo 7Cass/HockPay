@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { CleanupLogsUseCase } from '@hockpay/core';
 import { runExclusiveCronJob } from '../common/cron-guard';
+import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
 /**
  * Cleanup Logs Job
@@ -10,12 +10,24 @@ import { runExclusiveCronJob } from '../common/cron-guard';
  * Runs daily at 3:00 AM.
  */
 @Injectable()
-export class CleanupLogsJob {
+export class CleanupLogsJob implements OnModuleInit {
   private readonly logger = new Logger(CleanupLogsJob.name);
 
-  constructor(private readonly cleanupLogsUseCase: CleanupLogsUseCase) {}
+  constructor(
+    private readonly cleanupLogsUseCase: CleanupLogsUseCase,
+    @Optional()
+    private readonly cronScheduler?: WorkerCronScheduler,
+  ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  onModuleInit(): void {
+    this.cronScheduler?.registerCronJob({
+      name: CleanupLogsJob.name,
+      envName: 'WORKER_CRON_CLEANUP_LOGS',
+      defaultExpression: '0 3 * * *',
+      onTick: () => this.handleCleanup(),
+    });
+  }
+
   async handleCleanup(): Promise<void> {
     await runExclusiveCronJob(CleanupLogsJob.name, this.logger, async () => {
       this.logger.log('Starting cleanup job...');

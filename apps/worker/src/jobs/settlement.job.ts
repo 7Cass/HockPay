@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { ReleasePaymentUseCase, PaymentStatus } from '@hockpay/core';
 import { PrismaService } from '../infra/database/prisma.service';
 import { createWorkerRequestId } from '../common/request-id';
 import { runExclusiveCronJob } from '../common/cron-guard';
+import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
 /**
  * Settlement Job
@@ -12,15 +12,25 @@ import { runExclusiveCronJob } from '../common/cron-guard';
  * Runs daily at midnight.
  */
 @Injectable()
-export class SettlementJob {
+export class SettlementJob implements OnModuleInit {
   private readonly logger = new Logger(SettlementJob.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly releasePaymentUseCase: ReleasePaymentUseCase,
+    @Optional()
+    private readonly cronScheduler?: WorkerCronScheduler,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  onModuleInit(): void {
+    this.cronScheduler?.registerCronJob({
+      name: SettlementJob.name,
+      envName: 'WORKER_CRON_SETTLEMENT',
+      defaultExpression: '0 0 * * *',
+      onTick: () => this.handleSettlement(),
+    });
+  }
+
   async handleSettlement(): Promise<void> {
     await runExclusiveCronJob(SettlementJob.name, this.logger, async () => {
       this.logger.log('Starting settlement job...');
@@ -77,7 +87,7 @@ export class SettlementJob {
     for (const payment of payments) {
       const requestId = createWorkerRequestId('settlement', payment.id);
       try {
-        await this.releasePaymentUseCase.execute({ paymentId: payment.id, requestId });
+        await this.releasePaymentUseCase.execute({ storeId, paymentId: payment.id, requestId });
         released++;
       } catch (error) {
         this.logger.error(`Failed to release payment ${payment.id} requestId=${requestId}:`, error);

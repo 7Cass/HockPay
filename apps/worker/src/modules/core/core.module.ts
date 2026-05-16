@@ -1,6 +1,6 @@
-import { Logger, Module } from '@nestjs/common';
-import { PrismaModule } from '../../infra/database/prisma.module';
-import { PrismaService } from '../../infra/database/prisma.service';
+import { Logger, Module } from "@nestjs/common";
+import { PrismaModule } from "../../infra/database/prisma.module";
+import { PrismaService } from "../../infra/database/prisma.service";
 
 // Repositories
 import {
@@ -16,9 +16,9 @@ import {
   IdempotencyKeyRepository,
   UnitOfWork,
   WebhookHttpClientService,
-} from '@hockpay/infrastructure';
-import { AccountRepository } from '../../infra/repositories/account.repository.impl';
-import { TransactionRepository } from '../../infra/repositories/transaction.repository.impl';
+} from "@hockpay/infrastructure";
+import { AccountRepository } from "../../infra/repositories/account.repository.impl";
+import { TransactionRepository } from "../../infra/repositories/transaction.repository.impl";
 
 // Use Cases
 import {
@@ -34,10 +34,11 @@ import {
   IAlertConfigRepository,
   IAlertDeliveryLogRepository,
   IUnitOfWork,
-} from '@hockpay/core';
+  getWebhookUrlPolicyOptionsForNodeEnv,
+} from "@hockpay/core";
 
 // Token for IExpirationQueuePort (exported for use in QueueModule)
-export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
+export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
 
 /**
  * Core Module
@@ -50,42 +51,45 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
   providers: [
     // Factory providers for shared repositories (from @hockpay/infrastructure)
     {
-      provide: 'IPaymentRepository',
+      provide: "IPaymentRepository",
       useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IOutboxRepository',
+      provide: "IOutboxRepository",
       useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IWebhookConfigRepository',
-      useFactory: (prisma: PrismaService) => new WebhookConfigRepository(prisma),
+      provide: "IWebhookConfigRepository",
+      useFactory: (prisma: PrismaService) =>
+        new WebhookConfigRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IWebhookLogRepository',
+      provide: "IWebhookLogRepository",
       useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IAlertConfigRepository',
+      provide: "IAlertConfigRepository",
       useFactory: (prisma: PrismaService) => new AlertConfigRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IAlertDeliveryLogRepository',
-      useFactory: (prisma: PrismaService) => new AlertDeliveryLogRepository(prisma),
+      provide: "IAlertDeliveryLogRepository",
+      useFactory: (prisma: PrismaService) =>
+        new AlertDeliveryLogRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IIdempotencyKeyRepository',
-      useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
+      provide: "IIdempotencyKeyRepository",
+      useFactory: (prisma: PrismaService) =>
+        new IdempotencyKeyRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: 'IUnitOfWork',
+      provide: "IUnitOfWork",
       useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
@@ -104,11 +108,14 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       useFactory: () =>
         new WebhookHttpClientService({
           logger: new Logger(WebhookHttpClientService.name),
+          webhookUrlPolicyOptions: getWebhookUrlPolicyOptionsForNodeEnv(
+            process.env.NODE_ENV,
+          ),
         }),
     },
     {
       provide: EncryptionService,
-      useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),
+      useFactory: () => new EncryptionService(getRequiredEnv("ENCRYPTION_KEY")),
     },
     DiscordAlertSenderService,
 
@@ -133,9 +140,9 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
           new Logger(ProcessWebhookUseCase.name),
         ),
       inject: [
-        'IOutboxRepository',
-        'IWebhookConfigRepository',
-        'IWebhookLogRepository',
+        "IOutboxRepository",
+        "IWebhookConfigRepository",
+        "IWebhookLogRepository",
         WebhookHttpClientService,
         HmacSignerService,
         EncryptionService,
@@ -143,8 +150,9 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     },
     {
       provide: ReleasePaymentUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) => new ReleasePaymentUseCase(unitOfWork),
-      inject: ['IUnitOfWork'],
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new ReleasePaymentUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
     },
     {
       provide: ProcessAlertDeliveryUseCase,
@@ -163,9 +171,9 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
           encryption,
         ),
       inject: [
-        'IOutboxRepository',
-        'IAlertConfigRepository',
-        'IAlertDeliveryLogRepository',
+        "IOutboxRepository",
+        "IAlertConfigRepository",
+        "IAlertDeliveryLogRepository",
         DiscordAlertSenderService,
         EncryptionService,
       ],
@@ -176,24 +184,25 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
         webhookLogRepository: IWebhookLogRepository,
         outboxRepository: IOutboxRepository,
       ) => new CleanupLogsUseCase(webhookLogRepository, outboxRepository),
-      inject: ['IWebhookLogRepository', 'IOutboxRepository'],
+      inject: ["IWebhookLogRepository", "IOutboxRepository"],
     },
     {
       provide: DetectAnomaliesUseCase,
       useFactory: (paymentRepository: IPaymentRepository) =>
         new DetectAnomaliesUseCase(paymentRepository),
-      inject: ['IPaymentRepository'],
+      inject: ["IPaymentRepository"],
     },
   ],
   exports: [
     // Repositories (tokens for shared)
-    'IPaymentRepository',
-    'IOutboxRepository',
-    'IWebhookConfigRepository',
-    'IWebhookLogRepository',
-    'IAlertConfigRepository',
-    'IAlertDeliveryLogRepository',
-    'IIdempotencyKeyRepository',
+    "IPaymentRepository",
+    "IOutboxRepository",
+    "IWebhookConfigRepository",
+    "IWebhookLogRepository",
+    "IAlertConfigRepository",
+    "IAlertDeliveryLogRepository",
+    "IIdempotencyKeyRepository",
+    "IUnitOfWork",
     AccountRepository,
     TransactionRepository,
     // Use Cases
@@ -204,7 +213,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     DetectAnomaliesUseCase,
   ],
 })
-export class CoreModule { }
+export class CoreModule {}
 
 function getRequiredEnv(name: string): string {
   const value = process.env[name];

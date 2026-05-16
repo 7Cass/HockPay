@@ -61,14 +61,17 @@ describe('SettlementJob', () => {
     });
     expect(releasePaymentUseCase.execute).toHaveBeenCalledTimes(3);
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(1, {
+      storeId: 'store-1',
       paymentId: 'payment-1',
       requestId: 'worker:settlement:payment-1',
     });
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(2, {
+      storeId: 'store-1',
       paymentId: 'payment-2',
       requestId: 'worker:settlement:payment-2',
     });
     expect(releasePaymentUseCase.execute).toHaveBeenNthCalledWith(3, {
+      storeId: 'store-2',
       paymentId: 'payment-3',
       requestId: 'worker:settlement:payment-3',
     });

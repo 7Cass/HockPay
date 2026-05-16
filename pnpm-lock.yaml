@@ -396,6 +396,9 @@ importers:
       bullmq:
         specifier: ^5.0.0
         version: 5.69.3
+      cron:
+        specifier: ^3.5.0
+        version: 3.5.0
       ioredis:
         specifier: ^5.5.0
         version: 5.9.2

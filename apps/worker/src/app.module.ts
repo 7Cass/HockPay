@@ -10,7 +10,7 @@ import { CronModule } from './modules/queue/cron.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: ['../../.env', '.env'],
+      envFilePath: ['apps/worker/.env', '.env', '../../.env'],
       isGlobal: true,
     }),
     LoggerModule.forRootAsync({

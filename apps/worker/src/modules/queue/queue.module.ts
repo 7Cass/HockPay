@@ -6,7 +6,7 @@ import { AlertProcessor } from '../../infra/queues/alert.processor';
 import { ExpirationProcessor } from '../../infra/queues/expiration.processor';
 import { WebhookQueue } from '../../infra/queues/webhook.queue';
 import { AlertQueue } from '../../infra/queues/alert.queue';
-import { ExpirePaymentUseCase, IPaymentRepository, IOutboxRepository } from '@hockpay/core';
+import { ExpirePaymentUseCase, IUnitOfWork } from '@hockpay/core';
 import { ExpirationQueue } from '@hockpay/infrastructure';
 
 // Token for IWebhookQueuePort (exported for use in OutboxDispatcherJob)
@@ -56,6 +56,12 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
           },
         },
       },
+      {
+        name: 'webhook-dead-letter',
+      },
+      {
+        name: 'alert-dead-letter',
+      },
     ),
     CoreModule,
   ],
@@ -81,11 +87,10 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
     {
       provide: ExpirePaymentUseCase,
       useFactory: (
-        paymentRepository: IPaymentRepository,
-        outboxRepository: IOutboxRepository,
+        unitOfWork: IUnitOfWork,
         expirationQueue: ExpirationQueue,
-      ) => new ExpirePaymentUseCase(paymentRepository, outboxRepository, expirationQueue),
-      inject: ['IPaymentRepository', 'IOutboxRepository', EXPIRATION_QUEUE_PORT],
+      ) => new ExpirePaymentUseCase(unitOfWork, expirationQueue),
+      inject: ['IUnitOfWork', EXPIRATION_QUEUE_PORT],
     },
   ],
   exports: [EXPIRATION_QUEUE_PORT, WEBHOOK_QUEUE_PORT, ALERT_QUEUE_PORT, ExpirePaymentUseCase],

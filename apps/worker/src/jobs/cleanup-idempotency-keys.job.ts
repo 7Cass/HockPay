@@ -1,7 +1,7 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, Inject, OnModuleInit, Optional } from '@nestjs/common';
 import { IIdempotencyKeyRepository } from '@hockpay/core';
 import { runExclusiveCronJob } from '../common/cron-guard';
+import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
 /**
  * Cleanup Idempotency Keys Job
@@ -10,15 +10,25 @@ import { runExclusiveCronJob } from '../common/cron-guard';
  * Runs daily at 4:00 AM.
  */
 @Injectable()
-export class CleanupIdempotencyKeysJob {
+export class CleanupIdempotencyKeysJob implements OnModuleInit {
     private readonly logger = new Logger(CleanupIdempotencyKeysJob.name);
 
     constructor(
         @Inject('IIdempotencyKeyRepository')
         private readonly repository: IIdempotencyKeyRepository,
+        @Optional()
+        private readonly cronScheduler?: WorkerCronScheduler,
     ) { }
 
-    @Cron(CronExpression.EVERY_DAY_AT_4AM)
+    onModuleInit(): void {
+        this.cronScheduler?.registerCronJob({
+            name: CleanupIdempotencyKeysJob.name,
+            envName: 'WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS',
+            defaultExpression: '0 4 * * *',
+            onTick: () => this.handleCleanup(),
+        });
+    }
+
     async handleCleanup(): Promise<void> {
         await runExclusiveCronJob(CleanupIdempotencyKeysJob.name, this.logger, async () => {
             this.logger.log('Starting idempotency keys cleanup job...');

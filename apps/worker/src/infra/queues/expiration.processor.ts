@@ -32,6 +32,7 @@ export class ExpirationProcessor extends WorkerHost {
     );
 
     await this.expirePaymentUseCase.execute({
+      storeId: job.data.storeId,
       paymentId: job.data.paymentId,
       requestId,
     });

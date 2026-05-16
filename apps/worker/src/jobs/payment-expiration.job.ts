@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { PrismaService } from '../infra/database/prisma.service';
 import { PaymentStatus } from '@hockpay/database';
 import { ExpirePaymentUseCase } from '@hockpay/core';
 import { createWorkerRequestId } from '../common/request-id';
 import { runExclusiveCronJob } from '../common/cron-guard';
+import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
 /**
  * Job que expira pagamentos pendentes que passaram do prazo
@@ -12,18 +12,28 @@ import { runExclusiveCronJob } from '../common/cron-guard';
  * Roda a cada minuto
  */
 @Injectable()
-export class PaymentExpirationJob {
+export class PaymentExpirationJob implements OnModuleInit {
   private readonly logger = new Logger(PaymentExpirationJob.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
+    @Optional()
+    private readonly cronScheduler?: WorkerCronScheduler,
   ) {}
+
+  onModuleInit(): void {
+    this.cronScheduler?.registerCronJob({
+      name: PaymentExpirationJob.name,
+      envName: 'WORKER_CRON_PAYMENT_EXPIRATION',
+      defaultExpression: '* * * * *',
+      onTick: () => this.handleExpiration(),
+    });
+  }
 
   /**
    * Expira pagamentos pendentes que passaram do prazo
    */
-  @Cron(CronExpression.EVERY_MINUTE)
   async handleExpiration(): Promise<void> {
     await runExclusiveCronJob(PaymentExpirationJob.name, this.logger, () =>
       this.expirePendingPayments(),
@@ -58,6 +68,7 @@ export class PaymentExpirationJob {
       const requestId = createWorkerRequestId('payment-expiration-scan', payment.id);
       try {
         const result = await this.expirePaymentUseCase.execute({
+          storeId: payment.storeId,
           paymentId: payment.id,
           requestId,
         });
