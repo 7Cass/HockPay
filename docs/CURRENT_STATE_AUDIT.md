@@ -8,7 +8,7 @@ Resumo curto e auditado do estado atual do repositório.
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/api`           | API NestJS em `/api/v1`, com auth por cookie JWT para dashboard, API key para integrações, payments, checkout sessions, webhooks, dashboard, refunds, receipts, idempotência e `X-Request-ID` |
 | `apps/worker`        | Worker NestJS com Redis/BullMQ, dispatcher de outbox resiliente, entrega de webhooks, expiração, settlement, alertas e guard in-process para cron jobs                                        |
-| `apps/web`           | Angular único para landing, auth e dashboard; expõe webhooks com filtros/IDs operacionais, detalhe de payment com timeline, receipts e visão financeira read-only                              |
+| `apps/web`           | Angular único para landing, auth e dashboard; expõe webhooks com filtros/IDs operacionais, detalhe de payment com timeline, receipts e visão financeira read-only                             |
 | `apps/checkout`      | Next.js para checkout hospedado baseado em token                                                                                                                                              |
 | `apps/demo-mediakit` | Demo que usa checkout hosted + webhook assinado                                                                                                                                               |
 
@@ -34,18 +34,20 @@ Resumo curto e auditado do estado atual do repositório.
 - `pnpm run smoke:payment-link`: validacao de Payment Link/checkout hospedado, PixCharge e tentativas de pagamento
 - `pnpm run smoke:p3:visual`: populacao de dashboard para validacao visual de payments `PENDING`, `CONFIRMED`, `FAILED`, `EXPIRED`, `REFUNDED` e `RELEASED`
 - `pnpm run smoke:studycase:mediakit`: validacao completa do `demo-mediakit` com API, checkout hospedado, app demo, webhook assinado e estado final renderizavel
+- `pnpm run smoke:docker`: runner local-first com Postgres/Redis em Docker e API, worker e checkout como processos Node no host; nao e gate bloqueante de CI
+- CI GitHub Actions baseline: Node 22, pnpm 9.15.0, cache pnpm/`.turbo`, jobs de build, testes focados e `@hockpay/api test:e2e`
 - Webhooks locais aceitam HTTP somente em `localhost`/`127.0.0.1` em ambiente local/desenvolvimento; destinos remotos exigem HTTPS público e a política bloqueia loopback, RFC1918, link-local, metadata `169.254.169.254`, IPv6 local/link-local/unique-local e protocolos não HTTP(S) na configuração e no envio
 - Sem LocalStack/SQS configurado
 
 ## Estado das P's
 
-| Prioridade | Estado atual                                                                             |
-| ---------- | ---------------------------------------------------------------------------------------- |
-| P0         | Done: baseline demoável e smoke local                                                    |
-| P1         | Done: consistência financeira, outbox e webhook resiliente                               |
-| P2         | Done: observabilidade, DX operacional, request tracing, cron guard e infra compartilhada |
+| Prioridade | Estado atual                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| P0         | Done: baseline demoável e smoke local                                                                         |
+| P1         | Done: consistência financeira, outbox e webhook resiliente                                                    |
+| P2         | Done: observabilidade, DX operacional, request tracing, cron guard e infra compartilhada                      |
 | P3         | Done nesta rodada: template/checklist/docs/smoke alinhados, readiness visual, timeline, receipts e financeiro |
-| P4         | Pós-gate: expansões maiores de produto                                                   |
+| P4         | Pós-gate: expansões maiores de produto                                                                        |
 
 ## Capacidades verificadas
 
@@ -57,7 +59,7 @@ Resumo curto e auditado do estado atual do repositório.
 - Account auto-creation esta implementada: store criada pela API nasce com account, e stores antigas foram cobertas por migration de backfill.
 - Receipt, payment timeline, transaction e saldos pending/available/blocked têm caminho de consulta por dashboard/API e são P3-real.
 - O próximo study-case nao foi escolhido nesta rodada; o artefato de fechamento P3 e o template/checklist/documentacao/smokes alinhados para escolher o proximo case com menos conhecimento tacito.
-- CI Docker para rodar os smokes em pipeline e futuro, fora do fechamento P3.
+- Smoke "tudo Docker" e CI smoke seguem fora desta rodada; antes disso e preciso configurar uma URL de receiver de webhook acessivel para API/worker containerizados.
 
 ## Known Non-P0 / P4
 

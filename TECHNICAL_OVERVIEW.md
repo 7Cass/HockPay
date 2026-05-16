@@ -10,16 +10,16 @@ Este documento separa explicitamente:
 
 ### 1.1 Topologia atual
 
-| Área | Status | Observações |
-|------|--------|-------------|
-| `apps/api` | Implementado | API NestJS com prefixo `/api` e versão padrão `v1` |
-| `apps/worker` | Implementado | Worker NestJS separado com BullMQ e cron jobs |
-| `apps/web` | Implementado | App Angular único cobrindo landing, auth e dashboard |
-| `apps/checkout` | Implementado | Checkout Next.js baseado em `checkout session token` |
-| `apps/demo-mediakit` | Implementado | Demo de integração usando checkout hospedado e webhook |
-| `packages/core` | Implementado | Domínio, portas, interfaces e use cases compartilhados |
-| `packages/database` | Implementado | Schema Prisma, migrations e cliente |
-| `packages/infrastructure` | Parcial | Repositórios compartilhados e `UnitOfWork`; parte da infra ainda vive nos apps |
+| Área                      | Status       | Observações                                                                    |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| `apps/api`                | Implementado | API NestJS com prefixo `/api` e versão padrão `v1`                             |
+| `apps/worker`             | Implementado | Worker NestJS separado com BullMQ e cron jobs                                  |
+| `apps/web`                | Implementado | App Angular único cobrindo landing, auth e dashboard                           |
+| `apps/checkout`           | Implementado | Checkout Next.js baseado em `checkout session token`                           |
+| `apps/demo-mediakit`      | Implementado | Demo de integração usando checkout hospedado e webhook                         |
+| `packages/core`           | Implementado | Domínio, portas, interfaces e use cases compartilhados                         |
+| `packages/database`       | Implementado | Schema Prisma, migrations e cliente                                            |
+| `packages/infrastructure` | Parcial      | Repositórios compartilhados e `UnitOfWork`; parte da infra ainda vive nos apps |
 
 ### 1.2 Fluxo backend atual
 
@@ -32,11 +32,11 @@ Este documento separa explicitamente:
 
 ### 1.3 Infraestrutura atual
 
-| Componente | Status | Implementação atual |
-|------------|--------|---------------------|
-| Banco | Implementado | PostgreSQL 15 local via Docker Compose |
-| Cache | Implementado | Redis 7 |
-| Fila | Implementado | BullMQ sobre Redis |
+| Componente       | Status           | Implementação atual                      |
+| ---------------- | ---------------- | ---------------------------------------- |
+| Banco            | Implementado     | PostgreSQL 15 local via Docker Compose   |
+| Cache            | Implementado     | Redis 7                                  |
+| Fila             | Implementado     | BullMQ sobre Redis                       |
 | SQS / LocalStack | Não implementado | Não há configuração ativa no repositório |
 
 ### 1.4 Frontends atuais
@@ -57,21 +57,23 @@ Este documento separa explicitamente:
 
 ### 1.5 Padrões atuais relevantes
 
-| Tema | Estado atual |
-|------|--------------|
+| Tema               | Estado atual                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------------- |
 | Clean Architecture | Parcialmente implementada com boa separação entre `core`, `database`, `infrastructure` e apps |
-| Idempotência | Implementada para criação de pagamentos; não é aplicada uniformemente a toda mutação |
-| Webhooks | Implementados com HMAC, logs e outbox |
-| Checkout session | Implementada de ponta a ponta |
-| Product catalog | Parcial: existe no schema e há placeholder no dashboard, mas sem slice completo no backend |
-| Refunds | Implementadas como estornos parciais ou totais, não apenas totais |
+| Idempotência       | Implementada para criação de pagamentos; não é aplicada uniformemente a toda mutação          |
+| Webhooks           | Implementados com HMAC, logs e outbox                                                         |
+| Checkout session   | Implementada de ponta a ponta                                                                 |
+| Product catalog    | Parcial: existe no schema e há placeholder no dashboard, mas sem slice completo no backend    |
+| Refunds            | Implementadas como estornos parciais ou totais, não apenas totais                             |
+| CI                 | Implementado baseline com build, testes focados e e2e HTTP da API                             |
+| Smoke Docker local | Implementado local-first com Postgres/Redis em Docker e servicos Node no host                 |
 
 ## 2. Principais Gaps do Estado Atual
 
 ### 2.1 Drift entre schema e runtime
 
 - `Product` e `PaymentItem` existem no Prisma, mas não possuem cobertura equivalente em `core` + `api`
-- `Account` é opcional na modelagem runtime atual; a criação automática na criação de store não está implementada no use case atual
+- `Account` ainda aparece como area de atencao historica em docs antigas, mas o runtime atual cria account junto da store e a migration `20260510000100_backfill_store_accounts` cobre stores legadas sem account
 
 ### 2.2 Drift entre documentação histórica e código
 
@@ -83,6 +85,12 @@ Este documento separa explicitamente:
 
 - Página de produtos no Angular é placeholder visual
 - Algumas telas de dashboard existem antes de a respectiva capacidade backend estar consolidada
+
+### 2.4 Operacao e CI
+
+- O CI atual nao roda lint porque os scripts de lint usam `--fix` e poderiam mutar arquivos no runner.
+- Os smokes Docker sao locais por enquanto; transformar em gate de CI fica para uma rodada futura.
+- Um modo "tudo Docker" com API, worker e checkout containerizados exige tornar configuravel a URL do receiver de webhook acessivel entre containers.
 
 ## 3. Arquitetura Alvo
 
@@ -97,14 +105,14 @@ O alvo continua sendo uma plataforma Dev-First de pagamentos simulados com:
 
 ### 3.2 Alvos estruturais
 
-| Tema | Estado alvo |
-|------|-------------|
-| Documentação | Current-state e target-state claramente separados |
-| Backend | Reduzir infra duplicada entre apps e consolidar adaptadores compartilhados |
-| Dados | Alinhar schema, domínio e API para entities já presentes no Prisma |
-| Frontend | Completar ou esconder áreas placeholder como `products` até que backend exista |
-| Idempotência | Tornar a política explícita e coerente para mutações críticas |
-| Arquitetura alvo antiga | Manter apenas o que ainda fizer sentido como direção real |
+| Tema                    | Estado alvo                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| Documentação            | Current-state e target-state claramente separados                              |
+| Backend                 | Reduzir infra duplicada entre apps e consolidar adaptadores compartilhados     |
+| Dados                   | Alinhar schema, domínio e API para entities já presentes no Prisma             |
+| Frontend                | Completar ou esconder áreas placeholder como `products` até que backend exista |
+| Idempotência            | Tornar a política explícita e coerente para mutações críticas                  |
+| Arquitetura alvo antiga | Manter apenas o que ainda fizer sentido como direção real                      |
 
 ### 3.3 Alvos funcionais plausíveis
 
@@ -114,13 +122,14 @@ O alvo continua sendo uma plataforma Dev-First de pagamentos simulados com:
 
 ## 4. Deltas Entre Atual e Alvo
 
-| Tema | Atual | Alvo |
-|------|-------|------|
-| Topologia frontend | `apps/web` unifica landing + dashboard | manter unificado ou separar só se isso voltar a ser uma decisão real |
-| Queue backend | BullMQ/Redis | BullMQ/Redis continua sendo o baseline documentado atual; outra fila só entra como alvo explícito |
-| Products | schema + UI placeholder | cobertura real end-to-end ou remoção do placeholder |
-| Docs | misturavam presente e futuro | separação formal entre implementado e planejado |
-| Store/account | sem auto-criação explícita de account no use case | alinhar código e docs para um único comportamento |
+| Tema               | Atual                                                    | Alvo                                                                                                     |
+| ------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Topologia frontend | `apps/web` unifica landing + dashboard                   | manter unificado ou separar só se isso voltar a ser uma decisão real                                     |
+| Queue backend      | BullMQ/Redis                                             | BullMQ/Redis continua sendo o baseline documentado atual; outra fila só entra como alvo explícito        |
+| Products           | schema + UI placeholder                                  | cobertura real end-to-end ou remoção do placeholder                                                      |
+| Docs               | misturavam presente e futuro                             | separação formal entre implementado e planejado                                                          |
+| Store/account      | auto-criação de account implementada e backfill aplicado | manter docs e testes alinhados a esse comportamento                                                      |
+| CI/smoke           | CI cobre build/test/e2e; smoke Docker e local            | promover smoke Docker a gate apenas quando receiver webhook e serviços containerizados estiverem prontos |
 
 ## 5. Leitura Recomendada
 

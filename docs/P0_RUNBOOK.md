@@ -8,8 +8,9 @@ Os smokes têm responsabilidades diferentes:
 - `pnpm run smoke:payment-link`: validacao de Payment Link/checkout hospedado.
 - `pnpm run smoke:p3:visual`: validacao visual do dashboard, timeline, receipts e financeiro.
 - `pnpm run smoke:studycase:mediakit`: validacao completa do `demo-mediakit` com API, checkout hospedado, app demo, webhook assinado e estado final renderizavel.
+- `pnpm run smoke:docker`: orquestracao local com Postgres/Redis em Docker e servicos Node no host.
 
-CI Docker para rodar os smokes em pipeline e trabalho futuro.
+O CI atual cobre build, testes unitarios/focados e e2e HTTP mockado da API. Os smokes Docker continuam locais nesta rodada; rodar smokes como gate de CI e trabalho futuro.
 
 ## Invariantes P0
 
@@ -25,6 +26,25 @@ docker compose -f infrastructure/docker/docker-compose.yml up -d
 pnpm run db:generate
 pnpm run db:migrate
 ```
+
+Para uma execucao mais isolada, use o runner local Docker-backed:
+
+```bash
+pnpm run smoke:docker
+```
+
+Esse comando sobe apenas Postgres e Redis em Docker (`15432` e `16379`), aplica migrations e inicia API, worker e checkout como processos Node no host. Ele valida portas `15432`, `16379`, `3000`, `3001`, `3333`, `3005` e `3999` antes de iniciar.
+
+Opcoes:
+
+```bash
+HOCKPAY_SMOKE_SUITE=p0,payment-link,p3,studycase,system pnpm run smoke:docker
+HOCKPAY_SMOKE_KEEP_ALIVE=true pnpm run smoke:docker
+HOCKPAY_SMOKE_CLEAN_VOLUMES=true pnpm run smoke:docker
+HOCKPAY_SMOKE_MIGRATE_MODE=dev pnpm run smoke:docker
+```
+
+Um modo "tudo Docker" com API, worker e checkout containerizados ainda exige trabalho futuro para configurar a URL do receiver de webhook acessivel entre containers.
 
 Verifique a invariante de account depois das migrations:
 
@@ -173,6 +193,7 @@ Troubleshooting rápido:
 - Payment cria, mas webhook não chega: confira se o worker está rodando e conectado ao mesmo Redis/PostgreSQL da API.
 - `Could not start the local webhook receiver`: a porta configurada já está ocupada.
 - `Delivered webhook log was not observed`: confira se o worker e o Redis estão rodando; o dispatcher de outbox precisa consumir o evento.
+- `smoke:docker` para em validacao de porta: algum processo local ja usa uma das portas reservadas pelo runner.
 - `401 Unauthorized` em `/stores`, `/accounts/me` ou `/api-keys`: esses endpoints usam cookie JWT de dashboard; faça login com `curl -c /tmp/hockpay.cookies -b /tmp/hockpay.cookies`.
 - `401 Unauthorized` em `/payments`, `/webhooks` ou `/refunds`: confira `Authorization: Bearer hk_test_xxx` ou `hk_live_xxx`.
 

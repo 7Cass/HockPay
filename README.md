@@ -28,16 +28,16 @@ pnpm run dev
 
 ## Topologia Atual do Monorepo
 
-| Diretório | Papel atual | Stack |
-|-----------|-------------|-------|
-| `apps/api` | API REST principal com autenticação, stores, customers, payments, webhooks, checkout sessions, dashboard, refunds e afins | NestJS |
-| `apps/worker` | Worker separado com BullMQ, cron jobs e processamento assíncrono de outbox/webhooks | NestJS |
-| `apps/web` | App Angular único com landing page, login/register, dashboard do merchant, timeline de payment, receipts, webhooks e financeiro read-only | Angular |
-| `apps/checkout` | Checkout white-label orientado ao comprador, baseado em token de checkout session | Next.js |
-| `apps/demo-mediakit` | Demo de integração usando checkout hospedado + webhook | Next.js |
-| `packages/core` | Entidades, value objects, interfaces e casos de uso compartilhados | TypeScript |
-| `packages/database` | Schema Prisma, migrations e cliente compartilhado | Prisma |
-| `packages/infrastructure` | Repositórios compartilhados e `UnitOfWork` baseados em Prisma, além de criptografia | TypeScript |
+| Diretório                 | Papel atual                                                                                                                               | Stack      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `apps/api`                | API REST principal com autenticação, stores, customers, payments, webhooks, checkout sessions, dashboard, refunds e afins                 | NestJS     |
+| `apps/worker`             | Worker separado com BullMQ, cron jobs e processamento assíncrono de outbox/webhooks                                                       | NestJS     |
+| `apps/web`                | App Angular único com landing page, login/register, dashboard do merchant, timeline de payment, receipts, webhooks e financeiro read-only | Angular    |
+| `apps/checkout`           | Checkout white-label orientado ao comprador, baseado em token de checkout session                                                         | Next.js    |
+| `apps/demo-mediakit`      | Demo de integração usando checkout hospedado + webhook                                                                                    | Next.js    |
+| `packages/core`           | Entidades, value objects, interfaces e casos de uso compartilhados                                                                        | TypeScript |
+| `packages/database`       | Schema Prisma, migrations e cliente compartilhado                                                                                         | Prisma     |
+| `packages/infrastructure` | Repositórios compartilhados e `UnitOfWork` baseados em Prisma, além de criptografia                                                       | TypeScript |
 
 ## Integração Atual da API
 
@@ -86,38 +86,60 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 
 ## Smokes Locais
 
-| Script | Papel |
-|--------|-------|
-| `pnpm run smoke:p0` | Baseline rapido de API direta: cria merchant/store/API key, payment direto, webhook local, confirmacao e entrega pelo worker |
-| `pnpm run smoke:payment-link` | Validacao de Payment Link/checkout hospedado: PixCharge aberta, falha de tentativa, nova tentativa paga e conversao |
-| `pnpm run smoke:p3:visual` | Validacao visual do dashboard: popula payments em todos os estados principais para conferir timeline, receipt, financeiro e empty states |
+| Script                              | Papel                                                                                                                                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm run smoke:p0`                 | Baseline rapido de API direta: cria merchant/store/API key, payment direto, webhook local, confirmacao e entrega pelo worker                                                                  |
+| `pnpm run smoke:payment-link`       | Validacao de Payment Link/checkout hospedado: PixCharge aberta, falha de tentativa, nova tentativa paga e conversao                                                                           |
+| `pnpm run smoke:p3:visual`          | Validacao visual do dashboard: popula payments em todos os estados principais para conferir timeline, receipt, financeiro e empty states                                                      |
 | `pnpm run smoke:studycase:mediakit` | Validacao completa do study-case `demo-mediakit`: cria merchant/store/API key/webhook, sobe o demo, cria checkout session, faz fulfill, confirma payment TEST e valida webhook + estado final |
+| `pnpm run smoke:docker`             | Orquestra smoke local com Postgres/Redis em Docker e API, worker e checkout como processos Node no host                                                                                       |
 
-CI Docker para executar esses smokes em pipeline e futuro; hoje eles assumem infraestrutura/processos locais ja disponiveis.
+O smoke Docker e local-first nesta rodada e nao roda como gate bloqueante de CI. Ele usa `infrastructure/docker/docker-compose.smoke.yml`, portas isoladas `15432`/`16379` para infra e portas de app `3000`/`3001`/`3333` no host.
+
+```bash
+pnpm run smoke:docker
+HOCKPAY_SMOKE_SUITE=p0,payment-link pnpm run smoke:docker
+HOCKPAY_SMOKE_CLEAN_VOLUMES=true pnpm run smoke:docker
+```
+
+Opcoes principais: `HOCKPAY_SMOKE_SUITE=p0,payment-link,p3,studycase,system`, `HOCKPAY_SMOKE_KEEP_ALIVE=true`, `HOCKPAY_SMOKE_CLEAN_VOLUMES=true` e `HOCKPAY_SMOKE_MIGRATE_MODE=deploy|dev`.
+
+Um smoke "tudo Docker" com API/worker/checkout tambem containerizados fica para etapa futura. O bloqueio conhecido e tornar configuravel a URL do receiver de webhook a partir dos containers, porque hoje os smokes usam receiver local em `127.0.0.1`.
+
+## CI Atual
+
+O baseline de CI em GitHub Actions usa Node 22 e pnpm 9.15.0 com cache pnpm e `.turbo`. Ele cobre:
+
+- `build`: `pnpm db:generate` e `pnpm build`
+- `test`: `@hockpay/core test:ci`, `@hockpay/infrastructure test`, `@hockpay/api test`, `@hockpay/worker test`
+- `api-e2e`: `pnpm --filter @hockpay/api test:e2e`
+
+`pnpm lint` ainda nao entra no CI porque os scripts atuais usam `--fix` e poderiam mutar arquivos no runner. Os smokes Docker permanecem locais por enquanto.
 
 ## Troubleshooting Rápido
 
-| Sintoma | Verificação |
-|---------|-------------|
-| `health/live` não responde | confirme que `apps/api` está rodando na porta `3000` |
-| `health/ready` falha | confira `DATABASE_URL`, PostgreSQL e migrations |
-| Pagamento cria mas webhook não chega | confirme Redis e `apps/worker` rodando |
-| Jobs BullMQ não processam | confira `REDIS_HOST`/`REDIS_PORT` nos processos API e worker |
+| Sintoma                               | Verificação                                                     |
+| ------------------------------------- | --------------------------------------------------------------- |
+| `health/live` não responde            | confirme que `apps/api` está rodando na porta `3000`            |
+| `health/ready` falha                  | confira `DATABASE_URL`, PostgreSQL e migrations                 |
+| Pagamento cria mas webhook não chega  | confirme Redis e `apps/worker` rodando                          |
+| Jobs BullMQ não processam             | confira `REDIS_HOST`/`REDIS_PORT` nos processos API e worker    |
 | Endpoints de dashboard retornam `401` | use cookie JWT de login; API key é para endpoints de integração |
 
 ## Scripts de Workspace Disponíveis
 
-| Script | Descrição |
-|--------|-----------|
-| `pnpm run dev` | Roda `dev` em todos os workspaces configurados no Turbo |
-| `pnpm run build` | Build de todos os workspaces |
-| `pnpm run test` | Testes dos workspaces |
-| `pnpm run test:e2e` | Testes E2E dos workspaces que expõem esse script |
-| `pnpm run lint` | Lint dos workspaces |
-| `pnpm run format` | Formata arquivos compatíveis com Prettier |
-| `pnpm run db:generate` | `prisma generate` no pacote `@hockpay/database` |
-| `pnpm run db:migrate` | `prisma migrate dev` no pacote `@hockpay/database` |
-| `pnpm run db:deploy` | `prisma migrate deploy` no pacote `@hockpay/database` |
+| Script                  | Descrição                                               |
+| ----------------------- | ------------------------------------------------------- |
+| `pnpm run dev`          | Roda `dev` em todos os workspaces configurados no Turbo |
+| `pnpm run build`        | Build de todos os workspaces                            |
+| `pnpm run test`         | Testes dos workspaces                                   |
+| `pnpm run test:e2e`     | Testes E2E dos workspaces que expõem esse script        |
+| `pnpm run lint`         | Lint dos workspaces                                     |
+| `pnpm run format`       | Formata arquivos compatíveis com Prettier               |
+| `pnpm run smoke:docker` | Orquestra infra Docker local e smokes sequenciais       |
+| `pnpm run db:generate`  | `prisma generate` no pacote `@hockpay/database`         |
+| `pnpm run db:migrate`   | `prisma migrate dev` no pacote `@hockpay/database`      |
+| `pnpm run db:deploy`    | `prisma migrate deploy` no pacote `@hockpay/database`   |
 
 ## Mapa de Documentação
 
