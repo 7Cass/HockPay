@@ -5,5 +5,14 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^@hockpay/core$": "<rootDir>/../../../packages/core/src",
+    "^@hockpay/core/(.*)$": "<rootDir>/../../../packages/core/src/$1",
+    "^@hockpay/database$": "<rootDir>/../../../packages/database/src",
+    "^@hockpay/database/(.*)$": "<rootDir>/../../../packages/database/src/$1",
+    "^@hockpay/infrastructure$": "<rootDir>/../../../packages/infrastructure/src",
+    "^@hockpay/infrastructure/(.*)$": "<rootDir>/../../../packages/infrastructure/src/$1"
   }
 }
