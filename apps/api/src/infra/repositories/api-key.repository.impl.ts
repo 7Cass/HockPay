@@ -138,8 +138,9 @@ export class ApiKeyRepository implements IApiKeyRepository {
    * Convert a Domain ApiKey to a Prisma ApiKey.
    * This is a private helper method for internal use.
    */
-  private toPrisma(apiKey: DomainApiKey): Omit<PrismaApiKey, 'id'> {
+  private toPrisma(apiKey: DomainApiKey): PrismaApiKey {
     return {
+      id: apiKey.id,
       storeId: apiKey.storeId,
       keyHash: apiKey.keyHash,
       prefix: apiKey.prefix,

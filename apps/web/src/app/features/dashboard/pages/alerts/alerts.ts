@@ -70,27 +70,27 @@ const EVENT_OPTIONS: AlertEventOption[] = [
   {
     id: 'payment.created',
     label: 'Pagamento criado',
-    description: 'Avisa quando uma nova cobranca entra no fluxo da loja.',
+    description: 'Avisa quando uma nova cobrança entra no fluxo da loja.',
   },
   {
     id: 'payment.confirmed',
     label: 'Pagamento confirmado',
-    description: 'Ideal para sinalizar vendas concluidas e acompanhamento operacional.',
+    description: 'Ideal para sinalizar vendas concluídas e acompanhamento operacional.',
   },
   {
     id: 'payment.failed',
     label: 'Pagamento falhou',
-    description: 'Destaca falhas de pagamento que podem exigir acao rapida do time.',
+    description: 'Destaca falhas de pagamento que podem exigir ação rápida do time.',
   },
   {
     id: 'payment.expired',
     label: 'Pagamento expirado',
-    description: 'Ajuda a monitorar abandono ou perda de conversao no checkout.',
+    description: 'Ajuda a monitorar abandono ou perda de conversão no checkout.',
   },
   {
     id: 'payment.released',
     label: 'Repasse liberado',
-    description: 'Util para acompanhamento financeiro e conciliacao da operacao.',
+    description: 'Útil para acompanhamento financeiro e conciliação da operação.',
   },
 ];
 
@@ -99,23 +99,23 @@ const CHANNEL_OPTIONS: AlertChannelOption[] = [
     id: 'discord',
     label: 'Discord',
     summary: 'Envio operacional em tempo real via webhook.',
-    availability: 'Disponivel agora',
+    availability: 'Disponível agora',
     enabled: true,
     icon: 'lucideDisc3',
   },
   {
     id: 'email',
     label: 'Email',
-    summary: 'Canal assincrono para distribuicao e historico.',
-    availability: 'Em breve',
+    summary: 'Prévia desabilitada; envio por e-mail ainda não está disponível.',
+    availability: 'Indisponível',
     enabled: false,
     icon: 'lucideMail',
   },
   {
     id: 'whatsapp',
     label: 'WhatsApp',
-    summary: 'Canal de alta visibilidade para situacoes mais urgentes.',
-    availability: 'Em breve',
+    summary: 'Prévia desabilitada; envio por WhatsApp ainda não está disponível.',
+    availability: 'Indisponível',
     enabled: false,
     icon: 'lucideMessageCircleMore',
   },
@@ -223,7 +223,7 @@ export class Alerts implements OnInit {
         this.isLoading.set(false);
       },
       error: () => {
-        this.error.set('Nao foi possivel carregar os alertas.');
+        this.error.set('Não foi possível carregar os alertas.');
         this.isLoading.set(false);
       },
     });
@@ -404,7 +404,7 @@ export class Alerts implements OnInit {
         this.isLogsLoading.set(false);
       },
       error: () => {
-        this.logsError.set('Nao foi possivel carregar o historico.');
+        this.logsError.set('Não foi possível carregar o histórico.');
         this.isLogsLoading.set(false);
       },
     });

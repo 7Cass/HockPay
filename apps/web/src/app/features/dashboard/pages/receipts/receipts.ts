@@ -172,12 +172,12 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
                             {{ receipt.payerName || 'Cliente não identificado' }}
                             <ng-icon hlm name="lucideExternalLink" size="xs" class="text-indigo-500"></ng-icon>
                           </span>
-                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dado adicional' }}</span>
+                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dados adicionais' }}</span>
                         </a>
                       } @else {
                         <div class="flex flex-col">
                           <span class="text-sm font-medium text-zinc-900">{{ receipt.payerName || 'Cliente não identificado' }}</span>
-                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dado adicional' }}</span>
+                          <span class="mt-0.5 text-xs text-zinc-400">{{ receipt.payerEmail || receipt.payerDocument || 'Sem dados adicionais' }}</span>
                         </div>
                       }
                     </td>

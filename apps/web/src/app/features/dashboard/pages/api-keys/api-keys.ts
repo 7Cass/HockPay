@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiKeyService, ApiKey, Environment } from '../../../../core/services/api-key.service';
 import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
+import { toast } from 'ngx-sonner';
 
 // Spartan UI
 import { HlmButtonImports } from '@spartan-ng/helm/button';
@@ -159,7 +160,7 @@ export class ApiKeys implements OnInit {
       error: (err) => {
         this.isCreating.set(false);
         console.error('Failed to create api key', err);
-        alert('Falha ao criar chave de API. Tente novamente.');
+        toast.error('Não foi possível criar a chave de API. Tente novamente.');
       },
     });
   }
@@ -178,8 +179,9 @@ export class ApiKeys implements OnInit {
       },
       error: (err) => {
         this.isRevoking.set(false);
+        this.closeRevokeDialog();
         console.error('Failed to revoke api key', err);
-        alert('Falha ao revogar chave de API.');
+        toast.error('Não foi possível revogar a chave de API.');
       },
     });
   }

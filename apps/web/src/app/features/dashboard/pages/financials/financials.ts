@@ -13,8 +13,8 @@ import {
     lucideXCircle,
 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import {
@@ -34,8 +34,8 @@ import {
         DatePipe,
         CurrencyPipe,
         HlmButtonImports,
+        HlmDatePickerImports,
         HlmIconImports,
-        HlmInputImports,
         HlmSpinnerImports,
         HlmTableImports,
     ],
@@ -67,8 +67,15 @@ export class Financials implements OnInit {
     readonly isLoading = signal(true);
     readonly error = signal<string | null>(null);
     readonly typeFilter = signal<TransactionType | 'all'>('all');
-    readonly startDate = signal('');
-    readonly endDate = signal('');
+    readonly dateRange = signal<[Date, Date] | undefined>(undefined);
+
+    readonly formatDateRange = (dates: [Date | undefined, Date | undefined]): string => {
+        const [start, end] = dates;
+        if (start && end) return `${this.formatDisplayDate(start)} - ${this.formatDisplayDate(end)}`;
+        if (start) return `A partir de ${this.formatDisplayDate(start)}`;
+        if (end) return `Até ${this.formatDisplayDate(end)}`;
+        return '';
+    };
 
     readonly transactionTypes: Array<{ value: TransactionType | 'all'; label: string }> = [
         { value: 'all', label: 'Todos os tipos' },
@@ -104,8 +111,8 @@ export class Financials implements OnInit {
                 page,
                 limit: this.meta().limit,
                 type: selectedType === 'all' ? undefined : selectedType,
-                startDate: this.startDate() || undefined,
-                endDate: this.endDate() || undefined,
+                startDate: this.formatApiDate(this.dateRange()?.[0]),
+                endDate: this.formatApiDate(this.dateRange()?.[1]),
             })
             .subscribe({
                 next: (response) => {
@@ -127,8 +134,7 @@ export class Financials implements OnInit {
 
     clearFilters(): void {
         this.typeFilter.set('all');
-        this.startDate.set('');
-        this.endDate.set('');
+        this.dateRange.set(undefined);
         this.reload(1);
     }
 
@@ -142,12 +148,8 @@ export class Financials implements OnInit {
         this.typeFilter.set(value as TransactionType | 'all');
     }
 
-    setStartDate(value: string): void {
-        this.startDate.set(value);
-    }
-
-    setEndDate(value: string): void {
-        this.endDate.set(value);
+    setDateRange(value: [Date, Date] | null): void {
+        this.dateRange.set(value ?? undefined);
     }
 
     formatTransactionType(type: string): string {
@@ -171,5 +173,21 @@ export class Financials implements OnInit {
         if (transaction.netAmount < 0) return 'text-red-600';
         if (transaction.netAmount > 0) return 'text-emerald-600';
         return 'text-zinc-700';
+    }
+
+    private formatApiDate(date?: Date): string | undefined {
+        if (!date) return undefined;
+        const year = date.getFullYear();
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        const day = `${date.getDate()}`.padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    private formatDisplayDate(date: Date): string {
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(date);
     }
 }

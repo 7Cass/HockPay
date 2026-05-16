@@ -1,53 +1,96 @@
 import {
-    Controller,
-    Get,
-    Query,
-    UseGuards,
-    HttpCode,
-    HttpStatus,
-    BadRequestException,
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  Req,
 } from '@nestjs/common';
-import { GetDashboardMetricsUseCase, DashboardMetricsDto } from '@hockpay/core';
+import {
+  DashboardMetricsDto,
+  DashboardOverviewDto,
+  Environment,
+  GetDashboardMetricsUseCase,
+  GetDashboardOverviewUseCase,
+} from '@hockpay/core';
+import type { Request } from 'express';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
 
 import { IsOptional, IsString } from 'class-validator';
 
 class GetMetricsQueryDto {
-    @IsOptional()
-    @IsString()
-    startDate?: string;
+  @IsOptional()
+  @IsString()
+  startDate?: string;
 
-    @IsOptional()
-    @IsString()
-    endDate?: string;
+  @IsOptional()
+  @IsString()
+  endDate?: string;
 }
 
 @Controller({
-    path: 'dashboard',
-    version: '1',
+  path: 'dashboard',
+  version: '1',
 })
 @UseGuards(CombinedAuthGuard)
 export class DashboardController {
-    constructor(private readonly getDashboardMetricsUseCase: GetDashboardMetricsUseCase) { }
+  constructor(
+    private readonly getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
+    private readonly getDashboardOverviewUseCase: GetDashboardOverviewUseCase,
+  ) {}
 
-    @Get('metrics')
-    @HttpCode(HttpStatus.OK)
-    async getMetrics(
-        @CurrentStore() storeId: string,
-        @Query() query: GetMetricsQueryDto,
-    ): Promise<DashboardMetricsDto> {
-        const endDate = query.endDate ? new Date(query.endDate) : new Date();
+  @Get('metrics')
+  @HttpCode(HttpStatus.OK)
+  async getMetrics(
+    @CurrentStore() storeId: string,
+    @Query() query: GetMetricsQueryDto,
+  ): Promise<DashboardMetricsDto> {
+    const { startDate, endDate } = this.parseDateRange(query);
 
-        // Default to 30 days ago if no start date provided
-        const defaultStartDate = new Date();
-        defaultStartDate.setDate(defaultStartDate.getDate() - 30);
-        const startDate = query.startDate ? new Date(query.startDate) : defaultStartDate;
+    return this.getDashboardMetricsUseCase.execute(storeId, startDate, endDate);
+  }
 
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            throw new BadRequestException('Invalid date format provided for metrics filter. Use strict ISO or valid string dates.');
-        }
+  @Get('overview')
+  @HttpCode(HttpStatus.OK)
+  async getOverview(
+    @CurrentStore() storeId: string,
+    @Query() query: GetMetricsQueryDto,
+    @Req() req: Request,
+  ): Promise<DashboardOverviewDto> {
+    const { startDate, endDate } = this.parseDateRange(query);
+    const environment = ((req as any)?.environment ??
+      Environment.TEST) as Environment;
 
-        return this.getDashboardMetricsUseCase.execute(storeId, startDate, endDate);
+    return this.getDashboardOverviewUseCase.execute({
+      storeId,
+      startDate,
+      endDate,
+      environment,
+    });
+  }
+
+  private parseDateRange(query: GetMetricsQueryDto): {
+    startDate: Date;
+    endDate: Date;
+  } {
+    const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+    // Default to 30 days ago if no start date provided
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : defaultStartDate;
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException(
+        'Invalid date format provided for metrics filter. Use strict ISO or valid string dates.',
+      );
     }
+
+    return { startDate, endDate };
+  }
 }

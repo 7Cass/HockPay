@@ -13,22 +13,6 @@
 
       <button
         hlmBtn
-        variant="outline"
-        size="sm"
-        class="gap-2 bg-white"
-        (click)="createInboxWebhook()"
-        [disabled]="isCreatingInbox()"
-      >
-        @if (isCreatingInbox()) {
-          <hlm-spinner size="sm" />
-        } @else {
-          <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
-        }
-        Inbox de teste
-      </button>
-
-      <button
-        hlmBtn
         size="sm"
         class="gap-2 bg-indigo-600 hover:bg-indigo-700 font-semibold"
         (click)="openCreateDialog()"
@@ -40,8 +24,28 @@
   </div>
 
   <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
-    Webhooks são para sincronização sistema-a-sistema. Para avisos operacionais ao time, use
-    Alertas.
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        Webhooks são para sincronização sistema-a-sistema. Para avisos operacionais ao time, use
+        Alertas. Precisa validar a integração? Crie uma inbox de teste para receber eventos em um
+        endpoint temporário.
+      </p>
+      <button
+        hlmBtn
+        variant="ghost"
+        size="sm"
+        class="shrink-0 gap-2 text-zinc-700 hover:bg-white"
+        (click)="createInboxWebhook()"
+        [disabled]="isCreatingInbox()"
+      >
+        @if (isCreatingInbox()) {
+          <hlm-spinner size="sm" />
+        } @else {
+          <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
+        }
+        Criar inbox de teste
+      </button>
+    </div>
   </div>
 
   <!-- Content -->
@@ -72,7 +76,7 @@
             class="mt-3 bg-white text-zinc-700 border-zinc-200"
             (click)="loadWebhooks()"
           >
-            Tentar Novamente
+            Tentar novamente
           </button>
         </div>
       </div>
@@ -105,7 +109,7 @@
           class="bg-white border border-zinc-200 text-zinc-900 shadow-sm hover:bg-zinc-50"
           (click)="openCreateDialog()"
         >
-          Adicionar Primeiro Webhook
+          Adicionar primeiro webhook
         </button>
       </div>
     }
@@ -120,7 +124,7 @@
                 hlmTh
                 class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 h-auto"
               >
-                URL do Destino
+                URL de destino
               </th>
               <th
                 hlmTh
@@ -185,7 +189,7 @@
                     }
                     <code
                       class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-zinc-100/80 text-zinc-700 border border-zinc-200/50"
-                      >Secret: {{ hook.prefix }}...</code
+                      >Assinatura: {{ hook.prefix }}...</code
                     >
                   </div>
                 </td>
@@ -207,7 +211,7 @@
                         variant="ghost"
                         size="sm"
                         class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-violet-600 hover:bg-violet-50 flex items-center justify-center transition-colors"
-                        title="Ver Inbox Recebida"
+                        title="Ver inbox recebida"
                         (click)="openInboxDialog(hook)"
                       >
                         <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
@@ -218,7 +222,7 @@
                       variant="ghost"
                       size="sm"
                       class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                      title="Ver Histórico de Logs"
+                      title="Ver histórico de envios"
                       (click)="openLogsDialog(hook)"
                     >
                       <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
@@ -228,19 +232,10 @@
                       variant="ghost"
                       size="sm"
                       class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                      title="Testar Envio (Ping)"
+                      title="Testar envio (ping)"
                       (click)="openTestDialog(hook)"
                     >
                       <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon>
-                    </button>
-                    <button
-                      hlmBtn
-                      variant="ghost"
-                      size="sm"
-                      class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 flex items-center justify-center transition-colors"
-                      title="Editar"
-                    >
-                      <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
                     </button>
                     <div class="w-px h-4 bg-zinc-200 mx-1 mt-2"></div>
                     <button
@@ -248,7 +243,7 @@
                       variant="ghost"
                       size="sm"
                       class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
-                      title="Remover Definitivamente"
+                      title="Remover definitivamente"
                       (click)="openDeleteDialog(hook)"
                     >
                       <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
@@ -304,7 +299,7 @@
               }
               <code
                 class="rounded-md border border-zinc-200/50 bg-zinc-100/80 px-2 py-0.5 text-[11px] text-zinc-700"
-                >Secret: {{ hook.prefix }}...</code
+                >Assinatura: {{ hook.prefix }}...</code
               >
             </div>
 
@@ -315,7 +310,7 @@
                   variant="ghost"
                   size="sm"
                   class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-violet-600 hover:bg-violet-50 flex items-center justify-center transition-colors"
-                  title="Ver Inbox Recebida"
+                  title="Ver inbox recebida"
                   (click)="openInboxDialog(hook)"
                 >
                   <ng-icon hlm name="lucideNetwork" size="sm"></ng-icon>
@@ -326,7 +321,7 @@
                 variant="ghost"
                 size="sm"
                 class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                title="Ver Histórico de Logs"
+                title="Ver histórico de envios"
                 (click)="openLogsDialog(hook)"
               >
                 <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
@@ -336,7 +331,7 @@
                 variant="ghost"
                 size="sm"
                 class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 flex items-center justify-center transition-colors"
-                title="Testar Envio (Ping)"
+                title="Testar envio (ping)"
                 (click)="openTestDialog(hook)"
               >
                 <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon>
@@ -345,17 +340,8 @@
                 hlmBtn
                 variant="ghost"
                 size="sm"
-                class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 flex items-center justify-center transition-colors"
-                title="Editar"
-              >
-                <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
-              </button>
-              <button
-                hlmBtn
-                variant="ghost"
-                size="sm"
                 class="w-8 h-8 p-0 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
-                title="Remover Definitivamente"
+                title="Remover definitivamente"
                 (click)="openDeleteDialog(hook)"
               >
                 <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
@@ -399,7 +385,7 @@
       <form [formGroup]="newWebhookForm" (ngSubmit)="createWebhook()" class="py-4 space-y-5">
         <!-- URL Field -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-zinc-900">Endpoint / URL de Destino</label>
+          <label class="text-sm font-medium text-zinc-900">URL de destino</label>
           <input
             type="text"
             formControlName="url"
@@ -485,8 +471,8 @@
       <app-dialog-close />
 
       <app-dialog-header
-        title="Webhook Criado!"
-        description="Sua URL já está configurada. Pegue sua assinatura (Secret)."
+        title="Webhook criado"
+        description="Sua URL já está configurada. Guarde a assinatura de validação."
       />
 
       <div class="py-4">
@@ -498,9 +484,9 @@
             size="sm"
           ></ng-icon>
           <p class="text-sm text-amber-800 font-medium leading-relaxed">
-            Este é o seu <strong class="font-bold">Webhook Secret</strong>. Guarde-o para validar a
-            origem dos eventos transicionais que chegam ao seu servidor. Ele não será exibido de
-            novo!
+            Esta é a sua <strong class="font-bold">assinatura do webhook</strong>. Guarde-a para
+            validar a origem dos eventos transacionais que chegam ao seu servidor. Ela não será
+            exibida de novo!
           </p>
         </div>
 
@@ -534,7 +520,7 @@
           hlmBtn
           class="bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-sm w-full text-white"
         >
-          Entendido, já guardei o meu Secret
+          Entendido, já guardei a assinatura
         </button>
       </app-dialog-footer>
     </div>
@@ -550,7 +536,7 @@
     >
       <div class="p-6 pb-5">
         <h3 class="text-base font-semibold tracking-tight text-zinc-900">
-          Disparar Evento de Teste
+          Disparar evento de teste
         </h3>
         <p class="text-sm text-zinc-500 mt-2 leading-relaxed">
           Vamos enviar um POST simulando um evento para
@@ -558,7 +544,7 @@
           >.
         </p>
         <p class="text-xs text-zinc-400 mt-3 bg-zinc-50 p-2 rounded border border-zinc-100/80">
-          O Payload do teste utilizará dados fictícios para validar a assinatura SHA256 do seu lado.
+          O payload de teste usará dados fictícios para validar a assinatura SHA256 do seu lado.
         </p>
       </div>
 
@@ -585,7 +571,7 @@
             <hlm-spinner size="sm" class="mr-2" />
           }
           <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" class="mr-2"></ng-icon>
-          Disparar Teste
+          Disparar teste
         </button>
       </div>
     </div>
@@ -653,10 +639,11 @@
         <div class="min-w-0">
           <h3 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
             <ng-icon hlm name="lucideNetwork" size="sm" class="text-zinc-400"></ng-icon>
-            Inbox de Webhooks
+            Inbox de webhooks
           </h3>
           <p class="text-sm text-zinc-500 mt-1 truncate" [title]="hookForInbox()?.url">
-            Receiver: <strong class="font-medium text-zinc-800">{{ hookForInbox()?.url }}</strong>
+            URL da inbox:
+            <strong class="font-medium text-zinc-800">{{ hookForInbox()?.url }}</strong>
           </p>
           <p class="text-xs text-zinc-400 mt-1">{{ inboxTotal() }} eventos recebidos</p>
         </div>
@@ -732,7 +719,7 @@
                     (click)="copyId(prettyJson(event.payload))"
                   >
                     <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                    Payload
+                    Copiar payload
                   </button>
                 </div>
 
@@ -741,7 +728,7 @@
                 >
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Request ID
+                      ID da requisição
                     </div>
                     <button
                       type="button"
@@ -754,7 +741,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Outbox Event
+                      ID do evento de saída
                     </div>
                     <button
                       type="button"
@@ -767,7 +754,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Delivery ID
+                      ID do envio
                     </div>
                     <button
                       type="button"
@@ -780,7 +767,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Payment ID
+                      ID do pagamento
                     </div>
                     <button
                       type="button"
@@ -796,7 +783,7 @@
                   <div
                     class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1"
                   >
-                    Payload recebido
+                    payload recebido
                   </div>
                   <pre
                     class="max-h-48 overflow-auto rounded-md bg-white border border-zinc-100 p-2 text-xs font-mono text-zinc-700"
@@ -836,10 +823,11 @@
         <div>
           <h3 class="text-lg font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
             <ng-icon hlm name="lucideHistory" size="sm" class="text-zinc-400"></ng-icon>
-            Histórico de Envios
+            Histórico de envios
           </h3>
           <p class="text-sm text-zinc-500 mt-1">
-            Destino: <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
+            URL de destino:
+            <strong class="font-medium text-zinc-800">{{ hookForLogs()?.url }}</strong>
           </p>
           <p class="text-xs text-zinc-400 mt-1">{{ logsTotal() }} registros encontrados</p>
         </div>
@@ -973,7 +961,7 @@
                 >
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Request ID
+                      ID da requisição
                     </div>
                     <button
                       type="button"
@@ -986,7 +974,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Outbox Event
+                      ID do evento de saída
                     </div>
                     <button
                       type="button"
@@ -999,7 +987,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Delivery ID
+                      ID do envio
                     </div>
                     <button
                       type="button"
@@ -1012,7 +1000,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                      Payment ID
+                      ID do pagamento
                     </div>
                     <button
                       type="button"
@@ -1026,7 +1014,7 @@
                   @if (log.nextRetryAt) {
                     <div class="min-w-0">
                       <div class="font-semibold uppercase tracking-wider text-zinc-400">
-                        Próximo retry
+                        Próxima tentativa
                       </div>
                       <div class="mt-1 text-zinc-700">
                         {{ log.nextRetryAt | date: 'dd/MM HH:mm:ss' }}
@@ -1049,7 +1037,7 @@
                     <div
                       class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1"
                     >
-                      Resposta do seu Servidor:
+                      Resposta do seu servidor
                     </div>
                     <code class="text-xs font-mono text-zinc-700 break-all">{{
                       log.responseBody

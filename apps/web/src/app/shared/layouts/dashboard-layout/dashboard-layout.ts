@@ -4,7 +4,6 @@ import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmSwitchImports } from '@spartan-ng/helm/switch';
 import { HlmToaster } from '../../../../../libs/ui/sonner/src';
 import { provideIcons } from '@ng-icons/core';
 import { lucideBell, lucideChevronRight } from '@ng-icons/lucide';
@@ -12,7 +11,7 @@ import { lucideBell, lucideChevronRight } from '@ng-icons/lucide';
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, HlmIconImports, HlmSwitchImports, HlmToaster],
+  imports: [RouterOutlet, SidebarComponent, HlmIconImports, HlmToaster],
   providers: [provideIcons({ lucideBell, lucideChevronRight })],
   templateUrl: './dashboard-layout.html',
 })

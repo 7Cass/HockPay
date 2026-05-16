@@ -14,6 +14,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
+import { toast } from 'ngx-sonner';
 
 // Icons
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
@@ -26,7 +27,6 @@ import {
   lucideXCircle,
   lucideTestTubeDiagonal,
   lucideHistory,
-  lucidePencil,
   lucideCopy,
   lucideAlertTriangle,
   lucideCheck,
@@ -57,8 +57,6 @@ import {
       lucideXCircle,
       lucideTestTubeDiagonal,
       lucideHistory,
-      lucidePencil,
-      // added missing from imports
       lucideCopy,
       lucideAlertTriangle,
       lucideCheck,
@@ -83,11 +81,11 @@ export class Webhooks implements OnInit {
   });
 
   availableEvents = [
-    { id: 'payment.created', label: 'Pagamento Criado' },
-    { id: 'payment.confirmed', label: 'Pagamento Confirmado' },
-    { id: 'payment.failed', label: 'Pagamento Falhou' },
-    { id: 'payment.expired', label: 'Pagamento Expirado' },
-    { id: 'payment.released', label: 'Repasse Liberado' },
+    { id: 'payment.created', label: 'Pagamento criado' },
+    { id: 'payment.confirmed', label: 'Pagamento confirmado' },
+    { id: 'payment.failed', label: 'Pagamento falhou' },
+    { id: 'payment.expired', label: 'Pagamento expirado' },
+    { id: 'payment.released', label: 'Repasse liberado' },
   ];
 
   logStatusOptions: Array<'all' | 'delivered' | 'failed' | 'pending'> = [
@@ -185,7 +183,7 @@ export class Webhooks implements OnInit {
       error: (err) => {
         this.isCreating.set(false);
         console.error('Failed to create webhook', err);
-        alert('Falha ao criar Webhook. Verifique os dados e tente novamente.');
+        toast.error('Falha ao criar webhook. Verifique os dados e tente novamente.');
       },
     });
   }
@@ -206,7 +204,7 @@ export class Webhooks implements OnInit {
       error: (err) => {
         this.isCreatingInbox.set(false);
         console.error('Failed to create webhook inbox', err);
-        alert('Falha ao criar inbox de teste.');
+        toast.error('Falha ao criar inbox de teste.');
       },
     });
   }
@@ -247,8 +245,8 @@ export class Webhooks implements OnInit {
         this.isTesting.set(false);
         console.error('Failed test webhook', err);
         // We still close normally, as the log will register the attempt error,
-        // but we can alert the user.
-        alert('Falha ao disparar o ping de teste. O endpoint pode estar inacessível.');
+        // but we can notify the user.
+        toast.error('Falha ao disparar o ping de teste. O endpoint pode estar inacessível.');
       },
     });
   }
@@ -277,7 +275,7 @@ export class Webhooks implements OnInit {
       error: (err) => {
         this.isDeleting.set(false);
         console.error('Failed to delete webhook', err);
-        alert('Falha ao excluir webhook.');
+        toast.error('Falha ao excluir webhook.');
       },
     });
   }
@@ -409,7 +407,7 @@ export class Webhooks implements OnInit {
       error: (err) => {
         this.isRetrying.update((state) => ({ ...state, [log.id]: false }));
         console.error('Failed to retry log', err);
-        alert('Falha ao reprocessar esse evento.');
+        toast.error('Falha ao reprocessar esse evento.');
       },
     });
   }

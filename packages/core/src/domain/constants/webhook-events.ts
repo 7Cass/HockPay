@@ -7,6 +7,7 @@ export const ALLOWED_WEBHOOK_EVENTS = [
   'payment.failed',
   'payment.expired',
   'payment.released',
+  'payment.refunded',
 ] as const;
 
 /**

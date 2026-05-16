@@ -182,10 +182,6 @@ export class SidebarComponent implements OnInit {
         });
     }
 
-    createPaymentLink() {
-        this.router.navigate(['/dashboard/payment-links']);
-    }
-
     isActiveRoute(route: string) {
         if (route === '/dashboard') {
             return this.router.url === route;

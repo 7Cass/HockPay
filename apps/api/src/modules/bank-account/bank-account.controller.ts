@@ -43,7 +43,7 @@ export class BankAccountController {
     ): Promise<BankAccountResponseDto> {
         // Retrieve the merchant document to satisfy Business Rule #1 (Titularidade)
         // JWT auth puts user in req.user, API Keys don't have user but we can fetch Merchant via store.merchantId
-        const merchantId = req.user?.id || req.store?.merchantId;
+        const merchantId = req.user?.sub || req.user?.id || req.store?.merchantId;
         const merchant = await this.getMerchantUseCase.execute(merchantId);
 
         const bankAccount = await this.createBankAccountUseCase.execute(

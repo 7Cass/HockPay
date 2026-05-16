@@ -92,22 +92,6 @@
         }
     </div>
 
-    <!-- Primary Action -->
-    <div class="px-3 pb-3">
-        @if (isCollapsed()) {
-        <button (click)="createPaymentLink()" title="Criar link"
-            class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 transition-colors">
-            <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-        </button>
-        } @else {
-        <button (click)="createPaymentLink()"
-            class="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors">
-            <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-            Criar link
-        </button>
-        }
-    </div>
-
     <!-- Navigation Groups -->
     <nav class="flex-1 overflow-y-auto px-3 pb-3 space-y-4">
         @for (group of menuGroups; track group.label; let isFirst = $first) {

@@ -1,7 +1,7 @@
 <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Financeiro</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Saldo e Extrato</h1>
             <p class="mt-1 text-sm text-zinc-500">Saldo e extrato financeiro da loja atual.</p>
         </div>
 
@@ -16,7 +16,7 @@
                 <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
                 Atualizar
             </button>
-            <p class="text-xs font-medium text-zinc-500">Saques ainda não estão disponíveis nesta entrega.</p>
+            <p class="text-xs font-medium text-zinc-500">Saques ainda não estão disponíveis.</p>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
         <div class="flex items-start gap-3 rounded-xl border border-red-200/60 bg-red-50 p-4 text-red-700 shadow-sm">
             <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
             <div class="flex-1">
-                <h3 class="text-sm font-semibold">Erro ao carregar financeiro</h3>
+                <h3 class="text-sm font-semibold">Erro ao carregar saldo e extrato</h3>
                 <p class="mt-1 text-sm opacity-90">{{ error() }}</p>
             </div>
         </div>
@@ -61,12 +61,12 @@
             <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
                 {{ ((account()?.blocked ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
             </p>
-            <p class="mt-2 text-xs text-zinc-500">Valores retidos por operação financeira.</p>
+            <p class="mt-2 text-xs text-zinc-500">Valores temporariamente retidos por operação financeira.</p>
         </div>
     </div>
 
     <div class="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-        <div class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto_auto] lg:items-end">
+        <div class="grid gap-3 lg:grid-cols-[1fr_minmax(18rem,24rem)_auto_auto] lg:items-end">
             <label class="block">
                 <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Tipo</span>
                 <select
@@ -81,23 +81,17 @@
             </label>
 
             <label class="block">
-                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Início</span>
-                <input
-                    hlmInput
-                    type="date"
-                    [value]="startDate()"
-                    (input)="setStartDate($any($event.target).value)"
-                />
-            </label>
-
-            <label class="block">
-                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Fim</span>
-                <input
-                    hlmInput
-                    type="date"
-                    [value]="endDate()"
-                    (input)="setEndDate($any($event.target).value)"
-                />
+                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Período</span>
+                <hlm-date-range-picker
+                    class="h-10 w-full border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50"
+                    captionLayout="dropdown"
+                    [autoCloseOnEndSelection]="true"
+                    [date]="dateRange()"
+                    [formatDates]="formatDateRange"
+                    (dateChange)="setDateRange($event)"
+                >
+                    Selecione o período
+                </hlm-date-range-picker>
             </label>
 
             <button

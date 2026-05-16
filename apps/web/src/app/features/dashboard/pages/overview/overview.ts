@@ -1,23 +1,46 @@
-import { Component, inject, computed, signal, OnInit, effect } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { DashboardService, DashboardMetricsResponse } from '../../../../core/services/dashboard.service';
+import { RouterLink } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
-import { StoreService } from '../../../../core/services/store.service';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { lucideWallet, lucideActivity, lucideCreditCard, lucideTrendingUp, lucideLineChart } from '@ng-icons/lucide';
+import {
+  lucideAlertTriangle,
+  lucideArrowUpRight,
+  lucideBadgeCheck,
+  lucideCalendarDays,
+  lucideCheckCircle2,
+  lucideClock3,
+  lucideCreditCard,
+  lucideExternalLink,
+  lucideLineChart,
+  lucideLink,
+  lucideLoader2,
+  lucidePlus,
+  lucideRefreshCcw,
+  lucideShieldCheck,
+  lucideTrendingUp,
+  lucideWallet,
+  lucideXCircle,
+} from '@ng-icons/lucide';
+import { DashboardOverviewResponse, DashboardService } from '../../../../core/services/dashboard.service';
+import { StoreService } from '../../../../core/services/store.service';
 import {
   ApexAxisChartSeries,
   ApexChart,
-  ApexXAxis,
-  ApexStroke,
   ApexDataLabels,
-  ApexYAxis,
-  ApexTooltip,
   ApexFill,
   ApexGrid,
-  ApexMarkers
+  ApexLegend,
+  ApexMarkers,
+  ApexStroke,
+  ApexTooltip,
+  ApexXAxis,
+  ApexYAxis,
 } from 'ng-apexcharts';
+
+type PeriodFilter = 'today' | '7days' | '30days' | 'custom';
 
 export type ChartOptions = {
   series: ApexAxisChartSeries;
@@ -25,302 +48,501 @@ export type ChartOptions = {
   xaxis: ApexXAxis;
   stroke: ApexStroke;
   dataLabels: ApexDataLabels;
-  yaxis: ApexYAxis;
+  yaxis: ApexYAxis | ApexYAxis[];
   tooltip: ApexTooltip;
   fill: ApexFill;
   grid: ApexGrid;
   colors: string[];
   markers: ApexMarkers;
+  legend: ApexLegend;
 };
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [CommonModule, NgApexchartsModule, CurrencyPipe, NgIconComponent, HlmIconImports],
-  viewProviders: [provideIcons({ lucideWallet, lucideActivity, lucideCreditCard, lucideTrendingUp, lucideLineChart })],
-  template: `
-    <div class="flex flex-col gap-8 max-w-7xl mx-auto w-full pb-10 font-sans">
-      <!-- Page Header & Filters -->
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-        <div>
-          <h1 class="text-3xl font-semibold tracking-tight text-zinc-950">Visão Geral</h1>
-          <p class="text-sm text-zinc-500 mt-1">Métricas e desempenho em tempo real.</p>
-        </div>
-        
-        <!-- Filters -->
-        <div class="inline-flex bg-zinc-100/50 rounded-lg p-1 border border-zinc-200/50">
-          <button 
-            (click)="setFilter('today')"
-            [class.bg-white]="activeFilter() === 'today'"
-            [class.shadow-sm]="activeFilter() === 'today'"
-            [class.text-zinc-950]="activeFilter() === 'today'"
-            [class.text-zinc-500]="activeFilter() !== 'today'"
-            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
-            Hoje
-          </button>
-          <button 
-            (click)="setFilter('7days')"
-            [class.bg-white]="activeFilter() === '7days'"
-            [class.shadow-sm]="activeFilter() === '7days'"
-            [class.text-zinc-950]="activeFilter() === '7days'"
-            [class.text-zinc-500]="activeFilter() !== '7days'"
-            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
-            7D
-          </button>
-          <button 
-            (click)="setFilter('30days')"
-            [class.bg-white]="activeFilter() === '30days'"
-            [class.shadow-sm]="activeFilter() === '30days'"
-            [class.text-zinc-950]="activeFilter() === '30days'"
-            [class.text-zinc-500]="activeFilter() !== '30days'"
-            class="px-5 py-1.5 text-sm font-medium rounded-md transition-all">
-            30D
-          </button>
-        </div>
-      </div>
-
-      @if (isLoading()) {
-        <!-- Minimal Skeletons -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          @for (i of [1,2,3,4]; track i) {
-            <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between">
-              <div class="h-4 bg-zinc-100 rounded w-20 mb-6 animate-pulse"></div>
-              <div class="h-8 bg-zinc-100 rounded w-32 animate-pulse"></div>
-            </div>
-          }
-        </div>
-        <div class="bg-white rounded-xl border border-zinc-200/60 p-6 h-[400px] flex items-center justify-center">
-          <div class="h-full w-full bg-zinc-50/50 rounded-lg animate-pulse"></div>
-        </div>
-      } @else if (metrics()) {
-        <!-- Metrics Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- Balance -->
-          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Saldo Atual</h3>
-              <ng-icon hlm name="lucideWallet" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.currentBalance.available / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
-          </div>
-          
-          <!-- Total Volume -->
-          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Vol. Processado</h3>
-              <ng-icon hlm name="lucideActivity" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.processing.totalVolume / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
-          </div>
-
-          <!-- Ticket Médio -->
-          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-               <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Ticket Médio</h3>
-               <ng-icon hlm name="lucideTrendingUp" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="text-3xl font-semibold tracking-tight text-zinc-950">{{ (metrics()!.processing.averageTicket / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
-          </div>
-
-          <!-- Vendas -->
-          <div class="bg-white rounded-xl border border-zinc-200/60 p-6 flex flex-col justify-between transition-all hover:border-zinc-300 hover:shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-               <h3 class="text-xs font-medium text-zinc-500 uppercase tracking-widest">Qtd. Vendas</h3>
-               <ng-icon hlm name="lucideCreditCard" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="text-3xl font-semibold tracking-tight text-zinc-950 flex items-baseline gap-1.5">
-              {{ metrics()!.processing.salesCount }}
-              <span class="text-sm font-medium text-zinc-400">transações</span>
-            </p>
-          </div>
-        </div>
-
-        <!-- Chart -->
-        <div class="bg-white rounded-xl border border-zinc-200/60 flex flex-col min-h-[450px] mt-2">
-          <div class="p-6 pb-2">
-             <h3 class="text-base font-semibold tracking-tight text-zinc-950">Volume Financeiro</h3>
-          </div>
-          
-          <div class="p-4 flex-1 relative flex flex-col">
-            @if (metrics()?.processing?.salesCount === 0) {
-               <!-- Minimal Empty State -->
-               <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                 <p class="text-sm text-zinc-500">Sem dados no período selecionado.</p>
-               </div>
-            } @else {
-               <div class="-mx-2 -mb-2 mt-2 flex-1 relative min-h-[350px]">
-                 @if (chartOptions() && chartOptions()!.series) {
-                   <apx-chart
-                     style="display: block; width: 100%; height: 100%;"
-                     [series]="chartOptions()!.series!"
-                     [chart]="chartOptions()!.chart!"
-                     [xaxis]="chartOptions()!.xaxis!"
-                     [yaxis]="chartOptions()!.yaxis!"
-                     [dataLabels]="chartOptions()!.dataLabels!"
-                     [grid]="chartOptions()!.grid!"
-                     [stroke]="chartOptions()!.stroke!"
-                     [tooltip]="chartOptions()!.tooltip!"
-                     [colors]="chartOptions()!.colors!"
-                     [fill]="chartOptions()!.fill!"
-                     [markers]="chartOptions()!.markers!"
-                   ></apx-chart>
-                 }
-               </div>
-            }
-          </div>
-        </div>
-      }
-    </div>
-  `
+  imports: [CommonModule, RouterLink, NgApexchartsModule, CurrencyPipe, NgIconComponent, HlmDatePickerImports, HlmIconImports],
+  viewProviders: [
+    provideIcons({
+      lucideAlertTriangle,
+      lucideArrowUpRight,
+      lucideBadgeCheck,
+      lucideCalendarDays,
+      lucideCheckCircle2,
+      lucideClock3,
+      lucideCreditCard,
+      lucideExternalLink,
+      lucideLineChart,
+      lucideLink,
+      lucideLoader2,
+      lucidePlus,
+      lucideRefreshCcw,
+      lucideShieldCheck,
+      lucideTrendingUp,
+      lucideWallet,
+      lucideXCircle,
+    }),
+  ],
+  templateUrl: './overview.html',
 })
-export class Overview implements OnInit {
-  private dashboardService = inject(DashboardService);
-  private storeService = inject(StoreService);
+export class Overview {
+  private readonly dashboardService = inject(DashboardService);
+  private readonly storeService = inject(StoreService);
 
-  metrics = signal<DashboardMetricsResponse | null>(null);
-  isLoading = signal(true);
-  activeFilter = signal<'today' | '7days' | '30days'>('30days');
+  readonly overview = signal<DashboardOverviewResponse | null>(null);
+  readonly isLoading = signal(true);
+  readonly errorMessage = signal<string | null>(null);
+  readonly activeFilter = signal<PeriodFilter>('30days');
+  readonly customDateRange = signal<[Date, Date] | undefined>([this.addDays(new Date(), -29), new Date()]);
 
-  chartOptions = computed<Partial<ChartOptions>>(() => {
-    const data = this.metrics();
-    if (!data || data.processing.salesCount === 0) return {};
+  readonly periodFilters: Array<{ label: string; value: PeriodFilter }> = [
+    { label: 'Hoje', value: 'today' },
+    { label: '7D', value: '7days' },
+    { label: '30D', value: '30days' },
+    { label: 'Custom', value: 'custom' },
+  ];
 
-    const categories = data.chartData.map(item => {
-      const parts = item.date.split('-');
-      if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
-      return item.date;
-    });
+  readonly formatDateRange = (dates: [Date | undefined, Date | undefined]): string => {
+    const [start, end] = dates;
+    if (start && end) return `${this.formatDisplayDate(start)} - ${this.formatDisplayDate(end)}`;
+    if (start) return `A partir de ${this.formatDisplayDate(start)}`;
+    if (end) return `Até ${this.formatDisplayDate(end)}`;
+    return '';
+  };
 
-    const seriesData = data.chartData.map(item => item.volume / 100);
+  readonly selectedRange = computed(() => {
+    const today = new Date();
+
+    switch (this.activeFilter()) {
+      case 'today':
+        return { startDate: this.toInputDate(today), endDate: this.toInputDate(today) };
+      case '7days':
+        return { startDate: this.toInputDate(this.addDays(today, -6)), endDate: this.toInputDate(today) };
+      case 'custom': {
+        const [start, end] = this.customDateRange() ?? [];
+        return { startDate: this.toInputDate(start), endDate: this.toInputDate(end) };
+      }
+      case '30days':
+      default:
+        return { startDate: this.toInputDate(this.addDays(today, -29)), endDate: this.toInputDate(today) };
+    }
+  });
+
+  readonly periodCaption = computed(() => {
+    const filter = this.activeFilter();
+    if (filter === 'today') return 'Hoje';
+    if (filter === '7days') return 'Últimos 7 dias';
+    if (filter === 'custom') return 'Período customizado';
+    return 'Últimos 30 dias';
+  });
+
+  readonly metricCards = computed(() => {
+    const data = this.overview();
+    if (!data) return [];
+
+    return [
+      {
+        label: 'Disponível',
+        context: 'Saldo liquidado',
+        value: this.formatMoney(data.balance.available, data.balance.currency),
+        delta: data.balance.availableDelta,
+        icon: 'lucideWallet',
+      },
+      {
+        label: 'A receber',
+        context: 'Pendente de liquidação',
+        value: this.formatMoney(data.balance.pending, data.balance.currency),
+        delta: data.balance.pendingDelta,
+        icon: 'lucideClock3',
+      },
+      {
+        label: 'Volume líquido',
+        context: 'Após taxas',
+        value: this.formatMoney(data.performance.netVolume, data.balance.currency),
+        delta: data.performance.netVolumeDelta,
+        icon: 'lucideLineChart',
+      },
+      {
+        label: 'Vendas',
+        context: 'Pagamentos aprovados',
+        value: new Intl.NumberFormat('pt-BR').format(data.performance.salesCount),
+        delta: data.performance.salesCountDelta,
+        icon: 'lucideCreditCard',
+      },
+      {
+        label: 'Ticket médio',
+        context: 'Receita por venda',
+        value: this.formatMoney(data.performance.averageTicket, data.balance.currency),
+        delta: data.performance.averageTicketDelta,
+        icon: 'lucideTrendingUp',
+      },
+    ];
+  });
+
+  readonly chartOptions = computed<Partial<ChartOptions>>(() => {
+    const data = this.overview();
+    if (!data || data.chart.length === 0) return {};
 
     return {
       series: [
         {
-          name: "Volume",
-          data: seriesData
-        }
+          name: 'Volume líquido',
+          type: 'area',
+          data: data.chart.map((item) => item.netVolume / 100),
+        },
       ],
       chart: {
-        type: "area",
-        height: 350,
+        type: 'area',
+        height: 300,
         toolbar: { show: false },
-        fontFamily: 'Inter, sans-serif'
+        zoom: { enabled: false },
+        fontFamily: 'Inter, sans-serif',
+        sparkline: { enabled: false },
       },
-      colors: ['#09090b'], // zinc-950
-      dataLabels: {
-        enabled: false
-      },
-      stroke: {
-        curve: "smooth",
-        width: 2
-      },
+      colors: ['#4f46e5'],
+      dataLabels: { enabled: false },
       fill: {
-        type: "gradient",
+        type: 'gradient',
         gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.1,
-          opacityTo: 0.0,
-          stops: [0, 100]
-        }
+          shadeIntensity: 0.45,
+          opacityFrom: 0.42,
+          opacityTo: 0.04,
+          stops: [0, 90, 100],
+        },
+      },
+      grid: {
+        borderColor: '#eef2ff',
+        strokeDashArray: 4,
+        padding: { top: 12, right: 12, bottom: 0, left: 8 },
+      },
+      legend: {
+        show: false,
       },
       markers: {
         size: 0,
-        hover: {
-          size: 4,
-          colors: ['#09090b']
-        }
+        strokeColors: '#ffffff',
+        strokeWidth: 2,
+        hover: { size: 5 },
       },
+      stroke: { width: 3, curve: 'smooth', lineCap: 'round' },
       xaxis: {
-        categories: categories,
+        categories: data.chart.map((item) => this.formatChartDate(item.date)),
         axisBorder: { show: false },
         axisTicks: { show: false },
-        labels: {
-          style: {
-            colors: '#a1a1aa' // zinc-400
-          }
-        },
-        tooltip: {
-          enabled: false
-        }
+        labels: { style: { colors: '#71717a', fontSize: '12px' } },
+        tooltip: { enabled: false },
       },
       yaxis: {
         labels: {
-          formatter: (value) => {
-            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-          },
-          style: {
-            colors: '#a1a1aa'
-          }
-        }
-      },
-      grid: {
-        borderColor: '#f4f4f5', // zinc-100
-        strokeDashArray: 4,
-        padding: {
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 10
+          formatter: (value) => this.formatCompactMoney(value * 100, data.balance.currency),
+          style: { colors: '#71717a', fontSize: '12px' },
         },
-        yaxis: {
-          lines: { show: true }
-        },
-        xaxis: {
-          lines: { show: false }
-        }
       },
       tooltip: {
-        enabled: true,
-        shared: true,
+        shared: false,
         intersect: false,
         theme: 'light',
-        custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-          const value = series[seriesIndex][dataPointIndex];
-          const date = w.globals.categoryLabels[dataPointIndex];
-          const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        custom: ({ series, dataPointIndex, w }: { series: number[][]; dataPointIndex: number; w: { globals: { categoryLabels?: string[]; labels?: string[] } } }) => {
+          const point = data.chart[dataPointIndex];
+          const label = w.globals.categoryLabels?.[dataPointIndex] ?? w.globals.labels?.[dataPointIndex] ?? this.formatChartDate(point.date);
+          const volume = series[0]?.[dataPointIndex] ?? 0;
 
           return `
-            <div class="bg-white border border-zinc-200 shadow-sm rounded-lg overflow-hidden font-sans min-w-[140px]">
-              <div class="px-3 py-2 border-b border-zinc-100 flex justify-between items-center">
-                <span class="text-xs font-medium text-zinc-500">${date}</span>
-              </div>
-              <div class="px-3 py-2 flex flex-col">
-                <span class="text-[10px] text-zinc-400 uppercase tracking-widest font-medium mb-1">Volume</span>
-                <span class="text-sm font-semibold text-zinc-950">${formattedValue}</span>
-              </div>
+            <div class="rounded-md border border-zinc-200 bg-white px-3 py-2 shadow-lg">
+              <div class="text-xs font-medium text-zinc-500">${label}</div>
+              <div class="mt-1 text-sm font-semibold text-zinc-950">${this.formatMoney(volume * 100, data.balance.currency)}</div>
+              <div class="mt-0.5 text-xs text-zinc-500">${new Intl.NumberFormat('pt-BR').format(point.salesCount)} vendas aprovadas</div>
             </div>
           `;
-        }
-      }
+        },
+      },
     };
   });
+
+  readonly linkConversionSummary = computed(() => {
+    const conversion = this.overview()?.conversion;
+    if (!conversion) {
+      return {
+        linksCreated: 0,
+        linksPaid: 0,
+        conversionRate: 0,
+        conversionPercent: 0,
+      };
+    }
+
+    return {
+      linksCreated: conversion.linksCreated,
+      linksPaid: conversion.linksPaid,
+      conversionRate: conversion.linkConversionRate,
+      conversionPercent: this.ratePercent(conversion.linkConversionRate),
+    };
+  });
+
+  readonly paymentStatusSegments = computed(() => {
+    const data = this.overview();
+    if (!data) return [];
+
+    const attempts = data.conversion.paymentAttempts;
+    if (attempts <= 0) return [];
+
+    const approved = data.conversion.approvedPayments;
+    const failed = this.paymentStatusCount(['FAILED']);
+    const expired = this.paymentStatusCount(['EXPIRED']);
+    const refunded = this.paymentStatusCount(['REFUNDED']);
+    const other = Math.max(0, attempts - approved - failed - expired - refunded);
+
+    return [
+      {
+        label: 'Aprovadas',
+        value: approved,
+        colorClass: 'bg-emerald-500',
+      },
+      {
+        label: 'Falhas',
+        value: failed,
+        colorClass: 'bg-red-500',
+      },
+      {
+        label: 'Expiradas',
+        value: expired,
+        colorClass: 'bg-amber-500',
+      },
+      {
+        label: 'Estornadas',
+        value: refunded,
+        colorClass: 'bg-indigo-500',
+      },
+      {
+        label: 'Outros',
+        value: other,
+        colorClass: 'bg-zinc-400',
+      },
+    ]
+      .filter((item) => item.value > 0)
+      .map((item) => ({
+        ...item,
+        percent: (item.value / attempts) * 100,
+      }));
+  });
+
+  readonly attentionItems = computed(() => {
+    const attention = this.overview()?.attention;
+    if (!attention) return [];
+
+    return [
+      { label: 'Webhooks falhos', value: attention.failedWebhookDeliveries, route: '/dashboard/webhooks' },
+      { label: 'Webhooks pendentes', value: attention.pendingWebhookDeliveries, route: '/dashboard/webhooks' },
+      { label: 'Alertas falhos', value: attention.failedAlertDeliveries, route: '/dashboard/alerts' },
+      { label: 'Alertas pendentes', value: attention.pendingAlertDeliveries, route: '/dashboard/alerts' },
+    ].filter((item) => item.value > 0);
+  });
+
+  readonly attentionTotal = computed(() => this.attentionItems().reduce((total, item) => total + item.value, 0));
+  readonly isEmptyPeriod = computed(() => {
+    const data = this.overview();
+    if (!data) return false;
+
+    return data.performance.salesCount === 0 && data.performance.netVolume === 0 && data.chart.every((item) => item.netVolume === 0 && item.salesCount === 0);
+  });
+
+  private requestId = 0;
 
   constructor() {
     effect(() => {
       const store = this.storeService.currentStore();
-      if (store) {
-        this.loadMetrics();
+      const range = this.selectedRange();
+
+      if (store && range.startDate && range.endDate) {
+        this.loadOverview(range.startDate, range.endDate);
       }
     }, { allowSignalWrites: true });
   }
 
-  ngOnInit() {}
-
-  setFilter(filter: 'today' | '7days' | '30days') {
+  setFilter(filter: PeriodFilter) {
     this.activeFilter.set(filter);
   }
 
-  loadMetrics() {
+  setCustomDateRange(value: [Date | undefined, Date | undefined] | null) {
+    const [start, end] = value ?? [];
+    this.customDateRange.set(start && end ? [start, end] : undefined);
+    this.activeFilter.set('custom');
+  }
+
+  reload() {
+    const range = this.selectedRange();
+    if (!range.startDate || !range.endDate) return;
+    this.loadOverview(range.startDate, range.endDate);
+  }
+
+  formattedPeriodRange(): string {
+    const period = this.overview()?.period;
+    const range = period ? { startDate: period.startDate, endDate: period.endDate } : this.selectedRange();
+
+    return `${this.formatDate(range.startDate)} - ${this.formatDate(range.endDate)}`;
+  }
+
+  defaultCurrency(): string {
+    return this.overview()?.balance.currency || 'BRL';
+  }
+
+  deltaClass(delta: number | null): string {
+    if (delta === null) return 'text-zinc-400';
+    if (delta > 0) return 'text-emerald-600';
+    if (delta < 0) return 'text-red-600';
+    return 'text-zinc-500';
+  }
+
+  formatDelta(delta: number): string {
+    const prefix = delta > 0 ? '+' : '';
+    return `${prefix}${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(delta * 100)}%`;
+  }
+
+  formatRate(value: number): string {
+    return `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(this.ratePercent(value))}%`;
+  }
+
+  ratePercent(value: number): number {
+    return Math.max(0, Math.min(100, (value || 0) * 100));
+  }
+
+  private paymentStatusCount(statuses: string[]): number {
+    const normalized = new Set(statuses.map((status) => status.toUpperCase()));
+
+    return this.overview()?.paymentStatusBreakdown
+      .filter((item) => normalized.has(item.status.toUpperCase()))
+      .reduce((total, item) => total + item.count, 0) ?? 0;
+  }
+
+  statusLabel(status: string): string {
+    const normalized = status.toUpperCase();
+    const labels: Record<string, string> = {
+      PAID: 'Pago',
+      APPROVED: 'Aprovado',
+      PENDING: 'Pendente',
+      PROCESSING: 'Processando',
+      FAILED: 'Falhou',
+      EXPIRED: 'Expirado',
+      REFUNDED: 'Estornado',
+      CANCELLED: 'Cancelado',
+      CANCELED: 'Cancelado',
+    };
+
+    return labels[normalized] ?? status;
+  }
+
+  statusClass(status: string): string {
+    const normalized = status.toUpperCase();
+    if (['PAID', 'APPROVED'].includes(normalized)) return 'bg-emerald-50 text-emerald-700';
+    if (['PENDING', 'PROCESSING'].includes(normalized)) return 'bg-amber-50 text-amber-700';
+    if (['FAILED', 'EXPIRED', 'CANCELLED', 'CANCELED'].includes(normalized)) return 'bg-red-50 text-red-700';
+    if (normalized === 'REFUNDED') return 'bg-indigo-50 text-indigo-700';
+    return 'bg-zinc-100 text-zinc-700';
+  }
+
+  originLabel(origin: DashboardOverviewResponse['recentPayments'][number]['origin']): string {
+    const labels: Record<DashboardOverviewResponse['recentPayments'][number]['origin'], string> = {
+      api: 'API',
+      checkout: 'Checkout',
+      payment_link: 'Link',
+      unknown: 'Origem desconhecida',
+    };
+
+    return labels[origin] ?? labels.unknown;
+  }
+
+  formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
+  }
+
+  private loadOverview(startDate: string, endDate: string) {
+    const currentRequest = ++this.requestId;
     this.isLoading.set(true);
-    this.dashboardService.getMetrics().subscribe({
+    this.errorMessage.set(null);
+
+    this.dashboardService.getOverview(this.startOfDayIso(startDate), this.endOfDayIso(endDate)).subscribe({
       next: (data) => {
-        this.metrics.set(data);
+        if (currentRequest !== this.requestId) return;
+        this.overview.set(data);
         this.isLoading.set(false);
       },
       error: (err) => {
-        console.error('Failed to load dashboard metrics', err);
+        if (currentRequest !== this.requestId) return;
+        console.error('Failed to load dashboard overview', err);
+        this.errorMessage.set('Confira sua conexão e tente novamente em alguns instantes.');
+        this.overview.set(null);
         this.isLoading.set(false);
-      }
+      },
     });
+  }
+
+  private formatMoney(value: number, currency = 'BRL'): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value / 100);
+  }
+
+  private formatCompactMoney(value: number, currency = 'BRL'): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value / 100);
+  }
+
+  private formatDate(value: string): string {
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(this.parseDate(value));
+  }
+
+  private formatDisplayDate(date: Date): string {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  private formatChartDate(value: string): string {
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(this.parseDate(value));
+  }
+
+  private toInputDate(date?: Date): string {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  private parseDate(value: string): Date {
+    if (value.includes('T')) return new Date(value);
+
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  private startOfDayIso(value: string): string {
+    const date = this.parseDate(value);
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString();
+  }
+
+  private endOfDayIso(value: string): string {
+    const date = this.parseDate(value);
+    date.setHours(23, 59, 59, 999);
+    return date.toISOString();
   }
 }
