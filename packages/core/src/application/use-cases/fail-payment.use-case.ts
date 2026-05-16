@@ -1,8 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-import { IOutboxWriter } from '../../domain/repositories/outbox-writer.repository.interface';
-import { IPixChargeRepository } from '../../domain/repositories/pix-charge.repository.interface';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
@@ -40,71 +38,79 @@ export interface IFailPaymentOutput {
  */
 export class FailPaymentUseCase {
   constructor(
-    private readonly paymentRepository: IPaymentRepository,
-    private readonly outboxWriter: IOutboxWriter,
+    private readonly unitOfWork: IUnitOfWork,
     private readonly expirationQueue: IExpirationQueuePort,
-    private readonly pixChargeRepository?: IPixChargeRepository,
   ) {}
 
   async execute(input: IFailPaymentInput): Promise<IFailPaymentOutput> {
-    const payment = await this.paymentRepository.findByIdAndStoreId(
-      input.paymentId,
-      input.storeId,
-    );
+    const result = await this.unitOfWork.execute(async (repos) => {
+      const payment = await repos.paymentRepository.findByIdAndStoreId(
+        input.paymentId,
+        input.storeId,
+      );
 
-    if (!payment) {
-      throw new PaymentNotFoundError(input.paymentId);
-    }
+      if (!payment) {
+        throw new PaymentNotFoundError(input.paymentId);
+      }
 
-    if (payment.status === PaymentStatus.FAILED) {
-      await this.expirationQueue.cancelExpiration(payment.id);
+      if (payment.status === PaymentStatus.FAILED) {
+        return {
+          payment: payment.toObject(),
+          alreadyFailed: true,
+        };
+      }
+
+      // Attempt to fail - will throw InvalidPaymentStatusError if not PENDING
+      const reason = input.reason ?? 'Payment failed';
+      payment.fail(reason);
+
+      await repos.paymentRepository.update(payment);
+
+      let pixChargeObject = payment.pixCharge;
+      if (!input.keepPixChargeOpen && payment.pixChargeId) {
+        const pixCharge = await repos.pixChargeRepository.findByIdAndStoreId(
+          payment.pixChargeId,
+          payment.storeId,
+        );
+        if (pixCharge?.isOpen()) {
+          pixCharge.cancel();
+          await repos.pixChargeRepository.update(pixCharge);
+        }
+        pixChargeObject = pixCharge?.toObject() ?? payment.pixCharge;
+      }
+
+      const paymentPayload = {
+        ...payment.toObject(),
+        pixCharge: pixChargeObject,
+      };
+
+      // Create outbox event for webhook notification
+      // Note: The failedReason is already set on the payment entity via payment.fail(reason)
+      const outboxEvent = OutboxEvent.create({
+        aggregateType: 'Payment',
+        aggregateId: payment.id,
+        eventType: 'payment.failed',
+        requestId: input.requestId,
+        storeId: payment.storeId,
+        payload: paymentPayload as unknown as Record<string, unknown>,
+      });
+      await repos.outboxWriter.save(outboxEvent);
 
       return {
-        payment: payment.toObject(),
-        alreadyFailed: true,
+        payment: paymentPayload,
       };
-    }
-
-    // Attempt to fail - will throw InvalidPaymentStatusError if not PENDING
-    const reason = input.reason ?? 'Payment failed';
-    payment.fail(reason);
-
-    await this.paymentRepository.update(payment);
-
-    let pixChargeObject = payment.pixCharge;
-    if (!input.keepPixChargeOpen && payment.pixChargeId && this.pixChargeRepository) {
-      const pixCharge = await this.pixChargeRepository.findByIdAndStoreId(
-        payment.pixChargeId,
-        payment.storeId,
-      );
-      if (pixCharge?.isOpen()) {
-        pixCharge.cancel();
-        await this.pixChargeRepository.update(pixCharge);
-      }
-      pixChargeObject = pixCharge?.toObject() ?? payment.pixCharge;
-    }
-
-    const paymentPayload = {
-      ...payment.toObject(),
-      pixCharge: pixChargeObject,
-    };
-
-    // Create outbox event for webhook notification
-    // Note: The failedReason is already set on the payment entity via payment.fail(reason)
-    const outboxEvent = OutboxEvent.create({
-      aggregateType: 'Payment',
-      aggregateId: payment.id,
-      eventType: 'payment.failed',
-      requestId: input.requestId,
-      storeId: payment.storeId,
-      payload: paymentPayload as unknown as Record<string, unknown>,
     });
-    await this.outboxWriter.save(outboxEvent);
 
-    await this.expirationQueue.cancelExpiration(payment.id);
+    await this.cancelExpirationBestEffort(input.paymentId);
 
-    return {
-      payment: paymentPayload,
-    };
+    return result;
+  }
+
+  private async cancelExpirationBestEffort(paymentId: string): Promise<void> {
+    try {
+      await this.expirationQueue.cancelExpiration(paymentId);
+    } catch {
+      // Queue cleanup should not roll back an already committed payment failure.
+    }
   }
 }

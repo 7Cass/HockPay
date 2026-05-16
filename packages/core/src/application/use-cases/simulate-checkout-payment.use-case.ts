@@ -91,6 +91,7 @@ export class SimulateCheckoutPaymentUseCase {
 
       case "expire":
         return this.expirePaymentUseCase.execute({
+          storeId: payment.storeId,
           paymentId: payment.id,
           requestId: input.requestId,
         });

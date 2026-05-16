@@ -50,7 +50,7 @@ export class DevController {
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
     private readonly failPaymentUseCase: FailPaymentUseCase,
     private readonly releasePaymentUseCase: ReleasePaymentUseCase,
-  ) { }
+  ) {}
 
   /**
    * POST /api/v1/dev/simulate/:id/confirm
@@ -100,7 +100,10 @@ export class DevController {
     this.validateTestEnvironment(req);
 
     try {
+      const storeId = this.getStoreId(req);
+
       const result = await this.expirePaymentUseCase.execute({
+        storeId,
         paymentId: id,
         requestId: getRequestId(req),
       });
@@ -164,7 +167,10 @@ export class DevController {
     this.validateTestEnvironment(req);
 
     try {
+      const storeId = this.getStoreId(req);
+
       const result = await this.releasePaymentUseCase.execute({
+        storeId,
         paymentId: id,
         requestId: getRequestId(req),
       });
@@ -176,7 +182,6 @@ export class DevController {
       return this.handleError(error);
     }
   }
-
 
   /**
    * Validates that the request is from a TEST environment.
@@ -194,6 +199,16 @@ export class DevController {
         },
       });
     }
+  }
+
+  private getStoreId(req?: Request): string {
+    const storeId = (req as any)?.store?.id;
+
+    if (!storeId) {
+      throw new Error('Store ID not found in request');
+    }
+
+    return storeId;
   }
 
   /**

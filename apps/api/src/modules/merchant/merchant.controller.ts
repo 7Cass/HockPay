@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   CreateMerchantUseCase,
@@ -33,7 +34,7 @@ export class MerchantController {
     private readonly createMerchantUseCase: CreateMerchantUseCase,
     private readonly getMerchantUseCase: GetMerchantUseCase,
     private readonly getCurrentMerchantUseCase: GetCurrentMerchantUseCase,
-  ) { }
+  ) {}
 
   @Post()
   @Public()
@@ -56,10 +57,19 @@ export class MerchantController {
   }
 
   @Get(':id')
-  @Public()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserData,
   ): Promise<IGetMerchantOutput> {
+    if (id !== user.merchantId) {
+      throw new ForbiddenException({
+        error: {
+          code: 'MERCHANT_ACCESS_DENIED',
+          message: 'Cannot access another merchant profile',
+        },
+      });
+    }
+
     return await this.getMerchantUseCase.execute(id);
   }
 }

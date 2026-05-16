@@ -181,6 +181,7 @@ describe('SimulateCheckoutPaymentUseCase', () => {
     });
 
     expect(expirePaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
       paymentId: payment.id,
     });
     expect(failPaymentUseCase.execute).toHaveBeenCalledWith({

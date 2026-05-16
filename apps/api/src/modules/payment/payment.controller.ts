@@ -64,7 +64,7 @@ export class PaymentController {
     private readonly getPaymentTimelineUseCase: GetPaymentTimelineUseCase,
     private readonly listPaymentsUseCase: ListPaymentsUseCase,
     private readonly simulatePaymentUseCase: SimulateCheckoutPaymentUseCase,
-  ) { }
+  ) {}
 
   /**
    * POST /api/v1/payments
@@ -96,6 +96,9 @@ export class PaymentController {
         description: dto.description,
         customer: dto.customer,
         environment,
+        paymentMethod: dto.paymentMethod,
+        paymentDetails: dto.paymentDetails,
+        acquirerId: dto.acquirerId,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         metadata: dto.metadata,
       });
@@ -257,7 +260,7 @@ export class PaymentController {
 
   /**
    * POST /api/v1/payments/:id/simulate/:action
-   * 
+   *
    * Simulates a payment action for TEST environment payments.
    * Publicly accessible for the checkout dev UI.
    */
@@ -282,9 +285,10 @@ export class PaymentController {
         payment: result.payment,
       };
     } catch (error: any) {
-       // Only test payments can be simulated, LiveEnvironmentNotAllowedError can be thrown
-       if (error.name === 'PaymentNotFoundError') throw new NotFoundException(error.message);
-       throw new UnprocessableEntityException(error.message);
+      // Only test payments can be simulated, LiveEnvironmentNotAllowedError can be thrown
+      if (error.name === 'PaymentNotFoundError')
+        throw new NotFoundException(error.message);
+      throw new UnprocessableEntityException(error.message);
     }
   }
 }

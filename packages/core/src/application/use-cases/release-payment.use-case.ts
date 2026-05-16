@@ -11,6 +11,7 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
  * Input DTO for ReleasePaymentUseCase.
  */
 export interface IReleasePaymentInput {
+  storeId?: string;
   paymentId: string;
   requestId?: string;
 }
@@ -47,7 +48,12 @@ export class ReleasePaymentUseCase {
   async execute(input: IReleasePaymentInput): Promise<IReleasePaymentOutput> {
     return this.unitOfWork.execute(async (repos) => {
       // Find payment
-      const payment = await repos.paymentRepository.findById(input.paymentId);
+      const payment = input.storeId
+        ? await repos.paymentRepository.findByIdAndStoreId(
+            input.paymentId,
+            input.storeId,
+          )
+        : await repos.paymentRepository.findById(input.paymentId);
 
       if (!payment) {
         throw new PaymentNotFoundError(input.paymentId);

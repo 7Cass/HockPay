@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import {
   AccountNotFoundError,
   ConfirmPaymentUseCase,
@@ -31,7 +35,7 @@ describe('DevController', () => {
     );
   });
 
-  it('forwards paymentId and requestId to the release use case', async () => {
+  it('forwards storeId, paymentId, and requestId to the release use case', async () => {
     releasePaymentUseCase.execute.mockResolvedValue({
       payment: { id: 'payment-1', status: 'RELEASED' },
       account: { id: 'account-1' },
@@ -40,10 +44,12 @@ describe('DevController', () => {
 
     const result = await controller.releasePayment('payment-1', {
       environment: Environment.TEST,
+      store: { id: 'store-1' },
       id: 'req-1',
     } as any);
 
     expect(releasePaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
       paymentId: 'payment-1',
       requestId: 'req-1',
     });
@@ -69,6 +75,7 @@ describe('DevController', () => {
     await expect(
       controller.releasePayment('payment-1', {
         environment: Environment.TEST,
+        store: { id: 'store-1' },
       } as any),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
@@ -81,7 +88,30 @@ describe('DevController', () => {
     await expect(
       controller.releasePayment('payment-1', {
         environment: Environment.TEST,
+        store: { id: 'store-1' },
       } as any),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('forwards authenticated storeId to the expire use case', async () => {
+    expirePaymentUseCase.execute.mockResolvedValue({
+      payment: { id: 'payment-1', status: 'EXPIRED' },
+      alreadyExpired: false,
+    });
+
+    const result = await controller.expirePayment('payment-1', {
+      environment: Environment.TEST,
+      store: { id: 'store-1' },
+      id: 'req-1',
+    } as any);
+
+    expect(expirePaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentId: 'payment-1',
+      requestId: 'req-1',
+    });
+    expect(result).toEqual({
+      payment: { id: 'payment-1', status: 'EXPIRED' },
+    });
   });
 });

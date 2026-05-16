@@ -14,8 +14,6 @@ import {
   SimulateCheckoutPaymentUseCase,
   FeePolicy,
   IPaymentRepository,
-  IPixChargeRepository,
-  IOutboxRepository,
   IUnitOfWork,
   ICheckoutSessionRepository,
   IReceiptRepository,
@@ -219,27 +217,23 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: ExpirePaymentUseCase,
       useFactory: (
-        repo: IPaymentRepository,
-        outboxRepo: IOutboxRepository,
+        unitOfWork: IUnitOfWork,
         queue: ExpirationQueue,
-        pixChargeRepo: IPixChargeRepository,
       ) => {
-        return new ExpirePaymentUseCase(repo, outboxRepo, queue, pixChargeRepo);
+        return new ExpirePaymentUseCase(unitOfWork, queue);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue, 'IPixChargeRepository'],
+      inject: ['IUnitOfWork', ExpirationQueue],
     },
 
     {
       provide: FailPaymentUseCase,
       useFactory: (
-        repo: IPaymentRepository,
-        outboxRepo: IOutboxRepository,
+        unitOfWork: IUnitOfWork,
         queue: ExpirationQueue,
-        pixChargeRepo: IPixChargeRepository,
       ) => {
-        return new FailPaymentUseCase(repo, outboxRepo, queue, pixChargeRepo);
+        return new FailPaymentUseCase(unitOfWork, queue);
       },
-      inject: ['IPaymentRepository', 'IOutboxRepository', ExpirationQueue, 'IPixChargeRepository'],
+      inject: ['IUnitOfWork', ExpirationQueue],
     },
 
     {

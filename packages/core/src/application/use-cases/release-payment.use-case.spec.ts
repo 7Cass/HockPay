@@ -10,6 +10,7 @@ describe('ReleasePaymentUseCase', () => {
     return {
       paymentRepository: {
         findById: vi.fn().mockResolvedValue(payment),
+        findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
         update: vi.fn(),
       },
       refundRepository: {
@@ -116,5 +117,42 @@ describe('ReleasePaymentUseCase', () => {
     expect(repos.transactionRepository.save).not.toHaveBeenCalled();
     expect(repos.outboxWriter.save).not.toHaveBeenCalled();
     expect(repos.refundRepository.findByPaymentId).not.toHaveBeenCalled();
+  });
+
+  it('uses store-scoped lookup when storeId is provided', async () => {
+    const payment = Payment.create({
+      storeId: 'store-1',
+      amount: 10_000,
+      fee: 1_000,
+      netAmount: 9_000,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    payment.confirm();
+
+    const account = Account.reconstitute({
+      id: 'account-1',
+      storeId: 'store-1',
+      available: 0,
+      pending: 9_000,
+      blocked: 0,
+      currency: 'BRL',
+      updatedAt: new Date(),
+    });
+
+    const repos = makeRepos(payment, account);
+    const useCase = new ReleasePaymentUseCase({
+      execute: async (work: any) => work(repos),
+    } as any);
+
+    await useCase.execute({
+      storeId: 'store-1',
+      paymentId: payment.id,
+    });
+
+    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
+      payment.id,
+      'store-1',
+    );
+    expect(repos.paymentRepository.findById).not.toHaveBeenCalled();
   });
 });

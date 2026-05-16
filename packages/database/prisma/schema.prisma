@@ -362,6 +362,7 @@ model Payment {
   webhookLogs   WebhookLog[]
   webhookInboxEvents WebhookInboxEvent[]
 
+  @@unique([storeId, externalId])
   @@index([storeId, status])
   @@index([storeId, createdAt(sort: Desc)])
   @@index([pixChargeId])
