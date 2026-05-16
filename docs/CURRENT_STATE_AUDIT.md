@@ -8,7 +8,7 @@ Resumo curto e auditado do estado atual do repositório.
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/api`           | API NestJS em `/api/v1`, com auth por cookie JWT para dashboard, API key para integrações, payments, checkout sessions, webhooks, dashboard, refunds, receipts, idempotência e `X-Request-ID` |
 | `apps/worker`        | Worker NestJS com Redis/BullMQ, dispatcher de outbox resiliente, entrega de webhooks, expiração, settlement, alertas e guard in-process para cron jobs                                        |
-| `apps/web`           | Angular único para landing, auth e dashboard; já expõe webhooks com filtros de delivery e IDs operacionais                                                                                    |
+| `apps/web`           | Angular único para landing, auth e dashboard; expõe webhooks com filtros/IDs operacionais, detalhe de payment com timeline, receipts e visão financeira read-only                              |
 | `apps/checkout`      | Next.js para checkout hospedado baseado em token                                                                                                                                              |
 | `apps/demo-mediakit` | Demo que usa checkout hosted + webhook assinado                                                                                                                                               |
 
@@ -30,8 +30,10 @@ Resumo curto e auditado do estado atual do repositório.
 - Store/account: toda store deve ter uma account; a migration `20260510000100_backfill_store_accounts` corrige stores antigas sem account
 - Checkout local: default de `NEXT_PUBLIC_API_URL` aponta para `http://localhost:3000/api/v1`
 - Study case P0 validado: `apps/demo-mediakit`, com checkout hospedado e webhook assinado
-- Smoke local validado por `pnpm run smoke:p0`
-- Smoke de Payment Link disponivel por `pnpm run smoke:payment-link`
+- `pnpm run smoke:p0`: baseline rapido de API direta com API, worker, receiver local e webhook entregue
+- `pnpm run smoke:payment-link`: validacao de Payment Link/checkout hospedado, PixCharge e tentativas de pagamento
+- `pnpm run smoke:p3:visual`: populacao de dashboard para validacao visual de payments `PENDING`, `CONFIRMED`, `FAILED`, `EXPIRED`, `REFUNDED` e `RELEASED`
+- `pnpm run smoke:studycase:mediakit`: validacao completa do `demo-mediakit` com API, checkout hospedado, app demo, webhook assinado e estado final renderizavel
 - Webhooks locais aceitam HTTP somente em `localhost`/`127.0.0.1` em ambiente local/desenvolvimento; destinos remotos exigem HTTPS público e a política bloqueia loopback, RFC1918, link-local, metadata `169.254.169.254`, IPv6 local/link-local/unique-local e protocolos não HTTP(S) na configuração e no envio
 - Sem LocalStack/SQS configurado
 
@@ -42,7 +44,7 @@ Resumo curto e auditado do estado atual do repositório.
 | P0         | Done: baseline demoável e smoke local                                                    |
 | P1         | Done: consistência financeira, outbox e webhook resiliente                               |
 | P2         | Done: observabilidade, DX operacional, request tracing, cron guard e infra compartilhada |
-| P3         | Pending: readiness de produto e preparação do próximo study-case                         |
+| P3         | Done nesta rodada: template/checklist/docs/smoke alinhados, readiness visual, timeline, receipts e financeiro |
 | P4         | Pós-gate: expansões maiores de produto                                                   |
 
 ## Capacidades verificadas
@@ -50,10 +52,12 @@ Resumo curto e auditado do estado atual do repositório.
 - Payment direto e checkout hosted criam outbox junto do fluxo principal.
 - Confirmação, expiração, falha, refund e release têm caminho de outbox para webhook.
 - Webhook delivery persiste `requestId`, `outboxEventId`, `deliveryId` e `paymentId`.
-- Dashboard já permite investigar entregas de webhook sem consulta direta ao banco.
+- Dashboard já permite investigar entregas de webhook, payments, receipts, timeline e financeiro read-only sem consulta direta ao banco.
 - Payment Link segue o modelo `PaymentLink -> PixCharge -> Payment attempts`: o link e a PixCharge representam a cobranca comercial principal; cada falha ou pagamento gera um `Payment` como tentativa numerada; falha nao fecha o link nem a PixCharge, confirmacao fecha a PixCharge como `PAID`.
-- Account, receipt e transaction existem, mas ainda precisam de melhor caminho visual de validação em P3.
-- O próximo gate prático é P3: timeline de payment, validação financeira no dashboard, template de study-case e revisão de placeholders.
+- Account auto-creation esta implementada: store criada pela API nasce com account, e stores antigas foram cobertas por migration de backfill.
+- Receipt, payment timeline, transaction e saldos pending/available/blocked têm caminho de consulta por dashboard/API e são P3-real.
+- O próximo study-case nao foi escolhido nesta rodada; o artefato de fechamento P3 e o template/checklist/documentacao/smokes alinhados para escolher o proximo case com menos conhecimento tacito.
+- CI Docker para rodar os smokes em pipeline e futuro, fora do fechamento P3.
 
 ## Known Non-P0 / P4
 

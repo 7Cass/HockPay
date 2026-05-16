@@ -20,5 +20,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     status: record.status,
     data: record.data,
+    failureReason: record.failureReason,
   });
 }

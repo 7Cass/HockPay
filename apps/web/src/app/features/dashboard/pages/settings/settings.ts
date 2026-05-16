@@ -243,10 +243,10 @@ import { Store, StoreService } from '../../../../core/services/store.service';
                 Essas condições impactam novos pagamentos e repasses futuros. A edição direta fica restrita ao time HockPay.
               </p>
 
-              <button hlmBtn type="button" class="mt-5 w-full bg-zinc-900 text-white shadow-sm hover:bg-zinc-800"
+              <button hlmBtn type="button" variant="outline" class="mt-5 w-full border-dashed border-zinc-300 bg-zinc-50 text-zinc-600 shadow-none hover:bg-zinc-100"
                 (click)="openReviewDialog()">
                 <ng-icon hlm name="lucideCircleDollarSign" size="sm" class="mr-2"></ng-icon>
-                Solicitar revisão
+                Ver revisão futura
               </button>
             </section>
           </div>
@@ -258,9 +258,9 @@ import { Store, StoreService } from '../../../../core/services/store.service';
           <div class="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <h2 class="text-lg font-semibold tracking-tight text-zinc-900">Revisão comercial</h2>
+                <h2 class="text-lg font-semibold tracking-tight text-zinc-900">Revisão comercial futura</h2>
                 <p class="mt-1 text-sm text-zinc-500">
-                  Essa solicitação será conectada ao painel admin da HockPay em uma próxima etapa.
+                  Este é apenas um aviso informativo. Solicitações de revisão comercial não estão disponíveis no P3.
                 </p>
               </div>
               <button type="button" (click)="closeReviewDialog()"
@@ -270,7 +270,7 @@ import { Store, StoreService } from '../../../../core/services/store.service';
             </div>
 
             <div class="mt-5 rounded-lg border border-zinc-200/80 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-              A avaliação futura deve seguir regras padronizadas de risco, volume, histórico e elegibilidade, semelhante a uma revisão de limite em produtos financeiros.
+              Em uma entrega futura, a avaliação deve seguir regras padronizadas de risco, volume, histórico e elegibilidade, semelhante a uma revisão de limite em produtos financeiros.
             </div>
 
             <div class="mt-6 flex justify-end">

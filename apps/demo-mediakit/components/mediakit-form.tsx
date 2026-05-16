@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { studyCaseConfig } from "@/study-case.config";
 
 interface MediaKitFormData {
   creatorName: string;
@@ -254,7 +255,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
             Criando sessão de pagamento...
           </>
         ) : (
-          "Gerar Media Kit — R$ 9,90"
+          `Gerar Media Kit - ${studyCaseConfig.priceLabel}`
         )}
       </button>
     </form>

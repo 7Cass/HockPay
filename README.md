@@ -32,7 +32,7 @@ pnpm run dev
 |-----------|-------------|-------|
 | `apps/api` | API REST principal com autenticação, stores, customers, payments, webhooks, checkout sessions, dashboard, refunds e afins | NestJS |
 | `apps/worker` | Worker separado com BullMQ, cron jobs e processamento assíncrono de outbox/webhooks | NestJS |
-| `apps/web` | App Angular único com landing page, login/register e dashboard do merchant | Angular |
+| `apps/web` | App Angular único com landing page, login/register, dashboard do merchant, timeline de payment, receipts, webhooks e financeiro read-only | Angular |
 | `apps/checkout` | Checkout white-label orientado ao comprador, baseado em token de checkout session | Next.js |
 | `apps/demo-mediakit` | Demo de integração usando checkout hospedado + webhook | Next.js |
 | `packages/core` | Entidades, value objects, interfaces e casos de uso compartilhados | TypeScript |
@@ -76,10 +76,24 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - PostgreSQL é obrigatório para Prisma, autenticação, payments, accounts, receipts, outbox e logs
 - Redis é obrigatório para BullMQ, expiração agendada, entrega de webhooks e cache operacional de idempotência/throttling
 - API sem worker cria dados e outbox, mas não entrega webhooks nem processa jobs assíncronos
-- Invariante P0: toda `store` deve ter exatamente uma `account`; a migration atual faz backfill de stores antigas sem account
+- Invariante atual: toda `store` criada pela API nasce com uma `account`; a migration atual faz backfill de stores antigas sem account
 - Checkout hospedado: o default local usa `http://localhost:3000/api/v1`
 - Study case atual validado: `apps/demo-mediakit`
+- P3 fechado nesta rodada: template/checklist/docs/smoke alinhados, com receipts, timeline de payment e visibilidade financeira como capacidades reais de dashboard/API
+- Products, Withdrawals, Marketplace, split e multi-seller continuam fora do produto pronto e pertencem a P4/futuro
+- O proximo study-case ainda nao foi escolhido nesta rodada; `demo-mediakit` serve como referencia/template/checklist
 - Não existe LocalStack nem SQS configurado no estado atual
+
+## Smokes Locais
+
+| Script | Papel |
+|--------|-------|
+| `pnpm run smoke:p0` | Baseline rapido de API direta: cria merchant/store/API key, payment direto, webhook local, confirmacao e entrega pelo worker |
+| `pnpm run smoke:payment-link` | Validacao de Payment Link/checkout hospedado: PixCharge aberta, falha de tentativa, nova tentativa paga e conversao |
+| `pnpm run smoke:p3:visual` | Validacao visual do dashboard: popula payments em todos os estados principais para conferir timeline, receipt, financeiro e empty states |
+| `pnpm run smoke:studycase:mediakit` | Validacao completa do study-case `demo-mediakit`: cria merchant/store/API key/webhook, sobe o demo, cria checkout session, faz fulfill, confirma payment TEST e valida webhook + estado final |
+
+CI Docker para executar esses smokes em pipeline e futuro; hoje eles assumem infraestrutura/processos locais ja disponiveis.
 
 ## Troubleshooting Rápido
 
@@ -111,6 +125,7 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - [DATA_MODELING.md](./DATA_MODELING.md): modelo de dados atual, cobertura runtime e modelo alvo
 - [docs/CURRENT_STATE_AUDIT.md](./docs/CURRENT_STATE_AUDIT.md): resumo auditado do estado atual do repositório
 - [docs/P0_RUNBOOK.md](./docs/P0_RUNBOOK.md): operação reproduzível do fluxo P0 local
+- [docs/P_ROADMAP.md](./docs/P_ROADMAP.md): fechamento P1-P3, limites de P4 e criterios para escolher o proximo study-case
 - [docs/TECH_SPEC.md](./docs/TECH_SPEC.md): especificação alvo, com status atual de implementação
 - [docs/BUSINESS_PRD.md](./docs/BUSINESS_PRD.md): visão de produto e cobertura atual do MVP
 - [CLAUDE.md](./CLAUDE.md): instruções locais de desenvolvimento para agentes

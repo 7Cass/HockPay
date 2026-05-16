@@ -11,7 +11,7 @@ const CONCURRENCY = readEnvInt('HOCKPAY_SMOKE_CONCURRENCY', 8, 1);
 const POLL_INTERVAL_MS = 750;
 const PASSWORD = '12345678';
 const DASHBOARD_URL = process.env.HOCKPAY_DASHBOARD_URL ?? 'http://localhost:4200';
-const CHECKOUT_URL = process.env.HOCKPAY_CHECKOUT_URL ?? 'http://localhost:3001';
+const CHECKOUT_URL = process.env.HOCKPAY_CHECKOUT_URL ?? 'http://localhost:3333';
 const DISCORD_WEBHOOK_URL = process.env.HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL;
 const runId = `${Date.now()}-${randomInt(1000, 9999)}`;
 

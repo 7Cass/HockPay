@@ -1,6 +1,7 @@
 # Media Kit Generator — Demo Hockpay
 
-Demo de integração de um merchant fictício com o Hockpay.
+Demo de integração de um merchant fictício com o Hockpay. No P3 ele também
+serve como template de referência para novos study-cases.
 
 ## Estado Atual
 
@@ -12,13 +13,22 @@ Esta demo mostra o fluxo real hoje:
 4. Hockpay envia webhook assinado
 5. a demo valida a assinatura e libera a página de sucesso
 
+## Contrato de template
+
+O arquivo `study-case.config.ts` concentra o contrato copiável do case:
+
+- produto, preço e copy principal
+- campos/metadados enviados para a checkout session
+- eventos de webhook aceitos
+- estados terminais (`ready`, `failed`, `expired`)
+- checklist mínimo de aceite
+
+Para criar outro study-case, mantenha o fluxo base e troque a config,
+formulário e renderer específicos do domínio.
+
 ## Setup
 
 ### 1. Variáveis de ambiente
-
-```bash
-cp .env.example .env.local
-```
 
 Campos relevantes:
 
@@ -60,10 +70,14 @@ pnpm --filter @hockpay/demo-mediakit dev
 | Redirect flow | Implementado |
 | Checkout hospedado | Usa `apps/checkout` |
 | Webhook com HMAC | Valida `X-Hockpay-Signature` |
+| Estados terminais | Trata `payment.confirmed`, `payment.failed` e `payment.expired` |
 | Dev mode | Usa fluxo de simulação do checkout |
+| Study-case smoke | `pnpm run smoke:studycase:mediakit` |
 
 ## Observações
 
 - O storage da demo é in-memory.
+- O storage possui uma interface mínima de estados terminais; para produção,
+  substitua por persistência real e deduplicação durável de webhooks.
 - O checkout Hockpay coleta os dados mínimos do pagador no fluxo hospedado.
 - A API base do Hockpay usada pela demo deve apontar para `http://localhost:3000`; as chamadas internas usam `/api/v1`.

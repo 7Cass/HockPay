@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/hmac";
-import { saveMediaKit } from "@/store/mediakit-store";
+import {
+  markMediaKitExpired,
+  markMediaKitFailed,
+  markMediaKitReady,
+} from "@/store/mediakit-store";
+import { getStudyCaseEvent, studyCaseConfig } from "@/study-case.config";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,21 +42,27 @@ export async function POST(req: NextRequest) {
     const payload = JSON.parse(rawBody);
     const eventType = payload.type;
     const data = payload.data;
+    const studyCaseEvent = getStudyCaseEvent(eventType);
 
     if (
-      eventType === "payment.confirmed" &&
-      data?.metadata?.type === "mediakit"
+      studyCaseEvent &&
+      data?.metadata?.type === studyCaseConfig.metadataType
     ) {
       const metadata = data.metadata as Record<string, unknown>;
       const sessionId = metadata.sessionId as string;
 
       if (sessionId) {
-        saveMediaKit({
-          sessionId,
-          status: "ready",
-          data: metadata,
-          createdAt: new Date(),
-        });
+        if (studyCaseEvent.terminalStatus === "ready") {
+          markMediaKitReady(sessionId, metadata);
+        } else if (studyCaseEvent.terminalStatus === "failed") {
+          markMediaKitFailed(
+            sessionId,
+            metadata,
+            (data.failureReason as string) || "payment.failed",
+          );
+        } else {
+          markMediaKitExpired(sessionId, metadata, "payment.expired");
+        }
       }
     }
 

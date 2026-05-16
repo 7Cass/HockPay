@@ -4,16 +4,17 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { PaymentPending } from "@/components/payment-pending";
 import { MediaKitRender } from "@/components/mediakit-render";
-import { CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, AlertCircle, ArrowLeft, XCircle } from "lucide-react";
 import Link from "next/link";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
-  const [status, setStatus] = useState<"pending" | "ready" | "error">(
-    "pending",
-  );
+  const [status, setStatus] = useState<
+    "pending" | "ready" | "failed" | "expired" | "error"
+  >("pending");
   const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
 
   const pollMediaKit = useCallback(async () => {
     if (!sessionId) return;
@@ -25,6 +26,9 @@ function SuccessContent() {
       if (json.status === "ready" && json.data) {
         setData(json.data);
         setStatus("ready");
+      } else if (json.status === "failed" || json.status === "expired") {
+        setFailureReason(json.failureReason || json.status);
+        setStatus(json.status);
       } else {
         setStatus("pending");
       }
@@ -105,6 +109,30 @@ function SuccessContent() {
             <p className="text-gray-600 mb-6">
               Não foi possível processar seu pagamento. Tente novamente.
             </p>
+            <Link
+              href="/"
+              className="text-blue-600 hover:underline flex items-center justify-center gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" /> Voltar ao início
+            </Link>
+          </div>
+        )}
+
+        {(status === "failed" || status === "expired") && (
+          <div className="text-center py-16">
+            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Pagamento não concluído
+            </h2>
+            <p className="text-gray-600 mb-2">
+              O Media Kit não foi liberado porque o pagamento terminou como{" "}
+              {status === "expired" ? "expirado" : "falhou"}.
+            </p>
+            {failureReason && (
+              <p className="text-sm text-gray-500 mb-6">
+                Motivo: {failureReason}
+              </p>
+            )}
             <Link
               href="/"
               className="text-blue-600 hover:underline flex items-center justify-center gap-1"

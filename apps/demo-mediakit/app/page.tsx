@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MediaKitForm } from "@/components/mediakit-form";
 import { Zap, Shield, Clock } from "lucide-react";
+import { studyCaseConfig } from "@/study-case.config";
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +73,7 @@ export default function HomePage() {
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">
-            Media Kit Generator
+            {studyCaseConfig.productName}
           </h1>
           <span className="text-sm text-gray-500">Powered by HockPay</span>
         </div>
@@ -82,11 +83,10 @@ export default function HomePage() {
         {/* Hero */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Gere seu Media Kit Profissional
+            {studyCaseConfig.productTitle}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Preencha suas informações, pague via Pix e receba seu Media Kit
-            instantaneamente.
+            {studyCaseConfig.productDescription}
           </p>
         </div>
 

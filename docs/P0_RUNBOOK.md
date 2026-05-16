@@ -2,12 +2,21 @@
 
 Este runbook valida a base demoavel atual: API em `/api/v1`, PostgreSQL, Redis, worker, checkout hospedado e `demo-mediakit`.
 
+Os smokes têm responsabilidades diferentes:
+
+- `pnpm run smoke:p0`: baseline rapido de API direta.
+- `pnpm run smoke:payment-link`: validacao de Payment Link/checkout hospedado.
+- `pnpm run smoke:p3:visual`: validacao visual do dashboard, timeline, receipts e financeiro.
+- `pnpm run smoke:studycase:mediakit`: validacao completa do `demo-mediakit` com API, checkout hospedado, app demo, webhook assinado e estado final renderizavel.
+
+CI Docker para rodar os smokes em pipeline e trabalho futuro.
+
 ## Invariantes P0
 
 - Toda store criada pela API deve ter uma account imediatamente.
 - O checkout local usa `http://localhost:3000/api/v1` por default.
 - O fluxo completo depende de PostgreSQL e Redis.
-- O study case valido para P0 e `apps/demo-mediakit`.
+- O study case valido para P0 e `apps/demo-mediakit`; para P3 ele funciona como referencia/template/checklist, sem escolher o proximo study-case nesta rodada.
 
 ## Subir Infra
 
@@ -36,6 +45,7 @@ Rode cada processo em um terminal separado:
 pnpm --filter @hockpay/api dev
 pnpm --filter @hockpay/worker dev
 pnpm --filter @hockpay/checkout dev
+# Opcional para uso manual; smoke:studycase:mediakit sobe o demo automaticamente.
 pnpm --filter @hockpay/demo-mediakit dev
 ```
 
@@ -102,6 +112,58 @@ curl -X POST http://localhost:3000/api/v1/payment-links/PAYMENT_LINK_ID/pay \
 ```
 
 No dashboard, abra `/dashboard/payment-links/PAYMENT_LINK_ID`. A tela deve mostrar uma única `PixCharge`, as tentativas `Payment` numeradas, falhas sem fechar a cobrança e pagamento confirmado fechando a PixCharge como `PAID`.
+
+## Smoke Visual P3
+
+Com PostgreSQL, Redis, API, worker e web rodando, execute:
+
+```bash
+pnpm run smoke:p3:visual
+```
+
+O smoke cria dados de dashboard para validar visualmente payments em `PENDING`, `CONFIRMED`, `FAILED`, `EXPIRED`, `REFUNDED` e `RELEASED`. Ele imprime credenciais e links diretos para `/dashboard/payments/:id` e `/dashboard/financials`.
+
+Use esse smoke para conferir que:
+
+- receipt aparece quando esperado para pagamento confirmado.
+- timeline mostra eventos principais sem consulta direta ao banco.
+- refunds, transactions, webhooks e empty states aparecem de forma coerente por status.
+- financeiro mostra saldos pending/available/blocked e extrato read-only.
+
+Esse smoke nao substitui `smoke:p0`: ele e uma validacao visual P3, enquanto `smoke:p0` continua sendo o baseline rapido de API direta e webhook entregue pelo worker.
+
+## Study-case Media Kit
+
+`apps/demo-mediakit` segue como referencia para novos study-cases: checkout hospedado, webhook assinado, simulacao local, account criada automaticamente, receipt e timeline verificaveis.
+
+O proximo study-case nao foi escolhido nesta rodada. O fechamento P3 entrega template/checklist/docs/smokes alinhados para que a escolha futura tenha requisitos minimos claros.
+
+Checklist minimo para escolher um novo study-case:
+
+- objetivo, persona e fluxo de compra escritos antes da implementacao.
+- endpoints Hockpay usados e webhook esperado documentados.
+- simulacao local com API, checkout hospedado e app do integrador.
+- validacao de account, receipt, timeline e financeiro pelo dashboard/API.
+- escopo sem Products, Withdrawals, Marketplace, split ou multi-seller enquanto essas areas estiverem em P4.
+
+Com PostgreSQL, Redis, API, worker e checkout rodando, execute:
+
+```bash
+pnpm run smoke:studycase:mediakit
+```
+
+O smoke cria merchant/store/API key/webhook, sobe o `demo-mediakit` na porta `3005`, cria a checkout session pela rota `/api/create-session` do demo, faz fulfill no checkout hospedado, confirma o payment em TEST e aguarda o webhook assinado liberar o Media Kit na rota `/api/mediakit`.
+
+Configuração opcional:
+
+```bash
+HOCKPAY_API_URL=http://localhost:3000/api/v1 \
+HOCKPAY_CHECKOUT_URL=http://localhost:3333 \
+HOCKPAY_STUDYCASE_DEMO_URL=http://localhost:3005 \
+HOCKPAY_STUDYCASE_DEMO_PORT=3005 \
+HOCKPAY_SMOKE_TIMEOUT_MS=60000 \
+pnpm run smoke:studycase:mediakit
+```
 
 Troubleshooting rápido:
 

@@ -35,12 +35,12 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 
 | Entidade | Status | Observações |
 |----------|--------|-------------|
-| `Account` | Parcial | Existe no schema e em use cases financeiros, mas a criação automática por store não está garantida no fluxo atual |
+| `Account` | Implementado | Criada automaticamente no bootstrap de store; migration cobre stores antigas sem account |
 | `Transaction` | Implementado | Usada em métricas, release e refunds |
 | `Refund` | Implementado | Runtime atual suporta reembolso parcial |
 | `BankAccount` | Implementado | CRUD disponível na API |
 | `Withdrawal` | Parcial | Presente no schema, não aparece como capacidade consolidada na API atual |
-| `Receipt` / `ReceiptCounter` | Parcial | Presença forte em schema/core, mas pouca documentação externa até então |
+| `Receipt` / `ReceiptCounter` | Implementado | Emitidos no fluxo de pagamento confirmado e consultáveis pela timeline/detalhe de payment |
 
 ### 1.4 Catálogo
 
@@ -65,15 +65,11 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 - `IdempotencyKey`
 - `Refund`
 - `BankAccount`
+- `Account`
+- `Transaction`
+- `Receipt`
 
 ### 2.2 Entidades com cobertura parcial
-
-#### `Account`
-
-- Existe no schema
-- É usada por métricas, release de pagamentos e refunds
-- A documentação histórica dizia que era criada automaticamente junto com a store
-- O `CreateStoreUseCase` atual não cria essa conta automaticamente
 
 #### `Product` e `PaymentItem`
 
@@ -119,30 +115,37 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 - `Store.create()` por padrão nasce com `settlementDays = 30`, `feePercent = 1.5`, `feeFixed = 15`
 - O `CreateStoreUseCase` atual marca stores novas como `isApproved: true` para o MVP atual
 - Isso diverge do texto antigo que descrevia aprovação administrativa posterior como fluxo atual
+- Toda store criada pela API nasce com uma `Account`; a migration de backfill cobre stores antigas sem account
+
+### 3.4 Receipt, timeline e financeiro
+
+- Pagamento confirmado gera receipt e transaction de recebimento conforme o fluxo financeiro atual
+- `GET /api/v1/payments/:id/timeline` agrega payment, checkout session, receipt, refunds, transactions e webhook logs sanitizados
+- `/dashboard/payments/:id` e `/dashboard/financials` permitem validar receipt, timeline operacional, ledger e saldos sem abrir o banco
 
 ## 4. Modelo Alvo
 
 O alvo mais coerente com o repositório é:
 
 - alinhar schema e runtime para todas as entidades já expostas como parte do domínio
-- decidir explicitamente se `Account` deve ser criada automaticamente na criação de store
 - decidir explicitamente se `Product`/`PaymentItem` continuarão no produto
-- documentar `Withdrawal` e `Receipt` como runtime real somente quando os fluxos estiverem consolidados
+- manter `Withdrawal` como futuro explícito até virar fluxo financeiro completo
 
 ### 4.1 Alvos por área
 
 | Área | Alvo |
 |------|------|
-| Financeiro | remover ambiguidade entre schema, use cases e docs |
+| Financeiro | manter account, receipt, transaction, refund, release e timeline alinhados entre schema, use cases, API, dashboard e docs |
 | Catálogo | implementar end-to-end ou tratar como futuro explícito |
-| Store bootstrap | unificar docs e código sobre account auto-created ou não |
-| Receipts/withdrawals | só promover em docs principais quando o runtime estiver maduro |
+| Store bootstrap | preservar account auto-created como invariante de store |
+| Withdrawals | só promover em docs principais quando o runtime estiver maduro |
 
 ## 5. Gaps Prioritários
 
-1. `Account` aparece como parte central do modelo, mas o bootstrap de store não está documentado conforme o código atual.
-2. `Product` e `PaymentItem` têm presença forte no schema, mas fraca no runtime.
-3. A documentação antiga descrevia fluxos administrativos e operacionais que hoje são alvo, não realidade atual.
+1. `Product` e `PaymentItem` têm presença forte no schema, mas fraca no runtime.
+2. `Withdrawal` existe no schema, mas não deve ser documentado como fluxo financeiro consolidado.
+3. Marketplace, split e multi-seller exigem PRD próprio antes de aparecerem como produto pronto.
+4. A documentação antiga descrevia fluxos administrativos e operacionais que hoje são alvo, não realidade atual.
 
 ## 6. Fonte Atual de Verdade
 
