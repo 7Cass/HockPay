@@ -17,6 +17,7 @@
     "smoke:payment-link": "node scripts/smoke-payment-link.mjs",
     "smoke:p3:visual": "node scripts/smoke-p3-visual.mjs",
     "smoke:studycase:mediakit": "node scripts/smoke-studycase-mediakit.mjs",
+    "smoke:docker": "node scripts/smoke-orchestrate-local.mjs",
     "dlq": "node scripts/dlq.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",

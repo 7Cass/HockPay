@@ -1,0 +1,41 @@
+version: "3.8"
+
+name: hockpay-smoke
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hockpay-smoke-postgres
+    restart: unless-stopped
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: hockpay
+      POSTGRES_PASSWORD: hockpay
+      POSTGRES_DB: hockpay_smoke
+    volumes:
+      - postgres_smoke_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hockpay -d hockpay_smoke"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: hockpay-smoke-redis
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_smoke_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_smoke_data:
+  redis_smoke_data:
