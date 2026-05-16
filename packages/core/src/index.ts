@@ -68,6 +68,7 @@ export * from "./domain/errors/webhook-delivery-failed.error";
 export * from "./domain/errors/payment-not-confirmed.error";
 export * from "./domain/errors/webhook-config-not-found.error";
 export * from "./domain/errors/invalid-webhook-events.error";
+export * from "./domain/errors/invalid-webhook-url.error";
 export * from "./domain/errors/alert-config-not-found.error";
 export * from "./domain/errors/alert-delivery-log-not-found.error";
 export * from "./domain/errors/invalid-alert-channel.error";
@@ -126,6 +127,7 @@ export * from "./application/ports/encryption.port";
 export * from "./application/services/fee-policy.service";
 export * from "./application/services/payment-attempt-context.service";
 export * from "./application/services/webhook-payload-builder.service";
+export * from "./application/services/webhook-url-policy.service";
 
 // Application - Use Cases
 export * from "./application/use-cases/create-merchant.use-case";
@@ -194,6 +196,7 @@ export * from "./application/use-cases/get-customer-history-receipt.use-case";
 export * from "./application/use-cases/simulate-checkout-payment.use-case";
 export * from "./application/use-cases/get-account.use-case";
 export * from "./application/use-cases/list-transactions.use-case";
+export * from "./application/use-cases/get-dashboard-overview.use-case";
 export * from "./application/use-cases/get-dashboard-metrics.use-case";
 export * from "./application/use-cases/create-bank-account.use-case";
 export * from "./application/use-cases/list-bank-accounts.use-case";

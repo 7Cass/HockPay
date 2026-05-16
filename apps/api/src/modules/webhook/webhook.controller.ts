@@ -28,6 +28,7 @@ import {
   RetryWebhookLogUseCase,
   WebhookConfigNotFoundError,
   InvalidWebhookEventsError,
+  InvalidWebhookUrlError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -121,6 +122,14 @@ export class WebhookController {
           },
         });
       }
+      if (error instanceof InvalidWebhookUrlError) {
+        throw new BadRequestException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
       throw error;
     }
   }
@@ -161,6 +170,14 @@ export class WebhookController {
       };
     } catch (error) {
       if (error instanceof InvalidWebhookEventsError) {
+        throw new BadRequestException({
+          error: {
+            code: error.code,
+            message: error.message,
+          },
+        });
+      }
+      if (error instanceof InvalidWebhookUrlError) {
         throw new BadRequestException({
           error: {
             code: error.code,

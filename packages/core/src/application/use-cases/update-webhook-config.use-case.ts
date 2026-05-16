@@ -3,9 +3,11 @@ import {
   WebhookConfig,
   WebhookConfigNotFoundError,
   InvalidWebhookEventsError,
+  WebhookUrlPolicyOptions,
+  assertWebhookUrlAllowed,
   getInvalidEvents,
   UpdateWebhookConfigProps,
-} from '../..';
+} from "../..";
 
 /**
  * Input for updating a webhook config.
@@ -31,10 +33,15 @@ export interface IUpdateWebhookConfigOutput {
 export class UpdateWebhookConfigUseCase {
   constructor(
     private readonly webhookConfigRepository: IWebhookConfigRepository,
+    private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions = {},
   ) {}
 
-  async execute(input: IUpdateWebhookConfigInput): Promise<IUpdateWebhookConfigOutput> {
-    const webhookConfig = await this.webhookConfigRepository.findById(input.configId);
+  async execute(
+    input: IUpdateWebhookConfigInput,
+  ): Promise<IUpdateWebhookConfigOutput> {
+    const webhookConfig = await this.webhookConfigRepository.findById(
+      input.configId,
+    );
 
     if (!webhookConfig) {
       throw new WebhookConfigNotFoundError(input.configId);
@@ -56,6 +63,7 @@ export class UpdateWebhookConfigUseCase {
     // Build update props
     const updateProps: UpdateWebhookConfigProps = {};
     if (input.url !== undefined) {
+      assertWebhookUrlAllowed(input.url, this.webhookUrlPolicyOptions);
       updateProps.url = input.url;
     }
     if (input.events !== undefined) {

@@ -4,20 +4,20 @@ Resumo curto e auditado do estado atual do repositório.
 
 ## Apps
 
-| App | Estado atual |
-|-----|--------------|
-| `apps/api` | API NestJS em `/api/v1`, com auth por cookie JWT para dashboard, API key para integrações, payments, checkout sessions, webhooks, dashboard, refunds, receipts, idempotência e `X-Request-ID` |
-| `apps/worker` | Worker NestJS com Redis/BullMQ, dispatcher de outbox resiliente, entrega de webhooks, expiração, settlement, alertas e guard in-process para cron jobs |
-| `apps/web` | Angular único para landing, auth e dashboard; já expõe webhooks com filtros de delivery e IDs operacionais |
-| `apps/checkout` | Next.js para checkout hospedado baseado em token |
-| `apps/demo-mediakit` | Demo que usa checkout hosted + webhook assinado |
+| App                  | Estado atual                                                                                                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api`           | API NestJS em `/api/v1`, com auth por cookie JWT para dashboard, API key para integrações, payments, checkout sessions, webhooks, dashboard, refunds, receipts, idempotência e `X-Request-ID` |
+| `apps/worker`        | Worker NestJS com Redis/BullMQ, dispatcher de outbox resiliente, entrega de webhooks, expiração, settlement, alertas e guard in-process para cron jobs                                        |
+| `apps/web`           | Angular único para landing, auth e dashboard; já expõe webhooks com filtros de delivery e IDs operacionais                                                                                    |
+| `apps/checkout`      | Next.js para checkout hospedado baseado em token                                                                                                                                              |
+| `apps/demo-mediakit` | Demo que usa checkout hosted + webhook assinado                                                                                                                                               |
 
 ## Pacotes
 
-| Pacote | Estado atual |
-|--------|--------------|
-| `packages/core` | Domínio e casos de uso reais do sistema |
-| `packages/database` | Prisma schema, migrations e cliente |
+| Pacote                    | Estado atual                                                                                                                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`           | Domínio e casos de uso reais do sistema                                                                                                                                                                   |
+| `packages/database`       | Prisma schema, migrations e cliente                                                                                                                                                                       |
 | `packages/infrastructure` | Infra compartilhada estável: repositórios Prisma, `UnitOfWork`, criptografia, HMAC, webhook HTTP client, Discord alert sender e `ExpirationQueue`; controllers, processors e cron jobs continuam nas apps |
 
 ## Infra
@@ -32,18 +32,18 @@ Resumo curto e auditado do estado atual do repositório.
 - Study case P0 validado: `apps/demo-mediakit`, com checkout hospedado e webhook assinado
 - Smoke local validado por `pnpm run smoke:p0`
 - Smoke de Payment Link disponivel por `pnpm run smoke:payment-link`
-- Webhooks locais aceitam HTTP somente em `localhost`/`127.0.0.1`; destinos remotos exigem HTTPS
+- Webhooks locais aceitam HTTP somente em `localhost`/`127.0.0.1` em ambiente local/desenvolvimento; destinos remotos exigem HTTPS público e a política bloqueia loopback, RFC1918, link-local, metadata `169.254.169.254`, IPv6 local/link-local/unique-local e protocolos não HTTP(S) na configuração e no envio
 - Sem LocalStack/SQS configurado
 
 ## Estado das P's
 
-| Prioridade | Estado atual |
-|------------|--------------|
-| P0 | Done: baseline demoável e smoke local |
-| P1 | Done: consistência financeira, outbox e webhook resiliente |
-| P2 | Done: observabilidade, DX operacional, request tracing, cron guard e infra compartilhada |
-| P3 | Pending: readiness de produto e preparação do próximo study-case |
-| P4 | Pós-gate: expansões maiores de produto |
+| Prioridade | Estado atual                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| P0         | Done: baseline demoável e smoke local                                                    |
+| P1         | Done: consistência financeira, outbox e webhook resiliente                               |
+| P2         | Done: observabilidade, DX operacional, request tracing, cron guard e infra compartilhada |
+| P3         | Pending: readiness de produto e preparação do próximo study-case                         |
+| P4         | Pós-gate: expansões maiores de produto                                                   |
 
 ## Capacidades verificadas
 

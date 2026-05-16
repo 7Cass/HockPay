@@ -1,14 +1,12 @@
-import { IsUrl, IsArray, ArrayNotEmpty, IsIn, Matches } from 'class-validator';
+import { IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
 import { ALLOWED_WEBHOOK_EVENTS } from '@hockpay/core';
+import { IsWebhookUrl } from './webhook-url.validator';
 
 /**
  * DTO for creating a webhook config.
  */
 export class CreateWebhookDto {
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
-  @Matches(/^https:\/\/|^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/, {
-    message: 'url must use HTTPS or local HTTP on localhost/127.0.0.1',
-  })
+  @IsWebhookUrl()
   url: string;
 
   @IsArray()

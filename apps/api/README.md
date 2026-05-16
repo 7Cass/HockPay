@@ -17,22 +17,22 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ## Módulos Relevantes
 
-| Módulo | Função atual |
-|--------|--------------|
-| `auth` | login, refresh, logout e troca de store |
-| `merchant` | cadastro e leitura de merchant |
-| `store` | criação e listagem de stores |
-| `api-key` | emissão, listagem e revogação de API keys |
-| `customer` | CRUD básico de customers |
-| `payment` | criação, listagem, leitura e simulação |
-| `webhook` | CRUD, teste, logs e retry |
-| `checkout-session` | criação, leitura e fulfill do checkout hospedado |
-| `dashboard` | métricas da visão geral |
-| `account` / `transaction` | leitura financeira |
-| `bank-account` | gestão de contas bancárias |
-| `refund` | criação de refunds |
-| `receipt` | leitura/gestão de receipts |
-| `idempotency` | persistência/cache para endpoints idempotentes |
+| Módulo                    | Função atual                                     |
+| ------------------------- | ------------------------------------------------ |
+| `auth`                    | login, refresh, logout e troca de store          |
+| `merchant`                | cadastro e leitura de merchant                   |
+| `store`                   | criação e listagem de stores                     |
+| `api-key`                 | emissão, listagem e revogação de API keys        |
+| `customer`                | CRUD básico de customers                         |
+| `payment`                 | criação, listagem, leitura e simulação           |
+| `webhook`                 | CRUD, teste, logs e retry                        |
+| `checkout-session`        | criação, leitura e fulfill do checkout hospedado |
+| `dashboard`               | métricas da visão geral                          |
+| `account` / `transaction` | leitura financeira                               |
+| `bank-account`            | gestão de contas bancárias                       |
+| `refund`                  | criação de refunds                               |
+| `receipt`                 | leitura/gestão de receipts                       |
+| `idempotency`             | persistência/cache para endpoints idempotentes   |
 
 ## Observações Importantes
 
@@ -109,7 +109,7 @@ curl -X POST http://localhost:3000/api/v1/webhooks \
   }'
 ```
 
-Destinos HTTP são aceitos apenas em `localhost` ou `127.0.0.1`; webhooks remotos devem usar HTTPS.
+Destinos HTTP são aceitos apenas em `localhost` ou `127.0.0.1` quando a API/worker rodam em ambiente local ou de desenvolvimento. Webhooks remotos devem usar HTTPS público; alvos de loopback remoto, RFC1918, link-local, metadata `169.254.169.254`, IPv6 local/link-local/unique-local e protocolos não HTTP(S) são bloqueados na criação/edição e antes do envio.
 
 ```bash
 curl "http://localhost:3000/api/v1/webhooks/{webhook_id}/logs?page=1&limit=20&status=delivered" \
@@ -149,25 +149,25 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 
 ## Variáveis de Ambiente Relevantes
 
-| Variável | Uso |
-|----------|-----|
-| `PORT` | Porta HTTP da API |
-| `DATABASE_URL` | Conexão Prisma/PostgreSQL |
+| Variável                    | Uso                                               |
+| --------------------------- | ------------------------------------------------- |
+| `PORT`                      | Porta HTTP da API                                 |
+| `DATABASE_URL`              | Conexão Prisma/PostgreSQL                         |
 | `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e cache operacional |
-| `JWT_SECRET` | Assinatura de tokens |
-| `ENCRYPTION_KEY` | Criptografia de dados sensíveis |
-| `PIX_KEY` | Chave Pix simulada usada no payload do pagamento |
-| `CORS_ORIGIN` | Lista de origens permitidas |
+| `JWT_SECRET`                | Assinatura de tokens                              |
+| `ENCRYPTION_KEY`            | Criptografia de dados sensíveis                   |
+| `PIX_KEY`                   | Chave Pix simulada usada no payload do pagamento  |
+| `CORS_ORIGIN`               | Lista de origens permitidas                       |
 
 ## Troubleshooting
 
-| Sintoma | Causa provável | Ação |
-|---------|----------------|------|
-| `GET /health/live` falha | API fora do ar ou porta errada | conferir `PORT` e processo `@hockpay/api` |
-| `GET /health/ready` falha | banco indisponível ou migrations pendentes | subir PostgreSQL e rodar `pnpm run db:deploy` ou `pnpm run db:migrate` em dev |
-| Payment confirmado sem webhook entregue | worker ou Redis indisponível | subir `@hockpay/worker` e conferir `REDIS_HOST`/`REDIS_PORT` |
-| `401` em endpoints dashboard-only | cookie JWT ausente/expirado | fazer login usando cookie jar (`curl -c/-b`) |
-| `401` em endpoints de integração | API key ausente/revogada/ambiente errado | usar `Authorization: Bearer hk_test_...` ou `hk_live_...` |
+| Sintoma                                 | Causa provável                             | Ação                                                                          |
+| --------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `GET /health/live` falha                | API fora do ar ou porta errada             | conferir `PORT` e processo `@hockpay/api`                                     |
+| `GET /health/ready` falha               | banco indisponível ou migrations pendentes | subir PostgreSQL e rodar `pnpm run db:deploy` ou `pnpm run db:migrate` em dev |
+| Payment confirmado sem webhook entregue | worker ou Redis indisponível               | subir `@hockpay/worker` e conferir `REDIS_HOST`/`REDIS_PORT`                  |
+| `401` em endpoints dashboard-only       | cookie JWT ausente/expirado                | fazer login usando cookie jar (`curl -c/-b`)                                  |
+| `401` em endpoints de integração        | API key ausente/revogada/ambiente errado   | usar `Authorization: Bearer hk_test_...` ou `hk_live_...`                     |
 
 ## Scripts
 

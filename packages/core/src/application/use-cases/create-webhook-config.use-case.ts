@@ -5,9 +5,10 @@ import {
   WebhookConfig,
   WebhookConfigObject,
   InvalidWebhookEventsError,
+  WebhookUrlPolicyOptions,
+  assertWebhookUrlAllowed,
   getInvalidEvents,
-  ALLOWED_WEBHOOK_EVENTS,
-} from '../..';
+} from "../..";
 
 /**
  * Input for creating a webhook config.
@@ -37,14 +38,19 @@ export class CreateWebhookConfigUseCase {
     private readonly webhookConfigRepository: IWebhookConfigRepository,
     private readonly tokenGenerator: ITokenGeneratorPort,
     private readonly encryption: IEncryptionPort,
+    private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions = {},
   ) {}
 
-  async execute(input: ICreateWebhookConfigInput): Promise<ICreateWebhookConfigOutput> {
+  async execute(
+    input: ICreateWebhookConfigInput,
+  ): Promise<ICreateWebhookConfigOutput> {
     // Validate events
     const invalidEvents = getInvalidEvents(input.events);
     if (invalidEvents.length > 0) {
       throw new InvalidWebhookEventsError(invalidEvents);
     }
+
+    assertWebhookUrlAllowed(input.url, this.webhookUrlPolicyOptions);
 
     // Generate plain secret: whsec_<32 chars hex> (16 bytes = 32 hex chars)
     const secretHex = this.tokenGenerator.generate(16);

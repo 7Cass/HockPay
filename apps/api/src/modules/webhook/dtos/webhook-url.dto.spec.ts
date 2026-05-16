@@ -24,6 +24,13 @@ describe('Webhook URL DTO validation', () => {
 
   it.each([
     'http://hooks.example.com/hockpay',
+    'https://localhost/hockpay',
+    'https://10.0.0.1/hockpay',
+    'https://172.16.0.1/hockpay',
+    'https://192.168.1.10/hockpay',
+    'https://169.254.169.254/latest/meta-data',
+    'https://[::1]/hockpay',
+    'https://[fd00::1]/hockpay',
     'ftp://localhost:3999/webhook',
     'localhost:3999/webhook',
   ])('rejects unsupported webhook URL %s', async (url) => {

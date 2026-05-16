@@ -16,6 +16,7 @@ import {
   IWebhookConfigRepository,
   IWebhookInboxEventRepository,
   IWebhookLogRepository,
+  getWebhookUrlPolicyOptionsForNodeEnv,
 } from '@hockpay/core';
 import {
   EncryptionService,
@@ -64,6 +65,9 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
       useFactory: () =>
         new WebhookHttpClientService({
           logger: new Logger(WebhookHttpClientService.name),
+          webhookUrlPolicyOptions: getWebhookUrlPolicyOptionsForNodeEnv(
+            process.env.NODE_ENV,
+          ),
         }),
     },
     TokenGeneratorService,
@@ -102,6 +106,7 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
           webhookConfigRepo,
           tokenGenerator,
           encryption,
+          getWebhookUrlPolicyOptionsForNodeEnv(process.env.NODE_ENV),
         );
       },
       inject: [
@@ -150,7 +155,10 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
     {
       provide: UpdateWebhookConfigUseCase,
       useFactory: (webhookConfigRepo: IWebhookConfigRepository) => {
-        return new UpdateWebhookConfigUseCase(webhookConfigRepo);
+        return new UpdateWebhookConfigUseCase(
+          webhookConfigRepo,
+          getWebhookUrlPolicyOptionsForNodeEnv(process.env.NODE_ENV),
+        );
       },
       inject: ['IWebhookConfigRepository'],
     },

@@ -1,4 +1,9 @@
-import { IWebhookSenderPort, WebhookResponse } from "@hockpay/core";
+import {
+  IWebhookSenderPort,
+  WebhookResponse,
+  WebhookUrlPolicyOptions,
+  validateWebhookUrl,
+} from "@hockpay/core";
 
 type WebhookHttpLogger = {
   debug(message: string): void;
@@ -9,6 +14,7 @@ type WebhookHttpLogger = {
 export interface WebhookHttpClientOptions {
   timeoutMs?: number;
   logger?: WebhookHttpLogger;
+  webhookUrlPolicyOptions?: WebhookUrlPolicyOptions;
 }
 
 /**
@@ -17,10 +23,12 @@ export interface WebhookHttpClientOptions {
 export class WebhookHttpClientService implements IWebhookSenderPort {
   private readonly timeoutMs: number;
   private readonly logger?: WebhookHttpLogger;
+  private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions;
 
   constructor(options: WebhookHttpClientOptions = {}) {
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.logger = options.logger;
+    this.webhookUrlPolicyOptions = options.webhookUrlPolicyOptions ?? {};
   }
 
   async send(
@@ -28,6 +36,18 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     payload: Record<string, unknown>,
     headers: Record<string, string>,
   ): Promise<WebhookResponse> {
+    const policyResult = validateWebhookUrl(url, this.webhookUrlPolicyOptions);
+    if (!policyResult.valid) {
+      const message = policyResult.message ?? "Webhook URL is not allowed";
+      this.logger?.warn(`Blocked webhook target ${url}: ${message}`);
+
+      return {
+        statusCode: 0,
+        body: message,
+        success: false,
+      };
+    }
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -52,14 +72,17 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         };
       }
 
-      this.logger?.warn(`Webhook returned ${response.status} for ${url}: ${body}`);
+      this.logger?.warn(
+        `Webhook returned ${response.status} for ${url}: ${body}`,
+      );
       return {
         statusCode: response.status,
         body,
         success: false,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger?.error(`Failed to send webhook to ${url}: ${errorMessage}`);
 
       return {

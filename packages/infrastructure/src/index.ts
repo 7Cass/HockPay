@@ -5,6 +5,7 @@ export * from "./repositories/payment-link.repository";
 export * from "./repositories/customer.repository";
 export * from "./repositories/account.repository";
 export * from "./repositories/transaction.repository";
+export * from "./repositories/dashboard-overview.repository";
 export * from "./repositories/idempotency-key.repository";
 export * from "./repositories/checkout-session.repository";
 export * from "./repositories/webhook-config.repository";
