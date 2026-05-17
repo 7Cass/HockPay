@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const API_URL = process.env.HOCKPAY_API_URL ?? 'http://localhost:3000/api/v1';
@@ -9,11 +9,15 @@ const PAYMENT_COUNT = Math.max(readEnvInt('HOCKPAY_SMOKE_PAYMENTS', 200, 1), 12)
 const PAYMENT_LINK_COUNT = Math.max(readEnvInt('HOCKPAY_SMOKE_PAYMENT_LINKS', 30, 1), 4);
 const CONCURRENCY = readEnvInt('HOCKPAY_SMOKE_CONCURRENCY', 8, 1);
 const POLL_INTERVAL_MS = 750;
-const PASSWORD = '12345678';
+const PASSWORD = randomPassword();
 const DASHBOARD_URL = process.env.HOCKPAY_DASHBOARD_URL ?? 'http://localhost:4200';
 const CHECKOUT_URL = process.env.HOCKPAY_CHECKOUT_URL ?? 'http://localhost:3333';
 const DISCORD_WEBHOOK_URL = process.env.HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL;
 const runId = `${Date.now()}-${randomInt(1000, 9999)}`;
+
+function randomPassword() {
+  return randomBytes(18).toString('base64url');
+}
 
 const WEBHOOK_EVENTS = [
   'payment.created',

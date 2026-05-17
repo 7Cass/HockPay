@@ -58,7 +58,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
-      "document": "12345678900"
+      "document": "<CPF_DO_CLIENTE>"
     }
   }'
 

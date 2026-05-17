@@ -11,6 +11,7 @@ dist/
 out/
 build/
 /generated/prisma/
+*.tsbuildinfo
 
 # Environment
 .env

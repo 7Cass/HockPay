@@ -57,7 +57,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
-      "document": "12345678900"
+      "document": "<CPF_DO_CLIENTE>"
     }
   }'
 ```
@@ -92,7 +92,7 @@ curl -X POST http://localhost:3000/api/v1/checkout-sessions/{checkout_token}/ful
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
-      "document": "52998224725"
+      "document": "<CPF_DO_CLIENTE>"
     }
   }'
 ```
@@ -131,7 +131,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
-      "document": "52998224725"
+      "document": "<CPF_DO_CLIENTE>"
     }
   }'
 ```
@@ -143,7 +143,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "merchant@email.com",
-    "password": "senha123"
+    "password": "<SENHA_FORTE_LOCAL>"
   }'
 ```
 

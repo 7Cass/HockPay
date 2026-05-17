@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn, execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,22 +36,37 @@ function log(message) {
   console.log(`[smoke:docker] ${message}`);
 }
 
+function randomSecret(bytes = 32) {
+  return randomBytes(bytes).toString("base64url");
+}
+
+function randomHex(bytes) {
+  return randomBytes(bytes).toString("hex");
+}
+
 function smokeEnv() {
+  const postgresUser = process.env.HOCKPAY_SMOKE_POSTGRES_USER ?? "hockpay";
+  const postgresPassword =
+    process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD ?? randomSecret(24);
+  const postgresDb =
+    process.env.HOCKPAY_SMOKE_POSTGRES_DB ?? "hockpay_smoke";
+
   return {
     ...process.env,
     NODE_ENV: "test",
     PORT: "3000",
-    DATABASE_URL:
-      "postgresql://hockpay:hockpay@127.0.0.1:15432/hockpay_smoke?schema=public",
+    HOCKPAY_SMOKE_POSTGRES_USER: postgresUser,
+    HOCKPAY_SMOKE_POSTGRES_PASSWORD: postgresPassword,
+    HOCKPAY_SMOKE_POSTGRES_DB: postgresDb,
+    DATABASE_URL: `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(
+      postgresPassword,
+    )}@127.0.0.1:15432/${encodeURIComponent(postgresDb)}?schema=public`,
     REDIS_URL: "redis://127.0.0.1:16379",
     REDIS_HOST: "127.0.0.1",
     REDIS_PORT: "16379",
     JWT_SECRET:
-      process.env.JWT_SECRET ??
-      "hockpay-smoke-local-jwt-secret-with-at-least-32-characters",
-    ENCRYPTION_KEY:
-      process.env.ENCRYPTION_KEY ??
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      process.env.JWT_SECRET ?? `hockpay-smoke-${randomSecret(48)}`,
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? randomHex(32),
     CHECKOUT_BASE_URL: "http://localhost:3333",
     HOCKPAY_API_URL: "http://localhost:3000/api/v1",
     HOCKPAY_CHECKOUT_URL: "http://localhost:3333",

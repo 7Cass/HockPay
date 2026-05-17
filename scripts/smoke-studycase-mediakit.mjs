@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import {
   SmokeError,
   assert,
@@ -16,7 +17,7 @@ const DEMO_URL = process.env.HOCKPAY_STUDYCASE_DEMO_URL ?? 'http://localhost:300
 const DEMO_PORT = readEnvInt('HOCKPAY_STUDYCASE_DEMO_PORT', 3005, 1);
 const TIMEOUT_MS = readEnvInt('HOCKPAY_SMOKE_TIMEOUT_MS', 60000, 1000);
 const START_DEMO = process.env.HOCKPAY_STUDYCASE_START_DEMO !== 'false';
-const PASSWORD = '12345678';
+const PASSWORD = randomPassword();
 const runId = randomRunId();
 
 const api = createApiClient(API_URL, { timeoutMs: TIMEOUT_MS });
@@ -30,6 +31,10 @@ function step(message) {
 
 function apiKeyHeaders(apiKey) {
   return { Authorization: `Bearer ${apiKey}` };
+}
+
+function randomPassword() {
+  return randomBytes(18).toString('base64url');
 }
 
 async function run() {

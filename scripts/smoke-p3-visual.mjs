@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const API_URL = process.env.HOCKPAY_API_URL ?? 'http://localhost:3000/api/v1';
@@ -6,7 +6,7 @@ const WEB_URL = process.env.HOCKPAY_WEB_URL ?? 'http://localhost:4200';
 const WEBHOOK_PORT = Number(process.env.HOCKPAY_SMOKE_WEBHOOK_PORT ?? 3999);
 const TIMEOUT_MS = Number(process.env.HOCKPAY_SMOKE_TIMEOUT_MS ?? 30000);
 const POLL_INTERVAL_MS = 500;
-const PASSWORD = '12345678';
+const PASSWORD = randomPassword();
 const runId = `${Date.now()}-${randomInt(1000, 9999)}`;
 
 const state = {
@@ -23,6 +23,10 @@ const state = {
 const deliveries = [];
 const cookieJar = new Map();
 let receiver;
+
+function randomPassword() {
+  return randomBytes(18).toString('base64url');
+}
 
 class SmokeError extends Error {
   constructor(message) {

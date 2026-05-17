@@ -10,13 +10,13 @@ services:
     ports:
       - "15432:5432"
     environment:
-      POSTGRES_USER: hockpay
-      POSTGRES_PASSWORD: hockpay
-      POSTGRES_DB: hockpay_smoke
+      POSTGRES_USER: ${HOCKPAY_SMOKE_POSTGRES_USER:-hockpay}
+      POSTGRES_PASSWORD: ${HOCKPAY_SMOKE_POSTGRES_PASSWORD:?HOCKPAY_SMOKE_POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${HOCKPAY_SMOKE_POSTGRES_DB:-hockpay_smoke}
     volumes:
       - postgres_smoke_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hockpay -d hockpay_smoke"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 12

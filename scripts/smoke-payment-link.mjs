@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 
 const API_URL = process.env.HOCKPAY_API_URL ?? 'http://localhost:3000/api/v1';
 const runId = `${Date.now()}-${randomInt(1000, 9999)}`;
@@ -158,6 +158,10 @@ function calculateCpfDigit(digits, startWeight) {
   return remainder < 2 ? 0 : 11 - remainder;
 }
 
+function randomPassword() {
+  return randomBytes(18).toString('base64url');
+}
+
 async function run() {
   step(`Using API ${API_URL}`);
 
@@ -168,6 +172,7 @@ async function run() {
 
   const merchantEmail = `smoke-payment-link-${runId}@hockpay.local`;
   const merchantDocument = buildCpf(`${Date.now()}${randomInt(1000, 9999)}`);
+  const merchantPassword = randomPassword();
 
   step('Creating merchant and store');
   const merchant = await requestJson('/merchants', {
@@ -175,7 +180,7 @@ async function run() {
     body: JSON.stringify({
       name: `Payment Link Smoke Merchant ${runId}`,
       email: merchantEmail,
-      password: '12345678',
+      password: merchantPassword,
       document: merchantDocument,
     }),
   });
@@ -185,7 +190,7 @@ async function run() {
     method: 'POST',
     body: JSON.stringify({
       email: merchantEmail,
-      password: '12345678',
+      password: merchantPassword,
     }),
   });
   assert(login?.accessToken, 'Login did not return an access token.');

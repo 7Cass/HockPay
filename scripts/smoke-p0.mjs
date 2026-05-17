@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const API_URL = process.env.HOCKPAY_API_URL ?? 'http://localhost:3000/api/v1';
@@ -215,6 +215,10 @@ function calculateCpfDigit(digits, startWeight) {
   return remainder < 2 ? 0 : 11 - remainder;
 }
 
+function randomPassword() {
+  return randomBytes(18).toString('base64url');
+}
+
 async function startWebhookReceiver() {
   receiver = createServer(async (request, response) => {
     if (request.method !== 'POST' || request.url !== '/webhook') {
@@ -277,6 +281,7 @@ async function run() {
   const merchantDocument = buildCpf(`${Date.now()}${randomInt(1000, 9999)}`);
   const customerDocument = buildCpf(`${Date.now() + 1}${randomInt(1000, 9999)}`);
   const merchantEmail = `smoke-${runId}@hockpay.local`;
+  const merchantPassword = randomPassword();
 
   step('Creating merchant and authenticated store');
   const merchant = await requestJson('/merchants', {
@@ -284,7 +289,7 @@ async function run() {
     body: JSON.stringify({
       name: `Smoke Merchant ${runId}`,
       email: merchantEmail,
-      password: '12345678',
+      password: merchantPassword,
       document: merchantDocument,
     }),
   });
@@ -295,7 +300,7 @@ async function run() {
     method: 'POST',
     body: JSON.stringify({
       email: merchantEmail,
-      password: '12345678',
+      password: merchantPassword,
     }),
   });
   assert(login?.accessToken, 'Login did not return an access token.');

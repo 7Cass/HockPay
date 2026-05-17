@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hockpay}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hockpay_dev_password}
-      POSTGRES_DB: hockpay
+      POSTGRES_DB: ${POSTGRES_DB:-hockpay}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

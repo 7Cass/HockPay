@@ -212,7 +212,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
     "customer": {
       "name": "Cliente Trace",
       "email": "trace@hockpay.local",
-      "document": "52998224725"
+      "document": "<CPF_DO_CLIENTE>"
     }
   }'
 ```
@@ -236,8 +236,8 @@ curl -X POST http://localhost:3000/api/v1/merchants \
   -d '{
     "name": "Demo Merchant",
     "email": "demo@hockpay.local",
-    "password": "12345678",
-    "document": "52998224725"
+    "password": "<SENHA_FORTE_LOCAL>",
+    "document": "<CPF_DO_CLIENTE>"
   }'
 ```
 
@@ -250,7 +250,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "demo@hockpay.local",
-    "password": "12345678"
+    "password": "<SENHA_FORTE_LOCAL>"
   }'
 ```
 
