@@ -147,9 +147,8 @@ O baseline de CI em GitHub Actions usa Node 22 e pnpm 9.15.0 com cache pnpm e `.
 
 - [TECHNICAL_OVERVIEW.md](./TECHNICAL_OVERVIEW.md): visão arquitetural dual-state, separando implementação atual e arquitetura alvo
 - [DATA_MODELING.md](./DATA_MODELING.md): modelo de dados atual, cobertura runtime e modelo alvo
-- [docs/CURRENT_STATE_AUDIT.md](./docs/CURRENT_STATE_AUDIT.md): resumo auditado do estado atual do repositório
+- [docs/CURRENT_STATE_AUDIT.md](./docs/CURRENT_STATE_AUDIT.md): resumo auditado do estado atual, fechamento P1-P3, limites de P4 e criterios para escolher o proximo study-case
 - [docs/P0_RUNBOOK.md](./docs/P0_RUNBOOK.md): operação reproduzível do fluxo P0 local
-- [docs/P_ROADMAP.md](./docs/P_ROADMAP.md): fechamento P1-P3, limites de P4 e criterios para escolher o proximo study-case
 - [docs/TECH_SPEC.md](./docs/TECH_SPEC.md): especificação alvo, com status atual de implementação
 - [docs/BUSINESS_PRD.md](./docs/BUSINESS_PRD.md): visão de produto e cobertura atual do MVP
 - [CLAUDE.md](./CLAUDE.md): instruções locais de desenvolvimento para agentes
