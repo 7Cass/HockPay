@@ -1,6 +1,6 @@
 # Hockpay
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/7Cass/HockPay/actions/workflows/ci.yml/badge.svg)](https://github.com/7Cass/HockPay/actions/workflows/ci.yml)
 
 Plataforma de pagamentos Pix simulada para desenvolvedores independentes e pequenas startups. O repositório atual é um monorepo `pnpm` + Turborepo com aplicações NestJS, Angular e Next.js.
 
