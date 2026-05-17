@@ -46,6 +46,8 @@ function randomHex(bytes) {
 
 function smokeEnv() {
   const postgresUser = process.env.HOCKPAY_SMOKE_POSTGRES_USER ?? "hockpay";
+  const generatedPostgresPassword =
+    process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD === undefined;
   const postgresPassword =
     process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD ?? randomSecret(24);
   const postgresDb =
@@ -57,6 +59,9 @@ function smokeEnv() {
     PORT: "3000",
     HOCKPAY_SMOKE_POSTGRES_USER: postgresUser,
     HOCKPAY_SMOKE_POSTGRES_PASSWORD: postgresPassword,
+    HOCKPAY_SMOKE_GENERATED_POSTGRES_PASSWORD: generatedPostgresPassword
+      ? "true"
+      : "false",
     HOCKPAY_SMOKE_POSTGRES_DB: postgresDb,
     DATABASE_URL: `postgresql://${encodeURIComponent(postgresUser)}:${encodeURIComponent(
       postgresPassword,
@@ -349,7 +354,9 @@ async function main() {
   const env = smokeEnv();
   const suites = selectedSuites();
   const migrateMode = process.env.HOCKPAY_SMOKE_MIGRATE_MODE ?? "deploy";
-  const cleanVolumes = process.env.HOCKPAY_SMOKE_CLEAN_VOLUMES === "true";
+  const cleanVolumes =
+    process.env.HOCKPAY_SMOKE_CLEAN_VOLUMES === "true" ||
+    env.HOCKPAY_SMOKE_GENERATED_POSTGRES_PASSWORD === "true";
   const keepAlive = process.env.HOCKPAY_SMOKE_KEEP_ALIVE === "true";
 
   if (!["deploy", "dev"].includes(migrateMode)) {
@@ -359,6 +366,14 @@ async function main() {
   await assertPortsFree();
 
   try {
+    if (cleanVolumes) {
+      log("Resetting Docker smoke volumes for generated database credentials");
+      await runDocker(["down", "--remove-orphans", "-v"], {
+        env,
+        label: "docker:reset",
+      });
+    }
+
     log("Starting Docker smoke infrastructure");
     await runDocker(["up", "-d"], { env });
     await waitForContainerHealthy("hockpay-smoke-postgres");
