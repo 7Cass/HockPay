@@ -17,6 +17,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@hockpay/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@hockpay/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@hockpay/infrastructure':
         specifier: workspace:*
         version: link:../../packages/infrastructure

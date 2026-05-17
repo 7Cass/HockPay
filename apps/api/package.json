@@ -21,6 +21,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@hockpay/core": "workspace:*",
+    "@hockpay/database": "workspace:*",
     "@hockpay/infrastructure": "workspace:*",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.0",
@@ -92,7 +94,13 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/$1"
+      "^src/(.*)$": "<rootDir>/$1",
+      "^@hockpay/core$": "<rootDir>/../../../packages/core/src",
+      "^@hockpay/core/(.*)$": "<rootDir>/../../../packages/core/src/$1",
+      "^@hockpay/database$": "<rootDir>/../../../packages/database/src",
+      "^@hockpay/database/(.*)$": "<rootDir>/../../../packages/database/src/$1",
+      "^@hockpay/infrastructure$": "<rootDir>/../../../packages/infrastructure/src",
+      "^@hockpay/infrastructure/(.*)$": "<rootDir>/../../../packages/infrastructure/src/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
