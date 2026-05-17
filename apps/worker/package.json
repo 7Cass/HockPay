@@ -65,8 +65,11 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.ts$": "ts-jest"
     },
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
     "moduleNameMapper": {
       "^@hockpay/core$": "<rootDir>/../../../packages/core/src",
       "^@hockpay/core/(.*)$": "<rootDir>/../../../packages/core/src/$1",
