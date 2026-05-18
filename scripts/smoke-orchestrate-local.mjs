@@ -13,7 +13,7 @@ const COMPOSE_FILE = resolve(
 const COMPOSE_PROJECT = "hockpay-smoke";
 const DOCKER_ARGS = ["compose", "-p", COMPOSE_PROJECT, "-f", COMPOSE_FILE];
 const PORTS = [15432, 16379, 3000, 3001, 3333, 3005, 3999];
-const DEFAULT_SUITES = ["p0", "payment-link", "p3", "studycase", "system"];
+const DEFAULT_SUITES = ["p0", "payment-link", "p3", "studycase", "system", "withdrawals"];
 const HEALTH_TIMEOUT_MS = Number(
   process.env.HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS ?? 90000,
 );
@@ -28,6 +28,7 @@ const suiteCommands = new Map([
   ["p3", ["pnpm", ["run", "smoke:p3:visual"]]],
   ["studycase", ["pnpm", ["run", "smoke:studycase:mediakit"]]],
   ["system", ["pnpm", ["run", "smoke:system"]]],
+  ["withdrawals", ["pnpm", ["run", "smoke:withdrawals"]]],
 ]);
 
 const children = new Set();
@@ -87,6 +88,8 @@ function smokeEnv() {
       "http://localhost:3000",
       "http://localhost:3005",
     ].join(","),
+    WORKER_CRON_WITHDRAWAL_PROCESSING:
+      process.env.WORKER_CRON_WITHDRAWAL_PROCESSING ?? "0 0 0 1 1 *",
   };
 }
 

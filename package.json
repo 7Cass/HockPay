@@ -14,6 +14,7 @@
     "test:e2e": "turbo run test:e2e",
     "smoke:p0": "node scripts/smoke-p0.mjs",
     "smoke:system": "node scripts/smoke-system-volume.mjs",
+    "smoke:withdrawals": "node scripts/smoke-withdrawals.mjs",
     "smoke:payment-link": "node scripts/smoke-payment-link.mjs",
     "smoke:p3:visual": "node scripts/smoke-p3-visual.mjs",
     "smoke:studycase:mediakit": "node scripts/smoke-studycase-mediakit.mjs",

@@ -38,6 +38,7 @@ const state = {
   webhookId: undefined,
   alertId: undefined,
   bankAccountId: undefined,
+  withdrawalId: undefined,
 };
 
 const expected = {
@@ -50,6 +51,7 @@ const expected = {
     PAYMENT_RECEIVED: 0,
     PAYMENT_RELEASED: 0,
     REFUND_DEDUCTED: 0,
+    WITHDRAWAL_RESERVED: 0,
   },
   receipts: 0,
   webhooks: Object.fromEntries(WEBHOOK_EVENTS.map((event) => [event, 0])),
@@ -949,6 +951,52 @@ async function createPaymentLinks(apiKey) {
   assert(links.length === PAYMENT_LINK_COUNT, 'Payment link scenario count did not match target.');
 }
 
+async function validateLightweightWithdrawals() {
+  const bankAccounts = await requestJson('/bank-accounts', { jwtCookie: true });
+  const bankAccount = bankAccounts?.find((item) => item.id === state.bankAccountId);
+  assert(bankAccount?.isVerified === true, 'Withdrawals check did not find the verified Pix account.');
+
+  const amount = 1000;
+  assert(
+    expected.account.available >= amount,
+    `Withdrawals check needs at least ${amount} available cents, got ${expected.account.available}.`,
+  );
+
+  const created = await requestJson('/withdrawals', {
+    method: 'POST',
+    jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `system-${runId}-withdrawal-light`,
+    },
+    body: JSON.stringify({
+      bankAccountId: state.bankAccountId,
+      amount,
+    }),
+  });
+  state.withdrawalId = created?.withdrawal?.id;
+  assert(state.withdrawalId, 'Withdrawals check did not return a withdrawal id.');
+
+  expected.account.available -= amount;
+  expected.account.blocked += amount;
+  expected.transactions.WITHDRAWAL_RESERVED += 1;
+
+  const list = await requestJson('/withdrawals?limit=10', { jwtCookie: true });
+  assert(
+    list?.withdrawals?.some((withdrawal) => withdrawal.id === state.withdrawalId),
+    'Withdrawals check list did not include the created withdrawal.',
+  );
+
+  const ledger = await requestJson('/transactions?type=WITHDRAWAL_RESERVED&limit=10', { jwtCookie: true });
+  assert(
+    ledger?.data?.some(
+      (transaction) =>
+        transaction.referenceType === 'WITHDRAWAL' &&
+        transaction.referenceId === state.withdrawalId,
+    ),
+    'Withdrawals check did not find the reserved ledger transaction.',
+  );
+}
+
 async function validateFinalState(apiKey) {
   const account = await requestJson('/accounts/me', { jwtCookie: true });
   assert(account?.account?.available === expected.account.available, `Available balance mismatch. Expected ${expected.account.available}, got ${account?.account?.available}.`);
@@ -1002,11 +1050,12 @@ async function validateFinalState(apiKey) {
   }
 
   const transactions = await requestJson('/transactions?limit=100', { jwtCookie: true });
+  const expectedTransactionTotal = Object.values(expected.transactions).reduce(
+    (total, count) => total + count,
+    0,
+  );
   assert(
-    transactions?.meta?.total ===
-      expected.transactions.PAYMENT_RECEIVED +
-        expected.transactions.PAYMENT_RELEASED +
-        expected.transactions.REFUND_DEDUCTED,
+    transactions?.meta?.total === expectedTransactionTotal,
     'Transaction total did not match expected ledger activity.',
   );
 
@@ -1160,6 +1209,9 @@ async function run() {
   step(`Creating ${PAYMENT_LINK_COUNT} payment links with paid, failed, open, and canceled outcomes`);
   await createPaymentLinks(apiKey);
 
+  step('Validating lightweight withdrawals API and reserved ledger path');
+  await validateLightweightWithdrawals();
+
   step('Validating balances, ledger, receipts, history, dashboard, and management endpoints');
   const finalState = await validateFinalState(apiKey);
 
@@ -1184,6 +1236,7 @@ async function run() {
         webhookId: state.webhookId,
         alertId: state.alertId,
         bankAccountId: state.bankAccountId,
+        withdrawalId: state.withdrawalId,
         totals: {
           customersCreated: CUSTOMER_COUNT,
           directPayments: PAYMENT_COUNT,
@@ -1223,7 +1276,6 @@ async function run() {
         outOfScopeByPartialMaturity: [
           'products',
           'payment_items',
-          'withdrawals',
           'external Discord alert delivery unless HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL is set',
         ],
       },
