@@ -12,35 +12,38 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
   - despachar eventos do outbox para a fila
   - processar entrega de webhooks
   - rodar cron jobs de manutenção e liquidação simulada
+  - processar saques simulados de forma assíncrona
 
 > Embora não seja uma API pública de negócio, o processo atual sobe um listener HTTP por meio do bootstrap padrão do Nest.
 
 ## Filas Atuais
 
-| Fila | Uso |
-|------|-----|
-| `webhook-delivery` | entrega de webhooks |
-| `payment-expiration` | agendamento/processamento de expiração |
-| `alert-delivery` | entrega de alertas operacionais |
-| `webhook-dead-letter` | falhas finais de `webhook-delivery` |
-| `alert-dead-letter` | falhas finais de `alert-delivery` |
+| Fila                  | Uso                                    |
+| --------------------- | -------------------------------------- |
+| `webhook-delivery`    | entrega de webhooks                    |
+| `payment-expiration`  | agendamento/processamento de expiração |
+| `alert-delivery`      | entrega de alertas operacionais        |
+| `webhook-dead-letter` | falhas finais de `webhook-delivery`    |
+| `alert-dead-letter`   | falhas finais de `alert-delivery`      |
 
 ## Jobs Atuais
 
-| Job | Variável | Default | Função |
-|-----|----------|---------|--------|
-| `OutboxDispatcherJob` | `WORKER_CRON_OUTBOX_DISPATCHER` | `*/10 * * * * *` | lê `OutboxEvent` pendente e empilha no BullMQ |
-| `PaymentExpirationJob` | `WORKER_CRON_PAYMENT_EXPIRATION` | `* * * * *` | expira pagamentos pendentes vencidos |
-| `SettlementJob` | `WORKER_CRON_SETTLEMENT` | `0 0 * * *` | libera pagamentos confirmados conforme `settlementDays` |
-| `CleanupLogsJob` | `WORKER_CRON_CLEANUP_LOGS` | `0 3 * * *` | remove logs antigos e eventos processados |
-| `CleanupIdempotencyKeysJob` | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | `0 4 * * *` | remove chaves expiradas |
-| `AntiFraudJob` | `WORKER_CRON_ANTI_FRAUD` | `0 * * * *` | varredura simulada de anomalias |
+| Job                         | Variável                               | Default          | Função                                                           |
+| --------------------------- | -------------------------------------- | ---------------- | ---------------------------------------------------------------- |
+| `OutboxDispatcherJob`       | `WORKER_CRON_OUTBOX_DISPATCHER`        | `*/10 * * * * *` | lê `OutboxEvent` pendente e empilha no BullMQ                    |
+| `PaymentExpirationJob`      | `WORKER_CRON_PAYMENT_EXPIRATION`       | `* * * * *`      | expira pagamentos pendentes vencidos                             |
+| `SettlementJob`             | `WORKER_CRON_SETTLEMENT`               | `0 0 * * *`      | libera pagamentos confirmados conforme `settlementDays`          |
+| `WithdrawalProcessingJob`   | `WORKER_CRON_WITHDRAWAL_PROCESSING`    | `*/15 * * * * *` | processa saques pendentes com sucesso automático e retry técnico |
+| `CleanupLogsJob`            | `WORKER_CRON_CLEANUP_LOGS`             | `0 3 * * *`      | remove logs antigos e eventos processados                        |
+| `CleanupIdempotencyKeysJob` | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | `0 4 * * *`      | remove chaves expiradas                                          |
+| `AntiFraudJob`              | `WORKER_CRON_ANTI_FRAUD`               | `0 * * * *`      | varredura simulada de anomalias                                  |
 
 Os agendamentos aceitam expressoes cron de 5 campos ou 6 campos. Use 6 campos para testes com segundos, por exemplo:
 
 ```env
 WORKER_CRON_SETTLEMENT=*/30 * * * * *
 WORKER_CRON_PAYMENT_EXPIRATION=*/10 * * * * *
+WORKER_CRON_WITHDRAWAL_PROCESSING=*/15 * * * * *
 ```
 
 ## Fluxo Atual de Webhooks
@@ -83,14 +86,15 @@ Headers relevantes atualmente enviados ao merchant:
 
 ## Variáveis de Ambiente Relevantes
 
-| Variável | Uso |
-|----------|-----|
-| `PORT` | Porta do processo Nest |
-| `DATABASE_URL` | PostgreSQL |
-| `REDIS_HOST` / `REDIS_PORT` | conexão BullMQ/Redis |
-| `ENCRYPTION_KEY` | descriptografia de segredos de webhook |
-| `WORKER_CRON_*` | agendamento dos jobs periodicos do worker |
-| `WORKER_CRON_LOCK_TTL_MS` | TTL do lock distribuído dos cron jobs, default `300000` |
+| Variável                             | Uso                                                                                       |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `PORT`                               | Porta do processo Nest                                                                    |
+| `DATABASE_URL`                       | PostgreSQL                                                                                |
+| `REDIS_HOST` / `REDIS_PORT`          | conexão BullMQ/Redis                                                                      |
+| `ENCRYPTION_KEY`                     | descriptografia de segredos de webhook                                                    |
+| `WORKER_CRON_*`                      | agendamento dos jobs periodicos do worker                                                 |
+| `WORKER_CRON_LOCK_TTL_MS`            | TTL do lock distribuído dos cron jobs, default `300000`                                   |
+| `WITHDRAWAL_SIMULATOR_FORCE_FAILURE` | quando `true`, força falha técnica do processador de saques para testar retry/falha final |
 
 ## Observações
 

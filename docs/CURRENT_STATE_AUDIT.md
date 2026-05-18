@@ -64,7 +64,7 @@ Resumo curto e auditado do estado atual do repositório.
 ## Known Non-P0 / P4
 
 - Products e PaymentItems existem no schema, mas nao fazem parte do fluxo P0 validado.
-- Withdrawals existem no modelo, mas ainda não são fluxo financeiro completo validado.
+- Withdrawals existem como fluxo API-first com reserva de saldo, worker simulado, ledger e webhooks; ainda não há dashboard dedicado.
 - Marketplace, split de pagamento e multi-seller ficam fora do gate P1-P3 e exigem PRD próprio.
 - Essas áreas não devem aparecer como prontas na documentação principal ou no dashboard até maturarem em P4.
 
@@ -73,4 +73,4 @@ Resumo curto e auditado do estado atual do repositório.
 - docs antigas falavam em apps separados de `dashboard` e `landing`; o estado atual usa `apps/web`
 - docs antigas falavam em SQS/LocalStack; o estado atual usa BullMQ/Redis
 - docs antigas usavam `/v1/...`; o estado atual usa `/api/v1/...`
-- schema contém `Product`, `PaymentItem` e `Withdrawal`, mas essas áreas não têm a mesma maturidade runtime de `Payment`, `Webhook`, `Receipt`, `Refund` e `CheckoutSession`
+- schema contém `Product` e `PaymentItem`, mas essas áreas não têm a mesma maturidade runtime de `Payment`, `Webhook`, `Receipt`, `Refund`, `Withdrawal` e `CheckoutSession`

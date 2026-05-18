@@ -12,41 +12,41 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 
 ### 1.1 Identidade e autenticação
 
-| Entidade | Status | Observações |
-|----------|--------|-------------|
-| `Merchant` | Implementado | Login por email/senha |
-| `RefreshToken` | Implementado | Sessão do dashboard |
-| `ApiKey` | Implementado | Autenticação pública por store/ambiente |
-| `IdempotencyKey` | Implementado | Persistência da camada de idempotência |
+| Entidade         | Status       | Observações                             |
+| ---------------- | ------------ | --------------------------------------- |
+| `Merchant`       | Implementado | Login por email/senha                   |
+| `RefreshToken`   | Implementado | Sessão do dashboard                     |
+| `ApiKey`         | Implementado | Autenticação pública por store/ambiente |
+| `IdempotencyKey` | Implementado | Persistência da camada de idempotência  |
 
 ### 1.2 Estrutura de negócio
 
-| Entidade | Status | Observações |
-|----------|--------|-------------|
-| `Store` | Implementado | Contexto principal de escopo |
-| `Customer` | Implementado | Criado on-the-fly em pagamentos quando necessário |
-| `Payment` | Implementado | Aggregate central dos fluxos Pix simulados |
-| `CheckoutSession` | Implementado | Base do checkout hospedado |
-| `WebhookConfig` | Implementado | Configuração de destino de webhooks |
-| `WebhookLog` | Implementado | Log de tentativas/entregas |
-| `OutboxEvent` | Implementado | Fonte do pipeline assíncrono |
+| Entidade          | Status       | Observações                                       |
+| ----------------- | ------------ | ------------------------------------------------- |
+| `Store`           | Implementado | Contexto principal de escopo                      |
+| `Customer`        | Implementado | Criado on-the-fly em pagamentos quando necessário |
+| `Payment`         | Implementado | Aggregate central dos fluxos Pix simulados        |
+| `CheckoutSession` | Implementado | Base do checkout hospedado                        |
+| `WebhookConfig`   | Implementado | Configuração de destino de webhooks               |
+| `WebhookLog`      | Implementado | Log de tentativas/entregas                        |
+| `OutboxEvent`     | Implementado | Fonte do pipeline assíncrono                      |
 
 ### 1.3 Financeiro
 
-| Entidade | Status | Observações |
-|----------|--------|-------------|
-| `Account` | Implementado | Criada automaticamente no bootstrap de store; migration cobre stores antigas sem account |
-| `Transaction` | Implementado | Usada em métricas, release e refunds |
-| `Refund` | Implementado | Runtime atual suporta reembolso parcial |
-| `BankAccount` | Implementado | CRUD disponível na API |
-| `Withdrawal` | Parcial | Presente no schema, não aparece como capacidade consolidada na API atual |
+| Entidade                     | Status       | Observações                                                                               |
+| ---------------------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `Account`                    | Implementado | Criada automaticamente no bootstrap de store; migration cobre stores antigas sem account  |
+| `Transaction`                | Implementado | Usada em métricas, release e refunds                                                      |
+| `Refund`                     | Implementado | Runtime atual suporta reembolso parcial                                                   |
+| `BankAccount`                | Implementado | CRUD disponível na API                                                                    |
+| `Withdrawal`                 | Implementado | API-first: criação/listagem/detalhe, reserva de saldo, worker simulado, ledger e webhooks |
 | `Receipt` / `ReceiptCounter` | Implementado | Emitidos no fluxo de pagamento confirmado e consultáveis pela timeline/detalhe de payment |
 
 ### 1.4 Catálogo
 
-| Entidade | Status | Observações |
-|----------|--------|-------------|
-| `Product` | Parcial | Existe no schema, mas não há slice completo no backend atual |
+| Entidade      | Status  | Observações                                                                |
+| ------------- | ------- | -------------------------------------------------------------------------- |
+| `Product`     | Parcial | Existe no schema, mas não há slice completo no backend atual               |
 | `PaymentItem` | Parcial | Existe no schema, mas não participa do fluxo atual de criação de pagamento |
 
 ## 2. Cobertura Runtime Atual
@@ -68,6 +68,7 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 - `Account`
 - `Transaction`
 - `Receipt`
+- `Withdrawal`
 
 ### 2.2 Entidades com cobertura parcial
 
@@ -77,12 +78,6 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 - Há rota visual para `products` no dashboard Angular
 - O backend atual não expõe um módulo equivalente de catálogo/produtos
 - O fluxo atual de `CreatePaymentUseCase` não recebe itens de carrinho
-
-#### `Withdrawal`
-
-- Existe no schema
-- A documentação histórica descrevia saques como parte do domínio
-- O estado atual não a trata como capacidade consolidada no conjunto de READMEs e fluxos principais
 
 ## 3. Regras Atuais Verificadas no Código
 
@@ -123,27 +118,38 @@ O schema atual em `packages/database/prisma/schema.prisma` inclui os principais 
 - `GET /api/v1/payments/:id/timeline` agrega payment, checkout session, receipt, refunds, transactions e webhook logs sanitizados
 - `/dashboard/payments/:id` e `/dashboard/financials` permitem validar receipt, timeline operacional, ledger e saldos sem abrir o banco
 
+### 3.5 Withdrawal
+
+- `POST /api/v1/withdrawals` exige `Idempotency-Key` e autenticação por JWT ou API key via `CombinedAuthGuard`
+- O saque exige `bankAccountId` verificado (`BankAccount.isVerified = true`) e da store atual
+- O valor solicitado é o valor bruto reservado: R$ 100,00 reserva 10000 centavos; a taxa fixa v1 é 199 centavos e o destino recebe 9801 centavos
+- Limites v1: mínimo 1000, máximo 500000, limite diário 1000000 e até 10 saques por dia
+- Criação move saldo `available -> blocked`, cria `TransactionType.WITHDRAWAL_RESERVED` e outbox `withdrawal.created`
+- Worker move `PENDING -> PROCESSING -> COMPLETED` por padrão, com retry técnico antes de falha final
+- Sucesso deduz o saldo bloqueado, cria `WITHDRAWAL_SENT` e outbox `withdrawal.completed`
+- Falha devolve `blocked -> available`, cria `WITHDRAWAL_REVERSED` e outbox `withdrawal.failed`
+
 ## 4. Modelo Alvo
 
 O alvo mais coerente com o repositório é:
 
 - alinhar schema e runtime para todas as entidades já expostas como parte do domínio
 - decidir explicitamente se `Product`/`PaymentItem` continuarão no produto
-- manter `Withdrawal` como futuro explícito até virar fluxo financeiro completo
+- evoluir `Withdrawal` de API-first para dashboard e políticas administrativas quando necessário
 
 ### 4.1 Alvos por área
 
-| Área | Alvo |
-|------|------|
-| Financeiro | manter account, receipt, transaction, refund, release e timeline alinhados entre schema, use cases, API, dashboard e docs |
-| Catálogo | implementar end-to-end ou tratar como futuro explícito |
-| Store bootstrap | preservar account auto-created como invariante de store |
-| Withdrawals | só promover em docs principais quando o runtime estiver maduro |
+| Área            | Alvo                                                                                                                               |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Financeiro      | manter account, receipt, transaction, refund, release, withdrawal e timeline alinhados entre schema, use cases, API, worker e docs |
+| Catálogo        | implementar end-to-end ou tratar como futuro explícito                                                                             |
+| Store bootstrap | preservar account auto-created como invariante de store                                                                            |
+| Withdrawals     | manter API/worker/ledger/webhooks consolidados e deixar dashboard para etapa futura                                                |
 
 ## 5. Gaps Prioritários
 
 1. `Product` e `PaymentItem` têm presença forte no schema, mas fraca no runtime.
-2. `Withdrawal` existe no schema, mas não deve ser documentado como fluxo financeiro consolidado.
+2. Dashboard de `Withdrawal` ainda não existe; a capacidade atual é API-first.
 3. Marketplace, split e multi-seller exigem PRD próprio antes de aparecerem como produto pronto.
 4. A documentação antiga descrevia fluxos administrativos e operacionais que hoje são alvo, não realidade atual.
 

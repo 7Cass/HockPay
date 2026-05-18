@@ -67,7 +67,19 @@ curl -X POST http://localhost:3000/api/v1/payments \
 # Simular confirmação em dev mode
 curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
   -H "Authorization: Bearer hk_test_sua_api_key_aqui"
+
+# Criar um saque API-first (conta Pix verificada e saldo disponível obrigatórios)
+curl -X POST http://localhost:3000/api/v1/withdrawals \
+  -H "Authorization: Bearer hk_test_sua_api_key_aqui" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: saque-123" \
+  -d '{
+    "bankAccountId": "bank_account_id",
+    "amount": 10000
+  }'
 ```
+
+Saques usam `JWT + API key` via `CombinedAuthGuard`. No v1 as API keys ainda não têm scopes granulares; trate `POST /withdrawals` como operação financeira sensível e reserve o futuro scope `withdrawals:create`.
 
 ## Infraestrutura Atual
 
@@ -82,7 +94,7 @@ curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
 - Checkout hospedado: o default local usa `http://localhost:3000/api/v1`
 - Study case atual validado: `apps/demo-mediakit`
 - P3 fechado nesta rodada: template/checklist/docs/smoke alinhados, com receipts, timeline de payment e visibilidade financeira como capacidades reais de dashboard/API
-- Products, Withdrawals, Marketplace, split e multi-seller continuam fora do produto pronto e pertencem a P4/futuro
+- Products, Marketplace, split e multi-seller continuam fora do produto pronto e pertencem a P4/futuro; saques existem como capacidade API-first sem dashboard nesta etapa
 - O proximo study-case ainda nao foi escolhido nesta rodada; `demo-mediakit` serve como referencia/template/checklist
 - Não existe LocalStack nem SQS configurado no estado atual
 

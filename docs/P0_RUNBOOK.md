@@ -6,6 +6,7 @@ Os smokes têm responsabilidades diferentes:
 
 - `pnpm run smoke:p0`: baseline rapido de API direta.
 - `pnpm run smoke:payment-link`: validacao de Payment Link/checkout hospedado.
+- `pnpm run smoke:withdrawals`: validacao E2E automatizada de saques, saldos e ledger.
 - `pnpm run smoke:p3:visual`: validacao visual do dashboard, timeline, receipts e financeiro.
 - `pnpm run smoke:studycase:mediakit`: validacao completa do `demo-mediakit` com API, checkout hospedado, app demo, webhook assinado e estado final renderizavel.
 - `pnpm run smoke:docker`: orquestracao local com Postgres/Redis em Docker e servicos Node no host.
@@ -38,7 +39,7 @@ Esse comando sobe apenas Postgres e Redis em Docker (`15432` e `16379`), aplica 
 Opcoes:
 
 ```bash
-HOCKPAY_SMOKE_SUITE=p0,payment-link,p3,studycase,system pnpm run smoke:docker
+HOCKPAY_SMOKE_SUITE=p0,payment-link,p3,studycase,system,withdrawals pnpm run smoke:docker
 HOCKPAY_SMOKE_KEEP_ALIVE=true pnpm run smoke:docker
 HOCKPAY_SMOKE_CLEAN_VOLUMES=true pnpm run smoke:docker
 HOCKPAY_SMOKE_MIGRATE_MODE=dev pnpm run smoke:docker
@@ -164,7 +165,46 @@ Checklist minimo para escolher um novo study-case:
 - endpoints Hockpay usados e webhook esperado documentados.
 - simulacao local com API, checkout hospedado e app do integrador.
 - validacao de account, receipt, timeline e financeiro pelo dashboard/API.
-- escopo sem Products, Withdrawals, Marketplace, split ou multi-seller enquanto essas areas estiverem em P4.
+- escopo sem Products, Marketplace, split ou multi-seller enquanto essas areas estiverem em P4; withdrawals já têm smoke dedicado e cobertura leve no smoke system.
+
+## Smoke Automatizado de Saques
+
+Com PostgreSQL, Redis e API rodando, execute:
+
+```bash
+pnpm run smoke:withdrawals
+```
+
+O smoke cria merchant, store, API key TEST e conta Pix verificada usando `pixKey = holderDocument = document` do merchant. Em seguida cria um pagamento TEST, simula `confirm` e `release` para gerar saldo disponível, cria saques com `Idempotency-Key`, valida taxas, líquido, saldos disponível/bloqueado, listagem, detalhe, filtros e extrato.
+
+Configuração opcional:
+
+```bash
+HOCKPAY_API_URL=http://localhost:3000/api/v1 \
+HOCKPAY_DASHBOARD_URL=http://localhost:4200 \
+HOCKPAY_SMOKE_TIMEOUT_MS=60000 \
+pnpm run smoke:withdrawals
+```
+
+Critérios de aceite:
+
+- conta Pix aparece como verificada em `GET /bank-accounts`.
+- primeiro saque inicia `PENDING`, reserva saldo, é completado por `POST /dev/withdrawals/:id/complete` e gera `WITHDRAWAL_SENT`.
+- segundo saque inicia `PENDING`, reserva saldo, é falhado por `POST /dev/withdrawals/:id/fail`, retorna saldo disponível e gera `WITHDRAWAL_REVERSED`.
+- extrato contém `WITHDRAWAL_RESERVED`, `WITHDRAWAL_SENT` e `WITHDRAWAL_REVERSED` referenciando os saques corretos.
+- o JSON final imprime credenciais locais e links para `/dashboard/withdrawals`, detalhes dos saques e `/dashboard/financials`.
+
+No runner Docker-backed, a suite `withdrawals` já faz parte do conjunto default. Para rodar apenas ela:
+
+```bash
+HOCKPAY_SMOKE_SUITE=withdrawals pnpm run smoke:docker
+```
+
+O runner define `WORKER_CRON_WITHDRAWAL_PROCESSING` para uma expressão rara por padrão, evitando que o worker complete saques antes das assertions manuais do smoke. Se você rodar processos locais fora do runner, use a mesma precaução durante validações manuais:
+
+```bash
+WORKER_CRON_WITHDRAWAL_PROCESSING="0 0 0 1 1 *" pnpm --filter @hockpay/worker dev
+```
 
 Com PostgreSQL, Redis, API, worker e checkout rodando, execute:
 
@@ -362,5 +402,5 @@ pnpm run build
 ## Known Non-P0
 
 - Products e PaymentItems nao fazem parte da validacao P0.
-- Withdrawals ficam fora desta etapa.
+- Saques têm smoke dedicado e checagem leve no smoke system; fluxos de payout real seguem simulados em TEST.
 - Marketplace, split de pagamento e multi-seller ficam fora desta etapa.

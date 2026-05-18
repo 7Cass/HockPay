@@ -21,16 +21,16 @@ Hockpay existe para reduzir o custo de integração e homologação de fluxos de
 
 ## 4. Cobertura Atual do MVP
 
-| Capacidade | Status Atual | Observações |
-|------------|--------------|-------------|
-| Criar pagamento Pix simulado | Implementado | Via `/api/v1/payments` |
-| Simular confirmação/falha/expiração | Implementado | Via `dev/simulate` e endpoint usado pelo checkout |
-| Dashboard Angular | Implementado | Landing + auth + dashboard em `apps/web` |
-| Checkout hospedado | Implementado | Baseado em `checkout session` |
-| Webhooks com assinatura | Implementado | Outbox + BullMQ + HMAC |
-| API keys por ambiente | Implementado | Fluxo público atual |
-| Catálogo de produtos | Parcial | Schema existe; UI placeholder existe; backend não está completo |
-| Saques / withdrawals | Parcial | Modelagem existe, mas não é capacidade consolidada do produto atual |
+| Capacidade                          | Status Atual           | Observações                                                              |
+| ----------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| Criar pagamento Pix simulado        | Implementado           | Via `/api/v1/payments`                                                   |
+| Simular confirmação/falha/expiração | Implementado           | Via `dev/simulate` e endpoint usado pelo checkout                        |
+| Dashboard Angular                   | Implementado           | Landing + auth + dashboard em `apps/web`                                 |
+| Checkout hospedado                  | Implementado           | Baseado em `checkout session`                                            |
+| Webhooks com assinatura             | Implementado           | Outbox + BullMQ + HMAC                                                   |
+| API keys por ambiente               | Implementado           | Fluxo público atual                                                      |
+| Catálogo de produtos                | Parcial                | Schema existe; UI placeholder existe; backend não está completo          |
+| Saques / withdrawals                | Implementado API-first | API, ledger, worker simulado e webhooks; dashboard fica fora desta etapa |
 
 ## 5. Indicadores de Sucesso
 

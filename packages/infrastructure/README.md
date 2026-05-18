@@ -13,12 +13,12 @@ Hoje este pacote centraliza a infraestrutura compartilhada entre API e worker. E
 
 ## O que realmente está aqui
 
-| Tipo | Exemplos atuais |
-|------|-----------------|
-| Repositories | `PaymentRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `StoreRepository` |
-| Coordenação transacional | `UnitOfWork` |
-| Serviços utilitários | `EncryptionService`, `HmacSignerService`, `WebhookHttpClientService`, `DiscordAlertSenderService` |
-| Filas | `ExpirationQueue` |
+| Tipo                     | Exemplos atuais                                                                                                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repositories             | `PaymentRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `WithdrawalRepository`, `StoreRepository` |
+| Coordenação transacional | `UnitOfWork`                                                                                                                                                                           |
+| Serviços utilitários     | `EncryptionService`, `HmacSignerService`, `WebhookHttpClientService`, `DiscordAlertSenderService`                                                                                      |
+| Filas                    | `ExpirationQueue`                                                                                                                                                                      |
 
 ## O que não está consolidado aqui
 
