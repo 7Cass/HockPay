@@ -19,6 +19,7 @@ export * from "./domain/entities/idempotency-key.entity";
 export * from "./domain/entities/checkout-session.entity";
 export * from "./domain/entities/receipt.entity";
 export * from "./domain/entities/refund.entity";
+export * from "./domain/entities/withdrawal.entity";
 
 // Domain - Enums
 export * from "./domain/enums/payment-status.enum";
@@ -77,6 +78,13 @@ export * from "./domain/errors/invalid-alert-config.error";
 export * from "./domain/errors/live-environment-not-allowed.error";
 export * from "./domain/errors/receipt-not-found.error";
 export * from "./domain/errors/invalid-refund-amount.error";
+export * from "./domain/errors/bank-account-not-found.error";
+export * from "./domain/errors/bank-account-not-verified.error";
+export * from "./domain/errors/insufficient-withdrawal-balance.error";
+export * from "./domain/errors/invalid-withdrawal-amount.error";
+export * from "./domain/errors/invalid-withdrawal-status.error";
+export * from "./domain/errors/withdrawal-limit-exceeded.error";
+export * from "./domain/errors/withdrawal-not-found.error";
 
 // Bank Account
 export * from "./domain/entities/bank-account.entity";
@@ -106,6 +114,7 @@ export * from "./domain/repositories/unit-of-work.interface";
 export * from "./domain/repositories/checkout-session.repository.interface";
 export * from "./domain/repositories/receipt.repository.interface";
 export * from "./domain/repositories/refund.repository.interface";
+export * from "./domain/repositories/withdrawal.repository.interface";
 
 // Application - Ports
 export * from "./application/ports/password-hasher.port";
@@ -128,6 +137,7 @@ export * from "./application/services/fee-policy.service";
 export * from "./application/services/payment-attempt-context.service";
 export * from "./application/services/webhook-payload-builder.service";
 export * from "./application/services/webhook-url-policy.service";
+export * from "./application/services/withdrawal-policy.service";
 
 // Application - Use Cases
 export * from "./application/use-cases/create-merchant.use-case";
@@ -205,3 +215,10 @@ export * from "./application/use-cases/create-receipt.use-case";
 export * from "./application/use-cases/get-receipt.use-case";
 export * from "./application/use-cases/list-receipts.use-case";
 export * from "./application/use-cases/create-refund.use-case";
+export * from "./application/use-cases/create-withdrawal.use-case";
+export * from "./application/use-cases/list-withdrawals.use-case";
+export * from "./application/use-cases/get-withdrawal.use-case";
+export * from "./application/use-cases/mark-withdrawal-processing.use-case";
+export * from "./application/use-cases/complete-withdrawal.use-case";
+export * from "./application/use-cases/fail-withdrawal.use-case";
+export * from "./application/use-cases/record-withdrawal-processing-error.use-case";

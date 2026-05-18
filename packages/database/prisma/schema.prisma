@@ -66,6 +66,7 @@ enum TransactionType {
   PAYMENT_RELEASED
   REFUND_DEDUCTED
   NEGATIVE_COMPENSATED
+  WITHDRAWAL_RESERVED
   WITHDRAWAL_SENT
   WITHDRAWAL_REVERSED
   FEE_CHARGED
@@ -245,12 +246,18 @@ model Withdrawal {
   pixE2eId        String?             @map("pix_e2e_id")
   paidAt          DateTime?           @map("paid_at")
   failedReason    String?             @map("failed_reason")
+  processingAttempts Int              @default(0) @map("processing_attempts")
+  nextProcessAt   DateTime?           @map("next_process_at")
+  lastProcessingError String?         @map("last_processing_error") @db.Text
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
 
   account         Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   bankAccount     BankAccount         @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
 
+  @@index([accountId, status, createdAt])
+  @@index([bankAccountId])
+  @@index([status, nextProcessAt])
   @@map("withdrawals")
 }
 
@@ -517,6 +524,8 @@ model WebhookLog {
   id              String        @id @default(uuid())
   configId        String        @map("config_id")
   paymentId       String?       @map("payment_id")
+  aggregateType   String?       @map("aggregate_type")
+  aggregateId     String?       @map("aggregate_id")
   outboxEventId   String?       @map("outbox_event_id")
   requestId       String?       @map("request_id")
   eventType       String        @map("event_type")
@@ -536,6 +545,7 @@ model WebhookLog {
   @@index([configId, deliveredAt])
   @@index([outboxEventId])
   @@index([requestId])
+  @@index([aggregateType, aggregateId])
   @@map("webhook_logs")
 }
 

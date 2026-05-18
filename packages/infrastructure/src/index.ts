@@ -18,6 +18,7 @@ export * from "./repositories/bank-account.repository";
 export * from "./repositories/receipt.repository";
 export * from "./repositories/refund.repository";
 export * from "./repositories/store.repository";
+export * from "./repositories/withdrawal.repository";
 export * from "./queues/expiration.queue";
 export * from "./services/encryption.service";
 export * from "./services/hmac-signer.service";

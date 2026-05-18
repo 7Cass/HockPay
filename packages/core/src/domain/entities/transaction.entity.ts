@@ -6,6 +6,7 @@ export enum TransactionType {
   PAYMENT_RELEASED = 'PAYMENT_RELEASED',
   REFUND_DEDUCTED = 'REFUND_DEDUCTED',
   NEGATIVE_COMPENSATED = 'NEGATIVE_COMPENSATED',
+  WITHDRAWAL_RESERVED = 'WITHDRAWAL_RESERVED',
   WITHDRAWAL_SENT = 'WITHDRAWAL_SENT',
   WITHDRAWAL_REVERSED = 'WITHDRAWAL_REVERSED',
   FEE_CHARGED = 'FEE_CHARGED',
@@ -135,7 +136,11 @@ export class Transaction {
   }
 
   isWithdrawal(): boolean {
-    return this._type === TransactionType.WITHDRAWAL_SENT;
+    return (
+      this._type === TransactionType.WITHDRAWAL_RESERVED ||
+      this._type === TransactionType.WITHDRAWAL_SENT ||
+      this._type === TransactionType.WITHDRAWAL_REVERSED
+    );
   }
 
   isRefund(): boolean {

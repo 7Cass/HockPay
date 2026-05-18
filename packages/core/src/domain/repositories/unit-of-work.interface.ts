@@ -8,6 +8,7 @@ import { IStoreRepository } from "./store.repository.interface";
 import { IRefundRepository } from "./refund.repository.interface";
 import { ICustomerRepository } from "./customer.repository.interface";
 import { IPixChargeRepository } from "./pix-charge.repository.interface";
+import { IWithdrawalRepository } from "./withdrawal.repository.interface";
 
 /**
  * Interface containing transacted repositories.
@@ -18,6 +19,7 @@ export interface ITransactedRepositories {
   refundRepository: IRefundRepository;
   accountRepository: IAccountRepository;
   transactionRepository: ITransactionRepository;
+  withdrawalRepository: IWithdrawalRepository;
   bankAccountRepository: IBankAccountRepository;
   outboxWriter: IOutboxWriter;
   receiptRepository: IReceiptRepository;
