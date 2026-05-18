@@ -759,6 +759,7 @@ export class PaymentDetail implements OnInit, OnDestroy {
       PAYMENT_RELEASED: 'Saldo liberado',
       REFUND_DEDUCTED: 'Estorno debitado',
       NEGATIVE_COMPENSATED: 'Compensação negativa',
+      WITHDRAWAL_RESERVED: 'Saque reservado',
       WITHDRAWAL_SENT: 'Saque enviado',
       WITHDRAWAL_REVERSED: 'Saque revertido',
       FEE_CHARGED: 'Taxa',

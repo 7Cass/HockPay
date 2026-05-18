@@ -6,17 +6,28 @@
         </div>
 
         <div class="flex flex-col items-start gap-2 sm:items-end">
-            <button
-                hlmBtn
-                variant="outline"
-                size="sm"
-                class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                (click)="reload()"
-            >
-                <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
-                Atualizar
-            </button>
-            <p class="text-xs font-medium text-zinc-500">Saques são um placeholder futuro e não estão disponíveis no P3.</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <a
+                    routerLink="/dashboard/withdrawals"
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                >
+                    Saques
+                    <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
+                </a>
+                <button
+                    hlmBtn
+                    variant="outline"
+                    size="sm"
+                    class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
+                    (click)="reload()"
+                >
+                    <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
+                    Atualizar
+                </button>
+            </div>
         </div>
     </div>
 

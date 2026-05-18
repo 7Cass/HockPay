@@ -1,0 +1,204 @@
+<div class="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <a routerLink="/dashboard/withdrawals" class="mb-3 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900">
+        <ng-icon hlm name="lucideArrowLeft" size="sm"></ng-icon>
+        Voltar para saques
+      </a>
+      <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Detalhes do saque</h1>
+      <p class="mt-1 text-sm text-zinc-500">Status, destino Pix, processamento e impacto no saldo.</p>
+    </div>
+
+    <button hlmBtn variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white text-zinc-700" (click)="reload()">
+      <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
+      Atualizar
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-zinc-200 bg-white py-24 shadow-sm">
+      <hlm-spinner class="h-6 w-6 animate-spin text-indigo-600" />
+      <p class="mt-4 text-sm font-medium text-zinc-500">Carregando saque...</p>
+    </div>
+  }
+
+  @if (!isLoading() && error()) {
+    <div class="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 px-6 py-24 text-center shadow-sm">
+      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+        <ng-icon hlm name="lucideXCircle" class="text-red-500" size="lg"></ng-icon>
+      </div>
+      <h3 class="text-base font-semibold text-red-700">Não foi possível carregar o saque</h3>
+      <p class="mt-2 max-w-md text-sm text-red-700/90">{{ error() }}</p>
+      <a routerLink="/dashboard/withdrawals" hlmBtn class="mt-6 bg-white text-red-700 shadow-sm hover:bg-red-100">Voltar para a lista</a>
+    </div>
+  }
+
+  @if (!isLoading() && withdrawal(); as item) {
+    <div class="grid gap-6 lg:grid-cols-[1.25fr_0.9fr]">
+      <div class="space-y-6">
+        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+          <div class="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Referência</p>
+              <p class="mt-2 font-mono text-lg font-semibold text-zinc-900">{{ item.id }}</p>
+            </div>
+            <span class="inline-flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold" [class]="statusClasses(item.status)">
+              <ng-icon hlm [name]="statusIcon(item.status)" size="xs"></ng-icon>
+              {{ statusLabel(item.status) }}
+            </span>
+          </div>
+
+          <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Bruto</p>
+              <p class="mt-2 text-lg font-semibold text-zinc-900">{{ item.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+            </div>
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Taxa</p>
+              <p class="mt-2 text-lg font-semibold text-red-600">-{{ item.fee / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+            </div>
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Líquido</p>
+              <p class="mt-2 text-lg font-semibold text-emerald-600">{{ item.netAmount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <ng-icon hlm name="lucideBadgeCheck" size="sm"></ng-icon>
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-zinc-900">Destino Pix</h2>
+              <p class="text-sm text-zinc-500">Conta usada para envio do saque.</p>
+            </div>
+          </div>
+
+          @if (bankAccount(); as account) {
+            <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt class="text-zinc-500">Chave Pix</dt>
+                <dd class="mt-1 font-mono font-semibold text-zinc-900">{{ account.pixKeyType }} {{ maskDocument(account.pixKey) }}</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">Titular</dt>
+                <dd class="mt-1 font-semibold text-zinc-900">{{ account.holderName }}</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">Documento</dt>
+                <dd class="mt-1 font-medium text-zinc-900">{{ maskDocument(account.holderDocument) }}</dd>
+              </div>
+              <div>
+                <dt class="text-zinc-500">Verificação</dt>
+                <dd class="mt-1 font-medium" [ngClass]="account.isVerified ? 'text-emerald-700' : 'text-zinc-600'">{{ account.isVerified ? 'Verificada' : 'Não verificada' }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="mt-6 text-sm text-zinc-500">Conta Pix não encontrada na listagem atual.</p>
+          }
+        </section>
+
+        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-zinc-900">Processamento</h2>
+          <dl class="mt-5 space-y-4 text-sm">
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Pix E2E ID</dt>
+              <dd class="text-right font-mono font-medium text-zinc-900">{{ item.pixE2eId || '-' }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Pago em</dt>
+              <dd class="text-right font-medium text-zinc-900">{{ item.paidAt ? (item.paidAt | date:'dd/MM/yyyy HH:mm:ss') : '-' }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Tentativas</dt>
+              <dd class="text-right font-medium text-zinc-900">{{ item.processingAttempts }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Próxima tentativa</dt>
+              <dd class="text-right font-medium text-zinc-900">{{ item.nextProcessAt ? (item.nextProcessAt | date:'dd/MM/yyyy HH:mm:ss') : '-' }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Motivo da falha</dt>
+              <dd class="max-w-sm text-right font-medium text-zinc-900">{{ item.failedReason || '-' }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Último erro</dt>
+              <dd class="max-w-sm text-right font-medium text-zinc-900">{{ item.lastProcessingError || '-' }}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+
+      <aside class="space-y-6">
+        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-50 text-zinc-600">
+              <ng-icon hlm name="lucideWallet" size="sm"></ng-icon>
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-zinc-900">Saldo atual</h2>
+              <p class="text-sm text-zinc-500">Depois do último carregamento.</p>
+            </div>
+          </div>
+
+          <dl class="mt-5 space-y-4 text-sm">
+            <div class="flex items-center justify-between">
+              <dt class="text-zinc-500">Disponível</dt>
+              <dd class="font-semibold text-zinc-900">{{ ((account()?.available ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+            </div>
+            <div class="flex items-center justify-between">
+              <dt class="text-zinc-500">Bloqueado</dt>
+              <dd class="font-semibold text-zinc-900">{{ ((account()?.blocked ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+            </div>
+            <div class="flex items-center justify-between">
+              <dt class="text-zinc-500">A receber</dt>
+              <dd class="font-semibold text-zinc-900">{{ ((account()?.pending ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        @if (canSimulate()) {
+          <section class="rounded-lg border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div class="flex items-start gap-3">
+              <ng-icon hlm name="lucideCircleAlert" class="mt-0.5 text-amber-600" size="sm"></ng-icon>
+              <div>
+                <h2 class="text-base font-semibold text-amber-950">Simulações TEST</h2>
+                <p class="mt-1 text-sm leading-6 text-amber-800">Use estas ações para concluir ou falhar um saque não terminal no ambiente de teste.</p>
+              </div>
+            </div>
+
+            @if (actionError()) {
+              <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ actionError() }}</div>
+            }
+
+            <div class="mt-5 grid gap-3">
+              <button hlmBtn class="gap-2 bg-emerald-600 text-white hover:bg-emerald-700" (click)="complete()" [disabled]="actionLoading() !== null">
+                <ng-icon hlm name="lucideCheckCircle2" size="sm"></ng-icon>
+                {{ actionLoading() === 'complete' ? 'Completando...' : 'Completar' }}
+              </button>
+              <button hlmBtn variant="outline" class="gap-2 border-red-200 bg-white text-red-700 hover:bg-red-50" (click)="fail()" [disabled]="actionLoading() !== null">
+                <ng-icon hlm name="lucideXCircle" size="sm"></ng-icon>
+                {{ actionLoading() === 'fail' ? 'Falhando...' : 'Falhar' }}
+              </button>
+            </div>
+          </section>
+        }
+
+        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+          <h2 class="text-base font-semibold text-zinc-900">Datas</h2>
+          <dl class="mt-5 space-y-4 text-sm">
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Criado em</dt>
+              <dd class="text-right font-medium text-zinc-900">{{ item.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt class="text-zinc-500">Atualizado em</dt>
+              <dd class="text-right font-medium text-zinc-900">{{ item.updatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
+    </div>
+  }
+</div>

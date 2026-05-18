@@ -22,6 +22,7 @@ export type TransactionType =
     | 'PAYMENT_RELEASED'
     | 'REFUND_DEDUCTED'
     | 'NEGATIVE_COMPENSATED'
+    | 'WITHDRAWAL_RESERVED'
     | 'WITHDRAWAL_SENT'
     | 'WITHDRAWAL_REVERSED'
     | 'FEE_CHARGED'

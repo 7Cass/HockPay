@@ -38,6 +38,7 @@ export class DashboardLayout {
     'customers': 'Clientes',
     'receipts': 'Comprovantes',
     'financials': 'Saldo e Extrato',
+    'withdrawals': 'Saques',
     'products': 'Produtos',
     'api': 'API',
     'api-keys': 'API Keys',

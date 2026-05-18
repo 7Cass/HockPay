@@ -22,6 +22,7 @@ import {
     lucideReceipt,
     lucideBell,
     lucideLink,
+    lucideBanknoteArrowDown,
 } from '@ng-icons/lucide';
 import { StoreService, type Store } from '../../../core/services/store.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -62,6 +63,7 @@ interface MenuGroup {
             lucideReceipt,
             lucideBell,
             lucideLink,
+            lucideBanknoteArrowDown,
         }),
     ],
     templateUrl: './sidebar.component.html',
@@ -113,6 +115,7 @@ export class SidebarComponent implements OnInit {
             items: [
                 { label: 'Comprovantes', icon: 'lucideReceipt', route: '/dashboard/receipts' },
                 { label: 'Saldo e Extrato', icon: 'lucideArrowRightLeft', route: '/dashboard/financials' },
+                { label: 'Saques', icon: 'lucideBanknoteArrowDown', route: '/dashboard/withdrawals' },
             ],
         },
         {

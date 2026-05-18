@@ -83,6 +83,7 @@ export class Financials implements OnInit {
         { value: 'PAYMENT_RELEASED', label: 'Saldo liberado' },
         { value: 'REFUND_DEDUCTED', label: 'Estorno debitado' },
         { value: 'NEGATIVE_COMPENSATED', label: 'Compensação negativa' },
+        { value: 'WITHDRAWAL_RESERVED', label: 'Saque reservado' },
         { value: 'WITHDRAWAL_SENT', label: 'Saque enviado' },
         { value: 'WITHDRAWAL_REVERSED', label: 'Saque revertido' },
         { value: 'FEE_CHARGED', label: 'Taxa' },
