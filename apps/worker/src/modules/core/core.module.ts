@@ -15,6 +15,7 @@ import {
   HmacSignerService,
   IdempotencyKeyRepository,
   UnitOfWork,
+  WithdrawalRepository,
   WebhookHttpClientService,
 } from "@hockpay/infrastructure";
 import { AccountRepository } from "../../infra/repositories/account.repository.impl";
@@ -25,15 +26,20 @@ import {
   ProcessWebhookUseCase,
   ProcessAlertDeliveryUseCase,
   ReleasePaymentUseCase,
+  CompleteWithdrawalUseCase,
   CleanupLogsUseCase,
   DetectAnomaliesUseCase,
+  FailWithdrawalUseCase,
   IPaymentRepository,
+  IWithdrawalRepository,
   IOutboxRepository,
   IWebhookConfigRepository,
   IWebhookLogRepository,
   IAlertConfigRepository,
   IAlertDeliveryLogRepository,
   IUnitOfWork,
+  MarkWithdrawalProcessingUseCase,
+  RecordWithdrawalProcessingErrorUseCase,
   getWebhookUrlPolicyOptionsForNodeEnv,
 } from "@hockpay/core";
 
@@ -91,6 +97,11 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
     {
       provide: "IUnitOfWork",
       useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: "IWithdrawalRepository",
+      useFactory: (prisma: PrismaService) => new WithdrawalRepository(prisma),
       inject: [PrismaService],
     },
 
@@ -155,6 +166,30 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
       inject: ["IUnitOfWork"],
     },
     {
+      provide: MarkWithdrawalProcessingUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new MarkWithdrawalProcessingUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
+    },
+    {
+      provide: CompleteWithdrawalUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new CompleteWithdrawalUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
+    },
+    {
+      provide: FailWithdrawalUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new FailWithdrawalUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
+    },
+    {
+      provide: RecordWithdrawalProcessingErrorUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new RecordWithdrawalProcessingErrorUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
+    },
+    {
       provide: ProcessAlertDeliveryUseCase,
       useFactory: (
         outboxRepository: IOutboxRepository,
@@ -203,12 +238,17 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
     "IAlertDeliveryLogRepository",
     "IIdempotencyKeyRepository",
     "IUnitOfWork",
+    "IWithdrawalRepository",
     AccountRepository,
     TransactionRepository,
     // Use Cases
     ProcessWebhookUseCase,
     ProcessAlertDeliveryUseCase,
     ReleasePaymentUseCase,
+    MarkWithdrawalProcessingUseCase,
+    CompleteWithdrawalUseCase,
+    FailWithdrawalUseCase,
+    RecordWithdrawalProcessingErrorUseCase,
     CleanupLogsUseCase,
     DetectAnomaliesUseCase,
   ],

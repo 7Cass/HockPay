@@ -8,6 +8,8 @@ export class WebhookLog {
   private readonly _id: string;
   private readonly _configId: string;
   private readonly _paymentId?: string;
+  private readonly _aggregateType?: string;
+  private readonly _aggregateId?: string;
   private readonly _outboxEventId?: string;
   private _requestId?: string;
   private readonly _eventType: string;
@@ -25,6 +27,8 @@ export class WebhookLog {
     this._id = props.id;
     this._configId = props.configId;
     this._paymentId = props.paymentId;
+    this._aggregateType = props.aggregateType;
+    this._aggregateId = props.aggregateId;
     this._outboxEventId = props.outboxEventId;
     this._requestId = props.requestId;
     this._eventType = props.eventType;
@@ -47,6 +51,8 @@ export class WebhookLog {
       id: crypto.randomUUID(),
       configId: props.configId,
       paymentId: props.paymentId,
+      aggregateType: props.aggregateType,
+      aggregateId: props.aggregateId,
       outboxEventId: props.outboxEventId,
       requestId: props.requestId,
       eventType: props.eventType,
@@ -76,6 +82,14 @@ export class WebhookLog {
 
   get paymentId(): string | undefined {
     return this._paymentId;
+  }
+
+  get aggregateType(): string | undefined {
+    return this._aggregateType;
+  }
+
+  get aggregateId(): string | undefined {
+    return this._aggregateId;
   }
 
   get outboxEventId(): string | undefined {
@@ -197,6 +211,8 @@ export class WebhookLog {
       id: this._id,
       configId: this._configId,
       paymentId: this._paymentId,
+      aggregateType: this._aggregateType,
+      aggregateId: this._aggregateId,
       outboxEventId: this._outboxEventId,
       requestId: this._requestId,
       eventType: this._eventType,
@@ -219,6 +235,8 @@ export class WebhookLog {
 export interface CreateWebhookLogProps {
   configId: string;
   paymentId?: string;
+  aggregateType?: string;
+  aggregateId?: string;
   outboxEventId?: string;
   requestId?: string;
   eventType: string;
@@ -233,6 +251,8 @@ export interface WebhookLogProps {
   id: string;
   configId: string;
   paymentId?: string;
+  aggregateType?: string;
+  aggregateId?: string;
   outboxEventId?: string;
   requestId?: string;
   eventType: string;
@@ -254,6 +274,8 @@ export interface WebhookLogObject {
   id: string;
   configId: string;
   paymentId?: string;
+  aggregateType?: string;
+  aggregateId?: string;
   outboxEventId?: string;
   requestId?: string;
   eventType: string;

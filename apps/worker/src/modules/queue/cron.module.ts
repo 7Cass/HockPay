@@ -7,6 +7,7 @@ import { AntiFraudJob } from '../../jobs/anti-fraud.job';
 import { OutboxDispatcherJob } from '../../jobs/outbox-dispatcher.job';
 import { PaymentExpirationJob } from '../../jobs/payment-expiration.job';
 import { CleanupIdempotencyKeysJob } from '../../jobs/cleanup-idempotency-keys.job';
+import { WithdrawalProcessingJob } from '../../jobs/withdrawal-processing.job';
 import { WorkerCronScheduler } from '../../common/worker-cron-scheduler';
 import { RedisDistributedLockService } from '../../common/redis-distributed-lock.service';
 
@@ -26,6 +27,7 @@ import { RedisDistributedLockService } from '../../common/redis-distributed-lock
     OutboxDispatcherJob,
     PaymentExpirationJob,
     CleanupIdempotencyKeysJob,
+    WithdrawalProcessingJob,
   ],
   exports: [],
 })

@@ -8,6 +8,10 @@ export const ALLOWED_WEBHOOK_EVENTS = [
   'payment.expired',
   'payment.released',
   'payment.refunded',
+  'withdrawal.created',
+  'withdrawal.processing',
+  'withdrawal.completed',
+  'withdrawal.failed',
 ] as const;
 
 /**

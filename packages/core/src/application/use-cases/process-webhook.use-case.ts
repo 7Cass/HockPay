@@ -18,7 +18,6 @@ import {
   buildWebhookEventPayload,
   WebhookEventPayload,
 } from "../services/webhook-payload-builder.service";
-import { PaymentObject } from "../../domain/entities/payment.entity";
 
 type OperationalLogger = {
   debug(message: string): void;
@@ -173,21 +172,24 @@ export class ProcessWebhookUseCase {
     requestId?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const timestamp = Date.now();
-    const paymentId = (event.payload as Record<string, unknown>).id as
-      | string
-      | undefined;
+    const aggregatePayload = event.payload as Record<string, unknown>;
+    const aggregateId =
+      typeof aggregatePayload.id === "string" ? aggregatePayload.id : event.aggregateId;
+    const paymentId = event.aggregateType === "Payment" ? aggregateId : undefined;
 
     // Build webhook envelope payload (Stripe-like format)
     const webhookPayload: WebhookEventPayload = buildWebhookEventPayload(
       event.id,
       event.eventType,
       event.createdAt,
-      event.payload as unknown as PaymentObject,
+      aggregatePayload,
     );
 
     const log = WebhookLog.create({
       configId: config.id,
       paymentId,
+      aggregateType: event.aggregateType,
+      aggregateId,
       outboxEventId: event.id,
       requestId,
       eventType: event.eventType,

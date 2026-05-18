@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@hockpay/database';
+import { Injectable } from "@nestjs/common";
+import { PrismaClient } from "@hockpay/database";
 import {
   IWebhookLogRepository,
   FindWebhookLogsByConfigIdOptions,
   WebhookLogStatus,
   WebhookLog,
   WebhookLogProps,
-} from '@hockpay/core';
+} from "@hockpay/core";
 
 /**
  * Infrastructure implementation of IWebhookLogRepository.
@@ -22,6 +22,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
         id: log.id,
         configId: log.configId,
         paymentId: log.paymentId,
+        aggregateType: (log as any).aggregateType,
+        aggregateId: (log as any).aggregateId,
         outboxEventId: log.outboxEventId,
         requestId: log.requestId,
         eventType: log.eventType,
@@ -34,7 +36,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
         nextRetryAt: log.nextRetryAt,
         deliveredAt: log.deliveredAt,
         createdAt: log.createdAt,
-      },
+      } as any,
     });
   }
 
@@ -43,13 +45,15 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       where: { id: log.id },
       data: {
         requestId: log.requestId,
+        aggregateType: (log as any).aggregateType,
+        aggregateId: (log as any).aggregateId,
         requestHeaders: log.requestHeaders as any,
         responseStatus: log.responseStatus,
         responseBody: log.responseBody,
         attempt: log.attempt,
         nextRetryAt: log.nextRetryAt,
         deliveredAt: log.deliveredAt,
-      },
+      } as any,
     });
   }
 
@@ -73,7 +77,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     const limit = options.limit ?? 50;
     const logs = await this.prisma.webhookLog.findMany({
       where: this.buildConfigStatusWhere(configId, options.status),
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -84,7 +88,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
   async findByPaymentId(paymentId: string): Promise<WebhookLog[]> {
     const logs = await this.prisma.webhookLog.findMany({
       where: { paymentId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return logs.map((l) => this.toDomain(l));
@@ -96,7 +100,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
         deliveredAt: null,
         nextRetryAt: { lte: new Date() },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       take: limit,
     });
 
@@ -116,7 +120,10 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     return result.count;
   }
 
-  async countByConfigId(configId: string, status?: WebhookLogStatus): Promise<number> {
+  async countByConfigId(
+    configId: string,
+    status?: WebhookLogStatus,
+  ): Promise<number> {
     return this.prisma.webhookLog.count({
       where: this.buildConfigStatusWhere(configId, status),
     });
@@ -124,18 +131,18 @@ export class WebhookLogRepository implements IWebhookLogRepository {
 
   private buildConfigStatusWhere(configId: string, status?: WebhookLogStatus) {
     switch (status) {
-      case 'delivered':
+      case "delivered":
         return {
           configId,
           deliveredAt: { not: null },
         };
-      case 'failed':
+      case "failed":
         return {
           configId,
           deliveredAt: null,
           attempt: { gt: 1 },
         };
-      case 'pending':
+      case "pending":
         return {
           configId,
           deliveredAt: null,
@@ -150,6 +157,8 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     id: string;
     configId: string;
     paymentId: string | null;
+    aggregateType?: string | null;
+    aggregateId?: string | null;
     outboxEventId: string | null;
     requestId: string | null;
     eventType: string;
@@ -167,11 +176,15 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       id: prismaLog.id,
       configId: prismaLog.configId,
       paymentId: prismaLog.paymentId ?? undefined,
+      aggregateType: prismaLog.aggregateType ?? undefined,
+      aggregateId: prismaLog.aggregateId ?? undefined,
       outboxEventId: prismaLog.outboxEventId ?? undefined,
       requestId: prismaLog.requestId ?? undefined,
       eventType: prismaLog.eventType,
       payload: prismaLog.payload as Record<string, unknown>,
-      requestHeaders: prismaLog.requestHeaders as Record<string, string> | undefined,
+      requestHeaders: prismaLog.requestHeaders as
+        | Record<string, string>
+        | undefined,
       responseStatus: prismaLog.responseStatus ?? undefined,
       responseBody: prismaLog.responseBody ?? undefined,
       attempt: prismaLog.attempt,
@@ -179,7 +192,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       nextRetryAt: prismaLog.nextRetryAt ?? undefined,
       deliveredAt: prismaLog.deliveredAt ?? undefined,
       createdAt: prismaLog.createdAt,
-    };
+    } as any;
 
     return WebhookLog.reconstitute(props);
   }

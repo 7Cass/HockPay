@@ -79,7 +79,10 @@ describe("ProcessWebhookUseCase", () => {
 
   it("leaves outbox status unchanged on transient delivery failure", async () => {
     const event = makeEvent();
-    const config = makeConfig("webhook-config-1", "https://example.com/webhook");
+    const config = makeConfig(
+      "webhook-config-1",
+      "https://example.com/webhook",
+    );
     const { useCase, outboxRepository, webhookLogRepository } = makeUseCase({
       event,
       configs: [config],
@@ -132,8 +135,43 @@ describe("ProcessWebhookUseCase", () => {
     );
     expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
     expect(webhookLogRepository.save.mock.calls[0][0].requestId).toBe("req-1");
-    expect(webhookLogRepository.save.mock.calls[0][0].outboxEventId).toBe(event.id);
+    expect(webhookLogRepository.save.mock.calls[0][0].outboxEventId).toBe(
+      event.id,
+    );
     expect(outboxRepository.update).toHaveBeenCalledWith(event);
+  });
+
+  it("logs non-payment aggregates without forcing paymentId", async () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Withdrawal",
+      aggregateId: "withdrawal-1",
+      eventType: "withdrawal.completed",
+      requestId: "req-withdrawal-1",
+      payload: {
+        id: "withdrawal-1",
+        storeId: "store-1",
+        amount: 10000,
+      },
+    });
+    event.markAsDispatched(new Date("2026-01-01T00:45:00.000Z"));
+    const { useCase, webhookLogRepository } = makeUseCase({
+      event,
+      configs: [makeConfig("webhook-config-1", "https://example.com/one")],
+      sender: {
+        send: vi.fn().mockResolvedValue({
+          success: true,
+          statusCode: 200,
+          body: "ok",
+        }),
+      } as any,
+    });
+
+    await useCase.execute({ eventId: event.id });
+
+    const log = webhookLogRepository.save.mock.calls[0][0];
+    expect(log.paymentId).toBeUndefined();
+    expect(log.aggregateType).toBe("Withdrawal");
+    expect(log.aggregateId).toBe("withdrawal-1");
   });
 
   it("attempts every webhook config when one delivery fails", async () => {
@@ -189,7 +227,11 @@ describe("ProcessWebhookUseCase", () => {
       event,
       configs: [
         makeConfig("webhook-config-1", "https://example.com/one", "bad-secret"),
-        makeConfig("webhook-config-2", "https://example.com/two", "good-secret"),
+        makeConfig(
+          "webhook-config-2",
+          "https://example.com/two",
+          "good-secret",
+        ),
       ],
       sender: sender as any,
       encryption: {
