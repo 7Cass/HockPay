@@ -251,7 +251,7 @@ Correcao minima aceitavel, se schema novo for grande demais: antes de enviar par
 
 ## 3. Gaps transacionais em auth/store/checkout
 
-Status: em validacao/hardening desde 2026-05-20. A implementacao local foi concluida e comitada, mas o macro item ainda nao deve ser marcado como concluido enquanto o smoke P0 em infra descartavel estiver pendente.
+Status: concluido em 2026-05-20. A implementacao local foi concluida, comitada e validada com smoke P0 em infra descartavel.
 
 Notas da implementacao:
 
@@ -338,10 +338,10 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
   - Solucao: rodar core, infrastructure, api e build; comitar por escopo sem incluir arquivos da landing.
   - Validacao: comandos passam e `git status` final mostra apenas alteracoes fora do escopo.
 
-- [ ] 3.8 Validar smoke P0 em infra descartavel
+- [x] 3.8 Validar smoke P0 em infra descartavel
   - Problema: testes unitarios/build validam a fronteira transacional, mas ainda falta exercitar o fluxo integrado com API/worker/infra em processo limpo.
   - Solucao: subir ambiente descartavel com API e worker recem-buildados e executar `pnpm run smoke:p0`.
-  - Validacao: smoke P0 passa sem falhas; se falhar, registrar erro neste item e abrir subtasks especificas antes de marcar o macro item como concluido.
+  - Validacao: `HOCKPAY_SMOKE_SUITE=p0 pnpm run smoke:docker` passou, subindo Postgres/Redis descartaveis, aplicando migrations, iniciando API/worker/checkout e executando `smoke:p0`.
 
 ### Criterios de corrigido
 
@@ -351,7 +351,7 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 - [x] Falha simulada apos criar payment em checkout nao deixa payment/pix/outbox persistidos sem sessao completed.
 - [x] Duplo fulfill concorrente da mesma sessao gera no maximo um payment.
 - [x] O wiring Nest dos fluxos mutantes usa `IUnitOfWork`, nao repositorios diretos, para operacao composta.
-- [ ] Smoke P0 em infra descartavel confirma que os fluxos integrados continuam funcionando com API/worker reais.
+- [x] Smoke P0 em infra descartavel confirma que os fluxos integrados continuam funcionando com API/worker reais.
 
 ### Walkthrough de testes
 
@@ -362,7 +362,7 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 5. [x] Rodar `pnpm --filter @hockpay/infrastructure test`.
 6. [x] Rodar `pnpm --filter @hockpay/api test`.
 7. [x] Rodar `pnpm build`.
-8. [ ] Em ambiente descartavel com infra local e API/worker recem-subidos, rodar `pnpm run smoke:p0`.
+8. [x] Em ambiente descartavel com infra local e API/worker recem-subidos, rodar `HOCKPAY_SMOKE_SUITE=p0 pnpm run smoke:docker`.
 
 ## 4. Store creation, auth hydration, refresh waiters e withdrawals
 
