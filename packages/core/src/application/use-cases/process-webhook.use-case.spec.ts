@@ -4,6 +4,7 @@ import {
   OutboxEventStatus,
 } from "../../domain/entities/outbox-event.entity";
 import { WebhookConfig } from "../../domain/entities/webhook-config.entity";
+import { WebhookLog } from "../../domain/entities/webhook-log.entity";
 import { ProcessWebhookUseCase } from "./process-webhook.use-case";
 
 describe("ProcessWebhookUseCase", () => {
@@ -42,11 +43,13 @@ describe("ProcessWebhookUseCase", () => {
     configs,
     sender,
     encryption = { decrypt: vi.fn().mockReturnValue("plain-secret") },
+    existingDeliveries = {},
   }: {
     event: OutboxEvent;
     configs: WebhookConfig[];
     sender: any;
     encryption?: any;
+    existingDeliveries?: Record<string, WebhookLog | null>;
   }) {
     const outboxRepository = {
       findById: vi.fn().mockResolvedValue(event),
@@ -57,6 +60,13 @@ describe("ProcessWebhookUseCase", () => {
     };
     const webhookLogRepository = {
       save: vi.fn(),
+      upsertDelivery: vi.fn(),
+      findByConfigAndOutboxEvent: vi.fn(
+        (configId: string, outboxEventId: string) => {
+          const key = `${configId}:${outboxEventId}`;
+          return Promise.resolve(existingDeliveries[key] ?? null);
+        },
+      ),
     };
     const useCase = new ProcessWebhookUseCase(
       outboxRepository as any,
@@ -75,6 +85,30 @@ describe("ProcessWebhookUseCase", () => {
       webhookConfigRepository,
       webhookLogRepository,
     };
+  }
+
+  function makeDeliveryLog(event: OutboxEvent, configId: string) {
+    return WebhookLog.create({
+      configId,
+      paymentId: "payment-1",
+      aggregateType: event.aggregateType,
+      aggregateId: event.aggregateId,
+      outboxEventId: event.id,
+      requestId: event.requestId,
+      eventType: event.eventType,
+      payload: {
+        id: event.id,
+        type: event.eventType,
+        data: event.payload,
+      },
+    });
+  }
+
+  function makeDeliveredLog(event: OutboxEvent, configId: string) {
+    const log = makeDeliveryLog(event, configId);
+    log.beginAttempt(event.requestId);
+    log.recordSuccess(200, "ok");
+    return log;
   }
 
   it("leaves outbox status unchanged on transient delivery failure", async () => {
@@ -100,7 +134,7 @@ describe("ProcessWebhookUseCase", () => {
     expect(result.delivered).toBe(false);
     expect(result.event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(outboxRepository.update).not.toHaveBeenCalled();
-    expect(webhookLogRepository.save).toHaveBeenCalledTimes(1);
+    expect(webhookLogRepository.upsertDelivery).toHaveBeenCalledTimes(1);
   });
 
   it("marks the outbox as processed after all webhook configs succeed", async () => {
@@ -133,9 +167,9 @@ describe("ProcessWebhookUseCase", () => {
         "X-Request-ID": "req-1",
       }),
     );
-    expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
-    expect(webhookLogRepository.save.mock.calls[0][0].requestId).toBe("req-1");
-    expect(webhookLogRepository.save.mock.calls[0][0].outboxEventId).toBe(
+    expect(webhookLogRepository.upsertDelivery).toHaveBeenCalledTimes(2);
+    expect(webhookLogRepository.upsertDelivery.mock.calls[0][0].requestId).toBe("req-1");
+    expect(webhookLogRepository.upsertDelivery.mock.calls[0][0].outboxEventId).toBe(
       event.id,
     );
     expect(outboxRepository.update).toHaveBeenCalledWith(event);
@@ -168,7 +202,7 @@ describe("ProcessWebhookUseCase", () => {
 
     await useCase.execute({ eventId: event.id });
 
-    const log = webhookLogRepository.save.mock.calls[0][0];
+    const log = webhookLogRepository.upsertDelivery.mock.calls[0][0];
     expect(log.paymentId).toBeUndefined();
     expect(log.aggregateType).toBe("Withdrawal");
     expect(log.aggregateId).toBe("withdrawal-1");
@@ -200,8 +234,76 @@ describe("ProcessWebhookUseCase", () => {
     expect(result.error).toBe("HTTP 500");
     expect(result.event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(sender.send).toHaveBeenCalledTimes(2);
-    expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
+    expect(webhookLogRepository.upsertDelivery).toHaveBeenCalledTimes(2);
     expect(outboxRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("does not resend webhook configs already delivered for the same outbox event", async () => {
+    const event = makeEvent();
+    const delivered = makeDeliveredLog(event, "webhook-config-2");
+    const sender = {
+      send: vi.fn().mockResolvedValue({
+        success: false,
+        statusCode: 500,
+        body: "server error",
+      }),
+    };
+    const { useCase, outboxRepository, webhookLogRepository } = makeUseCase({
+      event,
+      configs: [
+        makeConfig("webhook-config-1", "https://example.com/one"),
+        makeConfig("webhook-config-2", "https://example.com/two"),
+      ],
+      sender: sender as any,
+      existingDeliveries: {
+        [`webhook-config-2:${event.id}`]: delivered,
+      },
+    });
+
+    const result = await useCase.execute({ eventId: event.id });
+
+    expect(result.delivered).toBe(false);
+    expect(sender.send).toHaveBeenCalledTimes(1);
+    expect(sender.send).toHaveBeenCalledWith(
+      "https://example.com/one",
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(webhookLogRepository.upsertDelivery).toHaveBeenCalledTimes(1);
+    expect(outboxRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("marks the outbox as processed when every active config was already delivered", async () => {
+    const event = makeEvent();
+    const sender = {
+      send: vi.fn(),
+    };
+    const { useCase, outboxRepository, webhookLogRepository } = makeUseCase({
+      event,
+      configs: [
+        makeConfig("webhook-config-1", "https://example.com/one"),
+        makeConfig("webhook-config-2", "https://example.com/two"),
+      ],
+      sender: sender as any,
+      existingDeliveries: {
+        [`webhook-config-1:${event.id}`]: makeDeliveredLog(
+          event,
+          "webhook-config-1",
+        ),
+        [`webhook-config-2:${event.id}`]: makeDeliveredLog(
+          event,
+          "webhook-config-2",
+        ),
+      },
+    });
+
+    const result = await useCase.execute({ eventId: event.id });
+
+    expect(result.delivered).toBe(true);
+    expect(result.event.status).toBe(OutboxEventStatus.PROCESSED);
+    expect(sender.send).not.toHaveBeenCalled();
+    expect(webhookLogRepository.upsertDelivery).not.toHaveBeenCalled();
+    expect(outboxRepository.update).toHaveBeenCalledWith(event);
   });
 
   it("isolates unexpected config delivery errors from other webhook configs", async () => {
@@ -251,7 +353,7 @@ describe("ProcessWebhookUseCase", () => {
     expect(result.event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(sender.send).toHaveBeenCalledTimes(1);
     expect(outboxRepository.update).not.toHaveBeenCalled();
-    expect(webhookLogRepository.save).toHaveBeenCalledTimes(2);
+    expect(webhookLogRepository.upsertDelivery).toHaveBeenCalledTimes(2);
   });
 
   it("does not infer storeId from nested payload data", async () => {

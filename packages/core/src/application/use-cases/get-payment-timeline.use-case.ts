@@ -5,7 +5,10 @@ import { PaymentObject } from '../../domain/entities/payment.entity';
 import { ReceiptObject } from '../../domain/entities/receipt.entity';
 import { RefundObject } from '../../domain/entities/refund.entity';
 import { TransactionObject } from '../../domain/entities/transaction.entity';
-import { WebhookLogObject } from '../../domain/entities/webhook-log.entity';
+import {
+  WebhookDeliveryStatus,
+  WebhookLogObject,
+} from '../../domain/entities/webhook-log.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
@@ -313,9 +316,12 @@ export class GetPaymentTimelineUseCase {
         metadata: {
           deliveryId: log.id,
           requestId: log.requestId,
+          deliveryStatus: log.status,
           responseStatus: log.responseStatus,
           attempt: log.attempt,
           maxAttempts: log.maxAttempts,
+          failedAt: log.failedAt,
+          lastError: log.lastError,
         },
       });
     }
@@ -336,11 +342,27 @@ export class GetPaymentTimelineUseCase {
     status: PaymentTimelineEventStatus;
     title: string;
   } {
-    if (log.deliveredAt) {
+    if (log.status === WebhookDeliveryStatus.DELIVERED || log.deliveredAt) {
       return {
         type: 'webhook.delivered',
         status: 'completed',
         title: 'Webhook entregue',
+      };
+    }
+
+    if (log.status === WebhookDeliveryStatus.FAILED_FINAL) {
+      return {
+        type: 'webhook.failed',
+        status: 'failed',
+        title: 'Webhook falhou definitivamente',
+      };
+    }
+
+    if (log.status === WebhookDeliveryStatus.FAILED_RETRYABLE) {
+      return {
+        type: 'webhook.failed',
+        status: 'pending',
+        title: 'Webhook com retry pendente',
       };
     }
 

@@ -2,6 +2,7 @@ import {
   IWebhookLogRepository,
   IWebhookConfigRepository,
   WebhookLog,
+  WebhookDeliveryStatus,
   WebhookConfigNotFoundError,
 } from '../..';
 
@@ -93,9 +94,9 @@ export class ListWebhookLogsUseCase {
       case 'delivered':
         return logs.filter((log) => log.isDelivered());
       case 'failed':
-        return logs.filter((log) => !log.isDelivered() && log.attempt > 1);
+        return logs.filter((log) => log.isFailed());
       case 'pending':
-        return logs.filter((log) => !log.isDelivered() && log.attempt === 1);
+        return logs.filter((log) => log.status === WebhookDeliveryStatus.PENDING);
       default:
         return logs;
     }

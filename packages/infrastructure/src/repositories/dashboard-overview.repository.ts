@@ -394,8 +394,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
         config: {
           storeId: input.storeId,
         },
-        deliveredAt: null,
-        attempt: { gt: 1 },
+        status: { in: ["FAILED_RETRYABLE", "FAILED_FINAL"] as any },
         createdAt: dateRange(input),
       },
     });
@@ -407,8 +406,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
         config: {
           storeId: input.storeId,
         },
-        deliveredAt: null,
-        attempt: 1,
+        status: "PENDING" as any,
         createdAt: dateRange(input),
       },
     });

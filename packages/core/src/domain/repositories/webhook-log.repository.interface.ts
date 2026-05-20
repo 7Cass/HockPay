@@ -25,9 +25,27 @@ export interface IWebhookLogRepository {
   update(log: WebhookLog): Promise<void>;
 
   /**
+   * Create or update the canonical delivery row for an outbox/config pair.
+   */
+  upsertDelivery(log: WebhookLog): Promise<void>;
+
+  /**
    * Find a webhook log by ID.
    */
   findById(id: string): Promise<WebhookLog | null>;
+
+  /**
+   * Find the canonical delivery row for an outbox/config pair.
+   */
+  findByConfigAndOutboxEvent(
+    configId: string,
+    outboxEventId: string,
+  ): Promise<WebhookLog | null>;
+
+  /**
+   * Find all delivery rows for an outbox event.
+   */
+  findByOutboxEventId(outboxEventId: string): Promise<WebhookLog[]>;
 
   /**
    * Find logs by webhook config ID.
@@ -59,4 +77,13 @@ export interface IWebhookLogRepository {
    * Count logs by config ID and delivery status.
    */
   countByConfigId(configId: string, status?: WebhookLogStatus): Promise<number>;
+
+  /**
+   * Mark non-delivered delivery rows for an outbox event as terminal failures.
+   */
+  markOutboxDeliveriesFinalFailure(
+    outboxEventId: string,
+    error: string,
+    attemptsMade?: number,
+  ): Promise<number>;
 }

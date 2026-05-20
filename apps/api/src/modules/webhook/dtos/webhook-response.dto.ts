@@ -73,10 +73,13 @@ export class WebhookLogDto {
   requestHeaders?: Record<string, string>;
   responseStatus?: number;
   responseBody?: string;
+  status: string;
   attempt: number;
   maxAttempts: number;
   nextRetryAt?: Date;
   deliveredAt?: Date;
+  failedAt?: Date;
+  lastError?: string;
   createdAt: Date;
 }
 
@@ -156,10 +159,13 @@ export function mapWebhookLogToDto(log: WebhookLogObject): WebhookLogDto {
     requestHeaders: sanitizeRequestHeaders(log.requestHeaders),
     responseStatus: log.responseStatus,
     responseBody: log.responseBody,
+    status: log.status,
     attempt: log.attempt,
     maxAttempts: log.maxAttempts,
     nextRetryAt: log.nextRetryAt,
     deliveredAt: log.deliveredAt,
+    failedAt: log.failedAt,
+    lastError: log.lastError,
     createdAt: log.createdAt,
   };
 }

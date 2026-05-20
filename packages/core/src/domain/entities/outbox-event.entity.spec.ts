@@ -36,6 +36,23 @@ describe("OutboxEvent", () => {
     expect(event.errorMessage).toBe("Failed to insert webhook job into BullMQ");
   });
 
+  it("marks a terminally failed event as non-retryable", () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Payment",
+      aggregateId: "payment-1",
+      eventType: "payment.created",
+      payload: { id: "payment-1" },
+    });
+
+    event.markAsTerminalFailed("BullMQ attempts exhausted");
+
+    expect(event.status).toBe(OutboxEventStatus.FAILED);
+    expect(event.retryCount).toBe(event.maxRetries);
+    expect(event.nextRetryAt).toBeUndefined();
+    expect(event.errorMessage).toBe("BullMQ attempts exhausted");
+    expect(event.canRetry()).toBe(false);
+  });
+
   it("clears retry metadata when processed", () => {
     const event = OutboxEvent.create({
       aggregateType: "Payment",

@@ -1,8 +1,15 @@
+export enum WebhookDeliveryStatus {
+  PENDING = "PENDING",
+  DELIVERED = "DELIVERED",
+  FAILED_RETRYABLE = "FAILED_RETRYABLE",
+  FAILED_FINAL = "FAILED_FINAL",
+}
+
 /**
  * Domain Entity: WebhookLog
  *
- * Represents a log entry for webhook delivery attempts.
- * Tracks all delivery attempts for debugging and monitoring.
+ * Represents the canonical delivery row for a webhook config/outbox pair.
+ * Standalone test webhook logs may still be saved without an outbox event.
  */
 export class WebhookLog {
   private readonly _id: string;
@@ -17,10 +24,13 @@ export class WebhookLog {
   private _requestHeaders?: Record<string, string>;
   private _responseStatus?: number;
   private _responseBody?: string;
+  private _status: WebhookDeliveryStatus;
   private _attempt: number;
   private readonly _maxAttempts: number;
   private _nextRetryAt?: Date;
   private _deliveredAt?: Date;
+  private _failedAt?: Date;
+  private _lastError?: string;
   private readonly _createdAt: Date;
 
   private constructor(props: WebhookLogProps) {
@@ -36,10 +46,13 @@ export class WebhookLog {
     this._requestHeaders = props.requestHeaders;
     this._responseStatus = props.responseStatus;
     this._responseBody = props.responseBody;
+    this._status = props.status ?? deriveStatus(props);
     this._attempt = props.attempt;
     this._maxAttempts = props.maxAttempts;
     this._nextRetryAt = props.nextRetryAt;
     this._deliveredAt = props.deliveredAt;
+    this._failedAt = props.failedAt;
+    this._lastError = props.lastError;
     this._createdAt = props.createdAt;
   }
 
@@ -57,7 +70,8 @@ export class WebhookLog {
       requestId: props.requestId,
       eventType: props.eventType,
       payload: props.payload,
-      attempt: 1,
+      status: WebhookDeliveryStatus.PENDING,
+      attempt: 0,
       maxAttempts: props.maxAttempts ?? 5,
       createdAt: new Date(),
     });
@@ -120,6 +134,10 @@ export class WebhookLog {
     return this._responseBody;
   }
 
+  get status(): WebhookDeliveryStatus {
+    return this._status;
+  }
+
   get attempt(): number {
     return this._attempt;
   }
@@ -136,6 +154,14 @@ export class WebhookLog {
     return this._deliveredAt;
   }
 
+  get failedAt(): Date | undefined {
+    return this._failedAt;
+  }
+
+  get lastError(): string | undefined {
+    return this._lastError;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -143,42 +169,106 @@ export class WebhookLog {
   // Status checks
 
   isDelivered(): boolean {
-    return this._deliveredAt !== undefined;
+    return this._status === WebhookDeliveryStatus.DELIVERED;
   }
 
   canRetry(): boolean {
-    return this._attempt < this._maxAttempts && !this.isDelivered();
+    return (
+      this._attempt < this._maxAttempts &&
+      !this.isDelivered() &&
+      this._status !== WebhookDeliveryStatus.FAILED_FINAL
+    );
+  }
+
+  isFinalFailure(): boolean {
+    return this._status === WebhookDeliveryStatus.FAILED_FINAL;
+  }
+
+  isFailed(): boolean {
+    return (
+      this._status === WebhookDeliveryStatus.FAILED_RETRYABLE ||
+      this._status === WebhookDeliveryStatus.FAILED_FINAL
+    );
   }
 
   isSuccessful(): boolean {
-    return this._responseStatus !== undefined && this._responseStatus >= 200 && this._responseStatus < 300;
+    return (
+      this._status === WebhookDeliveryStatus.DELIVERED ||
+      (this._responseStatus !== undefined &&
+        this._responseStatus >= 200 &&
+        this._responseStatus < 300)
+    );
   }
 
   // Business methods
 
   /**
+   * Mark that a concrete delivery attempt is being made.
+   */
+  beginAttempt(requestId?: string): void {
+    this._attempt++;
+    this._status = WebhookDeliveryStatus.PENDING;
+    this._nextRetryAt = undefined;
+    this._failedAt = undefined;
+    this._lastError = undefined;
+
+    if (requestId) {
+      this._requestId = requestId;
+    }
+  }
+
+  /**
    * Record a successful delivery.
    */
   recordSuccess(responseStatus: number, responseBody?: string): void {
+    if (this._attempt === 0) {
+      this._attempt = 1;
+    }
     this._responseStatus = responseStatus;
     this._responseBody = responseBody;
+    this._status = WebhookDeliveryStatus.DELIVERED;
     this._deliveredAt = new Date();
     this._nextRetryAt = undefined;
+    this._failedAt = undefined;
+    this._lastError = undefined;
   }
 
   /**
    * Record a failed delivery attempt.
    */
   recordFailure(responseStatus: number, responseBody?: string): void {
+    if (this._attempt === 0) {
+      this._attempt = 1;
+    }
     this._responseStatus = responseStatus;
     this._responseBody = responseBody;
-    this._attempt++;
+    this._lastError = responseBody ?? `HTTP ${responseStatus}`;
 
-    if (this.canRetry()) {
+    if (this._attempt < this._maxAttempts) {
+      this._status = WebhookDeliveryStatus.FAILED_RETRYABLE;
       this._nextRetryAt = this.calculateNextRetry();
     } else {
+      this._status = WebhookDeliveryStatus.FAILED_FINAL;
       this._nextRetryAt = undefined;
+      this._failedAt = new Date();
     }
+  }
+
+  /**
+   * Record that the queue exhausted all technical retries.
+   */
+  markFinalFailure(error: string, attemptsMade?: number): void {
+    if (attemptsMade !== undefined) {
+      this._attempt = Math.max(this._attempt, attemptsMade);
+    } else if (this._attempt === 0) {
+      this._attempt = this._maxAttempts;
+    }
+
+    this._status = WebhookDeliveryStatus.FAILED_FINAL;
+    this._nextRetryAt = undefined;
+    this._failedAt = new Date();
+    this._lastError = error;
+    this._responseBody = this._responseBody ?? error;
   }
 
   /**
@@ -220,10 +310,13 @@ export class WebhookLog {
       requestHeaders: this._requestHeaders,
       responseStatus: this._responseStatus,
       responseBody: this._responseBody,
+      status: this._status,
       attempt: this._attempt,
       maxAttempts: this._maxAttempts,
       nextRetryAt: this._nextRetryAt,
       deliveredAt: this._deliveredAt,
+      failedAt: this._failedAt,
+      lastError: this._lastError,
       createdAt: this._createdAt,
     };
   }
@@ -260,10 +353,13 @@ export interface WebhookLogProps {
   requestHeaders?: Record<string, string>;
   responseStatus?: number;
   responseBody?: string;
+  status?: WebhookDeliveryStatus;
   attempt: number;
   maxAttempts: number;
   nextRetryAt?: Date;
   deliveredAt?: Date;
+  failedAt?: Date;
+  lastError?: string;
   createdAt: Date;
 }
 
@@ -283,9 +379,28 @@ export interface WebhookLogObject {
   requestHeaders?: Record<string, string>;
   responseStatus?: number;
   responseBody?: string;
+  status: WebhookDeliveryStatus;
   attempt: number;
   maxAttempts: number;
   nextRetryAt?: Date;
   deliveredAt?: Date;
+  failedAt?: Date;
+  lastError?: string;
   createdAt: Date;
+}
+
+function deriveStatus(props: WebhookLogProps): WebhookDeliveryStatus {
+  if (props.deliveredAt) {
+    return WebhookDeliveryStatus.DELIVERED;
+  }
+
+  if (props.failedAt) {
+    return WebhookDeliveryStatus.FAILED_FINAL;
+  }
+
+  if (props.responseStatus !== undefined || props.attempt > 1) {
+    return WebhookDeliveryStatus.FAILED_RETRYABLE;
+  }
+
+  return WebhookDeliveryStatus.PENDING;
 }

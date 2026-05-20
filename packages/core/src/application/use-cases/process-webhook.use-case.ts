@@ -195,7 +195,24 @@ export class ProcessWebhookUseCase {
       eventType: event.eventType,
       payload: webhookPayload as unknown as Record<string, unknown>,
     });
-    const webhookId = log.id;
+    const existingLog =
+      await this.webhookLogRepository.findByConfigAndOutboxEvent(
+        config.id,
+        event.id,
+      );
+    const deliveryLog = existingLog ?? log;
+
+    if (deliveryLog.isDelivered()) {
+      this.logger?.debug(
+        `Skipping already delivered webhook requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${deliveryLog.id}`,
+      );
+      return { success: true };
+    }
+
+    deliveryLog.beginAttempt(requestId);
+    const webhookId = deliveryLog.id;
+    const deliveryPayload =
+      deliveryLog.payload as unknown as WebhookEventPayload;
 
     this.logger?.debug(
       `Sending webhook requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
@@ -205,7 +222,7 @@ export class ProcessWebhookUseCase {
       const plainSecret = this.encryption.decrypt(config.secret);
       const signature = this.hmacSigner.sign(
         plainSecret,
-        webhookPayload as unknown as Record<string, unknown>,
+        deliveryPayload as unknown as Record<string, unknown>,
         timestamp,
       );
       const headers = {
@@ -217,23 +234,23 @@ export class ProcessWebhookUseCase {
         "User-Agent": "Hockpay-Webhook/1.0",
       };
 
-      log.setRequestHeaders(headers);
+      deliveryLog.setRequestHeaders(headers);
       const response = await this.webhookSender.send(
         config.url,
-        webhookPayload as unknown as Record<string, unknown>,
+        deliveryPayload as unknown as Record<string, unknown>,
         headers,
       );
 
       if (response.success) {
-        log.recordSuccess(response.statusCode, response.body);
-        await this.webhookLogRepository.save(log);
+        deliveryLog.recordSuccess(response.statusCode, response.body);
+        await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.debug(
           `Webhook delivered requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
         );
         return { success: true };
       } else {
-        log.recordFailure(response.statusCode, response.body);
-        await this.webhookLogRepository.save(log);
+        deliveryLog.recordFailure(response.statusCode, response.body);
+        await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.warn(
           `Webhook delivery rejected requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} statusCode=${response.statusCode}`,
         );
@@ -242,8 +259,8 @@ export class ProcessWebhookUseCase {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      log.recordFailure(0, errorMessage);
-      await this.webhookLogRepository.save(log);
+      deliveryLog.recordFailure(0, errorMessage);
+      await this.webhookLogRepository.upsertDelivery(deliveryLog);
       this.logger?.warn(
         `Webhook delivery failed requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} error=${errorMessage}`,
       );

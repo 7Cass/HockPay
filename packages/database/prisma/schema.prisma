@@ -110,6 +110,13 @@ enum AlertDeliveryStatus {
   FAILED
 }
 
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED_RETRYABLE
+  FAILED_FINAL
+}
+
 // ============================================================================
 // MERCHANT & AUTH
 // ============================================================================
@@ -533,16 +540,22 @@ model WebhookLog {
   requestHeaders  Json?         @map("request_headers")
   responseStatus  Int?          @map("response_status")
   responseBody    String?       @map("response_body") @db.Text
+  status          WebhookDeliveryStatus @default(PENDING)
   attempt         Int           @default(1)
   maxAttempts     Int           @default(5) @map("max_attempts")
   nextRetryAt     DateTime?     @map("next_retry_at")
   deliveredAt     DateTime?     @map("delivered_at")
+  failedAt        DateTime?     @map("failed_at")
+  lastError       String?       @map("last_error") @db.Text
   createdAt       DateTime      @default(now()) @map("created_at")
 
   config          WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
   payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
+  @@unique([configId, outboxEventId])
   @@index([configId, deliveredAt])
+  @@index([status, nextRetryAt])
+  @@index([outboxEventId, status])
   @@index([outboxEventId])
   @@index([requestId])
   @@index([aggregateType, aggregateId])

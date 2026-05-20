@@ -188,6 +188,16 @@ export class OutboxEvent {
   }
 
   /**
+   * Mark the event as permanently failed after the execution engine exhausted retries.
+   */
+  markAsTerminalFailed(error: string): void {
+    this._retryCount = this._maxRetries;
+    this._status = OutboxEventStatus.FAILED;
+    this._nextRetryAt = undefined;
+    this._errorMessage = error;
+  }
+
+  /**
    * Convert to plain object.
    */
   toObject(): OutboxEventObject {

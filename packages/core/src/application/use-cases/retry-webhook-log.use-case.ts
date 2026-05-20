@@ -85,6 +85,7 @@ export class RetryWebhookLogUseCase {
     if (input.requestId) {
       log.setRequestId(input.requestId);
     }
+    log.beginAttempt(input.requestId);
     log.setRequestHeaders(headers);
     this.logger?.debug(
       `Retrying webhook requestId=${input.requestId ?? log.requestId ?? 'unknown'} logId=${log.id} paymentId=${log.paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${log.id}`,
