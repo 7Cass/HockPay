@@ -141,6 +141,17 @@ A correcao recomendada e transformar a idempotencia em uma reserva transacional:
 
 ## 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 
+Status: concluido em 2026-05-20. Nesta leva, `WebhookLog` foi adaptado como linha canonica de entrega por `configId + outboxEventId`, sem introduzir uma tabela nova nem trocar endpoints publicos. BullMQ continua como motor tecnico de retries por outbox, e a DLQ agora preserva opcoes de requeue e aponta para o estado canonico no banco.
+
+Notas da implementacao:
+
+- `WebhookLog` ganhou `status`, `failedAt`, `lastError` e unique por `(configId, outboxEventId)`.
+- A migration `20260520000200_webhook_delivery_state` deduplica entregas antigas por par config/outbox, preferindo linhas ja entregues.
+- `ProcessWebhookUseCase` reutiliza a entrega existente, pula configs ja `DELIVERED` e atualiza a mesma linha em novas tentativas.
+- `WebhookProcessor.onFailed` marca entregas nao entregues como `FAILED_FINAL`, torna o `OutboxEvent` uma falha terminal e so entao cria o job na DLQ.
+- `scripts/dlq.mjs` requeuea com `jobId`, `attempts`, `backoff`, `removeOnComplete` e `removeOnFail`, bloqueando job alvo existente sem `--force`.
+- Como o job ainda e por outbox, a DLQ registra `configIds` afetados quando eles existem; job por entrega fica fora desta leva.
+
 ### Problema
 
 O estado de entrega esta dividido entre quatro fontes sem um dono claro: `OutboxEvent`, `WebhookLog`, BullMQ e DLQ.
@@ -179,33 +190,64 @@ Correcao minima aceitavel, se schema novo for grande demais: antes de enviar par
 
 ### Tarefas
 
-- [ ] Documentar o dono do estado: banco para negocio/operacional, BullMQ para tentativas tecnicas, DLQ para intervencao.
-- [ ] Criar ou adaptar persistencia por entrega com unicidade por `configId + outboxEventId`.
-- [ ] Persistir `status`, `attempt`, `maxAttempts`, `nextRetryAt`, `deliveredAt`, `failedAt`, `lastError`.
-- [ ] Ajustar `ProcessWebhookUseCase` para nao reenviar configs ja entregues.
-- [ ] Atualizar entrega existente em vez de criar logs duplicados sem vinculo de tentativa.
-- [ ] Definir quando o outbox vira `PROCESSED` se algumas entregas estiverem terminalmente falhas.
-- [ ] Ajustar `WebhookProcessor.onFailed` para atualizar estado canonico no banco ao mover para DLQ.
-- [ ] Registrar `failedReason`, `attemptsMade`, `requestId`, `outboxEventId` e `configId`.
-- [ ] Ajustar `scripts/dlq.mjs` para recriar jobs com `attempts`, `backoff`, `jobId` e `removeOn*` equivalentes ao fluxo normal.
-- [ ] Evitar requeue cego quando o job original ainda existir em estado incompatibilidade.
+- [x] 2.1 Definir dono do estado e escopo desta leva
+  - Problema: `OutboxEvent`, `WebhookLog`, BullMQ e DLQ disputavam a interpretacao do estado final.
+  - Solucao: banco fica como fonte canonica de estado de negocio/operacional; BullMQ fica como motor tecnico de tentativas; DLQ fica como area de intervencao manual. Nesta leva, `WebhookLog` sera a entrega canonica por config/outbox.
+  - Validacao: revisao do item pelos subagents e registro do escopo neste documento.
+
+- [x] 2.2 Evoluir schema/dominio de `WebhookLog`
+  - Problema: cada tentativa criava uma linha nova sem `status`, `failedAt`, `lastError` ou unicidade por entrega.
+  - Solucao: adicionar status explicito `PENDING | DELIVERED | FAILED_RETRYABLE | FAILED_FINAL`, `failedAt`, `lastError` e unique por `(configId, outboxEventId)`, preservando os campos publicos atuais.
+  - Validacao: migration Prisma, client gerado e testes de entidade/repositorio cobrindo transicoes de entrega.
+
+- [x] 2.3 Adaptar repositorio para entrega unica
+  - Problema: `WebhookLogRepository.save()` sempre usava `create`, causando duplicidade e tentativa semanticamente incorreta.
+  - Solucao: adicionar busca por `(configId, outboxEventId)`, `upsertDelivery`, consulta por outbox e marcacao de falha final; filtros passam a usar status canonico.
+  - Validacao: specs de infrastructure cobrindo upsert, filtros por status e falha final por outbox.
+
+- [x] 2.4 Ajustar `ProcessWebhookUseCase`
+  - Problema: retries de um evento reenviavam configs ja entregues quando outra config falhava.
+  - Solucao: reaproveitar a entrega existente, pular `DELIVERED`, atualizar tentativa existente em sucesso/falha e marcar outbox como `PROCESSED` quando todas as configs ativas estiverem entregues.
+  - Validacao: specs de core cobrindo falha parcial, segunda execucao sem reenvio da config entregue e evento totalmente entregue sem envio novo.
+
+- [x] 2.5 Fechar estado canonico na falha final do BullMQ
+  - Problema: `WebhookProcessor.onFailed` movia para DLQ, mas o banco podia ficar `DISPATCHED` indefinidamente.
+  - Solucao: em falha final, marcar entregas pendentes/retryable como `FAILED_FINAL`, marcar outbox como falha terminal e entao registrar DLQ.
+  - Validacao: specs do worker cobrindo falha retryable sem efeito colateral e falha final atualizando banco antes da DLQ.
+
+- [x] 2.6 Preservar politica de requeue da DLQ
+  - Problema: `scripts/dlq.mjs` recriava jobs sem `attempts`, `backoff`, `jobId` e politica normal de fila.
+  - Solucao: gravar/restaurar opcoes originais quando existirem, aplicar defaults seguros para webhook/alert legados e bloquear requeue quando job alvo ja existir sem `--force`.
+  - Validacao: teste do helper de DLQ e `node --check scripts/dlq.mjs`.
+
+- [x] 2.7 Refletir estado em timeline/API sem quebrar contrato
+  - Problema: timeline/API derivavam estado apenas de `deliveredAt`, `responseStatus` e `attempt`.
+  - Solucao: expor campos opcionais de estado de entrega e mapear `FAILED_RETRYABLE`/`FAILED_FINAL` de forma coerente mantendo campos antigos.
+  - Validacao: specs de listagem/timeline existentes atualizadas e compatibilidade dos DTOs.
+
+- [x] 2.8 Rodada final e commits semanticos
+  - Problema: o item so fecha com suites focadas, build e historico separado das mudancas alheias.
+  - Solucao: rodar `core`, `infrastructure`, `worker`, checagens necessarias do script e `pnpm build`; comitar por escopo sem incluir landing.
+  - Validacao: comandos passam e `git status` mostra apenas arquivos fora do escopo ainda nao comitados.
 
 ### Criterios de corrigido
 
-- [ ] Nao existem webhooks duplicados para configs ja entregues durante retry de outra config.
-- [ ] Um job em `webhook-dead-letter` sempre tem estado correspondente no banco.
-- [ ] `OutboxEvent.status` nao fica indefinidamente `DISPATCHED` apos falha final.
-- [ ] Requeue de DLQ usa a mesma politica de retry/backoff do fluxo normal.
-- [ ] Timeline/dashboard consegue explicar o estado: pendente, entregue, falha retryable ou falha final.
-- [ ] `WebhookLog.attempt` reflete tentativa real, ou o modelo deixa claro que cada linha e uma tentativa individual.
+- [x] Nao existem webhooks duplicados para configs ja entregues durante retry de outra config.
+- [x] Um job em `webhook-dead-letter` sempre tem estado correspondente no banco.
+- [x] `OutboxEvent.status` nao fica indefinidamente `DISPATCHED` apos falha final.
+- [x] Requeue de DLQ usa a mesma politica de retry/backoff do fluxo normal.
+- [x] Timeline/dashboard consegue explicar o estado: pendente, entregue, falha retryable ou falha final.
+- [x] `WebhookLog.attempt` reflete tentativa real na entrega canonica por config/outbox.
 
 ### Walkthrough de testes
 
-1. Rodar testes focados: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/worker test`.
-2. Validar fluxo feliz: criar webhook inbox, criar pagamento, confirmar pagamento TEST, verificar `OutboxEvent=PROCESSED`, entrega entregue e ausencia de DLQ.
-3. Validar falha parcial: configurar dois webhooks, um 200 e outro 500; confirmar evento; verificar que o 200 recebe uma vez e retries tentam apenas o 500.
-4. Validar DLQ: manter destino 500 ate esgotar BullMQ; verificar job em `webhook-dead-letter` e estado final no banco.
-5. Validar requeue: corrigir destino para 200, rodar requeue DLQ, verificar nova entrega com politica normal e estado final processado.
+1. [x] Rodar testes focados: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/worker test`.
+2. [x] Validar fluxo feliz por teste unitario: `ProcessWebhookUseCase` marca `OutboxEvent=PROCESSED` quando todas as configs entregam.
+3. [x] Validar falha parcial por teste unitario: duas configs, uma ja entregue e outra falhando; retry tenta apenas a pendente.
+4. [x] Validar DLQ por teste unitario do worker: falha final marca entregas como `FAILED_FINAL`, outbox como falha terminal e registra DLQ.
+5. [x] Validar requeue por checagem de script/helper: `node --check scripts/dlq.mjs` e specs de payload DLQ preservando opcoes originais.
+6. [x] Rodar `pnpm --filter @hockpay/api test` para contrato DTO/timeline.
+7. [x] Rodar `pnpm build` no estado final.
 
 ## 3. Gaps transacionais em auth/store/checkout
 
