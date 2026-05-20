@@ -13,21 +13,31 @@ Pacote responsável pelo schema Prisma, migrations e cliente compartilhado.
 
 - `Merchant`
 - `Store`
+- `RefreshToken`
 - `ApiKey`
+- `IdempotencyKey`
 - `Customer`
 - `Payment`
+- `PixCharge`
+- `PaymentLink`
 - `CheckoutSession`
 - `WebhookConfig`
+- `WebhookInboxEvent`
 - `WebhookLog`
 - `OutboxEvent`
+- `AlertConfig`
+- `AlertDeliveryLog`
 - `Account`
 - `Transaction`
 - `Refund`
 - `BankAccount`
 - `Receipt`
+- `ReceiptCounter`
 - `Product`
 - `PaymentItem`
 - `Withdrawal`
+
+`Product` e `PaymentItem` estao no schema, mas seguem parciais no runtime. `PaymentMethod` tambem modela card/boleto/debito sem processador real correspondente.
 
 ## Scripts Reais
 
@@ -50,4 +60,4 @@ O script `db:seed` existe no `package.json`, mas o arquivo `prisma/seed.ts` não
 import { PrismaClient } from '@hockpay/database';
 ```
 
-[Voltar ao README raiz](../../README.md)
+[Modelo de dados](../../docs/DATA_MODEL.md) · [Voltar ao README raiz](../../README.md)

@@ -15,7 +15,7 @@ Hoje este pacote centraliza a infraestrutura compartilhada entre API e worker. E
 
 | Tipo                     | Exemplos atuais                                                                                                                                                                        |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Repositories             | `PaymentRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `WithdrawalRepository`, `StoreRepository` |
+| Repositories             | `PaymentRepository`, `PixChargeRepository`, `PaymentLinkRepository`, `OutboxRepository`, `WebhookConfigRepository`, `WebhookLogRepository`, `WebhookInboxEventRepository`, `AlertConfigRepository`, `AlertDeliveryLogRepository`, `CheckoutSessionRepository`, `RefundRepository`, `ReceiptRepository`, `BankAccountRepository`, `WithdrawalRepository`, `StoreRepository`, `AccountRepository`, `TransactionRepository`, `CustomerRepository`, `IdempotencyKeyRepository`, `DashboardOverviewRepository` |
 | Coordenação transacional | `UnitOfWork`                                                                                                                                                                           |
 | Serviços utilitários     | `EncryptionService`, `HmacSignerService`, `WebhookHttpClientService`, `DiscordAlertSenderService`                                                                                      |
 | Filas                    | `ExpirationQueue`                                                                                                                                                                      |
@@ -40,4 +40,4 @@ pnpm build
 pnpm dev
 ```
 
-[Voltar ao README raiz](../../README.md)
+[Estado atual](../../docs/CURRENT_STATE.md) · [Voltar ao README raiz](../../README.md)

@@ -1,6 +1,6 @@
 # `@hockpay/checkout`
 
-Aplicação Next.js orientada ao comprador final. O checkout hospedado atual é baseado em token de `checkout session`, não em leitura direta de `payment` como contrato primário.
+Aplicação Next.js orientada ao comprador final. Ela cobre o checkout hospedado por `checkout session` e o fluxo publico de Payment Link.
 
 ## Estado Atual
 
@@ -11,7 +11,7 @@ Aplicação Next.js orientada ao comprador final. O checkout hospedado atual é 
   - o contrato real exposto pela API principal usa `/api/v1`
   - `NEXT_PUBLIC_API_URL` só precisa ser ajustada quando a API estiver em outro host/porta
 
-## Fluxo Atual
+## Fluxo de Checkout Session
 
 1. O merchant cria uma `checkout session` via API.
 2. O comprador acessa a rota do checkout com o token.
@@ -20,16 +20,34 @@ Aplicação Next.js orientada ao comprador final. O checkout hospedado atual é 
 5. O app chama `POST /api/v1/checkout-sessions/:token/fulfill`.
 6. Se o checkout estiver em dev mode, a UI pode chamar `POST /api/v1/payments/:id/simulate/:action`.
 
+## Fluxo de Payment Link
+
+1. O merchant cria um Payment Link na API/dashboard.
+2. O comprador acessa `http://localhost:3333/pay/:token`.
+3. O app busca `GET /api/v1/payment-links/public/:token`.
+4. Em TEST, a UI pode chamar `POST /api/v1/payment-links/public/:token/pay` ou `/fail`.
+5. O backend registra cada tentativa como `Payment` ligada à `PixCharge` do link.
+
 ## Contratos Relevantes
 
 - `GET /api/v1/checkout-sessions/:token`
 - `POST /api/v1/checkout-sessions/:token/fulfill`
 - `POST /api/v1/payments/:id/simulate/:action`
+- `GET /api/v1/payment-links/public/:token`
+- `POST /api/v1/payment-links/public/:token/pay`
+- `POST /api/v1/payment-links/public/:token/fail`
 
 ## Observações
 
 - O README antigo dizia que a tela era montada a partir de `GET /payments/:id`; isso não representa o fluxo atual.
-- A UI foi desenhada para polling/sincronização de status, mas o contrato central é a checkout session.
+- A UI foi desenhada para polling/sincronização de status.
+- Payment Link e checkout session sao fluxos separados, ambos simulados.
+
+## Documentação Canônica
+
+- [Estado atual](../../docs/CURRENT_STATE.md)
+- [Produto](../../docs/PRODUCT.md)
+- [Runbook](../../docs/RUNBOOK.md)
 
 ## Scripts
 

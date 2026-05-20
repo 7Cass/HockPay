@@ -1,6 +1,6 @@
 # `@hockpay/web`
 
-Aplicação Angular principal do Hockpay. No estado atual, ela reúne landing page, autenticação e dashboard em um único app.
+Aplicação Angular principal do Hockpay. Ela reúne landing page, autenticação e dashboard do merchant em um único app.
 
 ## Estado Atual
 
@@ -12,18 +12,27 @@ Aplicação Angular principal do Hockpay. No estado atual, ela reúne landing pa
 
 ## Áreas do App
 
-| Área | Caminho | Estado atual |
-|------|---------|--------------|
-| Landing | `src/app/features/landing` | Implementada |
-| Auth | `src/app/features/auth` | Implementada |
-| Dashboard overview | `src/app/features/dashboard/pages/overview` | Implementada |
-| Payments | `src/app/features/dashboard/pages/payments` | Implementada |
-| Customers | `src/app/features/dashboard/pages/customers` | Implementada |
-| API Keys | `src/app/features/dashboard/pages/api-keys` | Implementada |
-| Webhooks | `src/app/features/dashboard/pages/webhooks` | Implementada |
-| Financials | `src/app/features/dashboard/pages/financials` | Parcial/depends on backend coverage |
-| Products | `src/app/features/dashboard/pages/products` | Placeholder visual, sem backend equivalente consolidado |
-| Settings | `src/app/features/dashboard/pages/settings` | Implementada como tela, com cobertura funcional variável |
+| Rota | Caminho | Estado atual |
+| --- | --- | --- |
+| `/` | `features/landing` | Implementada |
+| `/login`, `/register` | `features/auth` | Implementada |
+| `/dashboard` | `features/dashboard/pages/overview` | Implementada, com cards de pagamentos, financeiro e saques |
+| `/dashboard/payments` | `features/dashboard/pages/payments` | Implementada |
+| `/dashboard/payments/:id` | `features/dashboard/pages/payment-detail` | Implementada com timeline operacional |
+| `/dashboard/payment-links` | `features/dashboard/pages/payment-links` | Implementada |
+| `/dashboard/payment-links/:id` | `features/dashboard/pages/payment-link-detail` | Implementada |
+| `/dashboard/receipts` | `features/dashboard/pages/receipts` | Implementada |
+| `/dashboard/receipts/:id` | `features/dashboard/pages/receipt-detail` | Implementada |
+| `/dashboard/customers` | `features/dashboard/pages/customers` | Implementada |
+| `/dashboard/customers/:id` | `features/dashboard/pages/customer-detail` | Implementada |
+| `/dashboard/api` | `features/dashboard/pages/api` | Implementada para API keys |
+| `/dashboard/webhooks` | `features/dashboard/pages/webhooks` | Implementada |
+| `/dashboard/alerts` | `features/dashboard/pages/alerts` | Implementada |
+| `/dashboard/financials` | `features/dashboard/pages/financials` | Implementada como leitura de saldos e extrato |
+| `/dashboard/withdrawals` | `features/dashboard/pages/withdrawals` | Implementada com listagem, summary, filtros, criação e bank accounts |
+| `/dashboard/withdrawals/:id` | `features/dashboard/pages/withdrawal-detail` | Implementada com timeline, transactions e ações TEST |
+| `/dashboard/products` | `features/dashboard/pages/products` | Placeholder visual sem backend de catálogo consolidado |
+| `/dashboard/settings` | `features/dashboard/pages/settings` | Parcial/read-only |
 
 ## Padrões Atuais
 
@@ -36,6 +45,14 @@ Aplicação Angular principal do Hockpay. No estado atual, ela reúne landing pa
 
 - Não existem `apps/dashboard` e `apps/landing` separados no repositório atual.
 - O app assume integração com a API principal em `http://localhost:3000/api/v1` por meio dos serviços Angular.
+- Payment Links, Financials e Withdrawals sao areas reais do dashboard atual.
+- Products permanece placeholder; Settings nao deve ser tratado como painel completo de configuracao mutavel.
+
+## Documentação Canônica
+
+- [Estado atual](../../docs/CURRENT_STATE.md)
+- [Produto](../../docs/PRODUCT.md)
+- [Runbook](../../docs/RUNBOOK.md)
 
 ## Scripts
 

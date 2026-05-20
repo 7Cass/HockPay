@@ -9,39 +9,46 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Versionamento: URI, versão padrão `v1`
 - Porta padrão: `3000`
 - Base local atual: `http://localhost:3000/api/v1`
-- Autenticação:
+- Autenticacao:
   - cookie JWT para dashboard
   - API key `hk_test_...` / `hk_live_...` para integrações públicas
 - PostgreSQL é obrigatório para o runtime da API.
 - Redis é obrigatório para BullMQ, idempotência/cache operacional e throttling.
+- Pagamentos, Pix, Payment Links e saques sao simulados; nao ha adquirencia ou payout real.
 
 ## Módulos Relevantes
 
-| Módulo                    | Função atual                                     |
-| ------------------------- | ------------------------------------------------ |
-| `auth`                    | login, refresh, logout e troca de store          |
-| `merchant`                | cadastro e leitura de merchant                   |
-| `store`                   | criação e listagem de stores                     |
-| `api-key`                 | emissão, listagem e revogação de API keys        |
-| `customer`                | CRUD básico de customers                         |
-| `payment`                 | criação, listagem, leitura e simulação           |
-| `webhook`                 | CRUD, teste, logs e retry                        |
-| `checkout-session`        | criação, leitura e fulfill do checkout hospedado |
-| `dashboard`               | métricas da visão geral                          |
-| `account` / `transaction` | leitura financeira                               |
-| `bank-account`            | gestão de contas bancárias                       |
-| `refund`                  | criação de refunds                               |
-| `receipt`                 | leitura/gestão de receipts                       |
-| `idempotency`             | persistência/cache para endpoints idempotentes   |
+| Módulo | Função atual |
+| --- | --- |
+| `auth` | login, refresh, logout e troca de store |
+| `merchant` | cadastro e leitura de merchant |
+| `store` | criação e listagem de stores |
+| `api-key` | emissão, listagem e revogação de API keys |
+| `customer` | CRUD básico de customers |
+| `customer-history` | histórico de pagamentos e receipts por customer external id |
+| `payment` | criação, listagem, leitura, timeline e simulação TEST |
+| `payment-link` | criação/listagem/detalhe/cancelamento e fluxo público de link |
+| `checkout-session` | criação, leitura e fulfill do checkout hospedado |
+| `webhook` | CRUD, teste, logs, retry e inbox dev |
+| `alert` | configs, teste, logs e retry de alertas operacionais |
+| `dashboard` | métricas da visão geral |
+| `account` / `transaction` | leitura financeira e extrato |
+| `bank-account` | gestão de contas Pix de saque |
+| `withdrawal` | criação/listagem/detalhe, summary, timeline e ações TEST |
+| `refund` | criação de refunds |
+| `receipt` | leitura/gestão de receipts |
+| `idempotency` | persistência/cache para endpoints idempotentes |
 
 ## Observações Importantes
 
-- Nem toda mutação é idempotente hoje. O fluxo claramente obrigatório é `POST /api/v1/payments`.
+- Nem toda mutação é idempotente hoje. Os fluxos obrigatórios são `POST /api/v1/payments` e `POST /api/v1/withdrawals`.
 - A API usa `CombinedAuthGuard` em vários endpoints públicos para aceitar API key ou cookie JWT.
-- O checkout hospedado não consulta `payments/:id` como contrato primário; ele usa `checkout-sessions/:token`.
+- API keys ainda nao possuem scopes granulares; trate `POST /withdrawals` como operacao financeira sensivel.
+- O checkout hospedado usa `checkout-sessions/:token` para sessões e `payment-links/public/:token` para links públicos.
 - A API aceita `X-Request-ID` em qualquer chamada. Se o header não vier, a API gera um ID e sempre devolve `X-Request-ID` na resposta.
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
 - A API cria outbox e agenda jobs, mas a entrega efetiva de webhook depende do worker conectado ao mesmo Redis/PostgreSQL.
+- `paymentMethod` aceita valores modelados alem de `PIX`, mas o runtime nao possui processador real para cartao, boleto ou debito.
 
 ## Exemplos Atuais
 
@@ -147,6 +154,19 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
   }'
 ```
 
+### Criar saque
+
+```bash
+curl -X POST http://localhost:3000/api/v1/withdrawals \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: saque-123" \
+  -d '{
+    "bankAccountId": "bank_account_id",
+    "amount": 10000
+  }'
+```
+
 ## Variáveis de Ambiente Relevantes
 
 | Variável                    | Uso                                               |
@@ -158,6 +178,12 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 | `ENCRYPTION_KEY`            | Criptografia de dados sensíveis                   |
 | `PIX_KEY`                   | Chave Pix simulada usada no payload do pagamento  |
 | `CORS_ORIGIN`               | Lista de origens permitidas                       |
+
+## Documentação Canônica
+
+- [Estado atual](../../docs/CURRENT_STATE.md)
+- [Modelo de dados](../../docs/DATA_MODEL.md)
+- [Runbook](../../docs/RUNBOOK.md)
 
 ## Troubleshooting
 

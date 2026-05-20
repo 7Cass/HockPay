@@ -7,7 +7,7 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 - Sem dependência de NestJS
 - Sem dependência direta de Prisma
 - Exporta:
-  - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `WebhookConfig`, `WebhookLog`, `Account`, `Refund`, `Receipt`
+  - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `PixCharge`, `PaymentLink`, `WebhookConfig`, `WebhookLog`, `AlertConfig`, `Account`, `Transaction`, `Refund`, `Receipt`, `BankAccount` e `Withdrawal`
   - value objects como `Email`, `Document`, `Environment`, `Money`
   - interfaces de repositório e portas
   - use cases do fluxo principal
@@ -35,12 +35,21 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 - stores/api keys
 - customers
 - payments e simulação
+- PixCharge e Payment Links
 - webhooks
+- alerts
 - checkout sessions
 - dashboard/account/transactions
 - bank accounts
 - receipts
 - refunds
+- withdrawals
+- customer history
+
+## Limites
+
+- `Product` e `PaymentItem` nao fazem parte do slice consolidado do `core` atual.
+- `PaymentMethod` tem valores modelados alem de Pix, mas nao ha use case de processamento real para cartao, boleto ou debito.
 
 ## Scripts
 
@@ -50,4 +59,4 @@ pnpm test
 pnpm test:cov
 ```
 
-[Voltar ao README raiz](../../README.md)
+[Documentação de estado atual](../../docs/CURRENT_STATE.md) · [Voltar ao README raiz](../../README.md)

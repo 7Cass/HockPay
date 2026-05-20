@@ -98,10 +98,15 @@ Headers relevantes atualmente enviados ao merchant:
 
 ## Observações
 
-- O worker atual usa Redis/BullMQ; SQS/LocalStack não fazem parte do runtime atual.
+- O worker atual usa Redis/BullMQ como backend de filas do runtime.
 - A documentação antiga dizia que o outbox partia de `WebhookLog`; isso não é mais verdade no código atual.
 - O lock distribuído usa `SET NX PX` com token por aquisição e release protegido por comparação do token em Lua.
 - O guard in-process continua ativo dentro de cada job para evitar sobreposição local mesmo com o lock distribuído.
+
+## Documentação Canônica
+
+- [Estado atual](../../docs/CURRENT_STATE.md)
+- [Runbook](../../docs/RUNBOOK.md)
 
 ## Scripts
 
