@@ -4,6 +4,7 @@ import { provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRight,
   lucideCheckCircle2,
+  lucideClock,
   lucideCode2,
   lucideCreditCard,
   lucideKey,
@@ -24,6 +25,7 @@ import { HlmIconImports } from '@spartan-ng/helm/icon';
     provideIcons({
       lucideArrowRight,
       lucideCheckCircle2,
+      lucideClock,
       lucideCode2,
       lucideCreditCard,
       lucideKey,

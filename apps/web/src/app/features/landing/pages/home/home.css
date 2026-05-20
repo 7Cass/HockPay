@@ -63,7 +63,9 @@
   padding: 0.875rem;
 }
 
-.feature-card {
+.feature-card,
+.scenario-card,
+.comparison-card {
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1.25rem;
@@ -75,14 +77,18 @@
     background-color 180ms ease;
 }
 
-.feature-card:hover {
+.feature-card:hover,
+.scenario-card:hover,
+.comparison-card:hover {
   transform: translateY(-2px);
   border-color: rgba(52, 211, 153, 0.35);
   background: rgba(255, 255, 255, 0.065);
 }
 
 .feature-card h3,
-.step-card h3 {
+.step-card h3,
+.scenario-card h3,
+.comparison-card h3 {
   margin-top: 1rem;
   color: #fff;
   font-size: 1rem;
@@ -91,10 +97,111 @@
 }
 
 .feature-card p,
-.step-card p {
+.step-card p,
+.scenario-card p {
   margin-top: 0.5rem;
   color: #a1a1aa;
   line-height: 1.7;
+}
+
+.scenario-card dl {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.scenario-card dl > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 0.75rem;
+  background: rgba(9, 9, 11, 0.72);
+  padding: 0.65rem 0.75rem;
+}
+
+.scenario-card dt {
+  color: #71717a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.scenario-card dd {
+  overflow: hidden;
+  color: #e4e4e7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scenario-icon {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+}
+
+.status-pill {
+  border-radius: 9999px;
+  padding: 0.35rem 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.comparison-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.comparison-card-highlight {
+  border-color: rgba(52, 211, 153, 0.35);
+  background:
+    linear-gradient(135deg, rgba(52, 211, 153, 0.13), transparent 42%),
+    rgba(255, 255, 255, 0.055);
+}
+
+.comparison-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.comparison-card h3 {
+  margin-top: 0;
+}
+
+.comparison-card ul {
+  display: grid;
+  gap: 0.8rem;
+  color: #a1a1aa;
+  line-height: 1.65;
+}
+
+.comparison-card li {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.comparison-card li::before {
+  content: '';
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 9999px;
+  background: rgba(52, 211, 153, 0.75);
 }
 
 .step-card {

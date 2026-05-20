@@ -14,7 +14,8 @@
 
       <div class="hidden items-center gap-6 text-sm font-medium text-zinc-400 md:flex">
         <a href="#simulacao" class="transition-colors hover:text-white">Simulação</a>
-        <a href="#features" class="transition-colors hover:text-white">Recursos</a>
+        <a href="#cenarios" class="transition-colors hover:text-white">Cenários</a>
+        <a href="#comparativo" class="transition-colors hover:text-white">Comparativo</a>
         <a href="#fluxo" class="transition-colors hover:text-white">Fluxo</a>
       </div>
 
@@ -171,6 +172,104 @@
     </div>
   </section>
 
+  <section id="cenarios" class="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-4 pb-20 sm:px-6 lg:px-8">
+    <div class="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+      <div class="max-w-2xl">
+        <p class="text-sm font-black uppercase tracking-[0.28em] text-cyan-300">Cenários controlados</p>
+        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Teste as respostas que quebram checkouts reais.</h2>
+        <p class="mt-4 text-lg leading-8 text-zinc-400">
+          Escolha o comportamento do gateway antes da request e valide como sua aplicação reage a cada evento.
+        </p>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <article class="scenario-card">
+          <div class="flex items-start justify-between gap-4">
+            <span class="scenario-icon bg-emerald-400/15 text-emerald-300">
+              <ng-icon hlm name="lucideCheckCircle2" size="sm" aria-hidden="true"></ng-icon>
+            </span>
+            <span class="status-pill bg-emerald-400/15 text-emerald-200">PAID</span>
+          </div>
+          <h3>Pagamento aprovado</h3>
+          <p>Confirme liberação de acesso, emissão de recibo, saldo e fechamento do pedido.</p>
+          <dl>
+            <div>
+              <dt>Cenário</dt>
+              <dd>scenario: 'paid'</dd>
+            </div>
+            <div>
+              <dt>Evento</dt>
+              <dd>payment.paid</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="scenario-card">
+          <div class="flex items-start justify-between gap-4">
+            <span class="scenario-icon bg-red-400/15 text-red-300">
+              <ng-icon hlm name="lucideXCircle" size="sm" aria-hidden="true"></ng-icon>
+            </span>
+            <span class="status-pill bg-red-400/15 text-red-200">FAILED</span>
+          </div>
+          <h3>Pagamento recusado</h3>
+          <p>Valide mensagens de erro, nova tentativa e comportamento de carrinho sem cobrança.</p>
+          <dl>
+            <div>
+              <dt>Cenário</dt>
+              <dd>scenario: 'failed'</dd>
+            </div>
+            <div>
+              <dt>Evento</dt>
+              <dd>payment.failed</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="scenario-card">
+          <div class="flex items-start justify-between gap-4">
+            <span class="scenario-icon bg-amber-300/15 text-amber-200">
+              <ng-icon hlm name="lucideClock" size="sm" aria-hidden="true"></ng-icon>
+            </span>
+            <span class="status-pill bg-amber-300/15 text-amber-100">EXPIRED</span>
+          </div>
+          <h3>Pix expirado</h3>
+          <p>Teste timer, tela de expiração e retorno seguro para gerar uma nova cobrança.</p>
+          <dl>
+            <div>
+              <dt>Cenário</dt>
+              <dd>scenario: 'expired'</dd>
+            </div>
+            <div>
+              <dt>Evento</dt>
+              <dd>payment.expired</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="scenario-card">
+          <div class="flex items-start justify-between gap-4">
+            <span class="scenario-icon bg-cyan-400/15 text-cyan-300">
+              <ng-icon hlm name="lucideRefreshCcw" size="sm" aria-hidden="true"></ng-icon>
+            </span>
+            <span class="status-pill bg-cyan-400/15 text-cyan-100">IDEMPOTENT</span>
+          </div>
+          <h3>Request duplicado</h3>
+          <p>Repita chamadas com a mesma chave e garanta que o pedido não vira duas cobranças.</p>
+          <dl>
+            <div>
+              <dt>Cenário</dt>
+              <dd>Idempotency-Key</dd>
+            </div>
+            <div>
+              <dt>Evento</dt>
+              <dd>idempotency.replayed</dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+    </div>
+  </section>
+
   <section id="features" class="relative z-10 border-y border-white/10 bg-white/[0.03] px-4 py-20 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-7xl">
       <div class="max-w-3xl">
@@ -211,6 +310,60 @@
           <p>Teste integração com API, filas, banco e eventos em um ambiente controlado.</p>
         </article>
       </div>
+    </div>
+  </section>
+
+  <section id="comparativo" class="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
+    <div class="max-w-3xl">
+      <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">Por que não testar direto no gateway?</p>
+      <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Hockpay troca dependência externa por previsibilidade.</h2>
+      <p class="mt-4 text-lg leading-8 text-zinc-400">
+        A proposta não é substituir o gateway real. É chegar nele com os fluxos ruins já testados.
+      </p>
+    </div>
+
+    <div class="mt-10 grid gap-4 lg:grid-cols-3">
+      <article class="comparison-card">
+        <div class="comparison-card-header">
+          <span class="rounded-lg border border-white/10 bg-white/5 p-2 text-zinc-400">
+            <ng-icon hlm name="lucideCreditCard" size="sm" aria-hidden="true"></ng-icon>
+          </span>
+          <h3>Gateway real</h3>
+        </div>
+        <ul>
+          <li>Depende de credenciais e regras do provedor.</li>
+          <li>Falhas são difíceis de reproduzir sob demanda.</li>
+          <li>Teste ruim pode misturar dados reais e ambiente produtivo.</li>
+        </ul>
+      </article>
+
+      <article class="comparison-card">
+        <div class="comparison-card-header">
+          <span class="rounded-lg border border-white/10 bg-white/5 p-2 text-zinc-400">
+            <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" aria-hidden="true"></ng-icon>
+          </span>
+          <h3>Sandbox genérico</h3>
+        </div>
+        <ul>
+          <li>Ajuda no happy path, mas limita cenários de erro.</li>
+          <li>Webhooks podem ser opacos ou pouco configuráveis.</li>
+          <li>Nem sempre cobre idempotência, retries e expiração.</li>
+        </ul>
+      </article>
+
+      <article class="comparison-card comparison-card-highlight">
+        <div class="comparison-card-header">
+          <span class="rounded-lg border border-emerald-300/25 bg-emerald-300/15 p-2 text-emerald-300">
+            <ng-icon hlm name="lucideShieldCheck" size="sm" aria-hidden="true"></ng-icon>
+          </span>
+          <h3>Hockpay</h3>
+        </div>
+        <ul>
+          <li>Você escolhe sucesso, falha, expiração e duplicidade.</li>
+          <li>Eventos e webhooks são previsíveis para automação.</li>
+          <li>Zero dinheiro real, setup rápido e foco no fluxo do dev.</li>
+        </ul>
+      </article>
     </div>
   </section>
 
