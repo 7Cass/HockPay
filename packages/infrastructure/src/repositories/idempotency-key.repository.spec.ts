@@ -77,13 +77,19 @@ describe("IdempotencyKeyRepository", () => {
         requestMethod: "POST",
         requestPath: "/api/v1/payments",
         requestHash: "hash-1",
-        responseBody: undefined,
-        responseStatus: undefined,
         status: IdempotencyKeyStatus.PENDING,
-        completedAt: undefined,
       }),
       skipDuplicates: true,
     });
+    expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
+      "responseBody",
+    );
+    expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
+      "responseStatus",
+    );
+    expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
+      "completedAt",
+    );
     expect(result.key.isCompleted()).toBe(false);
   });
 

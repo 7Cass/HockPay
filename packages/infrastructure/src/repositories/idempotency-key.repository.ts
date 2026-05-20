@@ -83,21 +83,30 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
 
     const idempotencyKey = IdempotencyKey.reserve(input);
     const props = idempotencyKey.toObject();
+    const data: Prisma.IdempotencyKeyCreateManyInput = {
+      id: props.id,
+      key: props.key,
+      storeId: props.storeId,
+      requestMethod: props.requestMethod,
+      requestPath: props.requestPath,
+      requestHash: props.requestHash,
+      status: props.status as unknown as PrismaIdempotencyKeyStatus,
+      createdAt: props.createdAt,
+      expiresAt: props.expiresAt,
+    };
+
+    if (props.responseBody !== undefined) {
+      data.responseBody = props.responseBody as any;
+    }
+    if (props.responseStatus !== undefined) {
+      data.responseStatus = props.responseStatus;
+    }
+    if (props.completedAt !== undefined) {
+      data.completedAt = props.completedAt;
+    }
+
     const result = await this.prisma.idempotencyKey.createMany({
-      data: {
-        id: props.id,
-        key: props.key,
-        storeId: props.storeId,
-        requestMethod: props.requestMethod,
-        requestPath: props.requestPath,
-        requestHash: props.requestHash,
-        responseBody: props.responseBody as any,
-        responseStatus: props.responseStatus,
-        status: props.status as unknown as PrismaIdempotencyKeyStatus,
-        completedAt: props.completedAt,
-        createdAt: props.createdAt,
-        expiresAt: props.expiresAt,
-      },
+      data,
       skipDuplicates: true,
     });
 
