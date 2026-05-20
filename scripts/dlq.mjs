@@ -78,6 +78,7 @@ async function listJobs(dlq) {
         `originalQueue=${data.originalQueue ?? 'unknown'}`,
         `originalJobId=${data.originalJobId ?? 'unknown'}`,
         `outboxEventId=${data.outboxEventId ?? 'unknown'}`,
+        `configIds=${formatConfigIds(data)}`,
         `requestId=${data.requestId ?? 'unknown'}`,
         `attemptsMade=${data.attemptsMade ?? 'unknown'}`,
         `timestamp=${data.timestamp ?? 'unknown'}`,
@@ -109,7 +110,22 @@ async function requeueJob(dlq, id) {
 
   const target = new Queue(data.originalQueue, { connection });
   try {
-    const requeued = await target.add(data.originalJobName ?? 'deliver', data.payload);
+    const options = buildRequeueOptions(data);
+    if (options.jobId && !hasFlag('--force')) {
+      const existing = await target.getJob(options.jobId);
+      if (existing) {
+        const state = await existing.getState();
+        throw new Error(
+          `Target job ${data.originalQueue}/${options.jobId} already exists with state ${state}. Use --force to bypass this guard.`,
+        );
+      }
+    }
+
+    const requeued = await target.add(
+      data.originalJobName ?? 'deliver',
+      data.payload,
+      options,
+    );
     console.log(
       `[dlq] requeued ${dlq.name}/${id} to ${data.originalQueue}/${requeued.id}`,
     );
@@ -121,6 +137,94 @@ async function requeueJob(dlq, id) {
   } finally {
     await target.close();
   }
+}
+
+function buildRequeueOptions(data) {
+  return {
+    ...defaultJobOptionsFor(data),
+    ...sanitizeJobOptions(data.originalJobOptions),
+  };
+}
+
+function defaultJobOptionsFor(data) {
+  if (data.originalQueue === 'webhook-delivery') {
+    const eventId = readEventId(data.payload);
+    return {
+      delay: 0,
+      jobId: eventId ? `webhook-${eventId}` : data.originalJobId,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 60000,
+      },
+      removeOnComplete: {
+        count: 1000,
+        age: 24 * 60 * 60,
+      },
+      removeOnFail: {
+        age: 7 * 24 * 60 * 60,
+      },
+    };
+  }
+
+  if (data.originalQueue === 'alert-delivery') {
+    const eventId = readEventId(data.payload);
+    return {
+      delay: 0,
+      jobId: eventId ? `alert-${eventId}` : data.originalJobId,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 60000,
+      },
+      removeOnComplete: {
+        count: 1000,
+        age: 24 * 60 * 60,
+      },
+      removeOnFail: {
+        age: 7 * 24 * 60 * 60,
+      },
+    };
+  }
+
+  return {
+    delay: 0,
+    ...(data.originalJobId ? { jobId: data.originalJobId } : {}),
+  };
+}
+
+function sanitizeJobOptions(options) {
+  if (!options || typeof options !== 'object' || Array.isArray(options)) {
+    return {};
+  }
+
+  const sanitized = {};
+  for (const key of [
+    'attempts',
+    'backoff',
+    'delay',
+    'jobId',
+    'removeOnComplete',
+    'removeOnFail',
+  ]) {
+    if (options[key] !== undefined) {
+      sanitized[key] = options[key];
+    }
+  }
+
+  return sanitized;
+}
+
+function readEventId(payload) {
+  return payload && typeof payload.eventId === 'string' ? payload.eventId : undefined;
+}
+
+function formatConfigIds(data) {
+  if (Array.isArray(data.configIds) && data.configIds.length > 0) {
+    return data.configIds.join(',');
+  }
+
+  return data.configId ?? 'unknown';
 }
 
 function resolveQueueName(value) {
@@ -159,7 +263,7 @@ function printUsage() {
   console.log(`Usage:
   node scripts/dlq.mjs list <webhook|alert> [--limit 20]
   node scripts/dlq.mjs show <webhook|alert> <dlqJobId>
-  node scripts/dlq.mjs requeue <webhook|alert> <dlqJobId> [--remove]
+  node scripts/dlq.mjs requeue <webhook|alert> <dlqJobId> [--remove] [--force]
 
 Environment:
   REDIS_HOST=localhost REDIS_PORT=6379`);

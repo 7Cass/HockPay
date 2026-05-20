@@ -27,6 +27,10 @@ describe('AlertProcessor', () => {
         originalQueue: 'alert-delivery',
         originalJobId: 'job-1',
         originalJobName: 'deliver',
+        originalJobOptions: {
+          attempts: 5,
+          jobId: 'job-1',
+        },
         payload: { eventId: 'outbox-1' },
         attemptsMade: 5,
         failedReason: 'alert failed',

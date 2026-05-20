@@ -1,9 +1,11 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job, Queue } from "bullmq";
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import {
   ProcessWebhookUseCase,
   IProcessWebhookInput,
+  IOutboxRepository,
+  IWebhookLogRepository,
   WebhookJobData,
 } from "@hockpay/core";
 import { createWorkerRequestId } from "../../common/request-id";
@@ -26,6 +28,10 @@ export class WebhookProcessor extends WorkerHost {
 
   constructor(
     private readonly processWebhookUseCase: ProcessWebhookUseCase,
+    @Inject("IOutboxRepository")
+    private readonly outboxRepository: IOutboxRepository,
+    @Inject("IWebhookLogRepository")
+    private readonly webhookLogRepository: IWebhookLogRepository,
     @InjectQueue(WEBHOOK_DEAD_LETTER_QUEUE)
     private readonly deadLetterQueue: Queue<WorkerDeadLetterJobData>,
   ) {
@@ -71,6 +77,17 @@ export class WebhookProcessor extends WorkerHost {
       error,
     );
 
+    const failedConfigIds = await this.markCanonicalFinalFailure(
+      job,
+      deadLetterJob.failedReason,
+    );
+    if (failedConfigIds.length > 0) {
+      deadLetterJob.configIds = failedConfigIds;
+      if (failedConfigIds.length === 1) {
+        deadLetterJob.configId = failedConfigIds[0];
+      }
+    }
+
     await this.deadLetterQueue.add("dead-letter", deadLetterJob, {
       jobId: `${WEBHOOK_DELIVERY_QUEUE}:${job.id}`,
     });
@@ -78,5 +95,33 @@ export class WebhookProcessor extends WorkerHost {
     this.logger.error(
       `Webhook job moved to DLQ requestId=${deadLetterJob.requestId ?? "unknown"} jobId=${job.id} outboxEventId=${deadLetterJob.outboxEventId ?? "unknown"} attemptsMade=${job.attemptsMade}: ${deadLetterJob.failedReason}`,
     );
+  }
+
+  private async markCanonicalFinalFailure(
+    job: Job<WebhookJobData>,
+    error: string,
+  ): Promise<string[]> {
+    const eventId = job.data.eventId;
+    const deliveries = await this.webhookLogRepository.findByOutboxEventId(
+      eventId,
+    );
+    const failedConfigIds = deliveries
+      .filter((delivery) => !delivery.isDelivered())
+      .map((delivery) => delivery.configId);
+
+    await this.webhookLogRepository.markOutboxDeliveriesFinalFailure(
+      eventId,
+      error,
+      job.attemptsMade,
+    );
+
+    const event = await this.outboxRepository.findById(eventId);
+    if (!event || event.isProcessed()) {
+      return failedConfigIds;
+    }
+
+    event.markAsTerminalFailed(error);
+    await this.outboxRepository.update(event);
+    return failedConfigIds;
   }
 }

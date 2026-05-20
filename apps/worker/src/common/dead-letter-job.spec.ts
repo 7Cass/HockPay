@@ -30,6 +30,14 @@ describe('dead-letter-job helpers', () => {
           other: true,
         },
         attemptsMade: 5,
+        opts: {
+          attempts: 5,
+          backoff: {
+            type: 'exponential',
+            delay: 60000,
+          },
+          jobId: 'webhook-outbox-1',
+        },
         failedReason: 'previous reason',
       } as any,
       new Error('final failure'),
@@ -39,6 +47,14 @@ describe('dead-letter-job helpers', () => {
       originalQueue: 'webhook-delivery',
       originalJobId: 'job-1',
       originalJobName: 'deliver',
+      originalJobOptions: {
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 60000,
+        },
+        jobId: 'webhook-outbox-1',
+      },
       payload: {
         eventId: 'outbox-1',
         requestId: 'req-1',
