@@ -2,7 +2,16 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: aberto.
+Status geral: em andamento, com 3/6 itens macro concluidos.
+
+Progresso macro:
+
+- [x] 1. Idempotencia atomica na API
+- [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
+- [x] 3. Gaps transacionais em auth/store/checkout
+- [ ] 4. Store creation, auth hydration, refresh waiters e withdrawals
+- [ ] 5. PrismaService, migrations, claims e invariantes de banco
+- [ ] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
 
