@@ -13,7 +13,7 @@ Uso sugerido:
 
 ## 1. Idempotencia atomica na API
 
-Status: implementado em 2026-05-20. A barreira atomica agora e o PostgreSQL, dentro do mesmo `UnitOfWork` da mutacao financeira. Redis ficou apenas como cache de replay.
+Status: concluido em 2026-05-20. A barreira atomica agora e o PostgreSQL, dentro do mesmo `UnitOfWork` da mutacao financeira. Redis ficou apenas como cache de replay. O smoke concorrente real da suite opt-in `idempotency`, as suites focadas e o build final passaram.
 
 Notas da implementacao:
 
@@ -21,7 +21,7 @@ Notas da implementacao:
 - `payments`, `withdrawals` e `refunds` executam reserva, mutacao e completion pelo `TransactionalIdempotencyService`.
 - O interceptor ainda valida header, normaliza `Idempotency-Key`, serve replay via Redis/PostgreSQL e repassa TTL do decorator para o handler transacional.
 - `lockedUntil` nao foi adicionado nesta leva; a serializacao fica pela unique key `(key, storeId)` e pelo wait do `INSERT ... ON CONFLICT DO NOTHING`/`createMany(skipDuplicates)` no PostgreSQL.
-- Gap restante de hardening: teste e2e concorrente com PostgreSQL/Redis reais para provar o comportamento ponta a ponta fora de mocks/unitarios.
+- O smoke concorrente real fica fora das suites default de `smoke:docker`; para exercitar este item explicitamente, usar `HOCKPAY_SMOKE_SUITE=idempotency pnpm run smoke:docker`.
 
 ### Problema
 
@@ -78,14 +78,45 @@ A correcao recomendada e transformar a idempotencia em uma reserva transacional:
 
 ### Tarefas
 
-- [x] Estender `ITransactedRepositories` para incluir `idempotencyKeyRepository`.
-- [x] Alterar o modelo `IdempotencyKey` para suportar reserva/completion de forma clara, como `status`, `completedAt` e resposta nula enquanto pendente.
-- [x] Criar metodos explicitos no repositorio: `reserve`, `complete`, `findCompleted`, `deleteExpiredForKey`.
-- [x] Remover a dependencia do interceptor como mecanismo atomico para endpoints financeiros.
-- [x] Manter o interceptor validando header e servindo cache/replay, sem permitir mutacoes sem reserva transacional.
-- [x] Refatorar `CreatePaymentUseCase`, `CreateWithdrawalUseCase` e `CreateRefundUseCase` para execucao dentro de um wrapper transacional de idempotencia na API.
-- [x] Nao engolir falha de persistencia idempotente nos fluxos criticos.
-- [x] Validar `requestPath` e metodo no fingerprint, nao apenas hash do body.
+- [x] 1.1 Modelagem e contrato transacional
+  - Problema: a chave idempotente era persistida depois da mutacao financeira e fora do `UnitOfWork`.
+  - Solucao: incluir `idempotencyKeyRepository` em `ITransactedRepositories`, adicionar `status`, `completedAt` e resposta nula para reserva pendente.
+  - Validacao: migration `20260520000100_atomic_idempotency`, contrato de UoW e testes de core/infrastructure.
+
+- [x] 1.2 Repositorio de reserva/completion
+  - Problema: o repositorio so tinha gravacao final por `create`, entao concorrencia dependia de check-then-act.
+  - Solucao: implementar `reserve`, `complete`, `findCompleted` e `deleteExpiredForKey` usando unique `(key, storeId)`; reservas pendentes usam `createMany(..., skipDuplicates: true)` e nao enviam campos opcionais como `undefined`.
+  - Validacao: `packages/infrastructure/src/repositories/idempotency-key.repository.spec.ts` cobre reserva, replay, conflito, expiracao e completion.
+
+- [x] 1.3 Wrapper transacional nos endpoints financeiros
+  - Problema: `payments`, `withdrawals` e `refunds` podiam executar mutacao antes da chave idempotente existir.
+  - Solucao: executar reserva, mutacao e completion dentro do `TransactionalIdempotencyService`, no mesmo `UnitOfWork` dos use cases financeiros.
+  - Validacao: specs dos controllers e do `TransactionalIdempotencyService` cobrem chamada pelo wrapper, replay e conflito.
+
+- [x] 1.4 Interceptor como cache/replay, nao barreira atomica
+  - Problema: o interceptor misturava responsabilidade de validacao/cache com autoridade de escrita.
+  - Solucao: manter header obrigatorio, contexto de request, replay via Redis/PostgreSQL e conflitos por fingerprint; a barreira de escrita fica no wrapper transacional.
+  - Validacao: replay por PostgreSQL apos limpeza de Redis no smoke e retorno `x-idempotency-replayed: true`.
+
+- [x] 1.5 Fingerprint canonico entre body bruto e DTO
+  - Problema: o interceptor calcula fingerprint antes dos pipes e o wrapper calcula depois, entao `JSON.stringify` direto podia gerar hash diferente por ordem de chaves.
+  - Solucao: normalizar o corpo com ordenacao recursiva de chaves e omitir `undefined` antes de gerar o hash.
+  - Validacao: `apps/api/src/common/idempotency/idempotency-fingerprint.spec.ts` cobre ordem de chaves e corpo raw/DTO-shaped.
+
+- [x] 1.6 Smoke concorrente real opt-in
+  - Problema: os testes anteriores eram mockados e nao provavam o comportamento com PostgreSQL/Redis reais.
+  - Solucao: adicionar `scripts/smoke-idempotency-concurrency.mjs` e o script `smoke:idempotency`, registrado como suite opt-in no orquestrador.
+  - Validacao: `HOCKPAY_SMOKE_SUITE=idempotency pnpm run smoke:docker` cobre pagamentos com/sem `externalId`, replay por PostgreSQL, conflitos, withdrawals e refunds concorrentes.
+
+- [x] 1.7 Hardening do smoke/orquestrador
+  - Problema: o smoke podia gerar falso positivo por comparar apenas IDs e o orquestrador nao detectava processos em IPv6 na porta 3000.
+  - Solucao: comparar DTOs completos, validar ausencia de mutacao em conflito de path, pular worker/checkout quando a suite for apenas `idempotency` e checar portas em IPv4/IPv6.
+  - Validacao: `node --check` nos scripts e smoke docker opt-in passando sem usar API orfa.
+
+- [x] 1.8 Rodada final ampla
+  - Problema: o item so deve fechar depois das suites relevantes e build passarem no estado final.
+  - Solucao: rodar core, infrastructure, api, worker e build.
+  - Validacao: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/api test`, `pnpm --filter @hockpay/worker test` e `pnpm build`.
 
 ### Criterios de corrigido
 
@@ -95,18 +126,18 @@ A correcao recomendada e transformar a idempotencia em uma reserva transacional:
 - [x] Redis desligado ou limpo nao quebra idempotencia; PostgreSQL continua sendo a fonte da verdade.
 - [x] Falha no meio da transacao nao deixa recurso criado sem chave idempotente completada, porque a chave e completada no mesmo `UnitOfWork`.
 - [x] Chaves expiradas continuam reutilizaveis com limpeza por chave/store antes da nova reserva.
-- [ ] `payments`, `withdrawals` e `refunds` ainda precisam de cobertura e2e concorrente com PostgreSQL/Redis reais.
+- [x] `payments`, `withdrawals` e `refunds` tem cobertura concorrente com PostgreSQL/Redis reais pela suite opt-in `idempotency`.
 
 ### Walkthrough de testes
 
 1. [x] Rodar testes unitarios de core/infrastructure para reserva, replay, conflito e expiracao da chave.
-2. [ ] Rodar teste concorrente de `POST /api/v1/payments` sem `externalId` com `Promise.all`, mesma chave e mesmo body; esperar um unico `Payment`, `PixCharge` e `OutboxEvent`.
-3. [ ] Repetir `POST /api/v1/payments` com `externalId`; a segunda resposta deve replayar, nao retornar conflito de `externalId`.
-4. [ ] Rodar teste concorrente de `POST /api/v1/withdrawals`; validar um unico saque, uma unica transacao e saldo bloqueado uma vez.
-5. [ ] Rodar teste concorrente de `POST /api/v1/refunds`; validar um unico refund, `totalRefunded` incrementado uma vez e saldo deduzido uma vez.
-6. [ ] Limpar Redis entre primeira e segunda chamada e confirmar replay via PostgreSQL.
+2. [x] Rodar teste concorrente de `POST /api/v1/payments` sem `externalId` com `Promise.all`, mesma chave e mesmo body; esperar um unico `Payment`, `PixCharge` e `OutboxEvent`.
+3. [x] Repetir `POST /api/v1/payments` com `externalId`; a segunda resposta deve replayar, nao retornar conflito de `externalId`.
+4. [x] Rodar teste concorrente de `POST /api/v1/withdrawals`; validar um unico saque, uma unica transacao e saldo bloqueado uma vez.
+5. [x] Rodar teste concorrente de `POST /api/v1/refunds`; validar um unico refund, `totalRefunded` incrementado uma vez e saldo deduzido uma vez.
+6. [x] Limpar Redis entre primeira e segunda chamada e confirmar replay via PostgreSQL.
 7. [x] Enviar mesma chave com body/path diferente e confirmar `409` sem novas linhas de dominio em teste unitario do wrapper/repositorio.
-8. [x] Rodar suites relevantes: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/api test`, `pnpm --filter @hockpay/worker test` e `pnpm build`.
+8. [x] Rodar suites relevantes no estado final: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/api test`, `pnpm --filter @hockpay/worker test` e `pnpm build`.
 
 ## 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 
