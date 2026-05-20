@@ -25,6 +25,7 @@ import {
 } from '../../common/idempotency/idempotency-request-context';
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { BankAccountResponseDto } from '../bank-account/dtos/bank-account-response.dto';
 import { CreateWithdrawalDto } from './dtos/create-withdrawal.dto';
@@ -52,10 +53,10 @@ export class WithdrawalController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateWithdrawalDto,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateWithdrawalResponseDto> {
-    const storeId = this.getStoreId(req);
     const input = {
       storeId,
       bankAccountId: dto.bankAccountId,
@@ -100,10 +101,10 @@ export class WithdrawalController {
   @HttpCode(HttpStatus.OK)
   async list(
     @Query() query: ListWithdrawalsQueryDto,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListWithdrawalsResponseDto> {
     const result = await this.listWithdrawalsUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       page: query.page,
       limit: query.limit,
       status: query.status,
@@ -123,10 +124,10 @@ export class WithdrawalController {
   @HttpCode(HttpStatus.OK)
   async get(
     @Param('id') id: string,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetWithdrawalResponseDto> {
     const result = await this.getWithdrawalUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       withdrawalId: id,
     });
 
@@ -138,14 +139,6 @@ export class WithdrawalController {
       transactions: result.transactions,
       timeline: result.timeline,
     };
-  }
-
-  private getStoreId(req?: Request): string {
-    const storeId = (req as any)?.store?.id ?? (req as any)?.user?.storeId;
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-    return storeId;
   }
 
   private getIdempotencyKey(req?: Request): string {

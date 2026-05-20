@@ -72,6 +72,13 @@ export class StoreController {
         slug: dto.slug,
       });
 
+      // Access token - available on all routes (15 min)
+      response.cookie('hockpay_at', result.accessToken, {
+        ...cookieOptions,
+        maxAge: 15 * 60 * 1000, // 15 minutes
+        path: '/',
+      });
+
       // Set new refresh token as HTTP-only cookie
       response.cookie('hockpay_rt', result.refreshToken, {
         ...cookieOptions,

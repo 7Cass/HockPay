@@ -182,6 +182,7 @@ describe('API HTTP boundary (e2e)', () => {
     });
     expect(setCookies(response)).toEqual(
       expect.arrayContaining([
+        expect.stringContaining('hockpay_at=store-access-token'),
         expect.stringContaining('hockpay_rt=store-refresh-token'),
       ]),
     );

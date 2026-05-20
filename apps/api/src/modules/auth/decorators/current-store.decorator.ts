@@ -19,23 +19,25 @@ import {
  * }
  * ```
  */
+export function resolveCurrentStore(ctx: ExecutionContext): string {
+  const request = ctx.switchToHttp().getRequest();
+
+  // CombinedAuthGuard sets either request.store.id (API Key) or request.user.storeId (JWT)
+  const storeId = request.store?.id || request.user?.storeId;
+
+  if (!storeId) {
+    throw new ForbiddenException({
+      statusCode: 403,
+      error: 'Forbidden',
+      message:
+        'No store selected or could not be determined from authentication context.',
+      code: 'NO_CURRENT_STORE',
+    });
+  }
+
+  return storeId;
+}
+
 export const CurrentStore = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): string => {
-    const request = ctx.switchToHttp().getRequest();
-
-    // CombinedAuthGuard sets either request.store.id (API Key) or request.user.storeId (JWT)
-    const storeId = request.store?.id || request.user?.storeId;
-
-    if (!storeId) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        error: 'Forbidden',
-        message:
-          'No store selected or could not be determined from authentication context.',
-        code: 'NO_CURRENT_STORE',
-      });
-    }
-
-    return storeId;
-  },
+  (_data: unknown, ctx: ExecutionContext): string => resolveCurrentStore(ctx),
 );
