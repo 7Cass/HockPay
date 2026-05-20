@@ -9,6 +9,7 @@ import { IRefundRepository } from "./refund.repository.interface";
 import { ICustomerRepository } from "./customer.repository.interface";
 import { IPixChargeRepository } from "./pix-charge.repository.interface";
 import { IWithdrawalRepository } from "./withdrawal.repository.interface";
+import { IIdempotencyKeyRepository } from "./idempotency-key.repository.interface";
 
 /**
  * Interface containing transacted repositories.
@@ -25,6 +26,7 @@ export interface ITransactedRepositories {
   receiptRepository: IReceiptRepository;
   storeRepository: IStoreRepository;
   customerRepository: ICustomerRepository;
+  idempotencyKeyRepository: IIdempotencyKeyRepository;
 }
 
 /**

@@ -1,17 +1,19 @@
-/**
- * Domain Entity: IdempotencyKey
- *
- * Represents an idempotency key for safe request retries.
- * Keys are unique per store and expire after 24 hours.
- */
+export enum IdempotencyKeyStatus {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+}
+
 export class IdempotencyKey {
   private readonly _id: string;
   private readonly _key: string;
   private readonly _storeId: string;
+  private readonly _requestMethod: string;
   private readonly _requestPath: string;
   private readonly _requestHash: string;
-  private readonly _responseBody: Record<string, unknown>;
-  private readonly _responseStatus: number;
+  private _responseBody?: Record<string, unknown>;
+  private _responseStatus?: number;
+  private _status: IdempotencyKeyStatus;
+  private _completedAt?: Date;
   private readonly _createdAt: Date;
   private readonly _expiresAt: Date;
 
@@ -19,10 +21,13 @@ export class IdempotencyKey {
     this._id = props.id;
     this._key = props.key;
     this._storeId = props.storeId;
+    this._requestMethod = props.requestMethod.toUpperCase();
     this._requestPath = props.requestPath;
     this._requestHash = props.requestHash;
     this._responseBody = props.responseBody;
     this._responseStatus = props.responseStatus;
+    this._status = props.status;
+    this._completedAt = props.completedAt;
     this._createdAt = props.createdAt;
     this._expiresAt = props.expiresAt;
   }
@@ -40,10 +45,31 @@ export class IdempotencyKey {
       id: crypto.randomUUID(),
       key: props.key,
       storeId: props.storeId,
+      requestMethod: props.requestMethod,
       requestPath: props.requestPath,
       requestHash: props.requestHash,
       responseBody: props.responseBody,
       responseStatus: props.responseStatus,
+      status: IdempotencyKeyStatus.COMPLETED,
+      completedAt: now,
+      createdAt: now,
+      expiresAt,
+    });
+  }
+
+  static reserve(props: ReserveIdempotencyKeyProps): IdempotencyKey {
+    const now = new Date();
+    const ttlSeconds = props.ttlSeconds ?? 86400;
+    const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
+
+    return new IdempotencyKey({
+      id: crypto.randomUUID(),
+      key: props.key,
+      storeId: props.storeId,
+      requestMethod: props.requestMethod,
+      requestPath: props.requestPath,
+      requestHash: props.requestHash,
+      status: IdempotencyKeyStatus.PENDING,
       createdAt: now,
       expiresAt,
     });
@@ -71,6 +97,10 @@ export class IdempotencyKey {
     return this._storeId;
   }
 
+  get requestMethod(): string {
+    return this._requestMethod;
+  }
+
   get requestPath(): string {
     return this._requestPath;
   }
@@ -79,12 +109,20 @@ export class IdempotencyKey {
     return this._requestHash;
   }
 
-  get responseBody(): Record<string, unknown> {
+  get responseBody(): Record<string, unknown> | undefined {
     return this._responseBody;
   }
 
-  get responseStatus(): number {
+  get responseStatus(): number | undefined {
     return this._responseStatus;
+  }
+
+  get status(): IdempotencyKeyStatus {
+    return this._status;
+  }
+
+  get completedAt(): Date | undefined {
+    return this._completedAt;
   }
 
   get createdAt(): Date {
@@ -109,6 +147,33 @@ export class IdempotencyKey {
     return this._requestHash === requestHash;
   }
 
+  matchesRequest(input: {
+    requestMethod: string;
+    requestPath: string;
+    requestHash: string;
+  }): boolean {
+    return (
+      this._requestMethod === input.requestMethod.toUpperCase() &&
+      this._requestPath === input.requestPath &&
+      this._requestHash === input.requestHash
+    );
+  }
+
+  isCompleted(): boolean {
+    return (
+      this._status === IdempotencyKeyStatus.COMPLETED &&
+      this._responseBody !== undefined &&
+      this._responseStatus !== undefined
+    );
+  }
+
+  complete(responseBody: Record<string, unknown>, responseStatus: number): void {
+    this._responseBody = responseBody;
+    this._responseStatus = responseStatus;
+    this._status = IdempotencyKeyStatus.COMPLETED;
+    this._completedAt = new Date();
+  }
+
   /**
    * Convert to plain object (useful for serialization).
    */
@@ -117,10 +182,13 @@ export class IdempotencyKey {
       id: this._id,
       key: this._key,
       storeId: this._storeId,
+      requestMethod: this._requestMethod,
       requestPath: this._requestPath,
       requestHash: this._requestHash,
       responseBody: this._responseBody,
       responseStatus: this._responseStatus,
+      status: this._status,
+      completedAt: this._completedAt,
       createdAt: this._createdAt,
       expiresAt: this._expiresAt,
     };
@@ -133,10 +201,20 @@ export class IdempotencyKey {
 export interface CreateIdempotencyKeyProps {
   key: string;
   storeId: string;
+  requestMethod: string;
   requestPath: string;
   requestHash: string;
   responseBody: Record<string, unknown>;
   responseStatus: number;
+  ttlSeconds?: number;
+}
+
+export interface ReserveIdempotencyKeyProps {
+  key: string;
+  storeId: string;
+  requestMethod: string;
+  requestPath: string;
+  requestHash: string;
   ttlSeconds?: number;
 }
 
@@ -147,10 +225,13 @@ export interface IdempotencyKeyProps {
   id: string;
   key: string;
   storeId: string;
+  requestMethod: string;
   requestPath: string;
   requestHash: string;
-  responseBody: Record<string, unknown>;
-  responseStatus: number;
+  responseBody?: Record<string, unknown>;
+  responseStatus?: number;
+  status: IdempotencyKeyStatus;
+  completedAt?: Date;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -162,10 +243,13 @@ export interface IdempotencyKeyObject {
   id: string;
   key: string;
   storeId: string;
+  requestMethod: string;
   requestPath: string;
   requestHash: string;
-  responseBody: Record<string, unknown>;
-  responseStatus: number;
+  responseBody?: Record<string, unknown>;
+  responseStatus?: number;
+  status: IdempotencyKeyStatus;
+  completedAt?: Date;
   createdAt: Date;
   expiresAt: Date;
 }

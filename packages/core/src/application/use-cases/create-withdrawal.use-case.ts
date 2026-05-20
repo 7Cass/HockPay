@@ -15,7 +15,10 @@ import { InsufficientWithdrawalBalanceError } from "../../domain/errors/insuffic
 import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
 import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
 import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import {
+  ITransactedRepositories,
+  IUnitOfWork,
+} from "../../domain/repositories/unit-of-work.interface";
 import { WithdrawalPolicy } from "../services/withdrawal-policy.service";
 
 export interface ICreateWithdrawalInput {
@@ -39,90 +42,95 @@ export class CreateWithdrawalUseCase {
   async execute(
     input: ICreateWithdrawalInput,
   ): Promise<ICreateWithdrawalOutput> {
-    return this.unitOfWork.execute(async (repos) => {
-      const store = await repos.storeRepository.findById(input.storeId);
-      if (!store) throw new StoreNotFoundError(input.storeId);
-      if (!store.isActive) throw new StoreInactiveError(store.id);
-      if (!store.isApproved) throw new StoreNotApprovedError(store.id);
+    return this.unitOfWork.execute((repos) =>
+      this.executeInTransaction(input, repos),
+    );
+  }
 
-      const account = await repos.accountRepository.findByStoreId(
-        input.storeId,
-      );
-      if (!account) throw new AccountNotFoundError(input.storeId);
+  async executeInTransaction(
+    input: ICreateWithdrawalInput,
+    repos: ITransactedRepositories,
+  ): Promise<ICreateWithdrawalOutput> {
+    const store = await repos.storeRepository.findById(input.storeId);
+    if (!store) throw new StoreNotFoundError(input.storeId);
+    if (!store.isActive) throw new StoreInactiveError(store.id);
+    if (!store.isApproved) throw new StoreNotApprovedError(store.id);
 
-      const bankAccount = await repos.bankAccountRepository.findById(
-        input.bankAccountId,
-      );
-      if (!bankAccount || bankAccount.storeId !== input.storeId) {
-        throw new BankAccountNotFoundError(input.bankAccountId);
-      }
-      if (!bankAccount.isVerified) {
-        throw new BankAccountNotVerifiedError(bankAccount.id);
-      }
+    const account = await repos.accountRepository.findByStoreId(input.storeId);
+    if (!account) throw new AccountNotFoundError(input.storeId);
 
-      const { startOfDay, endOfDay } = getDayRange(new Date());
-      const dailyAmount =
-        await repos.withdrawalRepository.sumAmountCreatedInRange(
-          account.id,
-          startOfDay,
-          endOfDay,
-        );
-      const dailyCount = await repos.withdrawalRepository.countCreatedInRange(
+    const bankAccount = await repos.bankAccountRepository.findById(
+      input.bankAccountId,
+    );
+    if (!bankAccount || bankAccount.storeId !== input.storeId) {
+      throw new BankAccountNotFoundError(input.bankAccountId);
+    }
+    if (!bankAccount.isVerified) {
+      throw new BankAccountNotVerifiedError(bankAccount.id);
+    }
+
+    const { startOfDay, endOfDay } = getDayRange(new Date());
+    const dailyAmount =
+      await repos.withdrawalRepository.sumAmountCreatedInRange(
         account.id,
         startOfDay,
         endOfDay,
       );
-      this.policy.validate({
-        amountInCents: input.amount,
-        dailyAmountAlreadyRequested: dailyAmount,
-        dailyCountAlreadyRequested: dailyCount,
-      });
-      const feeResult = this.policy.calculate(input.amount);
-
-      if (input.amount > account.available) {
-        throw new InsufficientWithdrawalBalanceError();
-      }
-
-      const withdrawal = Withdrawal.create({
-        accountId: account.id,
-        bankAccountId: bankAccount.id,
-        amount: input.amount,
-        fee: feeResult.feeInCents,
-      });
-
-      account.block(withdrawal.amount);
-
-      await repos.withdrawalRepository.save(withdrawal);
-      await repos.accountRepository.update(account);
-
-      const transaction = Transaction.create({
-        accountId: account.id,
-        type: TransactionType.WITHDRAWAL_RESERVED,
-        amount: withdrawal.amount,
-        fee: withdrawal.fee,
-        netAmount: withdrawal.netAmount,
-        balanceAfter: account.available,
-        referenceType: "WITHDRAWAL",
-        referenceId: withdrawal.id,
-        description: `Withdrawal reserved ${withdrawal.id}`,
-      });
-      await repos.transactionRepository.save(transaction);
-
-      const outboxEvent = OutboxEvent.create({
-        aggregateType: "Withdrawal",
-        aggregateId: withdrawal.id,
-        eventType: "withdrawal.created",
-        requestId: input.requestId,
-        storeId: input.storeId,
-        payload: sanitizeWithdrawal(input.storeId, withdrawal.toObject()),
-      });
-      await repos.outboxWriter.save(outboxEvent);
-
-      return {
-        withdrawal: withdrawal.toObject(),
-        account: account.toObject(),
-      };
+    const dailyCount = await repos.withdrawalRepository.countCreatedInRange(
+      account.id,
+      startOfDay,
+      endOfDay,
+    );
+    this.policy.validate({
+      amountInCents: input.amount,
+      dailyAmountAlreadyRequested: dailyAmount,
+      dailyCountAlreadyRequested: dailyCount,
     });
+    const feeResult = this.policy.calculate(input.amount);
+
+    if (input.amount > account.available) {
+      throw new InsufficientWithdrawalBalanceError();
+    }
+
+    const withdrawal = Withdrawal.create({
+      accountId: account.id,
+      bankAccountId: bankAccount.id,
+      amount: input.amount,
+      fee: feeResult.feeInCents,
+    });
+
+    account.block(withdrawal.amount);
+
+    await repos.withdrawalRepository.save(withdrawal);
+    await repos.accountRepository.update(account);
+
+    const transaction = Transaction.create({
+      accountId: account.id,
+      type: TransactionType.WITHDRAWAL_RESERVED,
+      amount: withdrawal.amount,
+      fee: withdrawal.fee,
+      netAmount: withdrawal.netAmount,
+      balanceAfter: account.available,
+      referenceType: "WITHDRAWAL",
+      referenceId: withdrawal.id,
+      description: `Withdrawal reserved ${withdrawal.id}`,
+    });
+    await repos.transactionRepository.save(transaction);
+
+    const outboxEvent = OutboxEvent.create({
+      aggregateType: "Withdrawal",
+      aggregateId: withdrawal.id,
+      eventType: "withdrawal.created",
+      requestId: input.requestId,
+      storeId: input.storeId,
+      payload: sanitizeWithdrawal(input.storeId, withdrawal.toObject()),
+    });
+    await repos.outboxWriter.save(outboxEvent);
+
+    return {
+      withdrawal: withdrawal.toObject(),
+      account: account.toObject(),
+    };
   }
 }
 

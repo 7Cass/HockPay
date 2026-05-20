@@ -673,18 +673,26 @@ model ReceiptCounter {
 // IDEMPOTENCY
 // ============================================================================
 
-model IdempotencyKey {
-  id             String    @id @default(uuid())
-  key            String
-  storeId        String    @map("store_id")
-  requestPath    String    @map("request_path")
-  requestHash    String    @map("request_hash")
-  responseBody   Json      @map("response_body")
-  responseStatus Int       @map("response_status")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  expiresAt      DateTime  @map("expires_at")
+enum IdempotencyKeyStatus {
+  PENDING
+  COMPLETED
+}
 
-  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+model IdempotencyKey {
+  id             String                @id @default(uuid())
+  key            String
+  storeId        String                @map("store_id")
+  requestMethod  String                @default("POST") @map("request_method")
+  requestPath    String                @map("request_path")
+  requestHash    String                @map("request_hash")
+  responseBody   Json?                 @map("response_body")
+  responseStatus Int?                  @map("response_status")
+  status         IdempotencyKeyStatus  @default(COMPLETED)
+  completedAt    DateTime?             @map("completed_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  expiresAt      DateTime              @map("expires_at")
+
+  store          Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([key, storeId])
   @@map("idempotency_keys")

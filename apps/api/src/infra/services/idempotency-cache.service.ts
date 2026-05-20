@@ -18,7 +18,7 @@ export class IdempotencyCacheService
 {
   private readonly logger = new Logger(IdempotencyCacheService.name);
   private readonly redis: Redis;
-  private readonly keyPrefix = 'idempotency:';
+  private readonly keyPrefix = 'idempotency:v2:';
   private readonly defaultTtl = 86400; // 24 hours
 
   constructor(private readonly configService: ConfigService) {

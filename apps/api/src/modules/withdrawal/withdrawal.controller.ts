@@ -8,15 +8,21 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import {
   CreateWithdrawalUseCase,
   GetWithdrawalUseCase,
   ListWithdrawalsUseCase,
 } from '@hockpay/core';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
+import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
+import {
+  getIdempotencyRequestContext,
+  readIdempotencyKeyHeader,
+} from '../../common/idempotency/idempotency-request-context';
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -38,6 +44,7 @@ export class WithdrawalController {
     private readonly createWithdrawalUseCase: CreateWithdrawalUseCase,
     private readonly listWithdrawalsUseCase: ListWithdrawalsUseCase,
     private readonly getWithdrawalUseCase: GetWithdrawalUseCase,
+    private readonly idempotencyService: TransactionalIdempotencyService,
   ) {}
 
   @Post()
@@ -46,17 +53,47 @@ export class WithdrawalController {
   async create(
     @Body() dto: CreateWithdrawalDto,
     @Req() req?: Request,
+    @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateWithdrawalResponseDto> {
-    const result = await this.createWithdrawalUseCase.execute({
-      storeId: this.getStoreId(req),
+    const storeId = this.getStoreId(req);
+    const input = {
+      storeId,
       bankAccountId: dto.bankAccountId,
       amount: dto.amount,
       requestId: getRequestId(req),
-    });
-
-    return {
-      withdrawal: WithdrawalResponseDto.fromObject(result.withdrawal),
     };
+    const idempotencyKey = this.getIdempotencyKey(req);
+
+    res?.setHeader('x-idempotency-key', idempotencyKey);
+    res?.setHeader('x-idempotency-replayed', 'false');
+
+    const result =
+      await this.idempotencyService.execute<CreateWithdrawalResponseDto>({
+        idempotencyKey,
+        storeId,
+        method: req?.method ?? 'POST',
+        path: req?.path ?? '/withdrawals',
+        body: dto,
+        responseStatus: HttpStatus.CREATED,
+        ttlSeconds: this.getIdempotencyTtlSeconds(req),
+        operation: async (repos) => {
+          const output =
+            await this.createWithdrawalUseCase.executeInTransaction(
+              input,
+              repos,
+            );
+
+          return {
+            withdrawal: WithdrawalResponseDto.fromObject(output.withdrawal),
+          };
+        },
+      });
+
+    res?.status(result.status);
+    res?.setHeader('x-idempotency-replayed', String(result.replayed));
+    res?.setHeader('x-idempotency-key', idempotencyKey);
+
+    return result.body;
   }
 
   @Get()
@@ -109,5 +146,17 @@ export class WithdrawalController {
       throw new Error('Store ID not found in request');
     }
     return storeId;
+  }
+
+  private getIdempotencyKey(req?: Request): string {
+    return (
+      getIdempotencyRequestContext(req)?.key ??
+      readIdempotencyKeyHeader(req) ??
+      ''
+    );
+  }
+
+  private getIdempotencyTtlSeconds(req?: Request): number | undefined {
+    return getIdempotencyRequestContext(req)?.ttlSeconds;
   }
 }

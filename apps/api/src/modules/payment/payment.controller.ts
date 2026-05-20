@@ -12,9 +12,10 @@ import {
   NotFoundException,
   UnprocessableEntityException,
   Req,
+  Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import {
   CreatePaymentUseCase,
   GetPaymentTimelineUseCase,
@@ -28,9 +29,15 @@ import {
   StoreNotApprovedError,
   Environment,
 } from '@hockpay/core';
+import type { ICreatePaymentOutput } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
+import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
+import {
+  getIdempotencyRequestContext,
+  readIdempotencyKeyHeader,
+} from '../../common/idempotency/idempotency-request-context';
 import { getRequestId } from '../../common/request-id';
 import { CreatePaymentDto } from './dtos/create-payment.dto';
 import {
@@ -64,6 +71,7 @@ export class PaymentController {
     private readonly getPaymentTimelineUseCase: GetPaymentTimelineUseCase,
     private readonly listPaymentsUseCase: ListPaymentsUseCase,
     private readonly simulatePaymentUseCase: SimulateCheckoutPaymentUseCase,
+    private readonly idempotencyService: TransactionalIdempotencyService,
   ) {}
 
   /**
@@ -79,6 +87,7 @@ export class PaymentController {
   async createPayment(
     @Body() dto: CreatePaymentDto,
     @Req() req?: Request,
+    @Res({ passthrough: true }) res?: Response,
   ): Promise<CreatePaymentResponseDto> {
     try {
       const storeId = (req as any)?.store?.id;
@@ -88,7 +97,7 @@ export class PaymentController {
         throw new Error('Store ID not found in request');
       }
 
-      const result = await this.createPaymentUseCase.execute({
+      const input = {
         storeId,
         requestId: getRequestId(req),
         externalId: dto.externalId,
@@ -101,12 +110,49 @@ export class PaymentController {
         acquirerId: dto.acquirerId,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         metadata: dto.metadata,
-      });
-
-      return {
-        payment: result.payment,
-        customerCreated: result.customerCreated,
       };
+      const idempotencyKey = this.getIdempotencyKey(req);
+
+      res?.setHeader('x-idempotency-key', idempotencyKey);
+      res?.setHeader('x-idempotency-replayed', 'false');
+
+      let createdPaymentOutput: ICreatePaymentOutput | undefined;
+
+      const result =
+        await this.idempotencyService.execute<CreatePaymentResponseDto>({
+          idempotencyKey,
+          storeId,
+          method: req?.method ?? 'POST',
+          path: req?.path ?? '/payments',
+          body: dto,
+          responseStatus: HttpStatus.CREATED,
+          ttlSeconds: this.getIdempotencyTtlSeconds(req),
+          operation: async (repos) => {
+            const output = await this.createPaymentUseCase.executeInTransaction(
+              input,
+              repos,
+            );
+            createdPaymentOutput = output;
+
+            return {
+              payment: output.payment,
+              customerCreated: output.customerCreated,
+            };
+          },
+        });
+
+      res?.status(result.status);
+      res?.setHeader('x-idempotency-replayed', String(result.replayed));
+      res?.setHeader('x-idempotency-key', idempotencyKey);
+
+      if (!result.replayed && createdPaymentOutput) {
+        await this.createPaymentUseCase.scheduleExpirationAfterCommit(
+          input,
+          createdPaymentOutput,
+        );
+      }
+
+      return result.body;
     } catch (error) {
       if (error instanceof ExternalIdAlreadyExistsError) {
         throw new ConflictException({
@@ -142,6 +188,18 @@ export class PaymentController {
       }
       throw error;
     }
+  }
+
+  private getIdempotencyKey(req?: Request): string {
+    return (
+      getIdempotencyRequestContext(req)?.key ??
+      readIdempotencyKeyHeader(req) ??
+      ''
+    );
+  }
+
+  private getIdempotencyTtlSeconds(req?: Request): number | undefined {
+    return getIdempotencyRequestContext(req)?.ttlSeconds;
   }
 
   /**

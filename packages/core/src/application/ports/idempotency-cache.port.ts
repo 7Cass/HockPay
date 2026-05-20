@@ -38,6 +38,10 @@ export interface IIdempotencyCachePort {
  * Cached idempotency response structure.
  */
 export interface CachedIdempotencyResponse {
+  /** HTTP method of the original request */
+  requestMethod: string;
+  /** Path of the original request */
+  requestPath: string;
   /** SHA256 hash of the original request body */
   requestHash: string;
   /** The response body to return */

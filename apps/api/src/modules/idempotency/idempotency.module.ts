@@ -1,7 +1,8 @@
 import { Module, Global } from '@nestjs/common';
 import { IdempotencyCacheService } from '../../infra/services/idempotency-cache.service';
 import { IdempotencyInterceptor } from '../../common/interceptors/idempotency.interceptor';
-import { IdempotencyKeyRepository } from '@hockpay/infrastructure';
+import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
+import { IdempotencyKeyRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { PrismaService } from '../../infra/database/prisma.service';
 
 /**
@@ -22,14 +23,22 @@ import { PrismaService } from '../../infra/database/prisma.service';
       useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
       inject: [PrismaService],
     },
+    {
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
+      inject: [PrismaService],
+    },
 
     // Interceptor
     IdempotencyInterceptor,
+    TransactionalIdempotencyService,
   ],
   exports: [
     IdempotencyCacheService,
     'IIdempotencyKeyRepository',
+    'IUnitOfWork',
     IdempotencyInterceptor,
+    TransactionalIdempotencyService,
   ],
 })
 export class IdempotencyModule {}

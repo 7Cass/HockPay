@@ -1,4 +1,32 @@
-import { IdempotencyKey } from '../entities/idempotency-key.entity';
+import {
+  IdempotencyKey,
+  ReserveIdempotencyKeyProps,
+} from '../entities/idempotency-key.entity';
+
+export enum IdempotencyReservationStatus {
+  RESERVED = 'RESERVED',
+  REPLAY = 'REPLAY',
+  CONFLICT = 'CONFLICT',
+  IN_PROGRESS = 'IN_PROGRESS',
+}
+
+export type IdempotencyReservation =
+  | {
+      status: IdempotencyReservationStatus.RESERVED;
+      key: IdempotencyKey;
+    }
+  | {
+      status: IdempotencyReservationStatus.REPLAY;
+      key: IdempotencyKey;
+    }
+  | {
+      status: IdempotencyReservationStatus.CONFLICT;
+      key: IdempotencyKey;
+    }
+  | {
+      status: IdempotencyReservationStatus.IN_PROGRESS;
+      key: IdempotencyKey;
+    };
 
 /**
  * Repository Interface: IdempotencyKey
@@ -15,6 +43,16 @@ export interface IIdempotencyKeyRepository {
    * @returns The IdempotencyKey entity or null if not found
    */
   findByKeyAndStore(key: string, storeId: string): Promise<IdempotencyKey | null>;
+
+  findCompleted(key: string, storeId: string): Promise<IdempotencyKey | null>;
+
+  reserve(input: ReserveIdempotencyKeyProps): Promise<IdempotencyReservation>;
+
+  complete(
+    id: string,
+    responseBody: Record<string, unknown>,
+    responseStatus: number,
+  ): Promise<IdempotencyKey>;
 
   /**
    * Save a new idempotency key.
@@ -38,4 +76,6 @@ export interface IIdempotencyKeyRepository {
    * @returns The number of deleted keys
    */
   deleteExpired(): Promise<number>;
+
+  deleteExpiredForKey(key: string, storeId: string): Promise<number>;
 }
