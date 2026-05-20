@@ -29,6 +29,7 @@ const suiteCommands = new Map([
   ["studycase", ["pnpm", ["run", "smoke:studycase:mediakit"]]],
   ["system", ["pnpm", ["run", "smoke:system"]]],
   ["withdrawals", ["pnpm", ["run", "smoke:withdrawals"]]],
+  ["idempotency", ["pnpm", ["run", "smoke:idempotency"]]],
 ]);
 
 const children = new Set();
@@ -115,9 +116,9 @@ function selectedSuites() {
   return suites;
 }
 
-async function assertPortsFree() {
-  log(`Checking local ports: ${PORTS.join(", ")}`);
-  for (const port of PORTS) {
+async function assertPortsFree(ports = PORTS) {
+  log(`Checking local ports: ${ports.join(", ")}`);
+  for (const port of ports) {
     const free = await isPortFree(port);
     if (!free) {
       throw new Error(
@@ -127,7 +128,16 @@ async function assertPortsFree() {
   }
 }
 
-function isPortFree(port) {
+async function isPortFree(port) {
+  for (const host of ["127.0.0.1", "::"]) {
+    if (!(await isPortFreeOnHost(port, host))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isPortFreeOnHost(port, host) {
   return new Promise((resolvePort, reject) => {
     const server = createServer();
     server.once("error", (error) => {
@@ -135,9 +145,13 @@ function isPortFree(port) {
         resolvePort(false);
         return;
       }
+      if (error.code === "EAFNOSUPPORT" || error.code === "EADDRNOTAVAIL") {
+        resolvePort(true);
+        return;
+      }
       reject(error);
     });
-    server.listen({ host: "127.0.0.1", port }, () => {
+    server.listen({ host, port }, () => {
       server.close(() => resolvePort(true));
     });
   });
@@ -356,6 +370,8 @@ function sleep(ms) {
 async function main() {
   const env = smokeEnv();
   const suites = selectedSuites();
+  const idempotencyOnly = suites.length === 1 && suites[0] === "idempotency";
+  const requiredPorts = idempotencyOnly ? [15432, 16379, 3000] : PORTS;
   const migrateMode = process.env.HOCKPAY_SMOKE_MIGRATE_MODE ?? "deploy";
   const cleanVolumes =
     process.env.HOCKPAY_SMOKE_CLEAN_VOLUMES === "true" ||
@@ -366,7 +382,7 @@ async function main() {
     throw new Error("HOCKPAY_SMOKE_MIGRATE_MODE must be deploy or dev.");
   }
 
-  await assertPortsFree();
+  await assertPortsFree(requiredPorts);
 
   try {
     if (cleanVolumes) {
@@ -400,18 +416,20 @@ async function main() {
     const checkoutEnv = { ...env, PORT: "3333" };
 
     startProcess("api", "pnpm", ["--filter", "@hockpay/api", "start"], apiEnv);
-    startProcess(
-      "worker",
-      "pnpm",
-      ["--filter", "@hockpay/worker", "start"],
-      workerEnv,
-    );
-    startProcess(
-      "checkout",
-      "pnpm",
-      ["--filter", "@hockpay/checkout", "dev"],
-      checkoutEnv,
-    );
+    if (!idempotencyOnly) {
+      startProcess(
+        "worker",
+        "pnpm",
+        ["--filter", "@hockpay/worker", "start"],
+        workerEnv,
+      );
+      startProcess(
+        "checkout",
+        "pnpm",
+        ["--filter", "@hockpay/checkout", "dev"],
+        checkoutEnv,
+      );
+    }
 
     await waitForHttp(
       "http://localhost:3000/api/v1/health/live",
