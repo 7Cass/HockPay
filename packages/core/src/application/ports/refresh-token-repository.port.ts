@@ -19,6 +19,11 @@ export interface IRefreshTokenRepositoryPort {
   findByToken(token: string): Promise<RefreshToken | null>;
 
   /**
+   * Find a refresh token and lock the row for the current transaction.
+   */
+  findByTokenForUpdate(token: string): Promise<RefreshToken | null>;
+
+  /**
    * Find the active refresh token for a merchant.
    */
   findByMerchantId(merchantId: string): Promise<RefreshToken | null>;

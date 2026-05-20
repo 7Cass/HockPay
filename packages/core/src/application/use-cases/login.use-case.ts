@@ -1,11 +1,10 @@
 import { InvalidCredentialsError } from '../../domain/errors/invalid-credentials.error';
 import { MerchantInactiveError } from '../../domain/errors/merchant-inactive.error';
-import { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
 import { IPasswordHasherPort } from '../ports/password-hasher.port';
 import { IJwtServicePort } from '../ports/jwt-service.port';
-import { IRefreshTokenRepositoryPort } from '../ports/refresh-token-repository.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 /**
  * Input DTO for LoginUseCase.
@@ -40,16 +39,17 @@ export interface ILoginOutput {
  */
 export class LoginUseCase {
   constructor(
-    private readonly merchantRepository: IMerchantRepository,
+    private readonly unitOfWork: IUnitOfWork,
     private readonly passwordHasher: IPasswordHasherPort,
     private readonly jwtService: IJwtServicePort,
-    private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
     private readonly tokenGenerator: ITokenGeneratorPort,
   ) {}
 
   async execute(input: ILoginInput): Promise<ILoginOutput> {
     // 1. Find merchant by email
-    const merchant = await this.merchantRepository.findByEmail(input.email);
+    const merchant = await this.unitOfWork.execute((repos) =>
+      repos.merchantRepository.findByEmail(input.email),
+    );
 
     if (!merchant) {
       throw new InvalidCredentialsError();
@@ -70,41 +70,66 @@ export class LoginUseCase {
       throw new MerchantInactiveError();
     }
 
-    // 4. Generate access token (15 minutes) with current store if available
-    const accessToken = await this.jwtService.generateAccessToken(
-      merchant.id,
-      merchant.currentStoreId ?? null,
-      '15m',
-    );
+    return this.unitOfWork.execute(async (repos) => {
+      const lockedMerchant = await repos.merchantRepository.findByIdForUpdate(
+        merchant.id,
+      );
 
-    // 5. Generate refresh token string
-    const refreshTokenString = this.tokenGenerator.generateBase64(32);
+      if (!lockedMerchant) {
+        throw new InvalidCredentialsError();
+      }
 
-    // 6. Create refresh token entity (7 days expiration - default)
-    const refreshToken = RefreshToken.create({
-      token: refreshTokenString,
-      merchantId: merchant.id,
+      if (!lockedMerchant.canLogin()) {
+        throw new MerchantInactiveError();
+      }
+
+      if (lockedMerchant.passwordHash !== merchant.passwordHash) {
+        const isCurrentPasswordValid = await this.passwordHasher.verify(
+          input.password,
+          lockedMerchant.passwordHash,
+        );
+
+        if (!isCurrentPasswordValid) {
+          throw new InvalidCredentialsError();
+        }
+      }
+
+      // 4. Generate access token (15 minutes) with current store if available
+      const accessToken = await this.jwtService.generateAccessToken(
+        lockedMerchant.id,
+        lockedMerchant.currentStoreId ?? null,
+        '15m',
+      );
+
+      // 5. Generate refresh token string
+      const refreshTokenString = this.tokenGenerator.generateBase64(32);
+
+      // 6. Create refresh token entity (7 days expiration - default)
+      const refreshToken = RefreshToken.create({
+        token: refreshTokenString,
+        merchantId: lockedMerchant.id,
+      });
+
+      // 7. Revoke existing refresh tokens for this merchant
+      await repos.refreshTokenRepository.revokeAllForMerchant(lockedMerchant.id);
+
+      // 8. Save new refresh token
+      await repos.refreshTokenRepository.create(refreshToken);
+
+      // 9. Return the output
+      return {
+        accessToken,
+        refreshToken: refreshTokenString,
+        expiresIn: 900, // 15 minutes in seconds
+        merchant: {
+          id: lockedMerchant.id,
+          name: lockedMerchant.name,
+          email: lockedMerchant.email.toString(),
+          document: lockedMerchant.document.value,
+          formattedDocument: lockedMerchant.document.formatted,
+          documentType: lockedMerchant.document.type,
+        },
+      };
     });
-
-    // 7. Revoke existing refresh tokens for this merchant
-    await this.refreshTokenRepository.revokeAllForMerchant(merchant.id);
-
-    // 8. Save new refresh token
-    await this.refreshTokenRepository.create(refreshToken);
-
-    // 9. Return the output
-    return {
-      accessToken,
-      refreshToken: refreshTokenString,
-      expiresIn: 900, // 15 minutes in seconds
-      merchant: {
-        id: merchant.id,
-        name: merchant.name,
-        email: merchant.email.toString(),
-        document: merchant.document.value,
-        formattedDocument: merchant.document.formatted,
-        documentType: merchant.document.type,
-      },
-    };
   }
 }

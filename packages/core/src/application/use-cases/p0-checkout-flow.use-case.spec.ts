@@ -36,6 +36,36 @@ describe("P0 checkout happy path", () => {
     const outbox = new InMemoryOutboxWriter();
     const transactions = new InMemoryTransactionRepository();
     const tokenGenerator = new DeterministicTokenGenerator();
+    const refreshTokens = new InMemoryRefreshTokenRepository();
+    const storeRepositoryWithAccount = {
+      async save(store: Store) {
+        await stores.save(store);
+        await accounts.save(Account.create({ storeId: store.id }));
+      },
+      findById: stores.findById.bind(stores),
+      findByIdAndMerchantId: stores.findByIdAndMerchantId.bind(stores),
+      findBySlug: stores.findBySlug.bind(stores),
+      findByMerchantId: stores.findByMerchantId.bind(stores),
+      update: stores.update.bind(stores),
+      delete: stores.delete.bind(stores),
+    };
+    const makeRepos = () => ({
+      paymentRepository: payments,
+      pixChargeRepository: pixCharges,
+      refundRepository: {} as any,
+      accountRepository: accounts,
+      transactionRepository: transactions,
+      withdrawalRepository: {} as any,
+      bankAccountRepository: {} as any,
+      outboxWriter: outbox,
+      receiptRepository: receipts,
+      storeRepository: storeRepositoryWithAccount,
+      merchantRepository: merchants,
+      refreshTokenRepository: refreshTokens,
+      checkoutSessionRepository: sessions,
+      customerRepository: customers,
+      idempotencyKeyRepository: {} as any,
+    });
 
     const merchant = Merchant.create({
       name: "Media Kit Merchant",
@@ -47,18 +77,8 @@ describe("P0 checkout happy path", () => {
 
     const createStore = new CreateStoreUseCase(
       {
-        async save(store: Store) {
-          await stores.save(store);
-          await accounts.save(Account.create({ storeId: store.id }));
-        },
-        findById: stores.findById.bind(stores),
-        findByIdAndMerchantId: stores.findByIdAndMerchantId.bind(stores),
-        findBySlug: stores.findBySlug.bind(stores),
-        findByMerchantId: stores.findByMerchantId.bind(stores),
-        update: stores.update.bind(stores),
-        delete: stores.delete.bind(stores),
+        execute: async (work) => work(makeRepos()),
       },
-      merchants,
       {
         async generateAccessToken(_, storeId) {
           return `access-token:${storeId}`;
@@ -73,7 +93,6 @@ describe("P0 checkout happy path", () => {
           return null;
         },
       },
-      new InMemoryRefreshTokenRepository(),
       tokenGenerator,
       {
         generateFromName: (name: string) =>
@@ -106,19 +125,7 @@ describe("P0 checkout happy path", () => {
 
     const createPayment = new CreatePaymentUseCase(
       {
-        execute: async (work) =>
-          work({
-            paymentRepository: payments,
-            pixChargeRepository: pixCharges,
-            refundRepository: {} as any,
-            accountRepository: accounts,
-            transactionRepository: transactions,
-            bankAccountRepository: {} as any,
-            outboxWriter: outbox,
-            receiptRepository: receipts,
-            storeRepository: stores,
-            customerRepository: customers,
-          }),
+        execute: async (work) => work(makeRepos()),
       },
       {
         async generate() {
@@ -147,7 +154,9 @@ describe("P0 checkout happy path", () => {
       payments,
     );
     const fulfillSession = new FulfillCheckoutSessionUseCase(
-      sessions,
+      {
+        execute: async (work) => work(makeRepos()),
+      },
       createPayment,
     );
 
@@ -177,19 +186,7 @@ describe("P0 checkout happy path", () => {
     expect(loadedFulfilledSession.paymentId).toBe(fulfilled.paymentId);
 
     const confirmed = await new ConfirmPaymentUseCase({
-      execute: async (work) =>
-        work({
-          paymentRepository: payments,
-          pixChargeRepository: pixCharges,
-          refundRepository: {} as any,
-          accountRepository: accounts,
-          transactionRepository: transactions,
-          bankAccountRepository: {} as any,
-          outboxWriter: outbox,
-          receiptRepository: receipts,
-          storeRepository: stores,
-          customerRepository: customers,
-        }),
+      execute: async (work) => work(makeRepos()),
     }).execute({
       storeId,
       paymentId: fulfilled.paymentId,
@@ -233,6 +230,10 @@ class InMemoryMerchantRepository {
 
   async findById(id: string): Promise<Merchant | null> {
     return this.items.get(id) ?? null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<Merchant | null> {
+    return this.findById(id);
   }
 
   async findByEmail(email: string): Promise<Merchant | null> {
@@ -380,6 +381,10 @@ class InMemoryRefreshTokenRepository {
     return this.items.get(token) ?? null;
   }
 
+  async findByTokenForUpdate(token: string): Promise<RefreshToken | null> {
+    return this.findByToken(token);
+  }
+
   async findByMerchantId(merchantId: string): Promise<RefreshToken | null> {
     return (
       [...this.items.values()].find(
@@ -414,6 +419,37 @@ class InMemoryCheckoutSessionRepository {
         (session) => session.checkoutToken === token,
       ) ?? null
     );
+  }
+
+  async claimOpenByToken(
+    token: string,
+    now: Date,
+  ): Promise<CheckoutSession | null> {
+    const session = await this.findByToken(token);
+    if (
+      !session ||
+      session.status !== "OPEN" ||
+      session.paymentId ||
+      session.expiresAt <= now
+    ) {
+      return null;
+    }
+
+    return session;
+  }
+
+  async expireOpenByToken(
+    token: string,
+    now: Date,
+  ): Promise<CheckoutSession | null> {
+    const session = await this.findByToken(token);
+    if (!session || session.status !== "OPEN" || session.expiresAt > now) {
+      return null;
+    }
+
+    session.expire();
+    await this.save(session);
+    return session;
   }
 
   async findByPaymentId(paymentId: string): Promise<CheckoutSession | null> {

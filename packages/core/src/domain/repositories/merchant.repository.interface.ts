@@ -22,6 +22,11 @@ export interface IMerchantRepository {
   findById(id: string): Promise<Merchant | null>;
 
   /**
+   * Find a merchant by ID and lock the row for the current transaction.
+   */
+  findByIdForUpdate(id: string): Promise<Merchant | null>;
+
+  /**
    * Find a merchant by email.
    * Returns null if not found.
    */

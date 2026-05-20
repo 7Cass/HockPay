@@ -10,6 +10,9 @@ import { ICustomerRepository } from "./customer.repository.interface";
 import { IPixChargeRepository } from "./pix-charge.repository.interface";
 import { IWithdrawalRepository } from "./withdrawal.repository.interface";
 import { IIdempotencyKeyRepository } from "./idempotency-key.repository.interface";
+import { IMerchantRepository } from "./merchant.repository.interface";
+import { ICheckoutSessionRepository } from "./checkout-session.repository.interface";
+import { IRefreshTokenRepositoryPort } from "../../application/ports/refresh-token-repository.port";
 
 /**
  * Interface containing transacted repositories.
@@ -25,6 +28,9 @@ export interface ITransactedRepositories {
   outboxWriter: IOutboxWriter;
   receiptRepository: IReceiptRepository;
   storeRepository: IStoreRepository;
+  merchantRepository: IMerchantRepository;
+  refreshTokenRepository: IRefreshTokenRepositoryPort;
+  checkoutSessionRepository: ICheckoutSessionRepository;
   customerRepository: ICustomerRepository;
   idempotencyKeyRepository: IIdempotencyKeyRepository;
 }

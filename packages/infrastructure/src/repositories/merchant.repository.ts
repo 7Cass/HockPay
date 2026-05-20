@@ -1,24 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
 import {
+  Document,
+  Email,
   IMerchantRepository,
   Merchant as DomainMerchant,
-  Email,
-  Document,
-} from '@hockpay/core';
-import { Merchant as PrismaMerchant } from '@hockpay/database';
+} from "@hockpay/core";
+import { Merchant as PrismaMerchant, Prisma, PrismaClient } from "@hockpay/database";
 
-/**
- * Infrastructure implementation of IMerchantRepository.
- *
- * This repository bridges between the domain layer (which uses domain entities)
- * and the infrastructure layer (which uses Prisma ORM).
- *
- * It converts between Prisma models and Domain entities.
- */
-@Injectable()
+type MerchantRow = {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  document: string;
+  isActive: boolean;
+  currentStoreId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export class MerchantRepository implements IMerchantRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
+  ) {}
 
   async save(merchant: DomainMerchant): Promise<void> {
     await this.prisma.merchant.create({
@@ -46,6 +49,31 @@ export class MerchantRepository implements IMerchantRepository {
     }
 
     return this.toDomain(prismaMerchant);
+  }
+
+  async findByIdForUpdate(id: string): Promise<DomainMerchant | null> {
+    const rows = await this.prisma.$queryRaw<MerchantRow[]>`
+      SELECT
+        id,
+        email,
+        password_hash AS "passwordHash",
+        name,
+        document,
+        is_active AS "isActive",
+        current_store_id AS "currentStoreId",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM merchants
+      WHERE id = ${id}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return this.toDomain(row);
   }
 
   async findByEmail(email: string): Promise<DomainMerchant | null> {
@@ -106,11 +134,7 @@ export class MerchantRepository implements IMerchantRepository {
     });
   }
 
-  /**
-   * Convert a Prisma Merchant to a Domain Merchant.
-   * This is a private helper method for internal use.
-   */
-  private toDomain(prismaMerchant: PrismaMerchant): DomainMerchant {
+  private toDomain(prismaMerchant: PrismaMerchant | MerchantRow): DomainMerchant {
     return DomainMerchant.reconstitute({
       id: prismaMerchant.id,
       email: new Email(prismaMerchant.email),

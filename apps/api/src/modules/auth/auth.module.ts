@@ -10,10 +10,13 @@ import {
   RefreshTokenUseCase,
   LogoutUseCase,
   SwitchStoreUseCase,
+  IUnitOfWork,
 } from '@hockpay/core';
-import { StoreRepository } from '@hockpay/infrastructure';
-import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
-import { RefreshTokenRepository } from 'src/infra/repositories/refresh-token.repository.impl';
+import {
+  MerchantRepository,
+  RefreshTokenRepository,
+  UnitOfWork,
+} from '@hockpay/infrastructure';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
@@ -38,11 +41,19 @@ import { PrismaService } from 'src/infra/database/prisma.service';
 
     // Infrastructure
     PrismaService,
-    MerchantRepository,
-    RefreshTokenRepository,
     {
-      provide: StoreRepository,
-      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      provide: MerchantRepository,
+      useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: RefreshTokenRepository,
+      useFactory: (prisma: PrismaService) => new RefreshTokenRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
     PasswordHasherService,
@@ -53,47 +64,41 @@ import { PrismaService } from 'src/infra/database/prisma.service';
     {
       provide: LoginUseCase,
       useFactory: (
-        merchantRepo: MerchantRepository,
+        unitOfWork: IUnitOfWork,
         passwordHasher: PasswordHasherService,
         jwtService: JwtService,
-        refreshTokenRepo: RefreshTokenRepository,
         tokenGenerator: TokenGeneratorService,
       ) => {
         return new LoginUseCase(
-          merchantRepo,
+          unitOfWork,
           passwordHasher,
           jwtService,
-          refreshTokenRepo,
           tokenGenerator,
         );
       },
       inject: [
-        MerchantRepository,
+        'IUnitOfWork',
         PasswordHasherService,
         JwtService,
-        RefreshTokenRepository,
         TokenGeneratorService,
       ],
     },
     {
       provide: RefreshTokenUseCase,
       useFactory: (
-        merchantRepo: MerchantRepository,
+        unitOfWork: IUnitOfWork,
         jwtService: JwtService,
-        refreshTokenRepo: RefreshTokenRepository,
         tokenGenerator: TokenGeneratorService,
       ) => {
         return new RefreshTokenUseCase(
-          merchantRepo,
+          unitOfWork,
           jwtService,
-          refreshTokenRepo,
           tokenGenerator,
         );
       },
       inject: [
-        MerchantRepository,
+        'IUnitOfWork',
         JwtService,
-        RefreshTokenRepository,
         TokenGeneratorService,
       ],
     },
@@ -107,25 +112,19 @@ import { PrismaService } from 'src/infra/database/prisma.service';
     {
       provide: SwitchStoreUseCase,
       useFactory: (
-        storeRepo: StoreRepository,
-        merchantRepo: MerchantRepository,
+        unitOfWork: IUnitOfWork,
         jwtService: JwtService,
-        refreshTokenRepo: RefreshTokenRepository,
         tokenGenerator: TokenGeneratorService,
       ) => {
         return new SwitchStoreUseCase(
-          storeRepo,
-          merchantRepo,
+          unitOfWork,
           jwtService,
-          refreshTokenRepo,
           tokenGenerator,
         );
       },
       inject: [
-        StoreRepository,
-        MerchantRepository,
+        'IUnitOfWork',
         JwtService,
-        RefreshTokenRepository,
         TokenGeneratorService,
       ],
     },

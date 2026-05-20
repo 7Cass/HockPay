@@ -5,7 +5,7 @@ import {
   GetMerchantUseCase,
   GetCurrentMerchantUseCase,
 } from '@hockpay/core';
-import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
+import { MerchantRepository } from '@hockpay/infrastructure';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { PrismaService } from 'src/infra/database/prisma.service';
 
@@ -21,7 +21,11 @@ import { PrismaService } from 'src/infra/database/prisma.service';
   providers: [
     // Infrastructure
     PrismaService,
-    MerchantRepository,
+    {
+      provide: MerchantRepository,
+      useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),
+      inject: [PrismaService],
+    },
     PasswordHasherService,
 
     // Use Cases (from core)

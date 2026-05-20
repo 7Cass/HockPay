@@ -1,12 +1,13 @@
-import { ICheckoutSessionRepository } from "../../domain/repositories/checkout-session.repository.interface";
 import {
   CreatePaymentUseCase,
+  ICreatePaymentInput,
   CustomerPromotionPolicy,
   PaymentCustomerInput,
 } from "./create-payment.use-case";
 import { Environment } from "../../domain/value-objects/environment.vo";
 import { Document } from "../../domain/value-objects/document.vo";
 import { CustomerCollectionMode } from "../../domain/entities/checkout-session.entity";
+import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 
 export interface IFulfillCheckoutSessionInput {
   token: string;
@@ -22,65 +23,95 @@ export interface IFulfillCheckoutSessionOutput {
 
 export class FulfillCheckoutSessionUseCase {
   constructor(
-    private readonly sessionRepository: ICheckoutSessionRepository,
+    private readonly unitOfWork: IUnitOfWork,
     private readonly createPaymentUseCase: CreatePaymentUseCase,
   ) {}
 
   async execute(
     input: IFulfillCheckoutSessionInput,
   ): Promise<IFulfillCheckoutSessionOutput> {
-    const session = await this.sessionRepository.findByToken(input.token);
-
-    if (!session) {
-      throw new Error("Checkout session not found or invalid token");
-    }
-
-    if (session.status !== "OPEN") {
-      throw new Error(
-        `Checkout session cannot be fulfilled because its status is ${session.status}`,
+    const result = await this.unitOfWork.execute(async (repos) => {
+      const now = new Date();
+      const session = await repos.checkoutSessionRepository.claimOpenByToken(
+        input.token,
+        now,
       );
-    }
 
-    if (new Date() > session.expiresAt) {
-      session.expire();
-      await this.sessionRepository.save(session);
-      throw new Error("Checkout session has expired");
-    }
+      if (!session) {
+        const currentSession = await repos.checkoutSessionRepository.findByToken(
+          input.token,
+        );
 
-    const customer = resolveCheckoutCustomer(session.prefillCustomer, input.customer);
+        if (!currentSession) {
+          throw new Error("Checkout session not found or invalid token");
+        }
 
-    if (
-      session.customerCollectionMode === CustomerCollectionMode.IDENTIFIED &&
-      !customer.document
-    ) {
-      throw new Error("Customer document is required for identified checkout sessions");
-    }
+        if (currentSession.status === "OPEN" && now > currentSession.expiresAt) {
+          await repos.checkoutSessionRepository.expireOpenByToken(
+            input.token,
+            now,
+          );
+          throw new Error("Checkout session has expired");
+        }
 
-    if (customer.document && !Document.create(customer.document)) {
-      throw new Error("Customer document must be a valid CPF or CNPJ");
-    }
+        throw new Error(
+          `Checkout session cannot be fulfilled because its status is ${currentSession.status}`,
+        );
+      }
 
-    const paymentResult = await this.createPaymentUseCase.execute({
-      storeId: session.storeId,
-      amount: session.amount,
-      description: session.description ?? undefined,
-      customer,
-      requestId: input.requestId,
-      customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
-      environment: input.environment,
-      metadata: session.metadata ?? undefined,
-      expiresAt: session.expiresAt,
+      const customer = resolveCheckoutCustomer(
+        session.prefillCustomer,
+        input.customer,
+      );
+
+      if (
+        session.customerCollectionMode === CustomerCollectionMode.IDENTIFIED &&
+        !customer.document
+      ) {
+        throw new Error("Customer document is required for identified checkout sessions");
+      }
+
+      if (customer.document && !Document.create(customer.document)) {
+        throw new Error("Customer document must be a valid CPF or CNPJ");
+      }
+
+      const paymentInput: ICreatePaymentInput = {
+        storeId: session.storeId,
+        amount: session.amount,
+        description: session.description ?? undefined,
+        customer,
+        requestId: input.requestId,
+        customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
+        environment: input.environment,
+        metadata: session.metadata ?? undefined,
+        expiresAt: session.expiresAt,
+      };
+      const paymentResult = await this.createPaymentUseCase.executeInTransaction(
+        paymentInput,
+        repos,
+      );
+
+      const paymentId = paymentResult.payment.id;
+
+      session.fulfill(paymentId);
+      await repos.checkoutSessionRepository.save(session);
+
+      return {
+        output: {
+          sessionId: session.id,
+          paymentId: paymentId,
+        },
+        paymentInput,
+        paymentResult,
+      };
     });
 
-    const paymentId = paymentResult.payment.id;
+    await this.createPaymentUseCase.scheduleExpirationAfterCommit(
+      result.paymentInput,
+      result.paymentResult,
+    );
 
-    session.fulfill(paymentId);
-    await this.sessionRepository.save(session);
-
-    return {
-      sessionId: session.id,
-      paymentId: paymentId,
-    };
+    return result.output;
   }
 }
 

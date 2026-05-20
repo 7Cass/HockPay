@@ -56,6 +56,52 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
     return this.toDomain(prismaSession);
   }
 
+  async claimOpenByToken(
+    token: string,
+    now: Date,
+  ): Promise<DomainCheckoutSession | null> {
+    const result = await this.prisma.checkoutSession.updateMany({
+      where: {
+        checkoutToken: token,
+        status: 'OPEN' as any,
+        paymentId: null,
+        expiresAt: { gt: now },
+      },
+      data: {
+        updatedAt: now,
+      },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findByToken(token);
+  }
+
+  async expireOpenByToken(
+    token: string,
+    now: Date,
+  ): Promise<DomainCheckoutSession | null> {
+    const result = await this.prisma.checkoutSession.updateMany({
+      where: {
+        checkoutToken: token,
+        status: 'OPEN' as any,
+        expiresAt: { lte: now },
+      },
+      data: {
+        status: 'EXPIRED' as any,
+        updatedAt: now,
+      },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findByToken(token);
+  }
+
   async findByPaymentId(paymentId: string): Promise<DomainCheckoutSession | null> {
     const prismaSession = await this.prisma.checkoutSession.findUnique({
       where: { paymentId },

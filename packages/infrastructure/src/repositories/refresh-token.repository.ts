@@ -1,22 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
 import {
   IRefreshTokenRepositoryPort,
   RefreshToken as DomainRefreshToken,
-} from '@hockpay/core';
-import { RefreshToken as PrismaRefreshToken } from '@hockpay/database';
+} from "@hockpay/core";
+import {
+  Prisma,
+  PrismaClient,
+  RefreshToken as PrismaRefreshToken,
+} from "@hockpay/database";
 
-/**
- * Infrastructure implementation of IRefreshTokenRepositoryPort.
- *
- * This repository bridges between domain layer (which uses domain entities)
- * and infrastructure layer (which uses Prisma ORM).
- *
- * It converts between Prisma models and Domain entities.
- */
-@Injectable()
+type RefreshTokenRow = {
+  id: string;
+  token: string;
+  merchantId: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaClient | Prisma.TransactionClient,
+  ) {}
 
   async create(token: DomainRefreshToken): Promise<void> {
     await this.prisma.refreshToken.create({
@@ -44,6 +49,31 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
     return this.toDomain(prismaToken);
   }
 
+  async findByTokenForUpdate(
+    token: string,
+  ): Promise<DomainRefreshToken | null> {
+    const rows = await this.prisma.$queryRaw<RefreshTokenRow[]>`
+      SELECT
+        id,
+        token,
+        merchant_id AS "merchantId",
+        expires_at AS "expiresAt",
+        revoked_at AS "revokedAt",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM refresh_tokens
+      WHERE token = ${token}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return this.toDomain(row);
+  }
+
   async findByMerchantId(
     merchantId: string,
   ): Promise<DomainRefreshToken | null> {
@@ -69,8 +99,6 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
   }
 
   async revokeAllForMerchant(merchantId: string): Promise<void> {
-    // Delete all existing tokens for this merchant (hard delete)
-    // This allows creating a new token with the same merchantId
     await this.prisma.refreshToken.deleteMany({
       where: { merchantId },
     });
@@ -91,11 +119,9 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
     });
   }
 
-  /**
-   * Convert a Prisma RefreshToken to a Domain RefreshToken.
-   * This is a private helper method for internal use.
-   */
-  private toDomain(prismaToken: PrismaRefreshToken): DomainRefreshToken {
+  private toDomain(
+    prismaToken: PrismaRefreshToken | RefreshTokenRow,
+  ): DomainRefreshToken {
     return DomainRefreshToken.reconstitute({
       id: prismaToken.id,
       token: prismaToken.token,

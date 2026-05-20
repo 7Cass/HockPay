@@ -12,6 +12,9 @@ import { RefundRepository } from "./refund.repository";
 import { CustomerRepository } from "./customer.repository";
 import { WithdrawalRepository } from "./withdrawal.repository";
 import { IdempotencyKeyRepository } from "./idempotency-key.repository";
+import { MerchantRepository } from "./merchant.repository";
+import { RefreshTokenRepository } from "./refresh-token.repository";
+import { CheckoutSessionRepository } from "./checkout-session.repository";
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -39,6 +42,9 @@ export class UnitOfWork implements IUnitOfWork {
           outboxWriter: new OutboxRepository(tx),
           receiptRepository: new ReceiptRepository(tx),
           storeRepository: new StoreRepository(tx),
+          merchantRepository: new MerchantRepository(tx),
+          refreshTokenRepository: new RefreshTokenRepository(tx),
+          checkoutSessionRepository: new CheckoutSessionRepository(tx),
           customerRepository: new CustomerRepository(tx),
           idempotencyKeyRepository: new IdempotencyKeyRepository(tx),
         };

@@ -2,12 +2,10 @@ import { Store, StoreObject } from '../../domain/entities/store.entity';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { InvalidSlugFormatError } from '../../domain/errors/invalid-slug-format.error';
 import { SlugAlreadyExistsError } from '../../domain/errors/slug-already-exists.error';
-import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
-import { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
 import { IJwtServicePort } from '../ports/jwt-service.port';
-import { IRefreshTokenRepositoryPort } from '../ports/refresh-token-repository.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { ISlugGeneratorPort } from '../ports/slug-generator.port';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 /**
  * Input DTO for CreateStoreUseCase.
@@ -37,23 +35,14 @@ export interface ICreateStoreOutput {
  */
 export class CreateStoreUseCase {
   constructor(
-    private readonly storeRepository: IStoreRepository,
-    private readonly merchantRepository: IMerchantRepository,
+    private readonly unitOfWork: IUnitOfWork,
     private readonly jwtService: IJwtServicePort,
-    private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
     private readonly tokenGenerator: ITokenGeneratorPort,
     private readonly slugGenerator: ISlugGeneratorPort,
   ) {}
 
   async execute(input: ICreateStoreInput): Promise<ICreateStoreOutput> {
-    // 1. Get merchant
-    const merchant = await this.merchantRepository.findById(input.merchantId);
-
-    if (!merchant) {
-      throw new Error('Merchant not found');
-    }
-
-    // 2. Validate or generate slug
+    // 1. Validate or generate slug
     let finalSlug: string;
 
     if (input.slug) {
@@ -75,45 +64,56 @@ export class CreateStoreUseCase {
       finalSlug = await this.slugGenerator.generateUnique(baseSlug);
     }
 
-    // 3. Create Store entity (active and approved for MVP/dev mode)
-    const store = Store.create({
-      merchantId: input.merchantId,
-      name: input.name,
-      slug: finalSlug,
-      isApproved: true, // Auto-approve for MVP
+    return this.unitOfWork.execute(async (repos) => {
+      // 2. Get merchant and lock it for store/token mutation
+      const merchant = await repos.merchantRepository.findByIdForUpdate(
+        input.merchantId,
+      );
+
+      if (!merchant) {
+        throw new Error('Merchant not found');
+      }
+
+      // 3. Create Store entity (active and approved for MVP/dev mode)
+      const store = Store.create({
+        merchantId: input.merchantId,
+        name: input.name,
+        slug: finalSlug,
+        isApproved: true, // Auto-approve for MVP
+      });
+
+      // 4. Persist Store and its account through the transacted store repository
+      await repos.storeRepository.save(store);
+
+      // 5. Update merchant's current store
+      merchant.setCurrentStoreId(store.id);
+      await repos.merchantRepository.update(merchant);
+
+      // 6. Revoke old tokens
+      await repos.refreshTokenRepository.revokeAllForMerchant(input.merchantId);
+
+      // 7. Generate new JWT with storeId
+      const accessToken = await this.jwtService.generateAccessToken(
+        merchant.id,
+        store.id,
+        '15m',
+      );
+
+      // 8. Generate new refresh token
+      const refreshTokenString = this.tokenGenerator.generateBase64(32);
+      const refreshToken = RefreshToken.create({
+        token: refreshTokenString,
+        merchantId: merchant.id,
+      });
+      await repos.refreshTokenRepository.create(refreshToken);
+
+      // 9. Return output
+      return {
+        store: store.toObject(),
+        accessToken,
+        refreshToken: refreshTokenString,
+        expiresIn: 900, // 15 minutes in seconds
+      };
     });
-
-    // 4. Persist Store
-    await this.storeRepository.save(store);
-
-    // 5. Update merchant's current store
-    merchant.setCurrentStoreId(store.id);
-    await this.merchantRepository.update(merchant);
-
-    // 6. Revoke old tokens
-    await this.refreshTokenRepository.revokeAllForMerchant(input.merchantId);
-
-    // 7. Generate new JWT with storeId
-    const accessToken = await this.jwtService.generateAccessToken(
-      merchant.id,
-      store.id,
-      '15m',
-    );
-
-    // 8. Generate new refresh token
-    const refreshTokenString = this.tokenGenerator.generateBase64(32);
-    const refreshToken = RefreshToken.create({
-      token: refreshTokenString,
-      merchantId: merchant.id,
-    });
-    await this.refreshTokenRepository.create(refreshToken);
-
-    // 9. Return output
-    return {
-      store: store.toObject(),
-      accessToken,
-      refreshToken: refreshTokenString,
-      expiresIn: 900, // 15 minutes in seconds
-    };
   }
 }

@@ -10,8 +10,11 @@ import {
   IMerchantRepository,
   IUnitOfWork,
 } from '@hockpay/core';
-import { BankAccountRepository, UnitOfWork } from '@hockpay/infrastructure';
-import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
+import {
+  BankAccountRepository,
+  MerchantRepository,
+  UnitOfWork,
+} from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';

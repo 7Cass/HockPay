@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { StoreController } from './store.controller';
-import { CreateStoreUseCase, ListStoresUseCase } from '@hockpay/core';
-import { StoreRepository } from '@hockpay/infrastructure';
-import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
-import { RefreshTokenRepository } from 'src/infra/repositories/refresh-token.repository.impl';
+import { CreateStoreUseCase, IUnitOfWork, ListStoresUseCase } from '@hockpay/core';
+import { StoreRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { SlugGeneratorService } from 'src/infra/services/slug-generator.service';
@@ -23,11 +21,14 @@ import { AuthModule } from '../auth/auth.module';
   providers: [
     // Infrastructure
     PrismaService,
-    MerchantRepository,
-    RefreshTokenRepository,
     {
       provide: StoreRepository,
       useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IUnitOfWork',
+      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
     JwtService,
@@ -38,27 +39,21 @@ import { AuthModule } from '../auth/auth.module';
     {
       provide: CreateStoreUseCase,
       useFactory: (
-        storeRepo: StoreRepository,
-        merchantRepo: MerchantRepository,
+        unitOfWork: IUnitOfWork,
         jwtService: JwtService,
-        refreshTokenRepo: RefreshTokenRepository,
         tokenGenerator: TokenGeneratorService,
         slugGenerator: SlugGeneratorService,
       ) => {
         return new CreateStoreUseCase(
-          storeRepo,
-          merchantRepo,
+          unitOfWork,
           jwtService,
-          refreshTokenRepo,
           tokenGenerator,
           slugGenerator,
         );
       },
       inject: [
-        StoreRepository,
-        MerchantRepository,
+        'IUnitOfWork',
         JwtService,
-        RefreshTokenRepository,
         TokenGeneratorService,
         SlugGeneratorService,
       ],
