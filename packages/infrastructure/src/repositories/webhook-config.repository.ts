@@ -1,16 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@hockpay/database';
+import { PrismaClient } from "@hockpay/database";
 import {
   IWebhookConfigRepository,
   WebhookConfig,
   WebhookConfigProps,
-} from '@hockpay/core';
+} from "@hockpay/core";
 
 /**
  * Infrastructure implementation of IWebhookConfigRepository.
  * Shared between API and Worker.
  */
-@Injectable()
 export class WebhookConfigRepository implements IWebhookConfigRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -57,7 +55,7 @@ export class WebhookConfigRepository implements IWebhookConfigRepository {
   async findByStoreId(storeId: string): Promise<WebhookConfig[]> {
     const configs = await this.prisma.webhookConfig.findMany({
       where: { storeId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return configs.map((c) => this.toDomain(c));

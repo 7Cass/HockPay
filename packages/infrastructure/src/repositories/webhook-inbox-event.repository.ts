@@ -1,4 +1,3 @@
-import { Injectable } from "@nestjs/common";
 import { PrismaClient } from "@hockpay/database";
 import {
   IWebhookInboxEventRepository,
@@ -7,7 +6,6 @@ import {
   WebhookInboxEventProps,
 } from "@hockpay/core";
 
-@Injectable()
 export class WebhookInboxEventRepository implements IWebhookInboxEventRepository {
   constructor(private readonly prisma: PrismaClient) {}
 

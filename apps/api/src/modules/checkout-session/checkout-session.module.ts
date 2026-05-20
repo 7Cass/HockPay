@@ -5,9 +5,11 @@ import {
   GetCheckoutSessionUseCase,
   FulfillCheckoutSessionUseCase,
 } from '@hockpay/core';
-import { CheckoutSessionRepository } from '@hockpay/infrastructure';
+import {
+  CheckoutSessionRepository,
+  StoreRepository,
+} from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
-import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { PaymentModule } from '../payment/payment.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
@@ -20,7 +22,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
   controllers: [CheckoutSessionController],
   providers: [
     PrismaService,
-    StoreRepository,
+    {
+      provide: StoreRepository,
+      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      inject: [PrismaService],
+    },
     TokenGeneratorService,
     JwtService,
     {
@@ -62,19 +68,13 @@ import { JwtService } from 'src/infra/services/jwt.service';
     },
     {
       provide: FulfillCheckoutSessionUseCase,
-      useFactory: (
-        sessionRepo: any,
-        createPaymentUseCase: any,
-      ) => {
+      useFactory: (sessionRepo: any, createPaymentUseCase: any) => {
         return new FulfillCheckoutSessionUseCase(
           sessionRepo,
           createPaymentUseCase,
         );
       },
-      inject: [
-        'ICheckoutSessionRepository',
-        CreatePaymentUseCase,
-      ],
+      inject: ['ICheckoutSessionRepository', CreatePaymentUseCase],
     },
   ],
 })

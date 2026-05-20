@@ -7,12 +7,12 @@ import {
   ListCustomerHistoryPaymentsUseCase,
   ListCustomerHistoryReceiptsUseCase,
 } from '@hockpay/core';
+import { CustomerRepository } from '@hockpay/infrastructure';
 import { CustomerHistoryController } from './customer-history.controller';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
 import { PaymentModule } from '../payment/payment.module';
 import { ReceiptModule } from '../receipt/receipt.module';
-import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { JwtService } from 'src/infra/services/jwt.service';
@@ -24,7 +24,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
     PrismaService,
     JwtService,
     CombinedAuthGuard,
-    CustomerRepository,
+    {
+      provide: CustomerRepository,
+      useFactory: (prisma: PrismaService) => new CustomerRepository(prisma),
+      inject: [PrismaService],
+    },
     {
       provide: ListCustomerHistoryPaymentsUseCase,
       useFactory: (

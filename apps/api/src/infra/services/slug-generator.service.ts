@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { ISlugGeneratorPort } from '@hockpay/core';
-import { StoreRepository } from '../repositories/store.repository.impl';
+import { StoreRepository } from '@hockpay/infrastructure';
 
 /**
  * Infrastructure implementation of ISlugGeneratorPort.

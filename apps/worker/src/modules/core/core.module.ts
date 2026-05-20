@@ -14,12 +14,12 @@ import {
   EncryptionService,
   HmacSignerService,
   IdempotencyKeyRepository,
+  AccountRepository,
+  TransactionRepository,
   UnitOfWork,
   WithdrawalRepository,
   WebhookHttpClientService,
 } from "@hockpay/infrastructure";
-import { AccountRepository } from "../../infra/repositories/account.repository.impl";
-import { TransactionRepository } from "../../infra/repositories/transaction.repository.impl";
 
 // Use Cases
 import {
@@ -104,10 +104,16 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
       useFactory: (prisma: PrismaService) => new WithdrawalRepository(prisma),
       inject: [PrismaService],
     },
-
-    // Local repositories (still using @Injectable)
-    AccountRepository,
-    TransactionRepository,
+    {
+      provide: AccountRepository,
+      useFactory: (prisma: PrismaService) => new AccountRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: TransactionRepository,
+      useFactory: (prisma: PrismaService) => new TransactionRepository(prisma),
+      inject: [PrismaService],
+    },
 
     // Services
     {

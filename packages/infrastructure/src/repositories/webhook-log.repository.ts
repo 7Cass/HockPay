@@ -1,4 +1,3 @@
-import { Injectable } from "@nestjs/common";
 import { PrismaClient } from "@hockpay/database";
 import {
   IWebhookLogRepository,
@@ -12,7 +11,6 @@ import {
  * Infrastructure implementation of IWebhookLogRepository.
  * Shared between API and Worker.
  */
-@Injectable()
 export class WebhookLogRepository implements IWebhookLogRepository {
   constructor(private readonly prisma: PrismaClient) {}
 

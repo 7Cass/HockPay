@@ -7,7 +7,7 @@ import {
   GetCustomerUseCase,
   UpdateCustomerUseCase,
 } from '@hockpay/core';
-import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
+import { CustomerRepository } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
@@ -29,7 +29,11 @@ import { JwtService } from 'src/infra/services/jwt.service';
   providers: [
     // Infrastructure
     PrismaService,
-    CustomerRepository,
+    {
+      provide: CustomerRepository,
+      useFactory: (prisma: PrismaService) => new CustomerRepository(prisma),
+      inject: [PrismaService],
+    },
     JwtService,
 
     // CombinedAuthGuard (uses ValidateApiKeyUseCase from ApiKeyModule)

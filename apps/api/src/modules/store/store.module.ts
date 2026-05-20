@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { StoreController } from './store.controller';
 import { CreateStoreUseCase, ListStoresUseCase } from '@hockpay/core';
+import { StoreRepository } from '@hockpay/infrastructure';
 import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
 import { RefreshTokenRepository } from 'src/infra/repositories/refresh-token.repository.impl';
-import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { SlugGeneratorService } from 'src/infra/services/slug-generator.service';
@@ -25,7 +25,11 @@ import { AuthModule } from '../auth/auth.module';
     PrismaService,
     MerchantRepository,
     RefreshTokenRepository,
-    StoreRepository,
+    {
+      provide: StoreRepository,
+      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      inject: [PrismaService],
+    },
     JwtService,
     TokenGeneratorService,
     SlugGeneratorService,

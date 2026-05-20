@@ -1,8 +1,4 @@
-import {
-  Account,
-  IStoreRepository,
-  Store as DomainStore,
-} from "@hockpay/core";
+import { Account, IStoreRepository, Store as DomainStore } from "@hockpay/core";
 import { PrismaClient, Prisma, Store as PrismaStore } from "@hockpay/database";
 
 export class StoreRepository implements IStoreRepository {
@@ -11,35 +7,46 @@ export class StoreRepository implements IStoreRepository {
   ) {}
 
   async save(store: DomainStore): Promise<void> {
-    const account = Account.create({ storeId: store.id });
+    const write = async (
+      client: PrismaClient | Prisma.TransactionClient,
+    ): Promise<void> => {
+      const account = Account.create({ storeId: store.id });
 
-    await this.prisma.store.create({
-      data: {
-        id: store.id,
-        merchantId: store.merchantId,
-        name: store.name,
-        slug: store.slug,
-        isActive: store.isActive,
-        isApproved: store.isApproved,
-        settlementDays: store.settlementDays,
-        feePercent: store.feePercent,
-        feeFixed: store.feeFixed,
-        createdAt: store.createdAt,
-        updatedAt: store.updatedAt,
-      },
-    });
+      await client.store.create({
+        data: {
+          id: store.id,
+          merchantId: store.merchantId,
+          name: store.name,
+          slug: store.slug,
+          isActive: store.isActive,
+          isApproved: store.isApproved,
+          settlementDays: store.settlementDays,
+          feePercent: store.feePercent,
+          feeFixed: store.feeFixed,
+          createdAt: store.createdAt,
+          updatedAt: store.updatedAt,
+        },
+      });
 
-    await this.prisma.account.create({
-      data: {
-        id: account.id,
-        storeId: account.storeId,
-        available: account.available,
-        pending: account.pending,
-        blocked: account.blocked,
-        currency: account.currency,
-        updatedAt: account.updatedAt,
-      },
-    });
+      await client.account.create({
+        data: {
+          id: account.id,
+          storeId: account.storeId,
+          available: account.available,
+          pending: account.pending,
+          blocked: account.blocked,
+          currency: account.currency,
+          updatedAt: account.updatedAt,
+        },
+      });
+    };
+
+    if (this.supportsTransaction(this.prisma)) {
+      await this.prisma.$transaction(write);
+      return;
+    }
+
+    await write(this.prisma);
   }
 
   async findById(id: string): Promise<DomainStore | null> {
@@ -115,5 +122,13 @@ export class StoreRepository implements IStoreRepository {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     });
+  }
+
+  private supportsTransaction(
+    prisma: PrismaClient | Prisma.TransactionClient,
+  ): prisma is PrismaClient {
+    return (
+      "$transaction" in prisma && typeof prisma.$transaction === "function"
+    );
   }
 }

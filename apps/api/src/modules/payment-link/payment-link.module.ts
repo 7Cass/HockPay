@@ -14,10 +14,10 @@ import {
 import {
   PaymentLinkRepository,
   PixChargeRepository,
+  StoreRepository,
   UnitOfWork,
 } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
-import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { PaymentModule } from '../payment/payment.module';
@@ -31,7 +31,11 @@ import { PaymentLinkController } from './payment-link.controller';
   controllers: [PaymentLinkController],
   providers: [
     PrismaService,
-    StoreRepository,
+    {
+      provide: StoreRepository,
+      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      inject: [PrismaService],
+    },
     PixQrCodeGeneratorService,
     TokenGeneratorService,
     JwtService,
@@ -93,18 +97,9 @@ import { PaymentLinkController } from './payment-link.controller';
     },
     {
       provide: CancelPaymentLinkUseCase,
-      useFactory: (
-        paymentLinkRepo: any,
-        pixChargeRepo: any,
-      ) =>
-        new CancelPaymentLinkUseCase(
-          paymentLinkRepo,
-          pixChargeRepo,
-        ),
-      inject: [
-        'IPaymentLinkRepository',
-        'IPixChargeRepository',
-      ],
+      useFactory: (paymentLinkRepo: any, pixChargeRepo: any) =>
+        new CancelPaymentLinkUseCase(paymentLinkRepo, pixChargeRepo),
+      inject: ['IPaymentLinkRepository', 'IPixChargeRepository'],
     },
     {
       provide: OpenPaymentLinkUseCase,
@@ -140,11 +135,7 @@ import { PaymentLinkController } from './payment-link.controller';
         unitOfWork: IUnitOfWork,
         feePolicy: FeePolicy,
       ) => new FailPaymentLinkUseCase(paymentLinkRepo, unitOfWork, feePolicy),
-      inject: [
-        'IPaymentLinkRepository',
-        'IUnitOfWorkPaymentLink',
-        FeePolicy,
-      ],
+      inject: ['IPaymentLinkRepository', 'IUnitOfWorkPaymentLink', FeePolicy],
     },
   ],
 })

@@ -11,9 +11,9 @@ import {
   LogoutUseCase,
   SwitchStoreUseCase,
 } from '@hockpay/core';
+import { StoreRepository } from '@hockpay/infrastructure';
 import { MerchantRepository } from 'src/infra/repositories/merchant.repository.impl';
 import { RefreshTokenRepository } from 'src/infra/repositories/refresh-token.repository.impl';
-import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
@@ -40,7 +40,11 @@ import { PrismaService } from 'src/infra/database/prisma.service';
     PrismaService,
     MerchantRepository,
     RefreshTokenRepository,
-    StoreRepository,
+    {
+      provide: StoreRepository,
+      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
+      inject: [PrismaService],
+    },
     PasswordHasherService,
     JwtService,
     TokenGeneratorService,

@@ -10,7 +10,6 @@ import {
   TransactionType,
 } from "../../domain/entities/transaction.entity";
 import { Receipt } from "../../domain/entities/receipt.entity";
-import { ICustomerRepository } from "../../domain/repositories/customer.repository.interface";
 import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
 import { buildReceiptNumber } from "./receipt-number";
 
@@ -48,10 +47,7 @@ export interface IConfirmPaymentOutput {
  * - Outbox event is created for webhook notification
  */
 export class ConfirmPaymentUseCase {
-  constructor(
-    private readonly unitOfWork: IUnitOfWork,
-    private readonly customerRepository: ICustomerRepository,
-  ) {}
+  constructor(private readonly unitOfWork: IUnitOfWork) {}
 
   async execute(input: IConfirmPaymentInput): Promise<IConfirmPaymentOutput> {
     return this.unitOfWork.execute(async (repos) => {
@@ -157,7 +153,7 @@ export class ConfirmPaymentUseCase {
       );
 
       const customer = payment.customerId
-        ? await this.customerRepository.findById(payment.customerId)
+        ? await repos.customerRepository.findById(payment.customerId)
         : null;
 
       const receipt = Receipt.create({

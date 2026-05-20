@@ -33,8 +33,6 @@ import {
   UnitOfWork,
   WebhookLogRepository,
 } from '@hockpay/infrastructure';
-import { CustomerRepository } from 'src/infra/repositories/customer.repository.impl';
-import { StoreRepository } from 'src/infra/repositories/store.repository.impl';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
@@ -122,11 +120,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
       useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
       inject: [PrismaService],
     },
-
-    // Local repositories (still using @Injectable)
-    CustomerRepository,
-    StoreRepository,
-
     // CombinedAuthGuard (uses ValidateApiKeyUseCase from ApiKeyModule)
     CombinedAuthGuard,
 
@@ -205,21 +198,15 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: ConfirmPaymentUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        customerRepo: CustomerRepository,
-      ) => {
-        return new ConfirmPaymentUseCase(unitOfWork, customerRepo);
+      useFactory: (unitOfWork: IUnitOfWork) => {
+        return new ConfirmPaymentUseCase(unitOfWork);
       },
-      inject: ['IUnitOfWork', CustomerRepository],
+      inject: ['IUnitOfWork'],
     },
 
     {
       provide: ExpirePaymentUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        queue: ExpirationQueue,
-      ) => {
+      useFactory: (unitOfWork: IUnitOfWork, queue: ExpirationQueue) => {
         return new ExpirePaymentUseCase(unitOfWork, queue);
       },
       inject: ['IUnitOfWork', ExpirationQueue],
@@ -227,10 +214,7 @@ import { JwtService } from 'src/infra/services/jwt.service';
 
     {
       provide: FailPaymentUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        queue: ExpirationQueue,
-      ) => {
+      useFactory: (unitOfWork: IUnitOfWork, queue: ExpirationQueue) => {
         return new FailPaymentUseCase(unitOfWork, queue);
       },
       inject: ['IUnitOfWork', ExpirationQueue],

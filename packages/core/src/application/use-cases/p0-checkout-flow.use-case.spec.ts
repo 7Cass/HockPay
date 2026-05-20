@@ -1,29 +1,29 @@
-import { describe, expect, it } from 'vitest';
-import { Account } from '../../domain/entities/account.entity';
-import { ApiKey } from '../../domain/entities/api-key.entity';
-import { CheckoutSession } from '../../domain/entities/checkout-session.entity';
-import { Customer } from '../../domain/entities/customer.entity';
-import { Merchant } from '../../domain/entities/merchant.entity';
-import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
-import { Payment } from '../../domain/entities/payment.entity';
-import { PixCharge } from '../../domain/entities/pix-charge.entity';
-import { Receipt } from '../../domain/entities/receipt.entity';
-import { RefreshToken } from '../../domain/entities/refresh-token.entity';
-import { Store } from '../../domain/entities/store.entity';
-import { Document } from '../../domain/value-objects/document.vo';
-import { Email } from '../../domain/value-objects/email.vo';
-import { Environment } from '../../domain/value-objects/environment.vo';
-import { FeePolicy } from '../services/fee-policy.service';
-import { ConfirmPaymentUseCase } from './confirm-payment.use-case';
-import { CreateApiKeyUseCase } from './create-api-key.use-case';
-import { CreateCheckoutSessionUseCase } from './create-checkout-session.use-case';
-import { CreatePaymentUseCase } from './create-payment.use-case';
-import { CreateStoreUseCase } from './create-store.use-case';
-import { FulfillCheckoutSessionUseCase } from './fulfill-checkout-session.use-case';
-import { GetCheckoutSessionUseCase } from './get-checkout-session.use-case';
+import { describe, expect, it } from "vitest";
+import { Account } from "../../domain/entities/account.entity";
+import { ApiKey } from "../../domain/entities/api-key.entity";
+import { CheckoutSession } from "../../domain/entities/checkout-session.entity";
+import { Customer } from "../../domain/entities/customer.entity";
+import { Merchant } from "../../domain/entities/merchant.entity";
+import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
+import { Payment } from "../../domain/entities/payment.entity";
+import { PixCharge } from "../../domain/entities/pix-charge.entity";
+import { Receipt } from "../../domain/entities/receipt.entity";
+import { RefreshToken } from "../../domain/entities/refresh-token.entity";
+import { Store } from "../../domain/entities/store.entity";
+import { Document } from "../../domain/value-objects/document.vo";
+import { Email } from "../../domain/value-objects/email.vo";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { FeePolicy } from "../services/fee-policy.service";
+import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
+import { CreateApiKeyUseCase } from "./create-api-key.use-case";
+import { CreateCheckoutSessionUseCase } from "./create-checkout-session.use-case";
+import { CreatePaymentUseCase } from "./create-payment.use-case";
+import { CreateStoreUseCase } from "./create-store.use-case";
+import { FulfillCheckoutSessionUseCase } from "./fulfill-checkout-session.use-case";
+import { GetCheckoutSessionUseCase } from "./get-checkout-session.use-case";
 
-describe('P0 checkout happy path', () => {
-  it('creates a store account, fulfills checkout, confirms payment, and writes receipt/outbox', async () => {
+describe("P0 checkout happy path", () => {
+  it("creates a store account, fulfills checkout, confirms payment, and writes receipt/outbox", async () => {
     const merchants = new InMemoryMerchantRepository();
     const stores = new InMemoryStoreRepository();
     const accounts = new InMemoryAccountRepository();
@@ -38,10 +38,10 @@ describe('P0 checkout happy path', () => {
     const tokenGenerator = new DeterministicTokenGenerator();
 
     const merchant = Merchant.create({
-      name: 'Media Kit Merchant',
-      email: new Email('merchant@example.com'),
-      document: new Document('52998224725'),
-      passwordHash: 'hashed-password',
+      name: "Media Kit Merchant",
+      email: new Email("merchant@example.com"),
+      document: new Document("52998224725"),
+      passwordHash: "hashed-password",
     });
     await merchants.save(merchant);
 
@@ -64,10 +64,10 @@ describe('P0 checkout happy path', () => {
           return `access-token:${storeId}`;
         },
         async generateRefreshToken() {
-          return 'refresh-token';
+          return "refresh-token";
         },
         async verifyToken() {
-          throw new Error('not used');
+          throw new Error("not used");
         },
         decodeToken() {
           return null;
@@ -76,7 +76,8 @@ describe('P0 checkout happy path', () => {
       new InMemoryRefreshTokenRepository(),
       tokenGenerator,
       {
-        generateFromName: (name: string) => name.toLowerCase().replace(/\s+/g, '-'),
+        generateFromName: (name: string) =>
+          name.toLowerCase().replace(/\s+/g, "-"),
         generateUnique: async (slug: string) => slug,
         validateFormat: () => true,
         isAvailable: async () => true,
@@ -85,8 +86,8 @@ describe('P0 checkout happy path', () => {
 
     const storeResult = await createStore.execute({
       merchantId: merchant.id,
-      name: 'Media Kit',
-      slug: 'media-kit',
+      name: "Media Kit",
+      slug: "media-kit",
     });
     const storeId = storeResult.store.id;
 
@@ -97,7 +98,7 @@ describe('P0 checkout happy path', () => {
       tokenGenerator,
     ).execute({
       storeId,
-      name: 'P0 key',
+      name: "P0 key",
       environment: Environment.TEST,
     });
 
@@ -122,9 +123,9 @@ describe('P0 checkout happy path', () => {
       {
         async generate() {
           return {
-            qrCodeBase64: 'qr-code',
-            copyPaste: 'pix-copy-paste',
-            txId: 'pix-tx-id',
+            qrCodeBase64: "qr-code",
+            copyPaste: "pix-copy-paste",
+            txId: "pix-tx-id",
           };
         },
       },
@@ -132,13 +133,13 @@ describe('P0 checkout happy path', () => {
         async scheduleExpiration() {},
       },
       new FeePolicy(),
-      'test@hockpay.local',
+      "test@hockpay.local",
     );
     const createSession = new CreateCheckoutSessionUseCase(
       sessions,
       stores,
       tokenGenerator,
-      'http://localhost:3333',
+      "http://localhost:3333",
     );
     const getSession = new GetCheckoutSessionUseCase(
       sessions,
@@ -153,19 +154,19 @@ describe('P0 checkout happy path', () => {
     const session = await createSession.execute({
       storeId,
       amount: 7_990,
-      description: 'Media kit premium',
-      metadata: { studyCase: 'demo-mediakit' },
+      description: "Media kit premium",
+      metadata: { studyCase: "demo-mediakit" },
     });
     const loadedOpenSession = await getSession.execute(session.checkoutToken);
 
-    expect(loadedOpenSession.status).toBe('OPEN');
+    expect(loadedOpenSession.status).toBe("OPEN");
 
     const fulfilled = await fulfillSession.execute({
       token: session.checkoutToken,
       customer: {
-        document: '52998224725',
-        name: 'Cliente Demo',
-        email: 'cliente@example.com',
+        document: "52998224725",
+        name: "Cliente Demo",
+        email: "cliente@example.com",
       },
       environment: Environment.TEST,
     });
@@ -175,35 +176,32 @@ describe('P0 checkout happy path', () => {
 
     expect(loadedFulfilledSession.paymentId).toBe(fulfilled.paymentId);
 
-    const confirmed = await new ConfirmPaymentUseCase(
-      {
-        execute: async (work) =>
-          work({
-            paymentRepository: payments,
-            pixChargeRepository: pixCharges,
-            refundRepository: {} as any,
-            accountRepository: accounts,
-            transactionRepository: transactions,
-            bankAccountRepository: {} as any,
-            outboxWriter: outbox,
-            receiptRepository: receipts,
-            storeRepository: stores,
-            customerRepository: customers,
-          }),
-      },
-      customers,
-    ).execute({
+    const confirmed = await new ConfirmPaymentUseCase({
+      execute: async (work) =>
+        work({
+          paymentRepository: payments,
+          pixChargeRepository: pixCharges,
+          refundRepository: {} as any,
+          accountRepository: accounts,
+          transactionRepository: transactions,
+          bankAccountRepository: {} as any,
+          outboxWriter: outbox,
+          receiptRepository: receipts,
+          storeRepository: stores,
+          customerRepository: customers,
+        }),
+    }).execute({
       storeId,
       paymentId: fulfilled.paymentId,
     });
     const account = await accounts.findByStoreId(storeId);
     const receipt = await receipts.findByPaymentId(fulfilled.paymentId);
 
-    expect(confirmed.payment.status).toBe('CONFIRMED');
+    expect(confirmed.payment.status).toBe("CONFIRMED");
     expect(account?.pending).toBe(7_855);
     expect(receipt).not.toBeNull();
     expect(outbox.events.map((event) => event.eventType)).toContain(
-      'payment.confirmed',
+      "payment.confirmed",
     );
   });
 });
@@ -213,7 +211,7 @@ class DeterministicTokenGenerator {
 
   generate(): string {
     this.sequence += 1;
-    return this.sequence.toString(16).padStart(32, '0');
+    return this.sequence.toString(16).padStart(32, "0");
   }
 
   generateBase64(): string {
@@ -241,8 +239,7 @@ class InMemoryMerchantRepository {
     return (
       [...this.items.values()].find(
         (merchant) => merchant.email.toString() === email,
-      ) ??
-      null
+      ) ?? null
     );
   }
 
@@ -254,7 +251,10 @@ class InMemoryMerchantRepository {
     );
   }
 
-  async existsByEmailOrDocument(email: string, document: string): Promise<boolean> {
+  async existsByEmailOrDocument(
+    email: string,
+    document: string,
+  ): Promise<boolean> {
     return Boolean(
       (await this.findByEmail(email)) ?? (await this.findByDocument(document)),
     );
@@ -289,7 +289,9 @@ class InMemoryStoreRepository {
   }
 
   async findBySlug(slug: string): Promise<Store | null> {
-    return [...this.items.values()].find((store) => store.slug === slug) ?? null;
+    return (
+      [...this.items.values()].find((store) => store.slug === slug) ?? null
+    );
   }
 
   async findByMerchantId(merchantId: string): Promise<Store[]> {
@@ -353,7 +355,9 @@ class InMemoryApiKeyRepository {
   }
 
   async findByStoreId(storeId: string): Promise<ApiKey[]> {
-    return [...this.items.values()].filter((apiKey) => apiKey.storeId === storeId);
+    return [...this.items.values()].filter(
+      (apiKey) => apiKey.storeId === storeId,
+    );
   }
 
   async update(apiKey: ApiKey): Promise<void> {
@@ -378,8 +382,9 @@ class InMemoryRefreshTokenRepository {
 
   async findByMerchantId(merchantId: string): Promise<RefreshToken | null> {
     return (
-      [...this.items.values()].find((token) => token.merchantId === merchantId) ??
-      null
+      [...this.items.values()].find(
+        (token) => token.merchantId === merchantId,
+      ) ?? null
     );
   }
 
@@ -413,8 +418,9 @@ class InMemoryCheckoutSessionRepository {
 
   async findByPaymentId(paymentId: string): Promise<CheckoutSession | null> {
     return (
-      [...this.items.values()].find((session) => session.paymentId === paymentId) ??
-      null
+      [...this.items.values()].find(
+        (session) => session.paymentId === paymentId,
+      ) ?? null
     );
   }
 }
@@ -430,7 +436,10 @@ class InMemoryPaymentRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByIdAndStoreId(id: string, storeId: string): Promise<Payment | null> {
+  async findByIdAndStoreId(
+    id: string,
+    storeId: string,
+  ): Promise<Payment | null> {
     const payment = this.items.get(id);
     return payment?.storeId === storeId ? payment : null;
   }
@@ -443,8 +452,7 @@ class InMemoryPaymentRepository {
     return (
       [...this.items.values()].find(
         (payment) => payment.pixCharge?.pixTxId === pixTxId,
-      ) ??
-      null
+      ) ?? null
     );
   }
 
@@ -521,13 +529,19 @@ class InMemoryPixChargeRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByIdAndStoreId(id: string, storeId: string): Promise<PixCharge | null> {
+  async findByIdAndStoreId(
+    id: string,
+    storeId: string,
+  ): Promise<PixCharge | null> {
     const charge = this.items.get(id);
     return charge?.storeId === storeId ? charge : null;
   }
 
   async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {
-    return [...this.items.values()].find((charge) => charge.pixTxId === pixTxId) ?? null;
+    return (
+      [...this.items.values()].find((charge) => charge.pixTxId === pixTxId) ??
+      null
+    );
   }
 }
 
@@ -542,7 +556,10 @@ class InMemoryCustomerRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByExternalId(storeId: string, externalId: string): Promise<Customer | null> {
+  async findByExternalId(
+    storeId: string,
+    externalId: string,
+  ): Promise<Customer | null> {
     return (
       [...this.items.values()].find(
         (customer) =>
@@ -551,7 +568,10 @@ class InMemoryCustomerRepository {
     );
   }
 
-  async findByDocument(storeId: string, document: string): Promise<Customer | null> {
+  async findByDocument(
+    storeId: string,
+    document: string,
+  ): Promise<Customer | null> {
     return (
       [...this.items.values()].find(
         (customer) =>
