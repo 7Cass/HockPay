@@ -251,6 +251,17 @@ Correcao minima aceitavel, se schema novo for grande demais: antes de enviar par
 
 ## 3. Gaps transacionais em auth/store/checkout
 
+Status: implementacao concluida em 2026-05-20; smoke P0 em infra descartavel pendente. Nesta leva, a fronteira transacional foi expandida para auth/store e checkout sem alterar endpoints ou contratos HTTP publicos.
+
+Notas da implementacao:
+
+- `MerchantRepository` e `RefreshTokenRepository` foram centralizados em `packages/infrastructure`, sem decorators Nest e com suporte a `PrismaClient | Prisma.TransactionClient`.
+- `ITransactedRepositories` e `UnitOfWork` agora expõem `merchantRepository`, `refreshTokenRepository` e `checkoutSessionRepository`.
+- `LoginUseCase`, `RefreshTokenUseCase`, `SwitchStoreUseCase` e `CreateStoreUseCase` executam rotacao de refresh token e updates relacionados dentro de `UnitOfWork`.
+- `FulfillCheckoutSessionUseCase` faz claim atomico da sessao `OPEN`, cria o pagamento via `CreatePaymentUseCase.executeInTransaction` e salva a sessao `COMPLETED` na mesma transacao.
+- O agendamento pos-commit do pagamento continua fora da transacao e so roda depois de `checkoutSessionRepository.save()` concluir com sucesso.
+- O wiring Nest da API passou a usar `UnitOfWork` nos fluxos mutantes e repositorios centrais para leituras simples.
+
 ### Problema
 
 Ha fluxos criticos que executam multiplas escritas relacionadas sem uma fronteira transacional unica.
@@ -292,33 +303,60 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 
 ### Tarefas
 
-- [ ] Adicionar `merchantRepository`, `refreshTokenRepository` e `checkoutSessionRepository` ao contrato transacional.
-- [ ] Migrar/adaptar `MerchantRepository` e `RefreshTokenRepository` para `packages/infrastructure`.
-- [ ] Exportar novos repositorios por `@hockpay/infrastructure`.
-- [ ] Refatorar `LoginUseCase`, `RefreshTokenUseCase`, `SwitchStoreUseCase` e `CreateStoreUseCase` para usar `unitOfWork.execute`.
-- [ ] Manter `StoreRepository.save` dentro do UoW para que store e account participem da mesma transacao externa.
-- [ ] Extrair logica interna de `CreatePaymentUseCase` para funcao/servico que aceite repositorios transacionados.
-- [ ] Refatorar `FulfillCheckoutSessionUseCase` para abrir UoW, travar/claimar sessao `OPEN`, criar pagamento e salvar sessao fulfilled na mesma transacao.
-- [ ] Atualizar `AuthModule`, `StoreModule` e `CheckoutSessionModule` para injetarem `IUnitOfWork`.
-- [ ] Mapear conflitos esperados para erro limpo: token ja rotacionado, sessao ja completed/expired, slug unico violado.
+- [x] 3.1 Revisar escopo e quebrar a execucao em subtarefas
+  - Problema: o item misturava auth, store, checkout, repositorios e wiring em checkboxes grandes demais.
+  - Solucao: separar em contrato transacional, repositorios centrais, auth/store, checkout, wiring, testes e validacao final.
+  - Validacao: documento atualizado antes das alteracoes de codigo e subagents criados para revisar as frentes independentes.
+
+- [x] 3.2 Expandir contrato transacional e repositorios centrais
+  - Problema: `ITransactedRepositories` nao oferece `merchantRepository`, `refreshTokenRepository` ou `checkoutSessionRepository`, e merchant/refresh ainda vivem na API.
+  - Solucao: mover/adaptar `MerchantRepository` e `RefreshTokenRepository` para `packages/infrastructure`, suportando `PrismaClient | Prisma.TransactionClient`; adicionar repos ao `UnitOfWork` e exporta-los.
+  - Validacao: build de core/infrastructure e specs de repositorio/wiring compilando sem imports locais antigos.
+
+- [x] 3.3 Adicionar locks operacionais minimos
+  - Problema: refresh e fulfill concorrentes podem ler estado antigo e concluir duas rotacoes/pagamentos.
+  - Solucao: adicionar metodos transacionais de lock para merchant, refresh token e checkout session via repositorios; em testes fake, esses metodos podem delegar para a leitura normal.
+  - Validacao: specs de use case com fault-injection/concorrencia simulada provam vencedor unico ou rollback.
+
+- [x] 3.4 Refatorar auth/store para `UnitOfWork`
+  - Problema: login, refresh, switch store e create store fazem revogacao/criacao de token e update de merchant/store fora de uma unica transacao.
+  - Solucao: construtores recebem `IUnitOfWork` para operacoes compostas; validacoes e writes relacionados rodam dentro de `unitOfWork.execute`; JWT/refresh token retornados seguem iguais.
+  - Validacao: specs de core cobrem rollback em falha no ultimo write e token ja rotacionado.
+
+- [x] 3.5 Refatorar checkout fulfill para `UnitOfWork`
+  - Problema: `FulfillCheckoutSessionUseCase` cria pagamento por um UoW interno e salva sessao completed fora dele.
+  - Solucao: executar claim/lock da sessao `OPEN`, criacao do payment via `CreatePaymentUseCase.executeInTransaction` e `session.fulfill/save` no mesmo UoW; agendamento de expiracao fica depois do commit.
+  - Validacao: specs cobrem rollback quando salvar sessao falha e duplo fulfill da mesma sessao.
+
+- [x] 3.6 Atualizar wiring Nest e remover dependencias locais obsoletas
+  - Problema: `AuthModule`, `StoreModule`, `CheckoutSessionModule` e modulos auxiliares injetam repositorios diretos para operacoes compostas.
+  - Solucao: usar `UnitOfWork` de `@hockpay/infrastructure` nos use cases mutantes e importar repos centrais para leituras simples; nao introduzir DynamicModules novos nesta leva.
+  - Validacao: `pnpm --filter @hockpay/api test` e build resolvem providers.
+
+- [x] 3.7 Rodada final e commits semanticos
+  - Problema: a mudanca cruza camadas e precisa ficar separada das alteracoes de landing.
+  - Solucao: rodar core, infrastructure, api e build; comitar por escopo sem incluir arquivos da landing.
+  - Validacao: comandos passam e `git status` final mostra apenas alteracoes fora do escopo.
 
 ### Criterios de corrigido
 
-- [ ] Nenhum dos fluxos revisados faz multiplas escritas relacionadas fora de uma mesma transacao.
-- [ ] Falha simulada entre revogar token e criar token novo nao apaga o refresh token anterior.
-- [ ] Falha simulada apos criar store nao deixa merchant/token em estado parcial.
-- [ ] Falha simulada apos criar payment em checkout nao deixa payment/pix/outbox persistidos sem sessao completed.
-- [ ] Duplo fulfill concorrente da mesma sessao gera no maximo um payment.
-- [ ] O wiring Nest dos fluxos mutantes usa `IUnitOfWork`, nao repositorios diretos, para operacao composta.
+- [x] Nenhum dos fluxos revisados faz multiplas escritas relacionadas fora de uma mesma transacao.
+- [x] Falha simulada entre revogar token e criar token novo nao apaga o refresh token anterior.
+- [x] Falha simulada apos criar store nao deixa merchant/token em estado parcial.
+- [x] Falha simulada apos criar payment em checkout nao deixa payment/pix/outbox persistidos sem sessao completed.
+- [x] Duplo fulfill concorrente da mesma sessao gera no maximo um payment.
+- [x] O wiring Nest dos fluxos mutantes usa `IUnitOfWork`, nao repositorios diretos, para operacao composta.
 
 ### Walkthrough de testes
 
-1. Rodar unit tests novos no core com repositorios fake/fault-injection para `Login`, `RefreshToken`, `SwitchStore`, `CreateStore` e `FulfillCheckoutSession`.
-2. Validar rollback: erro no ultimo write da transacao deve deixar estado anterior intacto.
-3. Validar concorrencia: duas chamadas simultaneas de refresh/switch/fulfill devem resultar em um unico estado vencedor e erro/idempotencia clara para a outra.
-4. Rodar `pnpm --filter @hockpay/core test:ci`.
-5. Rodar `pnpm --filter @hockpay/api test`.
-6. Em ambiente descartavel com infra local, rodar `pnpm run smoke:p0`.
+1. [x] Rodar unit tests novos no core com repositorios fake/fault-injection para `Login`, `RefreshToken`, `SwitchStore`, `CreateStore` e `FulfillCheckoutSession`.
+2. [x] Validar rollback: erro no ultimo write da transacao deve deixar estado anterior intacto.
+3. [x] Validar concorrencia operacional: refresh ja rotacionado falha sem novo token e duplo fulfill por claim atomico gera no maximo um pagamento.
+4. [x] Rodar `pnpm --filter @hockpay/core test:ci`.
+5. [x] Rodar `pnpm --filter @hockpay/infrastructure test`.
+6. [x] Rodar `pnpm --filter @hockpay/api test`.
+7. [x] Rodar `pnpm build`.
+8. [ ] Em ambiente descartavel com infra local e API/worker recem-subidos, rodar `pnpm run smoke:p0`.
 
 ## 4. Store creation, auth hydration, refresh waiters e withdrawals
 
