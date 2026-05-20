@@ -10,20 +10,48 @@ import {
 } from '@hockpay/core';
 import { PaymentController } from './payment.controller';
 
+function makeResponse() {
+  return {
+    status: jest.fn(),
+    setHeader: jest.fn(),
+  };
+}
+
 describe('PaymentController', () => {
   let controller: PaymentController;
-  let createPaymentUseCase: { execute: jest.Mock };
+  let createPaymentUseCase: {
+    execute: jest.Mock;
+    executeInTransaction: jest.Mock;
+    scheduleExpirationAfterCommit: jest.Mock;
+  };
   let getPaymentUseCase: { execute: jest.Mock };
   let getPaymentTimelineUseCase: { execute: jest.Mock };
   let listPaymentsUseCase: { execute: jest.Mock };
   let simulatePaymentUseCase: { execute: jest.Mock };
+  let idempotencyService: { execute: jest.Mock };
+  let transactedRepos: Record<string, unknown>;
 
   beforeEach(() => {
-    createPaymentUseCase = { execute: jest.fn() };
+    transactedRepos = { paymentRepository: {} };
+    createPaymentUseCase = {
+      execute: jest.fn(),
+      executeInTransaction: jest.fn(),
+      scheduleExpirationAfterCommit: jest.fn(),
+    };
     getPaymentUseCase = { execute: jest.fn() };
     getPaymentTimelineUseCase = { execute: jest.fn() };
     listPaymentsUseCase = { execute: jest.fn() };
     simulatePaymentUseCase = { execute: jest.fn() };
+    idempotencyService = {
+      execute: jest.fn(async (input) => {
+        const body = await input.operation(transactedRepos);
+        return {
+          body,
+          status: input.responseStatus,
+          replayed: false,
+        };
+      }),
+    };
 
     controller = new PaymentController(
       createPaymentUseCase as unknown as CreatePaymentUseCase,
@@ -31,14 +59,17 @@ describe('PaymentController', () => {
       getPaymentTimelineUseCase as unknown as GetPaymentTimelineUseCase,
       listPaymentsUseCase as unknown as ListPaymentsUseCase,
       simulatePaymentUseCase as unknown as SimulateCheckoutPaymentUseCase,
+      idempotencyService as any,
     );
   });
 
   it('forwards payment method, details, and acquirer id when creating payments', async () => {
-    createPaymentUseCase.execute.mockResolvedValue({
+    createPaymentUseCase.executeInTransaction.mockResolvedValue({
       payment: { id: 'payment-1' },
       customerCreated: false,
     });
+
+    const res = makeResponse();
 
     const result = await controller.createPayment(
       {
@@ -56,10 +87,14 @@ describe('PaymentController', () => {
         store: { id: 'store-1' },
         environment: 'TEST',
         id: 'req-1',
+        method: 'POST',
+        path: '/payments',
+        headers: { 'idempotency-key': 'idem-1' },
       } as any,
+      res as any,
     );
 
-    expect(createPaymentUseCase.execute).toHaveBeenCalledWith({
+    const expectedInput = {
       storeId: 'store-1',
       requestId: 'req-1',
       externalId: 'external-1',
@@ -72,7 +107,75 @@ describe('PaymentController', () => {
       acquirerId: 'acquirer-1',
       expiresAt: new Date('2026-01-01T10:30:00.000Z'),
       metadata: { source: 'spec' },
+    };
+
+    expect(idempotencyService.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: 'idem-1',
+        storeId: 'store-1',
+        method: 'POST',
+        path: '/payments',
+        responseStatus: 201,
+      }),
+    );
+    expect(createPaymentUseCase.executeInTransaction).toHaveBeenCalledWith(
+      expectedInput,
+      transactedRepos,
+    );
+    expect(
+      createPaymentUseCase.scheduleExpirationAfterCommit,
+    ).toHaveBeenCalledWith(expectedInput, {
+      payment: { id: 'payment-1' },
+      customerCreated: false,
     });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.setHeader).toHaveBeenCalledWith('x-idempotency-key', 'idem-1');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'x-idempotency-replayed',
+      'false',
+    );
+    expect(result).toEqual({
+      payment: { id: 'payment-1' },
+      customerCreated: false,
+    });
+  });
+
+  it('does not schedule expiration again when idempotency replays a payment response', async () => {
+    idempotencyService.execute.mockResolvedValueOnce({
+      body: {
+        payment: { id: 'payment-1' },
+        customerCreated: false,
+      },
+      status: 201,
+      replayed: true,
+    });
+    const res = makeResponse();
+
+    const result = await controller.createPayment(
+      {
+        amount: 1234,
+        customer: { document: '12345678901' },
+      },
+      {
+        store: { id: 'store-1' },
+        environment: 'TEST',
+        id: 'req-1',
+        method: 'POST',
+        path: '/payments',
+        headers: { 'idempotency-key': 'idem-1' },
+      } as any,
+      res as any,
+    );
+
+    expect(createPaymentUseCase.executeInTransaction).not.toHaveBeenCalled();
+    expect(
+      createPaymentUseCase.scheduleExpirationAfterCommit,
+    ).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'x-idempotency-replayed',
+      'true',
+    );
     expect(result).toEqual({
       payment: { id: 'payment-1' },
       customerCreated: false,
