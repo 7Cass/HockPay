@@ -115,7 +115,10 @@ export class WithdrawalDetail implements OnInit {
 
         this.actionLoading.set('complete');
         this.actionError.set(null);
-        if (!window.confirm('Completar este saque no ambiente TEST?')) return;
+        if (!window.confirm('Completar este saque no ambiente TEST?')) {
+            this.actionLoading.set(null);
+            return;
+        }
 
         this.withdrawalService
             .completeDev(withdrawal.id)
@@ -136,7 +139,10 @@ export class WithdrawalDetail implements OnInit {
 
         this.actionLoading.set('fail');
         this.actionError.set(null);
-        if (!window.confirm('Falhar este saque no ambiente TEST e devolver saldo disponível?')) return;
+        if (!window.confirm('Falhar este saque no ambiente TEST e devolver saldo disponível?')) {
+            this.actionLoading.set(null);
+            return;
+        }
 
         this.withdrawalService
             .failDev(withdrawal.id)
