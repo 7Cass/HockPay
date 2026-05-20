@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ApiClientService } from './api-client.service';
 import { AuthService } from './auth.service';
-import { Observable, tap } from 'rxjs';
+import { map, Observable, switchMap, tap } from 'rxjs';
 
 export interface Store {
     id: string;
@@ -63,12 +63,14 @@ export class StoreService {
                 const selectedStore = this.currentStore();
                 if (selectedStore) {
                     const refreshedStore = response.stores.find(s => s.id === selectedStore.id);
-                    this.currentStore.set(refreshedStore || selectedStore);
-                    return;
+                    if (refreshedStore) {
+                        this.currentStore.set(refreshedStore);
+                        return;
+                    }
                 }
 
                 // If a store is not yet selected in memory
-                if (!this.currentStore() && response.stores.length > 0) {
+                if (response.stores.length > 0) {
                     const savedStoreId = this.authService.currentUser()?.currentStoreId;
 
                     if (savedStoreId) {
@@ -79,6 +81,8 @@ export class StoreService {
                         // Fallback to the first store if they don't have one saved
                         this.currentStore.set(response.stores[0]);
                     }
+                } else {
+                    this.currentStore.set(null);
                 }
             })
         );
@@ -90,11 +94,7 @@ export class StoreService {
      */
     switchStore(storeId: string): Observable<SwitchStoreResponse> {
         return this.api.post<SwitchStoreResponse>(`/auth/switch-store/${storeId}`, {}).pipe(
-            tap(() => {
-                // Hard reload to prevent memory leakage between tenants
-                // and inject cleanly the new HttpOnly cookies into the new session.
-                window.location.href = '/dashboard';
-            })
+            tap(() => this.redirectToDashboard())
         );
     }
 
@@ -105,8 +105,22 @@ export class StoreService {
     createStore(dto: CreateStoreDto): Observable<CreateStoreResponse> {
         return this.api.post<CreateStoreResponse>('/stores', dto).pipe(
             tap((response) => {
+                this.stores.update((stores) => [
+                    ...stores.filter((store) => store.id !== response.store.id),
+                    response.store,
+                ]);
                 this.currentStore.set(response.store);
-            })
+            }),
+            switchMap((response) =>
+                this.authService.hydrateCurrentUser().pipe(map(() => response))
+            ),
+            tap(() => this.redirectToDashboard())
         );
+    }
+
+    private redirectToDashboard(): void {
+        // Hard reload to prevent memory leakage between tenants
+        // and inject cleanly the new HttpOnly cookies into the new session.
+        window.location.href = '/dashboard';
     }
 }

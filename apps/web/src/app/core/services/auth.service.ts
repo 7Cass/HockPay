@@ -1,6 +1,16 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ApiClientService } from './api-client.service';
-import { BehaviorSubject, Observable, filter, map, take, tap, throwError, catchError, of } from 'rxjs';
+import {
+    catchError,
+    finalize,
+    map,
+    Observable,
+    of,
+    shareReplay,
+    switchMap,
+    tap,
+    throwError,
+} from 'rxjs';
 
 export interface LoginDto {
     email: string;
@@ -9,10 +19,15 @@ export interface LoginDto {
 
 export interface LoginResponse {
     accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
     merchant: {
         id: string;
         email: string;
         name: string;
+        document: string;
+        formattedDocument: string;
+        documentType: 'CPF' | 'CNPJ';
     };
 }
 
@@ -48,15 +63,8 @@ export class AuthService {
      */
     readonly currentUser = signal<CurrentUser | null>(null);
 
-    /**
-     * Tracks whether a token refresh is currently in progress.
-     */
-    private isRefreshing = false;
-
-    /**
-     * Signal bus for concurrent requests waiting on a refresh.
-     */
-    private readonly refreshSubject = new BehaviorSubject<boolean>(false);
+    /** Shared in-flight refresh request for concurrent 401 responses. */
+    private refreshRequest$: Observable<unknown> | null = null;
 
     /**
      * Authenticates the merchant with email and password.
@@ -64,21 +72,9 @@ export class AuthService {
      */
     login(dto: LoginDto): Observable<LoginResponse> {
         return this.api.post<LoginResponse>('/auth/login', dto).pipe(
-            tap((response) => {
-                this.isAuthenticated.set(true);
-                // Populate basic user data from login response.
-                // Full profile will be loaded via /merchants/me on next guard check.
-                this.currentUser.set({
-                    id: response.merchant.id,
-                    name: response.merchant.name,
-                    email: response.merchant.email,
-                    document: '',
-                    formattedDocument: '',
-                    documentType: 'CPF',
-                    isActive: true,
-                    createdAt: '',
-                });
-            })
+            switchMap((response) =>
+                this.hydrateCurrentUser().pipe(map(() => response))
+            )
         );
     }
 
@@ -99,29 +95,33 @@ export class AuthService {
      * Coordinates a token refresh across concurrent requests.
      */
     handleTokenRefresh(): Observable<unknown> {
-        if (!this.isRefreshing) {
-            this.isRefreshing = true;
-            this.refreshSubject.next(false);
-
-            return this.api.post('/auth/refresh', {}).pipe(
-                tap(() => {
-                    this.isRefreshing = false;
-                    this.isAuthenticated.set(true);
-                    this.refreshSubject.next(true);
-                }),
+        if (!this.refreshRequest$) {
+            this.refreshRequest$ = this.api.post('/auth/refresh', {}).pipe(
+                tap(() => this.isAuthenticated.set(true)),
                 catchError((err) => {
-                    this.isRefreshing = false;
                     this.isAuthenticated.set(false);
                     this.currentUser.set(null);
-                    this.refreshSubject.next(false);
                     return throwError(() => err);
-                })
+                }),
+                finalize(() => {
+                    this.refreshRequest$ = null;
+                }),
+                shareReplay({ bufferSize: 1, refCount: false }),
             );
         }
 
-        return this.refreshSubject.pipe(
-            filter(done => done),
-            take(1),
+        return this.refreshRequest$;
+    }
+
+    /**
+     * Loads the full merchant profile and updates the auth state.
+     */
+    hydrateCurrentUser(): Observable<CurrentUser> {
+        return this.api.get<CurrentUser>('/merchants/me').pipe(
+            tap((user) => {
+                this.isAuthenticated.set(true);
+                this.currentUser.set(user);
+            })
         );
     }
 
@@ -134,17 +134,24 @@ export class AuthService {
     checkAuthStatus(): Observable<boolean> {
         const currentState = this.isAuthenticated();
 
+        if (currentState === true && !this.currentUser()) {
+            return this.hydrateCurrentUser().pipe(
+                map(() => true),
+                catchError(() => {
+                    this.isAuthenticated.set(false);
+                    this.currentUser.set(null);
+                    return of(false);
+                })
+            );
+        }
+
         if (currentState !== null) {
             return of(currentState);
         }
 
         // Unknown state — verify with the server and hydrate user data
-        return this.api.get<CurrentUser>('/merchants/me').pipe(
-            map((user) => {
-                this.isAuthenticated.set(true);
-                this.currentUser.set(user);
-                return true;
-            }),
+        return this.hydrateCurrentUser().pipe(
+            map(() => true),
             catchError(() => {
                 this.isAuthenticated.set(false);
                 this.currentUser.set(null);

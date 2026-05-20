@@ -85,7 +85,6 @@ export class CreateStoreDialogComponent {
                 this.isLoading.set(false);
                 this.form.reset();
                 dialogRef.close();
-                this.storeService.loadStores().subscribe();
             },
             error: (err: any) => {
                 this.isLoading.set(false);
