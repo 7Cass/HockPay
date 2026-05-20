@@ -8,6 +8,7 @@ import {
     lucideCheckCircle2,
     lucideCircleAlert,
     lucideClock,
+    lucideCopy,
     lucideRefreshCcw,
     lucideSend,
     lucideWallet,
@@ -18,9 +19,15 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { finalize } from 'rxjs';
-import { BankAccount, BankAccountService } from '../../../../core/services/bank-account.service';
+import { BankAccount } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
-import { Withdrawal, WithdrawalService, WithdrawalStatus } from '../../../../core/services/withdrawal.service';
+import {
+    Withdrawal,
+    WithdrawalService,
+    WithdrawalStatus,
+    WithdrawalTimelineEvent,
+    WithdrawalTransaction,
+} from '../../../../core/services/withdrawal.service';
 
 @Component({
     selector: 'app-withdrawal-detail',
@@ -43,6 +50,7 @@ import { Withdrawal, WithdrawalService, WithdrawalStatus } from '../../../../cor
             lucideCheckCircle2,
             lucideCircleAlert,
             lucideClock,
+            lucideCopy,
             lucideRefreshCcw,
             lucideSend,
             lucideWallet,
@@ -54,22 +62,17 @@ import { Withdrawal, WithdrawalService, WithdrawalStatus } from '../../../../cor
 export class WithdrawalDetail implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly withdrawalService = inject(WithdrawalService);
-    private readonly bankAccountService = inject(BankAccountService);
     private readonly financialService = inject(FinancialService);
 
     readonly withdrawal = signal<Withdrawal | null>(null);
-    readonly bankAccounts = signal<BankAccount[]>([]);
+    readonly bankAccount = signal<BankAccount | null>(null);
+    readonly transactions = signal<WithdrawalTransaction[]>([]);
+    readonly timeline = signal<WithdrawalTimelineEvent[]>([]);
     readonly account = signal<AccountObject | null>(null);
     readonly isLoading = signal(true);
     readonly actionLoading = signal<'complete' | 'fail' | null>(null);
     readonly error = signal<string | null>(null);
     readonly actionError = signal<string | null>(null);
-
-    readonly bankAccount = computed(() => {
-        const withdrawal = this.withdrawal();
-        if (!withdrawal) return null;
-        return this.bankAccounts().find((account) => account.id === withdrawal.bankAccountId) ?? null;
-    });
 
     readonly canSimulate = computed(() => {
         const status = this.withdrawal()?.status;
@@ -91,13 +94,17 @@ export class WithdrawalDetail implements OnInit {
         this.isLoading.set(true);
         this.error.set(null);
         this.actionError.set(null);
-        this.loadBankAccounts();
         this.loadAccount();
         this.withdrawalService
             .get(id)
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
-                next: (response) => this.withdrawal.set(response.withdrawal),
+                next: (response) => {
+                    this.withdrawal.set(response.withdrawal);
+                    this.bankAccount.set(response.bankAccount ?? null);
+                    this.transactions.set(response.transactions ?? []);
+                    this.timeline.set(response.timeline ?? []);
+                },
                 error: (err) => this.error.set(this.extractErrorMessage(err, 'Erro ao carregar saque')),
             });
     }
@@ -108,6 +115,8 @@ export class WithdrawalDetail implements OnInit {
 
         this.actionLoading.set('complete');
         this.actionError.set(null);
+        if (!window.confirm('Completar este saque no ambiente TEST?')) return;
+
         this.withdrawalService
             .completeDev(withdrawal.id)
             .pipe(finalize(() => this.actionLoading.set(null)))
@@ -115,6 +124,7 @@ export class WithdrawalDetail implements OnInit {
                 next: (response) => {
                     this.withdrawal.set(response.withdrawal);
                     this.loadAccount();
+                    this.reload();
                 },
                 error: (err) => this.actionError.set(this.extractErrorMessage(err, 'Erro ao completar saque')),
             });
@@ -126,6 +136,8 @@ export class WithdrawalDetail implements OnInit {
 
         this.actionLoading.set('fail');
         this.actionError.set(null);
+        if (!window.confirm('Falhar este saque no ambiente TEST e devolver saldo disponível?')) return;
+
         this.withdrawalService
             .failDev(withdrawal.id)
             .pipe(finalize(() => this.actionLoading.set(null)))
@@ -133,6 +145,7 @@ export class WithdrawalDetail implements OnInit {
                 next: (response) => {
                     this.withdrawal.set(response.withdrawal);
                     this.loadAccount();
+                    this.reload();
                 },
                 error: (err) => this.actionError.set(this.extractErrorMessage(err, 'Erro ao falhar saque')),
             });
@@ -173,6 +186,20 @@ export class WithdrawalDetail implements OnInit {
         return value.length <= 16 ? value : `${value.slice(0, 12)}...`;
     }
 
+    copy(value?: string | null): void {
+        if (!value) return;
+        void navigator.clipboard?.writeText(value);
+    }
+
+    transactionTypeLabel(type: string): string {
+        const labels: Record<string, string> = {
+            WITHDRAWAL_RESERVED: 'Saldo reservado',
+            WITHDRAWAL_SENT: 'Saque enviado',
+            WITHDRAWAL_REVERSED: 'Saldo devolvido',
+        };
+        return labels[type] ?? type;
+    }
+
     maskDocument(value?: string | null): string {
         const clean = String(value ?? '').replace(/\D/g, '');
         if (clean.length === 11) {
@@ -182,13 +209,6 @@ export class WithdrawalDetail implements OnInit {
             return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}/${clean.slice(8, 12)}-${clean.slice(12)}`;
         }
         return value || '-';
-    }
-
-    private loadBankAccounts(): void {
-        this.bankAccountService.list().subscribe({
-            next: (accounts) => this.bankAccounts.set(accounts),
-            error: () => this.bankAccounts.set([]),
-        });
     }
 
     private loadAccount(): void {

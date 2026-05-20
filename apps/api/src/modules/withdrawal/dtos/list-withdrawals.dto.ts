@@ -33,6 +33,10 @@ export class ListWithdrawalsQueryDto {
   bankAccountId?: string;
 
   @IsOptional()
+  @IsString()
+  q?: string;
+
+  @IsOptional()
   @IsDateString()
   startDate?: string;
 

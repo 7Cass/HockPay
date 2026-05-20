@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Account } from "../../domain/entities/account.entity";
 import {
   BankAccount,
@@ -26,6 +26,8 @@ import {
 import { CompleteWithdrawalUseCase } from "./complete-withdrawal.use-case";
 import { CreateWithdrawalUseCase } from "./create-withdrawal.use-case";
 import { FailWithdrawalUseCase } from "./fail-withdrawal.use-case";
+import { GetWithdrawalUseCase } from "./get-withdrawal.use-case";
+import { ListWithdrawalsUseCase } from "./list-withdrawals.use-case";
 
 describe("withdrawal use cases", () => {
   it("creates a valid withdrawal and reserves available balance", async () => {
@@ -160,6 +162,90 @@ describe("withdrawal use cases", () => {
       TransactionType.WITHDRAWAL_REVERSED,
     );
   });
+
+  it("returns enriched withdrawal detail with Pix account, ledger and timeline", async () => {
+    const fixture = makeFixture({ available: 20_000 });
+    const created = await new CreateWithdrawalUseCase(
+      fixture.unitOfWork,
+    ).execute({
+      storeId: fixture.store.id,
+      bankAccountId: fixture.bankAccount.id,
+      amount: 10_000,
+    });
+    await new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
+      withdrawalId: created.withdrawal.id,
+      storeId: fixture.store.id,
+      pixE2eId: "E2E-test",
+    });
+
+    const result = await new GetWithdrawalUseCase(fixture.unitOfWork).execute({
+      storeId: fixture.store.id,
+      withdrawalId: created.withdrawal.id,
+    });
+
+    expect(result.bankAccount?.id).toBe(fixture.bankAccount.id);
+    expect(result.transactions.map((transaction) => transaction.type)).toEqual([
+      TransactionType.WITHDRAWAL_RESERVED,
+      TransactionType.WITHDRAWAL_SENT,
+    ]);
+    expect(result.timeline.map((event) => event.type)).toEqual(
+      expect.arrayContaining(["CREATED", "RESERVED", "SENT"]),
+    );
+  });
+
+  it("returns withdrawal summary and forwards search filters", async () => {
+    const fixture = makeFixture();
+    const withdrawal = Withdrawal.create({
+      accountId: fixture.account.id,
+      bankAccountId: fixture.bankAccount.id,
+      amount: 10_000,
+      fee: 199,
+    });
+
+    const withdrawalRepository = {
+      list: vi.fn().mockResolvedValue({
+        withdrawals: [withdrawal],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        summary: {
+          totalCount: 1,
+          totalAmount: 10_000,
+          totalFee: 199,
+          totalNetAmount: 9_801,
+          pendingCount: 1,
+          processingCount: 0,
+          completedCount: 0,
+          failedCount: 0,
+          pendingOrProcessingAmount: 10_000,
+          completedNetAmount: 0,
+          failedAmount: 0,
+        },
+      }),
+    };
+    const accountRepository = {
+      findByStoreId: vi.fn().mockResolvedValue(fixture.account),
+    };
+
+    const result = await new ListWithdrawalsUseCase(
+      withdrawalRepository as any,
+      accountRepository as any,
+    ).execute({
+      storeId: fixture.store.id,
+      q: "12345678",
+      status: WithdrawalStatus.PENDING,
+    });
+
+    expect(withdrawalRepository.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: fixture.account.id,
+        q: "12345678",
+        status: WithdrawalStatus.PENDING,
+      }),
+    );
+    expect(result.summary.pendingOrProcessingAmount).toBe(10_000);
+  });
 });
 
 function makeFixture(
@@ -222,6 +308,7 @@ function makeFixture(
     bankAccountRepository: {
       findById: async (id: string) =>
         id === bankAccount.id ? bankAccount : null,
+      findUsageByStoreId: async () => ({}),
     },
     withdrawalRepository: {
       save: async (withdrawal: Withdrawal) => {
@@ -242,6 +329,12 @@ function makeFixture(
       save: async (transaction: Transaction) => {
         transactions.push(transaction);
       },
+      findByReference: async (referenceType: string, referenceId: string) =>
+        transactions.filter(
+          (transaction) =>
+            transaction.referenceType === referenceType &&
+            transaction.referenceId === referenceId,
+        ),
     },
     outboxWriter: {
       save: async (event: OutboxEvent) => {

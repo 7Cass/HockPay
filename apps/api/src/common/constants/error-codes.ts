@@ -24,6 +24,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   PAYMENT_ALREADY_CONFIRMED: 409,
   PAYMENT_ALREADY_REFUNDED: 409,
   INVALID_WITHDRAWAL_STATUS: 409,
+  BANK_ACCOUNT_IN_USE: 409,
 
   // Not Found Errors (404 Not Found)
   MERCHANT_NOT_FOUND: 404,
@@ -89,6 +90,7 @@ export const ERROR_CATEGORIES = {
     'PAYMENT_ALREADY_CONFIRMED',
     'PAYMENT_ALREADY_REFUNDED',
     'INVALID_WITHDRAWAL_STATUS',
+    'BANK_ACCOUNT_IN_USE',
   ],
 
   /** Requested resource does not exist */

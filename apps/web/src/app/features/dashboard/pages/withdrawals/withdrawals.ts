@@ -11,8 +11,10 @@ import {
     lucideCheckCircle2,
     lucideCircleAlert,
     lucideClock,
+    lucideCopy,
     lucidePlus,
     lucideRefreshCcw,
+    lucideSearch,
     lucideSend,
     lucideShield,
     lucideTrash2,
@@ -36,12 +38,26 @@ import {
     ListWithdrawalsResponse,
     Withdrawal,
     WithdrawalService,
+    WithdrawalSummary,
     WithdrawalStatus,
 } from '../../../../core/services/withdrawal.service';
 
 const WITHDRAWAL_FEE_CENTS = 199;
 const MIN_WITHDRAWAL_CENTS = 1000;
 const MAX_WITHDRAWAL_CENTS = 500000;
+const EMPTY_SUMMARY: WithdrawalSummary = {
+    totalCount: 0,
+    totalAmount: 0,
+    totalFee: 0,
+    totalNetAmount: 0,
+    pendingCount: 0,
+    processingCount: 0,
+    completedCount: 0,
+    failedCount: 0,
+    pendingOrProcessingAmount: 0,
+    completedNetAmount: 0,
+    failedAmount: 0,
+};
 
 function parseBrlToCents(value: string | number | null | undefined): number {
     if (typeof value === 'number') return Math.round(value * 100);
@@ -86,8 +102,10 @@ function parseBrlToCents(value: string | number | null | undefined): number {
             lucideCheckCircle2,
             lucideCircleAlert,
             lucideClock,
+            lucideCopy,
             lucidePlus,
             lucideRefreshCcw,
+            lucideSearch,
             lucideSend,
             lucideShield,
             lucideTrash2,
@@ -114,7 +132,9 @@ export class Withdrawals implements OnInit {
         limit: 20,
         total: 0,
         totalPages: 1,
+        summary: EMPTY_SUMMARY,
     });
+    readonly summary = signal<WithdrawalSummary>(EMPTY_SUMMARY);
     readonly isLoading = signal(true);
     readonly isCreatingWithdrawal = signal(false);
     readonly isCreatingBankAccount = signal(false);
@@ -122,13 +142,18 @@ export class Withdrawals implements OnInit {
     readonly error = signal<string | null>(null);
     readonly withdrawalFormError = signal<string | null>(null);
     readonly bankAccountError = signal<string | null>(null);
+    readonly createdWithdrawalId = signal<string | null>(null);
+    readonly copiedValue = signal<string | null>(null);
+    readonly settingDefaultBankAccountId = signal<string | null>(null);
     readonly withdrawalSheetState = signal<'open' | 'closed'>('closed');
     readonly accountsSheetState = signal<'open' | 'closed'>('closed');
     readonly statusFilter = signal<WithdrawalStatus | 'all'>('all');
     readonly bankAccountFilter = signal('all');
+    readonly qFilter = signal('');
     readonly dateRange = signal<[Date, Date] | undefined>(undefined);
     readonly selectedBankAccountId = signal('');
     readonly withdrawalAmountInput = signal('');
+    readonly isConfirmingWithdrawal = signal(false);
 
     readonly feeCents = WITHDRAWAL_FEE_CENTS;
     readonly minWithdrawalCents = MIN_WITHDRAWAL_CENTS;
@@ -148,16 +173,9 @@ export class Withdrawals implements OnInit {
     });
     readonly withdrawalAmountCents = computed(() => parseBrlToCents(this.withdrawalAmountInput()));
     readonly withdrawalNetCents = computed(() => Math.max(this.withdrawalAmountCents() - this.feeCents, 0));
-    readonly pendingOrProcessingTotal = computed(() =>
-        this.withdrawals()
-            .filter((withdrawal) => withdrawal.status === 'PENDING' || withdrawal.status === 'PROCESSING')
-            .reduce((total, withdrawal) => total + withdrawal.amount, 0)
-    );
-    readonly completedTotal = computed(() =>
-        this.withdrawals()
-            .filter((withdrawal) => withdrawal.status === 'COMPLETED')
-            .reduce((total, withdrawal) => total + withdrawal.netAmount, 0)
-    );
+    readonly pendingOrProcessingTotal = computed(() => this.summary().pendingOrProcessingAmount);
+    readonly completedTotal = computed(() => this.summary().completedNetAmount);
+    readonly disabledCreateReason = computed(() => this.withdrawalValidationMessage());
     readonly canCreateWithdrawal = computed(() => {
         const amount = this.withdrawalAmountCents();
         return (
@@ -227,12 +245,14 @@ export class Withdrawals implements OnInit {
                 bankAccountId: selectedBankAccountId === 'all' ? undefined : selectedBankAccountId,
                 startDate: this.formatApiDate(this.dateRange()?.[0]),
                 endDate: this.formatApiDate(this.dateRange()?.[1]),
+                q: this.qFilter().trim() || undefined,
             })
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
                 next: (response) => {
                     this.withdrawals.set(response.withdrawals);
                     this.meta.set(response);
+                    this.summary.set(response.summary ?? EMPTY_SUMMARY);
                 },
                 error: (err) => this.error.set(this.extractErrorMessage(err, 'Erro ao carregar saques')),
             });
@@ -240,6 +260,8 @@ export class Withdrawals implements OnInit {
 
     openWithdrawalSheet(): void {
         this.withdrawalFormError.set(null);
+        this.createdWithdrawalId.set(null);
+        this.isConfirmingWithdrawal.set(false);
         this.withdrawalAmountInput.set('');
         this.selectedBankAccountId.set(this.verifiedBankAccounts()[0]?.id ?? '');
         this.withdrawalSheetState.set('open');
@@ -250,6 +272,7 @@ export class Withdrawals implements OnInit {
         if (state !== 'open') {
             this.withdrawalFormError.set(null);
             this.withdrawalAmountInput.set('');
+            this.isConfirmingWithdrawal.set(false);
         }
     }
 
@@ -268,6 +291,10 @@ export class Withdrawals implements OnInit {
 
     setBankAccountFilter(value: string): void {
         this.bankAccountFilter.set(value);
+    }
+
+    setSearch(value: string): void {
+        this.qFilter.set(value);
     }
 
     setDateRange(value: [Date, Date] | null): void {
@@ -291,6 +318,7 @@ export class Withdrawals implements OnInit {
     clearFilters(): void {
         this.statusFilter.set('all');
         this.bankAccountFilter.set('all');
+        this.qFilter.set('');
         this.dateRange.set(undefined);
         this.loadWithdrawals(1);
     }
@@ -303,7 +331,28 @@ export class Withdrawals implements OnInit {
 
     submitWithdrawal(event: Event): void {
         event.preventDefault();
+        if (!this.isConfirmingWithdrawal()) {
+            const validation = this.withdrawalValidationMessage();
+            if (validation) {
+                this.withdrawalFormError.set(validation);
+                return;
+            }
+            this.isConfirmingWithdrawal.set(true);
+            return;
+        }
         this.createWithdrawal();
+    }
+
+    backToWithdrawalForm(): void {
+        this.isConfirmingWithdrawal.set(false);
+    }
+
+    setMaxWithdrawalAmount(): void {
+        const available = this.account()?.available ?? 0;
+        const max = Math.min(available, this.maxWithdrawalCents);
+        if (max < this.minWithdrawalCents) return;
+        this.withdrawalAmountInput.set(this.formatCurrencyInput(max));
+        this.withdrawalFormError.set(null);
     }
 
     createWithdrawal(): void {
@@ -321,9 +370,11 @@ export class Withdrawals implements OnInit {
             })
             .pipe(finalize(() => this.isCreatingWithdrawal.set(false)))
             .subscribe({
-                next: () => {
+                next: (response) => {
                     this.withdrawalSheetState.set('closed');
                     this.withdrawalAmountInput.set('');
+                    this.isConfirmingWithdrawal.set(false);
+                    this.createdWithdrawalId.set(response.withdrawal.id);
                     this.reload(1);
                 },
                 error: (err) => this.withdrawalFormError.set(this.extractErrorMessage(err, 'Erro ao solicitar saque')),
@@ -361,6 +412,10 @@ export class Withdrawals implements OnInit {
 
     deleteBankAccount(account: BankAccount): void {
         if (this.deletingBankAccountId()) return;
+        if (account.hasWithdrawals) {
+            this.bankAccountError.set('Esta conta tem saques vinculados e não pode ser removida.');
+            return;
+        }
         if (!window.confirm(`Remover a conta Pix ${account.pixKey}?`)) return;
 
         this.deletingBankAccountId.set(account.id);
@@ -371,6 +426,29 @@ export class Withdrawals implements OnInit {
                 next: () => this.loadBankAccounts(),
                 error: (err) => this.bankAccountError.set(this.extractErrorMessage(err, 'Erro ao remover conta Pix')),
             });
+    }
+
+    setDefaultBankAccount(account: BankAccount): void {
+        if (account.isDefault || this.settingDefaultBankAccountId()) return;
+
+        this.settingDefaultBankAccountId.set(account.id);
+        this.bankAccountError.set(null);
+        this.bankAccountService
+            .setDefault(account.id)
+            .pipe(finalize(() => this.settingDefaultBankAccountId.set(null)))
+            .subscribe({
+                next: () => this.loadBankAccounts(),
+                error: (err) => this.bankAccountError.set(this.extractErrorMessage(err, 'Erro ao tornar conta padrão')),
+            });
+    }
+
+    copy(value?: string | null): void {
+        if (!value) return;
+        void navigator.clipboard?.writeText(value);
+        this.copiedValue.set(value);
+        window.setTimeout(() => {
+            if (this.copiedValue() === value) this.copiedValue.set(null);
+        }, 1500);
     }
 
     openDetail(withdrawal: Withdrawal): void {
@@ -391,6 +469,11 @@ export class Withdrawals implements OnInit {
             FAILED: 'Falhou',
         };
         return labels[status];
+    }
+
+    selectedStatusLabel(): string {
+        const status = this.statusFilter();
+        return status === 'all' ? 'Todos' : this.statusLabel(status);
     }
 
     statusIcon(status: WithdrawalStatus): string {
@@ -426,6 +509,20 @@ export class Withdrawals implements OnInit {
     shortId(value?: string | null): string {
         if (!value) return '-';
         return value.length <= 12 ? value : `${value.slice(0, 8)}...`;
+    }
+
+    activeFilterCount(): number {
+        let count = 0;
+        if (this.statusFilter() !== 'all') count += 1;
+        if (this.bankAccountFilter() !== 'all') count += 1;
+        if (this.dateRange()) count += 1;
+        if (this.qFilter().trim()) count += 1;
+        return count;
+    }
+
+    goToCreatedWithdrawal(): void {
+        const id = this.createdWithdrawalId();
+        if (id) void this.router.navigate(['/dashboard/withdrawals', id]);
     }
 
     maskDocument(value?: string | null): string {
@@ -468,6 +565,13 @@ export class Withdrawals implements OnInit {
             month: '2-digit',
             year: 'numeric',
         }).format(date);
+    }
+
+    private formatCurrencyInput(cents: number): string {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+        }).format(cents / 100);
     }
 
     private cleanDocument(value?: string | null): string {

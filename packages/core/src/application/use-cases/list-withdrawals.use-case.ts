@@ -7,6 +7,7 @@ import { IAccountRepository } from "../../domain/repositories/account.repository
 import {
   IWithdrawalRepository,
   ListWithdrawalsOptions,
+  WithdrawalSummary,
 } from "../../domain/repositories/withdrawal.repository.interface";
 
 export interface IListWithdrawalsInput {
@@ -17,6 +18,7 @@ export interface IListWithdrawalsInput {
   bankAccountId?: string;
   startDate?: Date;
   endDate?: Date;
+  q?: string;
 }
 
 export interface IListWithdrawalsOutput {
@@ -25,6 +27,7 @@ export interface IListWithdrawalsOutput {
   page: number;
   limit: number;
   totalPages: number;
+  summary: WithdrawalSummary;
 }
 
 export class ListWithdrawalsUseCase {
@@ -45,6 +48,7 @@ export class ListWithdrawalsUseCase {
       bankAccountId: input.bankAccountId,
       startDate: input.startDate,
       endDate: input.endDate,
+      q: input.q,
     };
 
     const result = await this.withdrawalRepository.list(options);
@@ -57,6 +61,7 @@ export class ListWithdrawalsUseCase {
       page: result.page,
       limit: result.limit,
       totalPages: result.totalPages,
+      summary: result.summary,
     };
   }
 }

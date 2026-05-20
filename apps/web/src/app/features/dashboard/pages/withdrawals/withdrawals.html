@@ -11,6 +11,7 @@
         </div>
 
         <form class="flex-1 space-y-6 px-6 py-6" (submit)="submitWithdrawal($event)">
+          @if (!isConfirmingWithdrawal()) {
           <section class="space-y-3">
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -49,20 +50,23 @@
               <label class="text-sm font-medium text-zinc-900" for="withdrawal-amount">Valor bruto</label>
               <p class="mt-1 text-sm text-zinc-500">Mínimo R$ 10,00, máximo R$ 5.000,00 e limitado ao saldo disponível.</p>
             </div>
-            <input
-              hlmInput
-              id="withdrawal-amount"
-              mask="separator.2"
-              prefix="R$ "
-              thousandSeparator="."
-              decimalMarker=","
-              [dropSpecialCharacters]="false"
-              inputmode="decimal"
-              placeholder="R$ 250,00"
-              class="h-11 border-zinc-200 bg-white"
-              [value]="withdrawalAmountInput()"
-              (input)="setWithdrawalAmount($any($event.target).value)"
-            />
+            <div class="flex gap-2">
+              <input
+                hlmInput
+                id="withdrawal-amount"
+                mask="separator.2"
+                prefix="R$ "
+                thousandSeparator="."
+                decimalMarker=","
+                [dropSpecialCharacters]="false"
+                inputmode="decimal"
+                placeholder="R$ 250,00"
+                class="h-11 border-zinc-200 bg-white"
+                [value]="withdrawalAmountInput()"
+                (input)="setWithdrawalAmount($any($event.target).value)"
+              />
+              <button hlmBtn type="button" variant="outline" class="shrink-0 border-zinc-200" (click)="setMaxWithdrawalAmount()">Máximo</button>
+            </div>
           </section>
 
           <section class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
@@ -98,12 +102,50 @@
             </div>
           }
 
+          @if (disabledCreateReason() && withdrawalAmountInput()) {
+            <div class="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600">
+              {{ disabledCreateReason() }}
+            </div>
+          }
+          } @else {
+          <section class="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+            <p class="text-sm font-semibold text-indigo-950">Confirmar solicitação</p>
+            <p class="mt-1 text-sm text-indigo-800">Revise os valores antes de reservar o saldo para processamento Pix.</p>
+            <div class="mt-4 space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-indigo-800">Destino</span>
+                <span class="text-right font-semibold text-indigo-950">{{ selectedBankAccount()?.pixKeyType }} {{ maskDocument(selectedBankAccount()?.pixKey) }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-indigo-800">Valor bruto</span>
+                <span class="font-semibold text-indigo-950">{{ withdrawalAmountCents() / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-indigo-800">Taxa</span>
+                <span class="font-semibold text-red-600">-{{ feeCents / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 border-t border-indigo-200 pt-3">
+                <span class="font-medium text-indigo-900">Líquido a receber</span>
+                <span class="text-base font-semibold text-emerald-700">{{ withdrawalNetCents() / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-indigo-800">Disponível após reserva</span>
+                <span class="font-semibold text-indigo-950">{{ (((account()?.available ?? 0) - withdrawalAmountCents()) / 100) | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </section>
+          }
+
           <div hlmSheetFooter class="border-t border-zinc-200 px-0 pt-6">
             <div class="flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button hlmBtn type="button" variant="outline" class="border-zinc-200" (click)="ctx.close()" [disabled]="isCreatingWithdrawal()">Cancelar</button>
+              @if (isConfirmingWithdrawal()) {
+                <button hlmBtn type="button" variant="outline" class="border-zinc-200" (click)="backToWithdrawalForm()" [disabled]="isCreatingWithdrawal()">Editar</button>
+              } @else {
+                <button hlmBtn type="button" variant="outline" class="border-zinc-200" (click)="ctx.close()" [disabled]="isCreatingWithdrawal()">Cancelar</button>
+              }
               <button hlmBtn type="submit" class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" [disabled]="!canCreateWithdrawal()">
                 <ng-icon hlm name="lucideSend" size="sm"></ng-icon>
-                {{ isCreatingWithdrawal() ? 'Solicitando...' : 'Solicitar saque' }}
+                {{ isCreatingWithdrawal() ? 'Solicitando...' : (isConfirmingWithdrawal() ? 'Confirmar saque' : 'Continuar') }}
               </button>
             </div>
           </div>
@@ -173,19 +215,52 @@
                     </div>
                     <p class="mt-2 text-sm text-zinc-600">{{ account.holderName }}</p>
                     <p class="mt-1 text-xs text-zinc-400">Documento {{ maskDocument(account.holderDocument) }}</p>
+                    @if (account.hasWithdrawals) {
+                      <p class="mt-2 text-xs text-zinc-500">
+                        {{ account.withdrawalCount }} saque(s) vinculados
+                        @if (account.hasActiveWithdrawals) {
+                          <span class="font-semibold text-amber-700">- {{ account.activeWithdrawalCount }} ativo(s)</span>
+                        }
+                      </p>
+                    }
                   </div>
-                  <button
-                    hlmBtn
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    class="gap-2 text-zinc-500 hover:bg-red-50 hover:text-red-600"
-                    (click)="deleteBankAccount(account)"
-                    [disabled]="deletingBankAccountId() === account.id"
-                  >
-                    <ng-icon hlm name="lucideTrash2" size="xs"></ng-icon>
-                    Remover
-                  </button>
+                  <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <button
+                      hlmBtn
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="gap-2 border-zinc-200 text-zinc-600"
+                      (click)="copy(account.pixKey)"
+                    >
+                      <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
+                      Copiar
+                    </button>
+                    <button
+                      hlmBtn
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="gap-2 border-zinc-200 text-zinc-600"
+                      (click)="setDefaultBankAccount(account)"
+                      [disabled]="account.isDefault || settingDefaultBankAccountId() === account.id"
+                    >
+                      Padrão
+                    </button>
+                    <button
+                      hlmBtn
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      class="gap-2 text-zinc-500 hover:bg-red-50 hover:text-red-600"
+                      (click)="deleteBankAccount(account)"
+                      [disabled]="account.hasWithdrawals || deletingBankAccountId() === account.id"
+                      [title]="account.hasWithdrawals ? 'Conta com saques vinculados não pode ser removida' : 'Remover conta Pix'"
+                    >
+                      <ng-icon hlm name="lucideTrash2" size="xs"></ng-icon>
+                      Remover
+                    </button>
+                  </div>
                 </div>
               </article>
             }
@@ -227,6 +302,19 @@
     </div>
   }
 
+  @if (createdWithdrawalId()) {
+    <div class="flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-3">
+        <ng-icon hlm name="lucideCheckCircle2" class="mt-0.5 text-emerald-600"></ng-icon>
+        <div>
+          <h3 class="text-sm font-semibold">Saque solicitado</h3>
+          <p class="mt-1 text-sm opacity-90">O saldo foi reservado e o saque já está disponível para acompanhamento.</p>
+        </div>
+      </div>
+      <button hlmBtn size="sm" variant="outline" class="border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-100" (click)="goToCreatedWithdrawal()">Abrir detalhe</button>
+    </div>
+  }
+
   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
       <div class="flex items-center justify-between gap-3">
@@ -250,6 +338,7 @@
         <ng-icon hlm name="lucideClock" class="text-zinc-400" size="sm"></ng-icon>
       </div>
       <p class="mt-2 text-xl font-semibold text-zinc-900">{{ pendingOrProcessingTotal() / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+      <p class="mt-1 text-xs text-zinc-500">{{ summary().pendingCount + summary().processingCount }} saque(s)</p>
     </div>
 
     <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
@@ -258,11 +347,27 @@
         <ng-icon hlm name="lucideBanknoteArrowDown" class="text-zinc-400" size="sm"></ng-icon>
       </div>
       <p class="mt-2 text-xl font-semibold text-zinc-900">{{ completedTotal() / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+      <p class="mt-1 text-xs text-zinc-500">{{ summary().completedCount }} concluído(s) no filtro</p>
     </div>
   </div>
 
   <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-    <div class="grid gap-3 lg:grid-cols-[1fr_1fr_minmax(18rem,24rem)_auto_auto] lg:items-end">
+    <div class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_minmax(18rem,24rem)_auto_auto] lg:items-end">
+      <label class="block">
+        <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Buscar</span>
+        <div class="relative">
+          <ng-icon hlm name="lucideSearch" size="xs" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></ng-icon>
+          <input
+            hlmInput
+            class="h-10 border-zinc-200 bg-white pl-9"
+            placeholder="ID, E2E, Pix ou titular"
+            [value]="qFilter()"
+            (input)="setSearch($any($event.target).value)"
+            (keyup.enter)="applyFilters()"
+          />
+        </div>
+      </label>
+
       <label class="block">
         <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Status</span>
         <select
@@ -310,6 +415,17 @@
         Filtrar
       </button>
     </div>
+    @if (activeFilterCount() > 0) {
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <span class="font-semibold text-zinc-700">{{ activeFilterCount() }} filtro(s) ativo(s)</span>
+        @if (qFilter().trim()) {
+          <span class="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">Busca: {{ qFilter() }}</span>
+        }
+        @if (statusFilter() !== 'all') {
+          <span class="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">Status: {{ selectedStatusLabel() }}</span>
+        }
+      </div>
+    }
   </div>
 
   <div class="flex min-h-[420px] flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
@@ -326,7 +442,9 @@
           <ng-icon hlm name="lucideBanknoteArrowDown" size="xl" class="text-indigo-600 opacity-80" strokeWidth="1.5"></ng-icon>
         </div>
         <h3 class="mb-1.5 text-base font-semibold text-zinc-900">Nenhum saque encontrado</h3>
-        <p class="mx-auto max-w-sm text-sm text-zinc-500">Quando você solicitar saques, eles aparecerão aqui com status e destino Pix.</p>
+        <p class="mx-auto max-w-sm text-sm text-zinc-500">
+          {{ activeFilterCount() > 0 ? 'Nenhum saque combina com os filtros aplicados.' : 'Quando você solicitar saques, eles aparecerão aqui com status e destino Pix.' }}
+        </p>
       </div>
     }
 
@@ -376,10 +494,23 @@
                   <span class="text-sm font-medium text-zinc-700">{{ withdrawal.processingAttempts }}</span>
                 </td>
                 <td hlmTd class="py-3.5 pr-6 text-right">
-                  <span class="inline-flex items-center justify-end gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 font-mono text-xs font-semibold text-indigo-600">
-                    {{ shortId(withdrawal.id) }}
-                    <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
-                  </span>
+                  <div class="inline-flex items-center justify-end gap-1.5">
+                    <button
+                      hlmBtn
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      class="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
+                      (click)="$event.stopPropagation(); copy(withdrawal.id)"
+                      title="Copiar referência"
+                    >
+                      <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
+                    </button>
+                    <span class="inline-flex items-center justify-end gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 font-mono text-xs font-semibold text-indigo-600">
+                      {{ shortId(withdrawal.id) }}
+                      <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
+                    </span>
+                  </div>
                 </td>
               </tr>
             }

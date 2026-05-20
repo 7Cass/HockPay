@@ -5,6 +5,7 @@ import {
     Delete,
     Body,
     Param,
+    Patch,
     UseGuards,
     HttpCode,
     HttpStatus,
@@ -15,6 +16,7 @@ import {
     ListBankAccountsUseCase,
     DeleteBankAccountUseCase,
     GetMerchantUseCase,
+    SetDefaultBankAccountUseCase,
 } from '@hockpay/core';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
@@ -32,6 +34,7 @@ export class BankAccountController {
         private readonly listBankAccountsUseCase: ListBankAccountsUseCase,
         private readonly deleteBankAccountUseCase: DeleteBankAccountUseCase,
         private readonly getMerchantUseCase: GetMerchantUseCase,
+        private readonly setDefaultBankAccountUseCase: SetDefaultBankAccountUseCase,
     ) { }
 
     @Post()
@@ -61,7 +64,16 @@ export class BankAccountController {
     @HttpCode(HttpStatus.OK)
     async list(@CurrentStore() storeId: string): Promise<BankAccountResponseDto[]> {
         const bankAccounts = await this.listBankAccountsUseCase.execute(storeId);
-        return BankAccountResponseDto.fromDomainList(bankAccounts);
+        return BankAccountResponseDto.fromUsageList(bankAccounts);
+    }
+
+    @Patch(':id/default')
+    @HttpCode(HttpStatus.OK)
+    async setDefault(
+        @Param('id') id: string,
+        @CurrentStore() storeId: string,
+    ): Promise<void> {
+        await this.setDefaultBankAccountUseCase.execute(id, storeId);
     }
 
     @Delete(':id')

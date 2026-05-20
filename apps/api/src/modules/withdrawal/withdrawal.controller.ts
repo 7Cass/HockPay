@@ -20,6 +20,7 @@ import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { BankAccountResponseDto } from '../bank-account/dtos/bank-account-response.dto';
 import { CreateWithdrawalDto } from './dtos/create-withdrawal.dto';
 import { ListWithdrawalsQueryDto } from './dtos/list-withdrawals.dto';
 import {
@@ -70,6 +71,7 @@ export class WithdrawalController {
       limit: query.limit,
       status: query.status,
       bankAccountId: query.bankAccountId,
+      q: query.q,
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
     });
@@ -93,6 +95,11 @@ export class WithdrawalController {
 
     return {
       withdrawal: WithdrawalResponseDto.fromObject(result.withdrawal),
+      bankAccount: result.bankAccount
+        ? BankAccountResponseDto.fromObject(result.bankAccount as any)
+        : null,
+      transactions: result.transactions,
+      timeline: result.timeline,
     };
   }
 

@@ -64,7 +64,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     const skip = (page - 1) * limit;
     const where = this.buildWhere(options);
 
-    const [withdrawals, total] = await Promise.all([
+    const [withdrawals, total, summary] = await Promise.all([
       this.prisma.withdrawal.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -72,6 +72,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
         take: limit,
       }),
       this.prisma.withdrawal.count({ where }),
+      this.getSummary(where),
     ]);
 
     return {
@@ -82,6 +83,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      summary,
     };
   }
 
@@ -153,6 +155,24 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     if (options.bankAccountId) {
       where.bankAccountId = options.bankAccountId;
     }
+    if (options.q?.trim()) {
+      const q = options.q.trim();
+      const clean = q.replace(/\D/g, "");
+      const searchTerms = [q, clean].filter(Boolean);
+      where.OR = [
+        { id: { contains: q } },
+        { pixE2eId: { contains: q } },
+        ...searchTerms.map((term) => ({
+          bankAccount: {
+            OR: [
+              { pixKey: { contains: term } },
+              { holderDocument: { contains: term } },
+              { holderName: { contains: term } },
+            ],
+          },
+        })),
+      ] as any;
+    }
     if (options.startDate || options.endDate) {
       where.createdAt = {};
       if (options.startDate) where.createdAt.gte = options.startDate;
@@ -160,6 +180,59 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     }
 
     return where;
+  }
+
+  private async getSummary(where: Prisma.WithdrawalWhereInput) {
+    const [aggregate, groups] = await Promise.all([
+      this.prisma.withdrawal.aggregate({
+        where,
+        _count: { _all: true },
+        _sum: {
+          amount: true,
+          fee: true,
+          netAmount: true,
+        },
+      }),
+      this.prisma.withdrawal.groupBy({
+        by: ["status"],
+        where,
+        _count: { _all: true },
+        _sum: {
+          amount: true,
+          netAmount: true,
+        },
+      }),
+    ]);
+
+    const byStatus = new Map(
+      groups.map((group) => [
+        group.status as WithdrawalStatus,
+        {
+          count: group._count._all,
+          amount: group._sum.amount ?? 0,
+          netAmount: group._sum.netAmount ?? 0,
+        },
+      ]),
+    );
+    const pending = byStatus.get(WithdrawalStatus.PENDING);
+    const processing = byStatus.get(WithdrawalStatus.PROCESSING);
+    const completed = byStatus.get(WithdrawalStatus.COMPLETED);
+    const failed = byStatus.get(WithdrawalStatus.FAILED);
+
+    return {
+      totalCount: aggregate._count._all,
+      totalAmount: aggregate._sum.amount ?? 0,
+      totalFee: aggregate._sum.fee ?? 0,
+      totalNetAmount: aggregate._sum.netAmount ?? 0,
+      pendingCount: pending?.count ?? 0,
+      processingCount: processing?.count ?? 0,
+      completedCount: completed?.count ?? 0,
+      failedCount: failed?.count ?? 0,
+      pendingOrProcessingAmount:
+        (pending?.amount ?? 0) + (processing?.amount ?? 0),
+      completedNetAmount: completed?.netAmount ?? 0,
+      failedAmount: failed?.amount ?? 0,
+    };
   }
 
   private toPrismaData(withdrawal: DomainWithdrawal) {

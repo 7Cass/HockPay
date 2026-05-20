@@ -1,5 +1,6 @@
 import {
     IBankAccountRepository,
+    BankAccountUsage,
     BankAccount as DomainBankAccount,
     PixKeyType as DomainPixKeyType
 } from '@hockpay/core';
@@ -55,6 +56,46 @@ export class BankAccountRepository implements IBankAccountRepository {
         });
 
         return accounts.map(this.toDomain);
+    }
+
+    async findUsageByStoreId(storeId: string): Promise<Record<string, BankAccountUsage>> {
+        const [all, active] = await Promise.all([
+            this.prisma.withdrawal.groupBy({
+                by: ['bankAccountId'],
+                where: {
+                    bankAccount: { storeId },
+                },
+                _count: { _all: true },
+            }),
+            this.prisma.withdrawal.groupBy({
+                by: ['bankAccountId'],
+                where: {
+                    bankAccount: { storeId },
+                    status: { in: ['PENDING', 'PROCESSING'] as any },
+                },
+                _count: { _all: true },
+            }),
+        ]);
+
+        const usage: Record<string, BankAccountUsage> = {};
+        for (const group of all) {
+            usage[group.bankAccountId] = {
+                hasWithdrawals: group._count._all > 0,
+                hasActiveWithdrawals: false,
+                withdrawalCount: group._count._all,
+                activeWithdrawalCount: 0,
+            };
+        }
+        for (const group of active) {
+            usage[group.bankAccountId] = {
+                hasWithdrawals: true,
+                hasActiveWithdrawals: group._count._all > 0,
+                withdrawalCount: usage[group.bankAccountId]?.withdrawalCount ?? group._count._all,
+                activeWithdrawalCount: group._count._all,
+            };
+        }
+
+        return usage;
     }
 
     async clearDefaultFlagExcept(storeId: string, keepDefaultId: string): Promise<void> {

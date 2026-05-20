@@ -23,6 +23,44 @@ export interface Withdrawal {
     updatedAt: string;
 }
 
+export interface WithdrawalSummary {
+    totalCount: number;
+    totalAmount: number;
+    totalFee: number;
+    totalNetAmount: number;
+    pendingCount: number;
+    processingCount: number;
+    completedCount: number;
+    failedCount: number;
+    pendingOrProcessingAmount: number;
+    completedNetAmount: number;
+    failedAmount: number;
+}
+
+export interface WithdrawalTimelineEvent {
+    type: 'CREATED' | 'RESERVED' | 'PROCESSING' | 'SENT' | 'FAILED' | 'REVERSED' | 'RETRY_SCHEDULED';
+    label: string;
+    occurredAt: string;
+    amount?: number;
+    transactionId?: string;
+    description?: string;
+}
+
+export interface WithdrawalTransaction {
+    id: string;
+    accountId: string;
+    type: string;
+    amount: number;
+    fee: number;
+    netAmount: number;
+    balanceAfter: number;
+    referenceType?: string;
+    referenceId?: string;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface ListWithdrawalsFilters {
     page?: number;
     limit?: number;
@@ -30,6 +68,7 @@ export interface ListWithdrawalsFilters {
     bankAccountId?: string;
     startDate?: string;
     endDate?: string;
+    q?: string;
 }
 
 export interface ListWithdrawalsResponse {
@@ -38,10 +77,14 @@ export interface ListWithdrawalsResponse {
     page: number;
     limit: number;
     totalPages: number;
+    summary: WithdrawalSummary;
 }
 
 export interface WithdrawalResponse {
     withdrawal: Withdrawal;
+    bankAccount?: import('./bank-account.service').BankAccount | null;
+    transactions?: WithdrawalTransaction[];
+    timeline?: WithdrawalTimelineEvent[];
 }
 
 export interface CreateWithdrawalInput {
@@ -64,6 +107,7 @@ export class WithdrawalService {
         if (filters.bankAccountId) params = params.set('bankAccountId', filters.bankAccountId);
         if (filters.startDate) params = params.set('startDate', filters.startDate);
         if (filters.endDate) params = params.set('endDate', filters.endDate);
+        if (filters.q) params = params.set('q', filters.q);
 
         return this.apiClient.get<ListWithdrawalsResponse>('/withdrawals', { params });
     }

@@ -1,4 +1,11 @@
-import { WithdrawalObject, WithdrawalStatus } from '@hockpay/core';
+import {
+  TransactionObject,
+  WithdrawalObject,
+  WithdrawalStatus,
+  WithdrawalSummary,
+  WithdrawalTimelineEvent,
+} from '@hockpay/core';
+import { BankAccountResponseDto } from '../../bank-account/dtos/bank-account-response.dto';
 
 export class WithdrawalResponseDto {
   id: string;
@@ -28,6 +35,9 @@ export interface CreateWithdrawalResponseDto {
 
 export interface GetWithdrawalResponseDto {
   withdrawal: WithdrawalResponseDto;
+  bankAccount?: BankAccountResponseDto | null;
+  transactions?: TransactionObject[];
+  timeline?: WithdrawalTimelineEvent[];
 }
 
 export interface ListWithdrawalsResponseDto {
@@ -36,4 +46,5 @@ export interface ListWithdrawalsResponseDto {
   page: number;
   limit: number;
   totalPages: number;
+  summary: WithdrawalSummary;
 }

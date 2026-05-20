@@ -13,6 +13,10 @@ export interface BankAccount {
     holderDocument: string;
     isDefault: boolean;
     isVerified: boolean;
+    hasWithdrawals: boolean;
+    hasActiveWithdrawals: boolean;
+    withdrawalCount: number;
+    activeWithdrawalCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -37,6 +41,10 @@ export class BankAccountService {
 
     create(input: CreateBankAccountInput): Observable<BankAccount> {
         return this.apiClient.post<BankAccount>('/bank-accounts', input);
+    }
+
+    setDefault(id: string): Observable<void> {
+        return this.apiClient.patch<void>(`/bank-accounts/${id}/default`, {});
     }
 
     delete(id: string): Observable<void> {

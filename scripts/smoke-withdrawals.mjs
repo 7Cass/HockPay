@@ -230,11 +230,39 @@ async function validateCreatedWithdrawal(withdrawal, amount, expectedBalances) {
 async function validateWithdrawalLookups(withdrawal) {
   const detail = await requestJson(`/withdrawals/${withdrawal.id}`, { jwtCookie: true });
   assert(detail?.withdrawal?.id === withdrawal.id, 'Withdrawal detail returned an unexpected id.');
+  assert(detail?.bankAccount?.id === state.bankAccountId, 'Withdrawal detail did not include the destination Pix account.');
+  assert(
+    detail?.timeline?.some((event) => event.type === 'CREATED') &&
+      detail?.timeline?.some((event) => event.type === 'RESERVED'),
+    'Withdrawal detail timeline did not include created and reserved events.',
+  );
+  assert(
+    detail?.transactions?.some(
+      (transaction) =>
+        transaction.type === 'WITHDRAWAL_RESERVED' &&
+        transaction.referenceType === 'WITHDRAWAL' &&
+        transaction.referenceId === withdrawal.id,
+    ),
+    'Withdrawal detail did not include the reserved ledger transaction.',
+  );
 
   const list = await requestJson('/withdrawals?limit=20', { jwtCookie: true });
   assert(
     list?.withdrawals?.some((item) => item.id === withdrawal.id),
     'Withdrawal list did not include the created withdrawal.',
+  );
+  assert(list?.summary?.totalCount >= 1, 'Withdrawal list did not include summary totals.');
+  assert(
+    list.summary.pendingOrProcessingAmount >= withdrawal.amount,
+    'Withdrawal summary did not include pending/processing amount.',
+  );
+
+  const bySearch = await requestJson(query('/withdrawals', { q: withdrawal.id.slice(0, 8), limit: 20 }), {
+    jwtCookie: true,
+  });
+  assert(
+    bySearch?.withdrawals?.some((item) => item.id === withdrawal.id),
+    'Withdrawal search filter did not include the created withdrawal.',
   );
 
   const byStatus = await requestJson(query('/withdrawals', { status: withdrawal.status, limit: 20 }), {
@@ -276,6 +304,13 @@ async function completeWithdrawal(withdrawalId, expectedBalances) {
   assert(withdrawal.pixE2eId, 'Completed withdrawal should include pixE2eId.');
   assert(withdrawal.paidAt, 'Completed withdrawal should include paidAt.');
 
+  const detail = await requestJson(`/withdrawals/${withdrawalId}`, { jwtCookie: true });
+  assert(
+    detail?.timeline?.some((event) => event.type === 'SENT') &&
+      detail?.transactions?.some((transaction) => transaction.type === 'WITHDRAWAL_SENT'),
+    'Completed withdrawal detail should include SENT timeline and ledger entries.',
+  );
+
   const account = await requestJson('/accounts/me', { jwtCookie: true });
   assert(account?.account?.available === expectedBalances.available, 'Available balance mismatch after completion.');
   assert(account?.account?.blocked === expectedBalances.blocked, 'Blocked balance mismatch after completion.');
@@ -293,6 +328,14 @@ async function failWithdrawal(withdrawalId, expectedBalances, reason) {
   assert(withdrawal?.id === withdrawalId, 'Fail endpoint returned an unexpected withdrawal.');
   assert(withdrawal.status === 'FAILED', 'Failed withdrawal should have status FAILED.');
   assert(withdrawal.failedReason === reason, 'Failed withdrawal reason mismatch.');
+
+  const detail = await requestJson(`/withdrawals/${withdrawalId}`, { jwtCookie: true });
+  assert(
+    detail?.timeline?.some((event) => event.type === 'FAILED') &&
+      detail?.timeline?.some((event) => event.type === 'REVERSED') &&
+      detail?.transactions?.some((transaction) => transaction.type === 'WITHDRAWAL_REVERSED'),
+    'Failed withdrawal detail should include failed/reversed timeline and ledger entries.',
+  );
 
   const account = await requestJson('/accounts/me', { jwtCookie: true });
   assert(account?.account?.available === expectedBalances.available, 'Available balance mismatch after failure.');
@@ -348,6 +391,25 @@ async function validateLedger(completedWithdrawal, failedWithdrawal) {
     assert(found.fee === expectedTransaction.fee, `${expectedTransaction.type} fee mismatch.`);
     assert(found.netAmount === expectedTransaction.netAmount, `${expectedTransaction.type} netAmount mismatch.`);
   }
+}
+
+async function validateBankAccountOperationalState() {
+  const bankAccounts = await requestJson('/bank-accounts', { jwtCookie: true });
+  const account = bankAccounts?.find((item) => item.id === state.bankAccountId);
+  assert(account, 'Bank account list did not include the withdrawal destination.');
+  assert(account.hasWithdrawals === true, 'Bank account should be flagged as having linked withdrawals.');
+  assert(account.withdrawalCount >= 2, 'Bank account withdrawal count should include smoke withdrawals.');
+
+  let deleteFailed = false;
+  try {
+    await requestJson(`/bank-accounts/${state.bankAccountId}`, {
+      method: 'DELETE',
+      jwtCookie: true,
+    });
+  } catch (error) {
+    deleteFailed = /BANK_ACCOUNT_IN_USE|409/.test(String(error?.message ?? error));
+  }
+  assert(deleteFailed, 'Deleting a bank account with linked withdrawals should fail.');
 }
 
 async function run() {
@@ -422,6 +484,7 @@ async function run() {
     'Failed withdrawal list did not include the failed withdrawal.',
   );
   await validateLedger(completedWithdrawal, failedWithdrawal);
+  await validateBankAccountOperationalState();
 
   step('Withdrawals smoke completed');
   console.log(

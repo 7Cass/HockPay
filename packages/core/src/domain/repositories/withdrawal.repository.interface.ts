@@ -8,6 +8,21 @@ export interface ListWithdrawalsOptions {
   bankAccountId?: string;
   startDate?: Date;
   endDate?: Date;
+  q?: string;
+}
+
+export interface WithdrawalSummary {
+  totalCount: number;
+  totalAmount: number;
+  totalFee: number;
+  totalNetAmount: number;
+  pendingCount: number;
+  processingCount: number;
+  completedCount: number;
+  failedCount: number;
+  pendingOrProcessingAmount: number;
+  completedNetAmount: number;
+  failedAmount: number;
 }
 
 export interface ListWithdrawalsResult {
@@ -16,6 +31,7 @@ export interface ListWithdrawalsResult {
   page: number;
   limit: number;
   totalPages: number;
+  summary: WithdrawalSummary;
 }
 
 export interface IWithdrawalRepository {
