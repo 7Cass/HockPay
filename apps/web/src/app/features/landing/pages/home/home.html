@@ -1,791 +1,272 @@
-<main class="w-full flex flex-col gap-24 pt-12 pb-16">
-  <!-- Wrapper with background highlight -->
-  <div class="relative w-full border-b border-zinc-100">
-    <!-- Background Gradient -->
-    <div
-      class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-100/50 via-transparent to-transparent -z-10">
-    </div>
+<main class="landing-shell min-h-screen bg-zinc-950 text-zinc-50">
+  <div class="landing-grid" aria-hidden="true"></div>
+  <div class="landing-glow landing-glow-a" aria-hidden="true"></div>
+  <div class="landing-glow landing-glow-b" aria-hidden="true"></div>
 
-    <!-- Subtle Grid Background -->
-    <div
-      class="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-40 -z-10">
-    </div>
+  <header class="relative z-20 border-b border-white/10 bg-zinc-950/75 backdrop-blur-xl">
+    <nav class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Principal">
+      <a href="#top" class="flex items-center gap-3" aria-label="Hockpay inicio">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-300">
+          <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" aria-hidden="true"></ng-icon>
+        </span>
+        <span class="text-sm font-black uppercase tracking-[0.28em] text-white">Hockpay</span>
+      </a>
 
-    <div class="w-full px-4 sm:px-6 lg:px-8 xl:px-16 2xl:px-24">
-      <!-- Hero Section -->
-      <section class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center pt-8 lg:pt-16 pb-12">
-        <!-- Left Column: Content -->
-        <div class="space-y-8 max-w-2xl">
-          <!-- Badge -->
-          <div
-            class="group inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 shadow-sm transition-all hover:shadow-md hover:border-indigo-200 hover:ring-2 hover:ring-indigo-50">
-            <div class="flex -space-x-2">
-              <img src="/avatars/founder_avatar_1_1773112975469.png"
-                class="h-6 w-6 rounded-full border-2 border-white object-cover" alt="Founder" loading="lazy">
-              <img src="/avatars/founder_avatar_2_1773112997846.png"
-                class="h-6 w-6 rounded-full border-2 border-white object-cover relative z-10" alt="Founder"
-                loading="lazy">
-              <img src="/avatars/founder_avatar_3_1773113010735.png"
-                class="h-6 w-6 rounded-full border-2 border-white object-cover relative z-20" alt="Founder"
-                loading="lazy">
-              <div
-                class="h-6 w-6 rounded-full border-2 border-white bg-indigo-50 flex items-center justify-center text-[8px] font-bold text-indigo-600 relative z-30">
-                +4k
-              </div>
-            </div>
-            <span class="text-sm font-medium text-zinc-700 pr-1 group-hover:text-zinc-900 transition-colors">Escolhido
-              por <span class="font-bold text-indigo-600">4.3k+</span> devs & founders</span>
-          </div>
-
-          <!-- Headline -->
-          <div class="space-y-2">
-            <h1 class="text-5xl lg:text-7xl font-extrabold tracking-tight text-zinc-900 leading-[1.1]">
-              Simule tudo.<br />
-              Lance <span class="text-indigo-600">rápido.</span>
-            </h1>
-          </div>
-
-          <!-- Subheadline -->
-          <p class="text-xl text-zinc-600 leading-relaxed max-w-lg">
-            Infraestrutura de pagamentos simulada em poucas linhas de código. Feito para desenvolvedores, indie hackers
-            e startups escalarem.
-          </p>
-
-          <!-- CTAs -->
-          <div class="flex flex-col sm:flex-row items-center gap-6 pt-2">
-            <a routerLink="/login"
-              class="group inline-flex items-center justify-center gap-2 rounded-full text-base font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700 h-14 px-8 w-full sm:w-auto shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] hover:-translate-y-0.5">
-              Integre ao seu negócio
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                class="transition-transform duration-300 group-hover:translate-x-1.5">
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
-              </svg>
-            </a>
-            <a href="#" class="text-base font-medium text-zinc-600 hover:text-indigo-600 transition-colors">
-              Por que explorar?
-            </a>
-          </div>
-
-          <!-- Feature highlights -->
-          <div class="flex items-center gap-12 pt-6">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m13 2-2 2.5-4-1 3 4.5-5 2.5 5 2.5-3 4.5 4-1 2 2.5 2-2.5 4 1-3-4.5 5-2.5-5-2.5 3-4.5-4 1Z" />
-                </svg>
-              </div>
-              <div class="flex flex-col">
-                <span class="font-bold text-sm text-zinc-900 leading-tight">Rápido</span>
-                <span class="text-xs text-zinc-500">Integre em minutos.</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-              </div>
-              <div class="flex flex-col">
-                <span class="font-bold text-sm text-zinc-900 leading-tight">Seguro</span>
-                <span class="text-xs text-zinc-500">Criptografia de ponta.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Abstract Integration Canvas -->
-        <div
-          class="relative w-full h-[400px] lg:h-[600px] flex items-center justify-center pt-8 lg:pt-0 perspective-[1200px] overflow-visible">
-          <!-- Floating Background Orbs for Depth -->
-          <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] lg:w-[450px] h-[350px] lg:h-[450px] rounded-full bg-indigo-500/15 blur-[80px] lg:blur-[120px] animate-pulse">
-          </div>
-          <div
-            class="absolute top-[20%] right-[15%] w-[200px] lg:w-[300px] h-[200px] lg:h-[300px] rounded-full bg-emerald-400/15 blur-[70px] lg:blur-[100px]">
-          </div>
-
-          <!-- The Canvas Group -->
-          <div
-            class="relative w-full max-w-xl h-full flex items-center justify-center group z-10 transition-transform duration-700 hover:scale-[1.02]">
-
-            <!-- Connection Line (SVG) hidden on very very small screens, shown from sm up -->
-            <svg
-              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] lg:w-[130%] h-[300px] z-10 text-indigo-300/40 hidden sm:block pointer-events-none"
-              viewBox="0 0 400 200" fill="none" preserveAspectRatio="xMidYMid slice">
-              <path d="M 80 140 Q 200 140 200 60 T 320 60" stroke="currentColor" stroke-width="2"
-                stroke-dasharray="6 6" />
-              <circle cx="80" cy="140" r="4" fill="currentColor" class="animate-pulse" />
-              <circle cx="320" cy="60" r="4" fill="currentColor" class="animate-pulse" />
-            </svg>
-
-            <!-- Floating Code Editor (Left, Lower) -->
-            <div
-              class="absolute left-[-5%] lg:left-[-10%] bottom-[15%] lg:bottom-[20%] z-20 w-[240px] sm:w-[280px] lg:w-[320px] rounded-2xl border border-white/50 bg-white/70 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,0,0,0.05)] transition-all duration-1000 lg:group-hover:-translate-y-4 lg:group-hover:-translate-x-2 lg:group-hover:rotate-[-2deg] lg:group-hover:shadow-[0_30px_60px_rgba(79,70,229,0.15)]">
-              <div class="flex items-center gap-1.5 px-4 py-3 border-b border-indigo-100/50 bg-white/50 rounded-t-2xl">
-                <div class="w-2.5 h-2.5 rounded-full bg-red-400/80"></div>
-                <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/80"></div>
-                <div class="w-2.5 h-2.5 rounded-full bg-green-400/80"></div>
-                <div class="ml-2 text-[10px] font-medium text-zinc-400">payment.service.ts</div>
-              </div>
-              <div class="p-5 font-mono text-[10px] sm:text-[11px] leading-relaxed text-zinc-700 overflow-x-auto">
-                <span class="text-indigo-600 font-semibold">await</span> hockpay.<span
-                  class="text-emerald-600">payments</span>.create(&#123;<br />
-                &nbsp;&nbsp;amount: <span class="text-orange-500">25000</span>, <span class="text-zinc-400">// R$
-                  250,00</span><br />
-                &nbsp;&nbsp;paymentMethod: <span class="text-green-600">'pix'</span>,<br />
-                &nbsp;&nbsp;customer: &#123;<br />
-                &nbsp;&nbsp;&nbsp;&nbsp;email: <span class="text-green-600">'user@app.com'</span><br />
-                &nbsp;&nbsp;&#125;<br />
-                &#125;);
-              </div>
-            </div>
-
-            <!-- Floating UI Card / Receipt (Right, Higher) -->
-            <div
-              class="absolute right-[-5%] lg:right-[-10%] top-[10%] lg:top-[15%] z-30 w-[220px] sm:w-[260px] lg:w-[280px] rounded-3xl border border-white/60 bg-white/85 backdrop-blur-2xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] p-6 transition-all duration-1000 lg:group-hover:-translate-y-6 lg:group-hover:translate-x-2 lg:group-hover:rotate-[3deg] lg:group-hover:shadow-[0_40px_80px_rgba(16,185,129,0.15)]">
-              <!-- Animated Success Icon -->
-              <div
-                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 mx-auto border-4 border-white shadow-sm ring-1 ring-emerald-50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-
-              <div class="text-center">
-                <h4 class="text-sm font-bold text-zinc-900">Pagamento Confirmado</h4>
-                <p class="text-[10px] sm:text-[11px] text-zinc-500 mt-1">Hockpay simulou o webhook</p>
-              </div>
-
-              <div class="mt-5 border-t border-dashed border-zinc-200 pt-5">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-xs text-zinc-500">Valor líquido</span>
-                  <span class="text-sm font-bold text-emerald-600">+ R$ 248,50</span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-[9px] sm:text-[10px] text-zinc-400">Taxa (Pix simulado)</span>
-                  <span class="text-[9px] sm:text-[10px] text-zinc-400 font-medium">- R$ 1,50</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Floating Status Badge -->
-            <div
-              class="absolute top-[45%] lg:top-[52%] right-[10%] lg:right-[2%] z-40 bg-zinc-900 border border-zinc-700 text-white text-[9px] sm:text-[10px] font-bold px-3 py-1.5 rounded-full shadow-xl flex items-center gap-1.5 transition-all duration-1000 lg:group-hover:translate-x-6 lg:group-hover:-translate-y-2">
-              <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-              WEBHOOK ENVIADO
-            </div>
-
-          </div>
-        </div>
-      </section>
-    </div>
-  </div>
-
-  <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-24 mt-8">
-
-    <!-- Powers/Visual Section (Batteries Included) -->
-    <section
-      class="group relative rounded-3xl overflow-hidden bg-zinc-900 text-zinc-50 shadow-2xl border border-zinc-800 p-8 md:p-12 lg:p-16 transition-all duration-700 hover:border-zinc-700">
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-zinc-900/90 to-zinc-900 z-0"></div>
-      <div
-        class="absolute top-0 right-0 -m-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] group-hover:bg-indigo-500/20 transition-colors duration-1000 z-0 pointer-events-none">
+      <div class="hidden items-center gap-6 text-sm font-medium text-zinc-400 md:flex">
+        <a href="#simulacao" class="transition-colors hover:text-white">Simulação</a>
+        <a href="#features" class="transition-colors hover:text-white">Recursos</a>
+        <a href="#fluxo" class="transition-colors hover:text-white">Fluxo</a>
       </div>
-      <div class="relative grid lg:grid-cols-2 gap-12 items-center z-10">
-        <div class="space-y-6">
-          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Batteries Included. <br />Tudo o que você espera de
-            um
-            gateway.</h2>
-          <p class="text-lg text-zinc-400">
-            O Hockpay simula o comportamento real de provedores como Stripe e Mercado Pago. Teste cenários de falha,
-            expiração e webhooks em um ambiente seguro.
-          </p>
-          <ul class="space-y-4">
-            <li class="flex items-center gap-3 text-zinc-300">
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600/20 text-indigo-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              🛡️ Idempotência nativa em todas as rotas
-            </li>
-            <li class="flex items-center gap-3 text-zinc-300">
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600/20 text-indigo-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              ⏳ Simulação realista de pagamentos Pix e expiração
-            </li>
-            <li class="flex items-center gap-3 text-zinc-300">
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600/20 text-indigo-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              ⚡ Webhooks resilientes com Redis + BullMQ e padrão Outbox
-            </li>
-          </ul>
+
+      <div class="flex items-center gap-3">
+        <a routerLink="/login" class="hidden text-sm font-semibold text-zinc-400 transition-colors hover:text-white sm:inline-flex">
+          Login
+        </a>
+        <a
+          routerLink="/register"
+          class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 text-sm font-bold text-zinc-950 shadow-[0_0_30px_rgba(52,211,153,0.22)] transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+        >
+          Criar conta
+          <ng-icon hlm name="lucideArrowRight" size="xs" aria-hidden="true"></ng-icon>
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <section id="top" class="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[0.94fr_1.06fr] lg:px-8 lg:pb-28 lg:pt-24">
+    <div class="min-w-0">
+      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.24em] text-emerald-200">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.9)]"></span>
+        Sandbox para devs
+      </div>
+
+      <h1 class="mt-7 max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl lg:text-7xl">
+        Simule gateways de pagamento sem tocar em dinheiro real.
+      </h1>
+
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 sm:text-xl">
+        Hockpay replica a jornada de um gateway: cria cobranças Pix fake, força sucesso, falha e expiração, entrega webhooks e valida idempotência antes do seu checkout ir para produção.
+      </p>
+
+      <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+        <a
+          routerLink="/register"
+          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-base font-extrabold text-zinc-950 shadow-[0_0_40px_rgba(52,211,153,0.28)] transition hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+        >
+          Começar simulação
+          <ng-icon hlm name="lucideArrowRight" size="sm" aria-hidden="true"></ng-icon>
+        </a>
+        <a
+          href="#simulacao"
+          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/5 px-6 text-base font-bold text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        >
+          Ver exemplo
+          <ng-icon hlm name="lucideCode2" size="sm" aria-hidden="true"></ng-icon>
+        </a>
+      </div>
+
+      <dl class="mt-10 grid max-w-2xl grid-cols-3 gap-3 text-left">
+        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <dt class="text-2xl font-black text-white">3</dt>
+          <dd class="mt-1 text-xs font-medium text-zinc-400">estados de pagamento</dd>
         </div>
-        <!-- Infrastructure X-Ray Visual -->
-        <div
-          class="relative w-full h-[350px] sm:h-[400px] lg:h-[500px] flex items-center justify-center perspective-[1000px] font-sans">
+        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <dt class="text-2xl font-black text-white">0</dt>
+          <dd class="mt-1 text-xs font-medium text-zinc-400">dinheiro real</dd>
+        </div>
+        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <dt class="text-2xl font-black text-white">API</dt>
+          <dd class="mt-1 text-xs font-medium text-zinc-400">REST + webhooks</dd>
+        </div>
+      </dl>
+    </div>
 
-          <!-- Connections (SVG) -->
-          <svg class="absolute inset-0 w-full h-full z-0 pointer-events-none" viewBox="0 0 400 500" fill="none"
-            preserveAspectRatio="xMidYMid slice">
-            <!-- Path 1: Central to DB (Left) -->
-            <path id="path-db" d="M 200 250 Q 200 350 70 420" stroke="url(#xray-grad-1)" stroke-width="2"
-              stroke-dasharray="4 4" class="opacity-40" />
-            <!-- Path 2: Central to Queue (Right) -->
-            <path id="path-queue" d="M 200 250 Q 200 350 330 420" stroke="url(#xray-grad-2)" stroke-width="2"
-              stroke-dasharray="4 4" class="opacity-40" />
-            <!-- Path 3: Top to Central -->
-            <path id="path-top" d="M 200 80 Q 200 150 200 250" stroke="url(#xray-grad-3)" stroke-width="2"
-              stroke-dasharray="4 4" class="opacity-40" />
-
-            <defs>
-              <linearGradient id="xray-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#818cf8" />
-                <stop offset="100%" stop-color="#34d399" />
-              </linearGradient>
-              <linearGradient id="xray-grad-2" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#818cf8" />
-                <stop offset="100%" stop-color="#f87171" />
-              </linearGradient>
-              <linearGradient id="xray-grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#a78bfa" />
-                <stop offset="100%" stop-color="#818cf8" />
-              </linearGradient>
-            </defs>
-
-            <!-- Moving Dots -->
-            <circle r="4" fill="#34d399" class="animate-pulse">
-              <animateMotion dur="2.5s" repeatCount="indefinite" path="M 200 250 Q 200 350 70 420" />
-            </circle>
-            <circle r="4" fill="#f87171" class="animate-pulse">
-              <animateMotion dur="2s" repeatCount="indefinite" path="M 200 250 Q 200 350 330 420" />
-            </circle>
-            <circle r="4" fill="#a78bfa" class="animate-pulse">
-              <animateMotion dur="3s" repeatCount="indefinite" path="M 200 80 Q 200 150 200 250" />
-            </circle>
-          </svg>
-
-          <!-- Top Node: Webhooks / Client -->
-          <div class="absolute top-[5%] lg:top-[10%] z-10 flex flex-col items-center gap-2 group">
-            <div
-              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-indigo-500/50">
-              <svg class="text-indigo-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2v20" />
-                <path d="m17 5-5-3-5 3" />
-                <path d="m5 17 5 3 5-3" />
-              </svg>
-            </div>
-            <span class="text-[10px] font-medium text-zinc-400 tracking-widest uppercase">Client Request</span>
+    <div id="simulacao" class="relative min-w-0 scroll-mt-24">
+      <div class="mock-console relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/90 shadow-2xl shadow-emerald-950/30">
+        <div class="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3">
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full bg-red-400/80"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-amber-300/80"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-300/80"></span>
           </div>
+          <span class="font-mono text-xs text-zinc-500">sandbox.hockpay.dev</span>
+        </div>
 
-          <!-- Bottom Left Node: Postgres -->
-          <div
-            class="absolute bottom-[5%] lg:bottom-[10%] left-[2%] lg:left-[5%] z-10 flex flex-col items-center gap-2 group">
-            <div
-              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-emerald-500/50">
-              <svg class="text-emerald-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3" />
-                <path d="M3 5V19A9 3 0 0 0 21 19V5" />
-                <path d="M3 12A9 3 0 0 0 21 12" />
-              </svg>
+        <div class="grid gap-4 p-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <section class="min-w-0 rounded-xl border border-cyan-300/15 bg-black/40 p-4">
+            <div class="mb-4 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">
+                <ng-icon hlm name="lucideCode2" size="xs" aria-hidden="true"></ng-icon>
+                Request
+              </div>
+              <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 font-mono text-[10px] font-bold text-emerald-200">POST /payments</span>
             </div>
-            <span class="text-[10px] font-medium text-emerald-400/80 tracking-widest uppercase">PostgreSQL</span>
-          </div>
 
-          <!-- Bottom Right Node: Redis / BullMQ -->
-          <div
-            class="absolute bottom-[5%] lg:bottom-[10%] right-[2%] lg:right-[5%] z-10 flex flex-col items-center gap-2 group">
-            <div
-              class="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/50 backdrop-blur-md flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:border-red-500/50">
-              <svg class="text-red-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <span class="text-[10px] font-medium text-red-400/80 tracking-widest uppercase">Redis Queue</span>
-          </div>
+            <pre class="code-sample overflow-x-auto rounded-lg bg-zinc-950 p-4 text-[12px] leading-6 text-zinc-300"><code><span class="text-cyan-300">await</span> hockpay.payments.create(&#123;
+  amount: <span class="text-amber-200">25000</span>,
+  method: <span class="text-emerald-300">'pix'</span>,
+  scenario: <span class="text-emerald-300">'paid'</span>,
+  customer: &#123;
+    email: <span class="text-emerald-300">'dev&#64;app.com'</span>
+  &#125;
+&#125;, &#123;
+  idempotencyKey: <span class="text-emerald-300">'order-123'</span>
+&#125;)</code></pre>
+          </section>
 
-          <!-- Center Node: The Code Block -->
-          <div
-            class="absolute z-30 w-[260px] sm:w-[320px] rounded-xl bg-black/80 backdrop-blur-xl border border-zinc-700/50 p-5 sm:p-6 font-mono text-[9px] sm:text-[11px] leading-relaxed shadow-[0_0_40px_rgba(0,0,0,0.5)] transition-all duration-500 hover:border-indigo-500/40 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(79,70,229,0.2)]">
-            <div
-              class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500/20 text-indigo-300 text-[9px] px-2.5 py-0.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm backdrop-blur-md">
-              <div class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></div>
-              NestJS Core APIs
+          <section class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Resultado</p>
+                <h2 class="mt-1 text-lg font-black text-white">Pagamento simulado</h2>
+              </div>
+              <span class="rounded-full bg-emerald-400/15 p-2 text-emerald-300">
+                <ng-icon hlm name="lucideCheckCircle2" size="sm" aria-hidden="true"></ng-icon>
+              </span>
             </div>
-            <div class="flex gap-2 mb-4">
-              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
-              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
-              <div class="h-2.5 w-2.5 rounded-full bg-zinc-600"></div>
+
+            <div class="space-y-3">
+              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
+                <span class="text-sm text-zinc-400">Status</span>
+                <span class="rounded-full bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">PAID</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
+                <span class="text-sm text-zinc-400">Valor líquido</span>
+                <span class="font-mono text-sm font-bold text-white">R$ 248,50</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
+                <span class="text-sm text-zinc-400">Webhook</span>
+                <span class="rounded-full bg-cyan-400/15 px-2 py-1 text-xs font-bold text-cyan-200">DELIVERED</span>
+              </div>
             </div>
-            <div class="text-zinc-300">
-              <span class="text-indigo-400">const</span>&nbsp;<span class="text-blue-300">payment</span> = <span
-                class="text-indigo-400">await</span> hockpay.<span class="text-yellow-200">payments</span>.<span
-                class="text-blue-200">create</span>(&#123;
-              <br />&nbsp;&nbsp;amount: <span class="text-orange-300">1500</span>, <span class="text-zinc-500">// R$
-                15,00</span>
-              <br />&nbsp;&nbsp;customer: &#123;
-              <br />&nbsp;&nbsp;&nbsp;&nbsp;name: <span class="text-green-300">'João Silva'</span>,
-              <br />&nbsp;&nbsp;&nbsp;&nbsp;email: <span class="text-green-300">'joao@email.com'</span>
-              <br />&nbsp;&nbsp;&#125;
-              <br />&#125;, &#123;
-              <br />&nbsp;&nbsp;headers: &#123; <span class="text-green-300">'Idempotency-Key'</span>: <span
-                class="text-green-300">'ped-123'</span> &#125;
-              <br />&#125;);
+          </section>
+        </div>
+
+        <div class="border-t border-white/10 p-4">
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="event-card border-emerald-300/20">
+              <ng-icon hlm name="lucideCheckCircle2" class="text-emerald-300" size="sm" aria-hidden="true"></ng-icon>
+              <div>
+                <p class="font-mono text-xs font-bold text-white">payment.created</p>
+                <p class="text-xs text-zinc-500">Cobrança Pix fake criada</p>
+              </div>
+            </div>
+            <div class="event-card border-cyan-300/20">
+              <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="sm" aria-hidden="true"></ng-icon>
+              <div>
+                <p class="font-mono text-xs font-bold text-white">webhook.sent</p>
+                <p class="text-xs text-zinc-500">Payload assinado entregue</p>
+              </div>
+            </div>
+            <div class="event-card border-amber-300/20">
+              <ng-icon hlm name="lucideRefreshCcw" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
+              <div>
+                <p class="font-mono text-xs font-bold text-white">retry.safe</p>
+                <p class="text-xs text-zinc-500">Idempotência preservada</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- Features Section Bento Grid -->
-    <div class="mb-8 text-center max-w-2xl mx-auto pt-8">
-      <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Tudo que você precisa para escalar</h2>
-      <p class="mt-4 text-lg text-zinc-600">Ferramentas essenciais para não deixar dinheiro na mesa.</p>
     </div>
-    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  </section>
 
-      <!-- Feature 1 -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-              <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-              <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-            </svg>
-          </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Integração Simples</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            APIs construídas pensando na Developer Experience. Sem complexidade desnecessária para colocar seu negócio
-            para rodar rapidinho.
-          </p>
-        </div>
+  <section id="features" class="relative z-10 border-y border-white/10 bg-white/[0.03] px-4 py-20 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl">
+      <div class="max-w-3xl">
+        <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">O que você simula</p>
+        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Um gateway inteiro em modo laboratório.</h2>
+        <p class="mt-4 text-lg leading-8 text-zinc-400">Use Hockpay para testar a parte ruim dos pagamentos antes dos seus clientes reais encontrarem esses cenários.</p>
       </div>
 
-      <!-- Feature 2 (Spans 2 columns on lg) -->
-      <div
-        class="group lg:col-span-2 rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col justify-center">
-        <!-- Ambient hover glow -->
-        <div
-          class="absolute -bottom-10 -right-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
-          <div
-            class="shrink-0 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          </div>
+      <div class="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <article class="feature-card">
+          <ng-icon hlm name="lucideCreditCard" class="text-emerald-300" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Pix e checkout fake</h3>
+          <p>Crie cobranças, links de pagamento e recibos simulados sem processar dinheiro real.</p>
+        </article>
+        <article class="feature-card">
+          <ng-icon hlm name="lucideXCircle" class="text-red-300" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Falhas previsíveis</h3>
+          <p>Force pagamentos recusados, expirados e pendentes para validar UX, logs e suporte.</p>
+        </article>
+        <article class="feature-card">
+          <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Webhooks resilientes</h3>
+          <p>Receba eventos assíncronos, retries e payloads assinados como em produção.</p>
+        </article>
+        <article class="feature-card">
+          <ng-icon hlm name="lucideKey" class="text-amber-200" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Chaves sandbox</h3>
+          <p>Separe credenciais de teste e valide permissões antes de expor integrações reais.</p>
+        </article>
+        <article class="feature-card">
+          <ng-icon hlm name="lucideShieldCheck" class="text-emerald-300" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Idempotência nativa</h3>
+          <p>Repita requests com segurança e confirme que nenhuma cobrança duplica no seu fluxo.</p>
+        </article>
+        <article class="feature-card">
+          <ng-icon hlm name="lucideNetwork" class="text-cyan-300" size="lg" aria-hidden="true"></ng-icon>
+          <h3>Arquitetura realista</h3>
+          <p>Teste integração com API, filas, banco e eventos em um ambiente controlado.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="fluxo" class="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+    <div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+      <div>
+        <p class="text-sm font-black uppercase tracking-[0.28em] text-cyan-300">Fluxo de uso</p>
+        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Da primeira chave ao webhook entregue.</h2>
+        <p class="mt-4 text-lg leading-8 text-zinc-400">A landing vende uma promessa simples: integrar, simular e validar sem depender de gateway externo, cartão real ou Pix verdadeiro.</p>
+      </div>
+
+      <div class="grid gap-4">
+        <article class="step-card">
+          <span>01</span>
+          <ng-icon hlm name="lucideKey" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
           <div>
-            <h3 class="mb-2 text-2xl font-bold text-zinc-900">Webhooks Resilientes</h3>
-            <p class="text-zinc-600 leading-relaxed max-w-lg">
-              Não perca nenhuma conversão. Nosso sistema de webhooks conta com retries automáticos garantidos por Redis
-              e BullMQ no padrão Outbox para avisar o seu servidor.
-            </p>
+            <h3>Crie uma chave sandbox</h3>
+            <p>O dev entra, gera credenciais e isola o ambiente de teste do fluxo real.</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Feature 3 -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-              <line x1="3" x2="21" y1="9" y2="9" />
-              <line x1="9" x2="9" y1="21" y2="9" />
-            </svg>
+        </article>
+        <article class="step-card">
+          <span>02</span>
+          <ng-icon hlm name="lucideSend" class="text-emerald-300" size="sm" aria-hidden="true"></ng-icon>
+          <div>
+            <h3>Dispare pagamentos simulados</h3>
+            <p>Escolha cenários de sucesso, falha ou expiração e valide a UI do checkout.</p>
           </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Dashboard Completo</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Gerencie suas chaves de API, configure endpoints de webhooks e acompanhe todas as transações, tudo numa
-            interface limpa.
-          </p>
-        </div>
-      </div>
-
-      <!-- Feature 4: Idempotência Nativa -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
+        </article>
+        <article class="step-card">
+          <span>03</span>
+          <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="sm" aria-hidden="true"></ng-icon>
+          <div>
+            <h3>Confirme eventos e retries</h3>
+            <p>Receba webhooks, teste idempotência e acompanhe cada evento na dashboard.</p>
           </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Idempotência Nativa</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Evite cobranças duplicadas com um sistema robusto garantido desde a primeira requisição. Segurança
-            transacional em todas as rotas.
-          </p>
-        </div>
+        </article>
       </div>
+    </div>
+  </section>
 
-      <!-- Feature 5: Dev Mode -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+  <section class="relative z-10 px-4 pb-24 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-emerald-300/20 bg-emerald-300/[0.08] p-8 shadow-2xl shadow-emerald-950/30 sm:p-12">
+      <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">Pronto para testar?</p>
+          <h2 class="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">Crie uma conta e simule seu primeiro pagamento em minutos.</h2>
+          <p class="mt-4 max-w-2xl text-lg leading-8 text-zinc-300">Sem cartão, sem dinheiro real e sem esperar aprovação de provedor para validar sua integração.</p>
         </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m18 16 4-4-4-4" />
-              <path d="m6 8-4 4 4 4" />
-              <path d="m14.5 4-5 16" />
-            </svg>
-          </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Dev Mode</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Simule cenários de sucesso, falha e expiração como em um gateway de verdade. Teste edge-cases sem envolver
-            dinheiro real.
-          </p>
-        </div>
+        <a
+          routerLink="/register"
+          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-extrabold text-zinc-950 transition hover:-translate-y-0.5 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          Criar conta gratuita
+          <ng-icon hlm name="lucideArrowRight" size="sm" aria-hidden="true"></ng-icon>
+        </a>
       </div>
-
-      <!-- Feature 6: Escalável por Design -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
-              <path d="M3 12A9 3 0 0 0 21 12" />
-            </svg>
-          </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Escalável por Design</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Arquitetura construída com NestJS, PostgreSQL e filas distribuídas para alta performance e confiabilidade na
-            entrega de eventos.
-          </p>
-        </div>
-      </div>
-
-      <!-- Feature 7: Checkout White-label (Converted to col-span-1) -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col h-full">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="20" height="14" x="2" y="5" rx="2" />
-              <line x1="2" x2="22" y1="10" y2="10" />
-            </svg>
-          </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Checkout Hospedado</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Ofereça uma página de pagamento profissional customizável ou integre as transações nativamente no frontend.
-          </p>
-        </div>
-      </div>
-
-      <!-- Feature 8: Ambiente Sandbox Isolado -->
-      <div
-        class="group rounded-3xl border border-zinc-200/60 bg-white/60 backdrop-blur-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(79,70,229,0.12)] hover:border-indigo-500/30 relative overflow-hidden flex flex-col h-full">
-        <div
-          class="absolute -right-4 -top-4 w-40 h-40 bg-indigo-400/10 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-        </div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div
-            class="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:bg-indigo-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="M12 12 4 8" />
-              <path d="m12 12 8-4" />
-              <path d="M12 2v10" />
-            </svg>
-          </div>
-          <h3 class="mb-3 text-xl font-bold text-zinc-900">Ambiente Sandbox</h3>
-          <p class="text-zinc-600 leading-relaxed text-sm mt-auto">
-            Gere tokens falsos, force cenários de erro e valide toda a jornada transacional em um ambiente idêntico à
-            produção.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- The Flow Section -->
-    <section class="py-16 mt-8 max-w-5xl mx-auto px-4 sm:px-6 relative">
-      <div class="text-center mb-16">
-        <h2 class="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Integração à prova de balas</h2>
-        <p class="mt-4 text-lg text-zinc-600">Simule seu fluxo em 3 passos básicos para colocar o checkout no ar.</p>
-      </div>
-
-      <div class="relative grid md:grid-cols-3 gap-8">
-        <!-- Connecting Line (Desktop) -->
-        <div
-          class="hidden md:block absolute top-[40px] left-[16%] right-[16%] h-0.5 border-t-2 border-dashed border-zinc-200 z-0">
-          <div
-            class="absolute top-[-2px] left-0 h-0.5 bg-indigo-500 w-full origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-1000">
-          </div>
-        </div>
-
-        <!-- Step 1 -->
-        <div class="relative z-10 flex flex-col items-center text-center group">
-          <div
-            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2">
-            1
-          </div>
-          <h3 class="text-xl font-bold text-zinc-900 mb-2">Crie sua chave</h3>
-          <p class="text-zinc-600 text-sm max-w-[200px]">Gere as credenciais seguras na dashboard para o seu ambiente de
-            sandbox.</p>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="relative z-10 flex flex-col items-center text-center group">
-          <div
-            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2 delay-100">
-            2
-          </div>
-          <h3 class="text-xl font-bold text-zinc-900 mb-2">Integre o core</h3>
-          <p class="text-zinc-600 text-sm max-w-[200px]">Consuma via API REST no Angular ou checkout nativo via Next.js
-            sem dores de cabeça.</p>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="relative z-10 flex flex-col items-center text-center group">
-          <div
-            class="w-20 h-20 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center text-2xl font-black text-zinc-400 mb-6 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-500 group-hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-500 transform group-hover:-translate-y-2 delay-200">
-            3
-          </div>
-          <h3 class="text-xl font-bold text-zinc-900 mb-2">Receba Webhooks</h3>
-          <p class="text-zinc-600 text-sm max-w-[200px]">Testes eventos assíncronos em tempo real com entrega garantida
-            e simulada.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tech Stack Marquee Section -->
-    <style>
-      @keyframes marquee {
-        0% {
-          transform: translateX(0%);
-        }
-
-        100% {
-          transform: translateX(-50%);
-        }
-      }
-
-      .animate-marquee {
-        animation: marquee 40s linear infinite;
-      }
-    </style>
-    <section
-      class="py-12 border-y border-zinc-200/50 overflow-hidden relative mt-8 -mx-4 sm:-mx-6 lg:-mx-8 xl:-mx-16 2xl:-mx-24 px-4 sm:px-0 bg-zinc-50/50">
-      <div
-        class="absolute inset-y-0 left-0 w-24 sm:w-40 bg-gradient-to-r from-zinc-50 to-transparent z-10 pointer-events-none">
-      </div>
-      <div
-        class="absolute inset-y-0 right-0 w-24 sm:w-40 bg-gradient-to-l from-zinc-50 to-transparent z-10 pointer-events-none">
-      </div>
-
-      <div class="flex animate-marquee w-max items-center">
-        <!-- Group 1 -->
-        <div
-          class="flex items-center justify-around w-max px-12 gap-16 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg> NestJS</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m12 2-9 4.3 1.5 11.5L12 22l7.5-4.2L21 6.3 12 2z" />
-              <path d="M12 5.5l-6 10.5h2.5l1.5-3h4l1.5 3h2.5L12 5.5z" />
-            </svg> Angular</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-black"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg> Next.js</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M8 12h8" />
-              <path d="M12 8v8" />
-            </svg> TypeScript</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-emerald-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
-              <path d="M3 12A9 3 0 0 0 21 12" />
-            </svg> PostgreSQL</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m18 16 4-4-4-4" />
-              <path d="m6 8-4 4 4 4" />
-              <path d="m14.5 4-5 16" />
-            </svg> Redis</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-rose-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg> BullMQ</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-              <path
-                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-            </svg> Docker</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-indigo-700"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 2 22 22 22" />
-            </svg> Prisma</span>
-        </div>
-        <!-- Group 2 (Duplicate for infinite flow) -->
-        <div
-          class="flex items-center justify-around w-max px-12 gap-16 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg> NestJS</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m12 2-9 4.3 1.5 11.5L12 22l7.5-4.2L21 6.3 12 2z" />
-              <path d="M12 5.5l-6 10.5h2.5l1.5-3h4l1.5 3h2.5L12 5.5z" />
-            </svg> Angular</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-black"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg> Next.js</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M8 12h8" />
-              <path d="M12 8v8" />
-            </svg> TypeScript</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-emerald-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <ellipse cx="12" cy="5" rx="9" ry="3" />
-              <path d="M3 5V19A9 3 0 0 0 21 19V5" />
-              <path d="M3 12A9 3 0 0 0 21 12" />
-            </svg> PostgreSQL</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-red-600"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m18 16 4-4-4-4" />
-              <path d="m6 8-4 4 4 4" />
-              <path d="m14.5 4-5 16" />
-            </svg> Redis</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-rose-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg> BullMQ</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-blue-500"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-              <path
-                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-            </svg> Docker</span>
-          <span class="flex items-center gap-2 text-xl font-bold text-zinc-800"><svg class="w-7 h-7 text-indigo-700"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 2 22 22 22" />
-            </svg> Prisma</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA Section: The Launchpad -->
-    <section
-      class="relative overflow-hidden rounded-3xl bg-zinc-950 px-6 py-20 text-center sm:px-12 mt-8 mb-16 border border-zinc-800 shadow-2xl group cursor-default">
-      <!-- Deep starfield subtle background -->
-      <div
-        class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-950 to-zinc-950 -z-10">
-      </div>
-
-      <!-- Massive Sunrise Glow -->
-      <div
-        class="absolute -bottom-[50%] left-1/2 -translate-x-1/2 w-full max-w-4xl h-[600px] bg-indigo-600/30 rounded-full blur-[140px] pointer-events-none transition-all duration-1000 group-hover:bg-indigo-500/40">
-      </div>
-
-      <!-- Floating Particles -->
-      <div class="absolute top-[20%] left-[15%] w-1.5 h-1.5 rounded-full bg-white/30 animate-pulse"></div>
-      <div class="absolute top-[40%] right-[20%] w-2 h-2 rounded-full bg-indigo-400/30 animate-pulse"
-        style="animation-delay: 1s;"></div>
-      <div class="absolute bottom-[30%] left-[25%] w-2.5 h-2.5 rounded-full bg-emerald-400/20 animate-pulse"
-        style="animation-delay: 2s;"></div>
-
-      <div class="relative z-10">
-        <h2 class="text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl mb-6">
-          Sua rampa de <span
-            class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">lançamento</span>.
-        </h2>
-        <p class="mx-auto mt-4 max-w-2xl text-lg md:text-xl text-zinc-400">
-          Crie sua conta de desenvolvedor agora mesno, gere suas chaves de API restritas e desfrute de <strong>testes
-            ilimitados</strong> para escalar sem medo.
-        </p>
-        <div class="mt-10 flex justify-center">
-          <a routerLink="/login"
-            class="group/btn relative inline-flex items-center justify-center gap-3 rounded-xl text-base font-bold transition-all focus-visible:outline-none bg-indigo-600 text-white hover:bg-indigo-500 h-14 px-10 w-full sm:w-auto shadow-[0_0_40px_rgba(79,70,229,0.3)] hover:shadow-[0_0_60px_rgba(79,70,229,0.6)] hover:-translate-y-1 overflow-hidden ring-1 ring-white/10">
-            <!-- Button inner subtle gradient -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-
-            <span class="relative z-10 flex items-center gap-2">
-              Iniciar Integração ⚡
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                class="transition-transform duration-300 group-hover/btn:translate-x-1.5">
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
-              </svg>
-            </span>
-          </a>
-        </div>
-        <p class="mt-6 text-sm text-zinc-500">Sem cartão de crédito. Simule o quanto quiser.</p>
-      </div>
-    </section>
-  </div>
+    </div>
+  </section>
 </main>
