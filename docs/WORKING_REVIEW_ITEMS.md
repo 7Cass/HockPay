@@ -2,14 +2,14 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: em andamento, com 3/6 itens macro concluidos.
+Status geral: em andamento, com 4/6 itens macro concluidos.
 
 Progresso macro:
 
 - [x] 1. Idempotencia atomica na API
 - [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 - [x] 3. Gaps transacionais em auth/store/checkout
-- [ ] 4. Store creation, auth hydration, refresh waiters e withdrawals
+- [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
 - [ ] 5. PrismaService, migrations, claims e invariantes de banco
 - [ ] 6. Docs, env e contratos apos redesign da landing
 
@@ -375,6 +375,17 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 
 ## 4. Store creation, auth hydration, refresh waiters e withdrawals
 
+Status: concluido em 2026-05-20. Criacao de loja agora atualiza access/refresh cookies, o web trata create-store como troca de tenant, auth passa a hidratar perfil completo, refresh concorrente propaga falha para todos os waiters e withdrawals usa contexto de store estruturado.
+
+Notas da implementacao:
+
+- `StoreController.createStore` grava `hockpay_at` e `hockpay_rt` com a mesma semantica de sessao de login/switch-store.
+- `WithdrawalController` passou a receber `@CurrentStore()` em `create`, `list` e `get`; a resolucao compartilhada retorna 403 estruturado `NO_CURRENT_STORE`.
+- `AuthService.login()` hidrata `/merchants/me` antes de popular estado autenticado e `checkAuthStatus()` recupera perfil quando auth esta true mas `currentUser` esta vazio.
+- O refresh in-flight agora e um observable compartilhado com `shareReplay`, limpa o estado ao finalizar e propaga erro para todos os inscritos.
+- `StoreService.createStore()` atualiza lista/currentStore, reidrata auth e redireciona para dashboard como troca de tenant; o dialog nao faz reload redundante da lista.
+- `WithdrawalDetail.complete()` e `fail()` limpam `actionLoading` quando o usuario cancela os confirms TEST.
+
 ### Problema
 
 A criacao de loja nao completa a troca de contexto de autenticacao. O use case gera novo access token com `storeId` e revoga refresh tokens antigos em `packages/core/src/application/use-cases/create-store.use-case.ts:89`, mas o controller grava apenas `hockpay_rt`, nao grava o novo `hockpay_at`:
@@ -432,32 +443,53 @@ Os botoes TEST de completar/falhar ficam travados se o usuario cancela `confirm(
 
 ### Tarefas
 
-- [ ] API: adicionar cookie `hockpay_at` em `StoreController.createStore`.
-- [ ] Web auth: criar hidratacao forcada em `AuthService` e usa-la apos login e criacao de loja.
-- [ ] Web auth: evitar `currentUser` parcial em fluxo autenticado.
-- [ ] Web store: alinhar `createStore()` com `switchStore()`, incluindo atualizacao de estado e limpeza/reload de telas store-scoped.
-- [ ] Web refresh: substituir `BehaviorSubject<boolean>` por refresh in-flight compartilhado que emite erro para todos os inscritos.
-- [ ] API withdrawals: substituir `getStoreId(req)` por `@CurrentStore() storeId: string` em `create/list/get`, ou mapear ausencia de store para 403 estruturado.
-- [ ] Web withdrawals: corrigir retorno de cancelamento dos confirms TEST.
-- [ ] Adicionar cobertura para cookies de criacao de loja, hidratacao pos-login, falha concorrente de refresh e cancelamento dos botoes TEST.
+- [x] 4.1 API: alinhar cookies de create-store e erro estruturado de withdrawals
+  - Problema: `POST /stores` grava apenas `hockpay_rt`, e withdrawals usa `getStoreId(req)` com `Error` cru quando nao ha loja.
+  - Solucao: gravar tambem `hockpay_at` com as mesmas opcoes de `login`/`switch-store`; trocar `create/list/get` de withdrawals para `@CurrentStore()` ou erro 403 estruturado.
+  - Validacao: specs da API cobrem `Set-Cookie` de create-store e ausencia de loja retornando `NO_CURRENT_STORE`.
+
+- [x] 4.2 Web auth: hidratar perfil completo e corrigir refresh concorrente
+  - Problema: login deixa `currentUser` parcial e `refreshSubject` prende waiters quando refresh falha.
+  - Solucao: carregar `/merchants/me` apos login e expor hidratacao forcada; substituir o waiter por refresh in-flight compartilhado que propaga erro para todos.
+  - Validacao: specs do `AuthService` cobrem login hidratado e multiplos waiters recebendo erro em falha de refresh.
+
+- [x] 4.3 Web store: tratar create-store como troca de tenant
+  - Problema: criar loja so troca `currentStore` em memoria e pode deixar access cookie/estado store-scoped antigos ate reload/refresh.
+  - Solucao: apos create-store, atualizar lista/currentStore, hidratar usuario e aplicar a mesma semantica de troca de tenant usada em switch-store.
+  - Validacao: spec do `StoreService` confirma nova loja selecionada, `currentUser.currentStoreId` atualizado por hidratacao e navegacao/reload controlada.
+
+- [x] 4.4 Web withdrawals: corrigir dependencias de auth e cancelamento dos confirms TEST
+  - Problema: withdrawals depende de documento hidratado e os botoes TEST ficam travados quando `confirm()` e cancelado.
+  - Solucao: garantir uso de perfil hidratado antes de criar conta Pix e limpar `actionLoading` em cancelamento de `complete()`/`fail()`.
+  - Validacao: specs cobrem cancelamento de ambos os confirms e botao reabilitado.
+
+- [x] 4.5 Cobertura focada para API e web
+  - Problema: a regressao envolve cookies, estado reativo e erro concorrente, pontos que nao estavam cobertos.
+  - Solucao: adicionar/ajustar testes pequenos nos controllers/services afetados sem criar suite pesada.
+  - Validacao: `pnpm --filter @hockpay/api test` e specs web direcionadas passam.
+
+- [x] 4.6 Validacao final, docs e commits semanticos
+  - Problema: a mudanca cruza API e web e precisa ficar separada das alteracoes de landing.
+  - Solucao: rodar testes/build relevantes, atualizar checkboxes do item 4 e comitar por escopo sem incluir landing.
+  - Validacao: comandos passam e `git status` final mostra apenas arquivos fora do escopo ainda nao comitados.
 
 ### Criterios de corrigido
 
-- [ ] Criar loja retorna `Set-Cookie` para `hockpay_at` e `hockpay_rt`.
-- [ ] Depois de criar loja, chamadas imediatas a `/accounts/me`, `/bank-accounts` e `/withdrawals` usam a nova loja sem esperar expiracao do access token.
-- [ ] Depois de login, `currentUser.document`, `formattedDocument`, `documentType` e `currentStoreId` estao preenchidos antes de abrir withdrawals.
-- [ ] Falha de refresh simultanea nao deixa requests pendurados; todos recebem erro e auth vai para `false`.
-- [ ] Withdrawal sem store selecionada retorna 403 estruturado, nao 500.
-- [ ] Cancelar "Completar" ou "Falhar" em detalhe de saque reabilita os botoes.
+- [x] Criar loja retorna `Set-Cookie` para `hockpay_at` e `hockpay_rt`.
+- [x] Depois de criar loja, chamadas imediatas a `/accounts/me`, `/bank-accounts` e `/withdrawals` usam a nova loja sem esperar expiracao do access token.
+- [x] Depois de login, `currentUser.document`, `formattedDocument`, `documentType` e `currentStoreId` estao preenchidos antes de abrir withdrawals.
+- [x] Falha de refresh simultanea nao deixa requests pendurados; todos recebem erro e auth vai para `false`.
+- [x] Withdrawal sem store selecionada retorna 403 estruturado, nao 500.
+- [x] Cancelar "Completar" ou "Falhar" em detalhe de saque reabilita os botoes.
 
 ### Walkthrough de testes
 
-1. Rodar testes direcionados de API/core/web adicionados para os pontos acima.
-2. Rodar `pnpm --filter @hockpay/api test` e `pnpm --filter @hockpay/core test:ci`.
-3. Rodar build/test web aplicavel: `pnpm --filter @hockpay/web build` e, se houver specs novas, `pnpm --filter @hockpay/web test`.
-4. Smoke manual: login com merchant sem loja, criar loja, verificar cookies no browser e abrir dashboard sem erro.
-5. Smoke manual withdrawals: criar conta Pix verificada, solicitar saque, abrir detalhe, cancelar "Completar" e "Falhar" confirmando que botoes nao travam.
-6. Smoke concorrencia: expirar/remover refresh token e disparar multiplas chamadas protegidas; confirmar que todas falham/redirectam sem spinner infinito.
+1. [x] Rodar testes direcionados de API/web adicionados para os pontos acima.
+2. [x] Rodar `pnpm --filter @hockpay/api test` e `pnpm --filter @hockpay/core test:ci`.
+3. [x] Rodar build/test web aplicavel: `pnpm --filter @hockpay/web build` e `pnpm --filter @hockpay/web test`.
+4. [x] Validar contrato HTTP de create-store por `pnpm --filter @hockpay/api test:e2e`.
+5. [x] Validar fluxo integrado com infra descartavel por `HOCKPAY_SMOKE_SUITE=p0 pnpm run smoke:docker`.
+6. [x] Validar concorrencia de refresh por spec do `AuthService` com multiplos waiters recebendo a mesma falha sem spinner pendurado.
 
 ## 5. PrismaService, migrations, claims e invariantes de banco
 
