@@ -21,7 +21,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | --- | --- | --- |
 | Auth, merchant, stores e API keys | Implementado | Login, refresh/logout, troca de store, cadastro de merchant, store auto-aprovada no MVP e API keys TEST/LIVE. |
 | Store/account | Implementado | Toda store criada pela API nasce com `Account`; migration cobre stores antigas sem account. |
-| Payments Pix simulados | Implementado | `POST /payments` cria `PixCharge`, `Payment`, outbox e job de expiracao; exige `Idempotency-Key`. |
+| Payments Pix simulados | Implementado | `POST /api/v1/payments` cria `PixCharge`, `Payment`, outbox e job de expiracao; exige `Idempotency-Key`. |
 | Metodos card/boleto/debito | Modelado/parcial | O enum/schema aceita `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas nao ha processador, adquirente ou fluxo real para esses metodos. |
 | Dev simulation | Implementado | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos. |
 | Checkout session | Implementado | API cria sessao, checkout coleta pagador, `fulfill` gera/submete pagamento simulado. |

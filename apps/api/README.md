@@ -41,7 +41,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ## Observações Importantes
 
-- Nem toda mutação é idempotente hoje. Os fluxos obrigatórios são `POST /api/v1/payments` e `POST /api/v1/withdrawals`.
+- Nem toda mutação é idempotente hoje. Os fluxos obrigatórios são `POST /api/v1/payments`, `POST /api/v1/withdrawals` e `POST /api/v1/refunds`.
 - A API usa `CombinedAuthGuard` em vários endpoints públicos para aceitar API key ou cookie JWT.
 - API keys ainda nao possuem scopes granulares; trate `POST /withdrawals` como operacao financeira sensivel.
 - O checkout hospedado usa `checkout-sessions/:token` para sessões e `payment-links/public/:token` para links públicos.
@@ -54,6 +54,8 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ### Criar pagamento
 
+Todo `POST /api/v1/payments` copiável deve enviar `Idempotency-Key`, `paymentMethod` e `customer.document`.
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/payments \
   -H "Authorization: Bearer hk_test_xxx" \
@@ -61,6 +63,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
   -H "Idempotency-Key: pedido-123" \
   -d '{
     "amount": 1500,
+    "paymentMethod": "PIX",
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
@@ -71,10 +74,26 @@ curl -X POST http://localhost:3000/api/v1/payments \
 
 ### Simular pagamento em dev mode
 
+Fluxo autenticado para integradores TEST. Requer API key `hk_test_...` ou cookie JWT da store dona do pagamento:
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/dev/simulate/{payment_id}/confirm \
   -H "Authorization: Bearer hk_test_xxx"
 ```
+
+Ações suportadas: `confirm`, `fail`, `expire` e `release`.
+
+O checkout hospedado usa outro contrato público, restrito ao token da sessão. Ele existe para a UI dev do comprador e recebe o token no body:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payments/{payment_id}/simulate/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checkoutToken": "checkout_token_retornado_pela_session"
+  }'
+```
+
+Nesse fluxo público as ações suportadas são `confirm`, `fail` e `expire`.
 
 ### Criar checkout hosted e fulfill
 
@@ -116,6 +135,21 @@ curl -X POST http://localhost:3000/api/v1/webhooks \
   }'
 ```
 
+Eventos permitidos hoje:
+
+```text
+payment.created
+payment.confirmed
+payment.failed
+payment.expired
+payment.released
+payment.refunded
+withdrawal.created
+withdrawal.processing
+withdrawal.completed
+withdrawal.failed
+```
+
 Destinos HTTP são aceitos apenas em `localhost` ou `127.0.0.1` quando a API/worker rodam em ambiente local ou de desenvolvimento. Webhooks remotos devem usar HTTPS público; alvos de loopback remoto, RFC1918, link-local, metadata `169.254.169.254`, IPv6 local/link-local/unique-local e protocolos não HTTP(S) são bloqueados na criação/edição e antes do envio.
 
 ```bash
@@ -135,6 +169,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
   -H "X-Request-ID: demo-trace-001" \
   -d '{
     "amount": 1500,
+    "paymentMethod": "PIX",
     "customer": {
       "name": "João Silva",
       "email": "joao@email.com",
@@ -167,17 +202,39 @@ curl -X POST http://localhost:3000/api/v1/withdrawals \
   }'
 ```
 
+### Criar refund
+
+```bash
+curl -X POST http://localhost:3000/api/v1/refunds \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: refund-pedido-123" \
+  -d '{
+    "paymentId": "payment_id_confirmado",
+    "amount": 500,
+    "reason": "Ajuste solicitado pelo cliente"
+  }'
+```
+
+Payments, withdrawals e refunds retornam `x-idempotency-key` e um indicador booleano de replay. Repita a mesma chave apenas para o mesmo metodo, path e body.
+
 ## Variáveis de Ambiente Relevantes
 
-| Variável                    | Uso                                               |
-| --------------------------- | ------------------------------------------------- |
-| `PORT`                      | Porta HTTP da API                                 |
-| `DATABASE_URL`              | Conexão Prisma/PostgreSQL                         |
-| `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e cache operacional |
-| `JWT_SECRET`                | Assinatura de tokens                              |
-| `ENCRYPTION_KEY`            | Criptografia de dados sensíveis                   |
-| `PIX_KEY`                   | Chave Pix simulada usada no payload do pagamento  |
-| `CORS_ORIGIN`               | Lista de origens permitidas                       |
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `PORT` | Porta HTTP da API | `3000` |
+| `DATABASE_URL` | Conexão Prisma/PostgreSQL | obrigatório |
+| `REDIS_URL` | Redis usado pelo cache de idempotência da API | `redis://localhost:6379` |
+| `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e filas de expiração | `localhost` / `6379` |
+| `JWT_SECRET` | Assinatura de tokens do dashboard | obrigatório |
+| `ENCRYPTION_KEY` | Criptografia de segredos sensíveis; precisa ter 64 chars hex | obrigatório |
+| `PIX_KEY` | Chave Pix simulada usada no payload do pagamento | `test@hockpay.com` |
+| `CHECKOUT_BASE_URL` | Base pública do checkout usada em links e checkout sessions | `http://localhost:3333` |
+| `PUBLIC_API_BASE_URL` | Base pública preferencial para URLs absolutas expostas pela API | vazio |
+| `APP_URL` | Fallback de base pública quando `PUBLIC_API_BASE_URL` não existe | vazio |
+| `CORS_ORIGIN` | Lista de origens permitidas separada por vírgula | origens locais do monorepo |
+
+`REDIS_URL` e `REDIS_HOST`/`REDIS_PORT` precisam apontar para o mesmo Redis quando API e worker rodam juntos; o primeiro atende idempotência/cache, os demais atendem BullMQ, throttling e jobs.
 
 ## Documentação Canônica
 
