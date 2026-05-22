@@ -1,4 +1,5 @@
 import {
+  ClaimProcessableWithdrawalsOptions,
   IWithdrawalRepository,
   ListWithdrawalsOptions,
   ListWithdrawalsResult,
@@ -46,6 +47,34 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       where: { id },
     });
     return withdrawal ? this.toDomain(withdrawal as any) : null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<DomainWithdrawal | null> {
+    const withdrawals = await this.prisma.$queryRaw<RawWithdrawalRow[]>(
+      Prisma.sql`
+        SELECT
+          id,
+          account_id AS "accountId",
+          bank_account_id AS "bankAccountId",
+          amount,
+          fee,
+          net_amount AS "netAmount",
+          status,
+          pix_e2e_id AS "pixE2eId",
+          paid_at AS "paidAt",
+          failed_reason AS "failedReason",
+          processing_attempts AS "processingAttempts",
+          next_process_at AS "nextProcessAt",
+          last_processing_error AS "lastProcessingError",
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM withdrawals
+        WHERE id = ${id}
+        FOR UPDATE
+      `,
+    );
+
+    return withdrawals[0] ? this.toDomain(withdrawals[0] as any) : null;
   }
 
   async findByIdAndAccountId(
@@ -138,6 +167,67 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       orderBy: { createdAt: "asc" },
       take: limit,
     });
+
+    return withdrawals.map((withdrawal) => this.toDomain(withdrawal as any));
+  }
+
+  async claimProcessableWithdrawals(
+    options: ClaimProcessableWithdrawalsOptions,
+  ): Promise<DomainWithdrawal[]> {
+    const limit = Math.floor(options.limit);
+    if (!Number.isFinite(limit) || limit <= 0) {
+      return [];
+    }
+
+    const now = options.now ?? new Date();
+    const staleProcessingBefore =
+      options.staleProcessingBefore ??
+      new Date(now.getTime() - WithdrawalRepository.PROCESSING_STALE_MS);
+
+    const withdrawals = await this.prisma.$queryRaw<RawWithdrawalRow[]>(
+      Prisma.sql`
+        WITH candidates AS (
+          SELECT id
+          FROM withdrawals
+          WHERE (
+            status = ${WithdrawalStatus.PENDING}::"WithdrawalStatus"
+            AND (next_process_at IS NULL OR next_process_at <= ${now})
+          )
+          OR (
+            status = ${WithdrawalStatus.PROCESSING}::"WithdrawalStatus"
+            AND updated_at <= ${staleProcessingBefore}
+          )
+          ORDER BY created_at ASC, id ASC
+          LIMIT ${limit}
+          FOR UPDATE SKIP LOCKED
+        )
+        UPDATE withdrawals AS w
+        SET
+          status = ${WithdrawalStatus.PROCESSING}::"WithdrawalStatus",
+          processing_attempts = w.processing_attempts + 1,
+          next_process_at = NULL,
+          last_processing_error = NULL,
+          updated_at = ${now}
+        FROM candidates
+        WHERE w.id = candidates.id
+        RETURNING
+          w.id,
+          w.account_id AS "accountId",
+          w.bank_account_id AS "bankAccountId",
+          w.amount,
+          w.fee,
+          w.net_amount AS "netAmount",
+          w.status,
+          w.pix_e2e_id AS "pixE2eId",
+          w.paid_at AS "paidAt",
+          w.failed_reason AS "failedReason",
+          w.processing_attempts AS "processingAttempts",
+          w.next_process_at AS "nextProcessAt",
+          w.last_processing_error AS "lastProcessingError",
+          w.created_at AS "createdAt",
+          w.updated_at AS "updatedAt"
+      `,
+    );
 
     return withdrawals.map((withdrawal) => this.toDomain(withdrawal as any));
   }
@@ -279,3 +369,17 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     return DomainWithdrawal.reconstitute(props);
   }
 }
+
+type RawWithdrawalRow = PrismaWithdrawal & {
+  accountId: string;
+  bankAccountId: string;
+  netAmount: number;
+  pixE2eId: string | null;
+  paidAt: Date | null;
+  failedReason: string | null;
+  processingAttempts: number;
+  nextProcessAt: Date | null;
+  lastProcessingError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};

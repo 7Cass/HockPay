@@ -56,7 +56,9 @@ export class CreateWithdrawalUseCase {
     if (!store.isActive) throw new StoreInactiveError(store.id);
     if (!store.isApproved) throw new StoreNotApprovedError(store.id);
 
-    const account = await repos.accountRepository.findByStoreId(input.storeId);
+    const account = await repos.accountRepository.findByStoreIdForUpdate(
+      input.storeId,
+    );
     if (!account) throw new AccountNotFoundError(input.storeId);
 
     const bankAccount = await repos.bankAccountRepository.findById(

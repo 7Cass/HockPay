@@ -1,14 +1,13 @@
 import {
-  Inject,
   Injectable,
   Logger,
   OnModuleInit,
   Optional,
 } from "@nestjs/common";
 import {
+  ClaimProcessableWithdrawalsUseCase,
   CompleteWithdrawalUseCase,
   FailWithdrawalUseCase,
-  IWithdrawalRepository,
   MarkWithdrawalProcessingUseCase,
   RecordWithdrawalProcessingErrorUseCase,
   WithdrawalObject,
@@ -23,8 +22,7 @@ export class WithdrawalProcessingJob implements OnModuleInit {
   private readonly maxAttempts = 3;
 
   constructor(
-    @Inject("IWithdrawalRepository")
-    private readonly withdrawalRepository: IWithdrawalRepository,
+    private readonly claimProcessableWithdrawalsUseCase: ClaimProcessableWithdrawalsUseCase,
     private readonly markProcessingUseCase: MarkWithdrawalProcessingUseCase,
     private readonly completeWithdrawalUseCase: CompleteWithdrawalUseCase,
     private readonly failWithdrawalUseCase: FailWithdrawalUseCase,
@@ -53,13 +51,13 @@ export class WithdrawalProcessingJob implements OnModuleInit {
   }
 
   async processPendingWithdrawals(limit = 50): Promise<void> {
-    const withdrawals =
-      await this.withdrawalRepository.findProcessablePending(limit);
+    const { withdrawals } =
+      await this.claimProcessableWithdrawalsUseCase.execute({ limit });
 
     for (const withdrawal of withdrawals) {
       const requestId = createWorkerRequestId("withdrawal", withdrawal.id);
       try {
-        await this.processWithdrawal(withdrawal.id, requestId);
+        await this.processClaimedWithdrawal(withdrawal, requestId);
       } catch (error) {
         this.logger.error(
           `Failed to process withdrawal ${withdrawal.id} requestId=${requestId}:`,
@@ -78,18 +76,29 @@ export class WithdrawalProcessingJob implements OnModuleInit {
       requestId,
     });
 
+    if (processing.alreadyProcessing) {
+      return;
+    }
+
+    await this.processClaimedWithdrawal(processing.withdrawal, requestId);
+  }
+
+  private async processClaimedWithdrawal(
+    withdrawal: WithdrawalObject,
+    requestId: string,
+  ): Promise<void> {
     try {
-      await this.simulatePayout(processing.withdrawal);
+      await this.simulatePayout(withdrawal);
       await this.completeWithdrawalUseCase.execute({
-        withdrawalId,
+        withdrawalId: withdrawal.id,
         requestId,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
-      if (processing.withdrawal.processingAttempts >= this.maxAttempts) {
+      if (withdrawal.processingAttempts >= this.maxAttempts) {
         await this.failWithdrawalUseCase.execute({
-          withdrawalId,
+          withdrawalId: withdrawal.id,
           requestId,
           reason: message,
         });
@@ -97,10 +106,10 @@ export class WithdrawalProcessingJob implements OnModuleInit {
       }
 
       await this.recordProcessingErrorUseCase.execute({
-        withdrawalId,
+        withdrawalId: withdrawal.id,
         error: message,
         nextProcessAt: this.nextRetryAt(
-          processing.withdrawal.processingAttempts,
+          withdrawal.processingAttempts,
         ),
       });
     }

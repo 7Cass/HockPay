@@ -31,12 +31,12 @@ export class CompleteWithdrawalUseCase {
     input: ICompleteWithdrawalInput,
   ): Promise<ICompleteWithdrawalOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const withdrawal = await repos.withdrawalRepository.findById(
+      const withdrawal = await repos.withdrawalRepository.findByIdForUpdate(
         input.withdrawalId,
       );
       if (!withdrawal) throw new WithdrawalNotFoundError(input.withdrawalId);
 
-      const account = await repos.accountRepository.findById(
+      const account = await repos.accountRepository.findByIdForUpdate(
         withdrawal.accountId,
       );
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);

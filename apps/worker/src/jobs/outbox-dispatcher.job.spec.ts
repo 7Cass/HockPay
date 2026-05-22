@@ -16,13 +16,19 @@ describe("OutboxDispatcherJob", () => {
     });
   }
 
-  it("enqueues webhook before marking the outbox event as dispatched", async () => {
+  it("claims events before enqueueing and does not update on success", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
 
     const event = createEvent();
     const calls: string[] = [];
     const outboxRepository = {
-      findDispatchableEvents: jest.fn().mockResolvedValue([event]),
+      claimDispatchableEvents: jest
+        .fn()
+        .mockImplementation(async ({ watchdogUntil }) => {
+          calls.push("outbox.claim");
+          event.markAsDispatched(watchdogUntil);
+          return [event];
+        }),
       update: jest.fn().mockImplementation(async (updated: OutboxEvent) => {
         calls.push(`outbox.update:${updated.status}`);
       }),
@@ -45,12 +51,12 @@ describe("OutboxDispatcherJob", () => {
 
     await job.handleDispatch();
 
-    expect(outboxRepository.findDispatchableEvents).toHaveBeenCalledWith(50);
-    expect(calls).toEqual([
-      "webhook.enqueue",
-      "outbox.update:DISPATCHED",
-      "alert.enqueue",
-    ]);
+    expect(outboxRepository.claimDispatchableEvents).toHaveBeenCalledWith({
+      limit: 50,
+      watchdogUntil: new Date("2026-01-01T00:45:00.000Z"),
+    });
+    expect(calls).toEqual(["outbox.claim", "webhook.enqueue", "alert.enqueue"]);
+    expect(outboxRepository.update).not.toHaveBeenCalled();
     expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(event.nextRetryAt).toEqual(new Date("2026-01-01T00:45:00.000Z"));
   });
@@ -59,8 +65,9 @@ describe("OutboxDispatcherJob", () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
 
     const event = createEvent();
+    event.markAsDispatched(new Date("2026-01-01T00:45:00.000Z"));
     const outboxRepository = {
-      findDispatchableEvents: jest.fn().mockResolvedValue([event]),
+      claimDispatchableEvents: jest.fn().mockResolvedValue([event]),
       update: jest.fn(),
     };
     const webhookQueue = {
@@ -86,8 +93,9 @@ describe("OutboxDispatcherJob", () => {
 
   it("keeps webhook dispatch successful when alert enqueue fails", async () => {
     const event = createEvent();
+    event.markAsDispatched(new Date("2026-01-01T00:45:00.000Z"));
     const outboxRepository = {
-      findDispatchableEvents: jest.fn().mockResolvedValue([event]),
+      claimDispatchableEvents: jest.fn().mockResolvedValue([event]),
       update: jest.fn(),
     };
     const webhookQueue = {
@@ -106,7 +114,7 @@ describe("OutboxDispatcherJob", () => {
 
     expect(webhookQueue.enqueue).toHaveBeenCalledWith(event.id, undefined, expect.any(String));
     expect(alertQueue.enqueue).toHaveBeenCalledWith(event.id);
-    expect(outboxRepository.update).toHaveBeenCalledTimes(1);
+    expect(outboxRepository.update).not.toHaveBeenCalled();
     expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
   });
 
@@ -119,7 +127,7 @@ describe("OutboxDispatcherJob", () => {
       error: jest.fn(),
     };
     const outboxRepository = {
-      findDispatchableEvents: jest.fn().mockResolvedValue([event]),
+      claimDispatchableEvents: jest.fn().mockResolvedValue([event]),
       update: jest.fn(),
     };
     const webhookQueue = { enqueue: jest.fn().mockResolvedValue(undefined) };

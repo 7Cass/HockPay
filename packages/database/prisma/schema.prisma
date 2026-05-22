@@ -265,6 +265,8 @@ model Withdrawal {
   @@index([accountId, status, createdAt])
   @@index([bankAccountId])
   @@index([status, nextProcessAt])
+  @@index([status, nextProcessAt, createdAt])
+  @@index([status, updatedAt, createdAt])
   @@map("withdrawals")
 }
 
@@ -631,6 +633,8 @@ model OutboxEvent {
   createdAt     DateTime     @default(now()) @map("created_at")
 
   @@index([status, nextRetryAt])
+  @@index([status, nextRetryAt, createdAt])
+  @@index([status, processedAt, nextRetryAt, createdAt])
   @@index([requestId])
   @@map("outbox_events")
 }

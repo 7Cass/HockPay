@@ -1,4 +1,4 @@
-import { Account, AccountProps } from '../entities/account.entity';
+import { Account, AccountProps } from "../entities/account.entity";
 
 /**
  * Repository interface for Account aggregate.
@@ -22,9 +22,19 @@ export interface IAccountRepository {
   findById(id: string): Promise<Account | null>;
 
   /**
+   * Find an account by ID and lock it for update within the current transaction.
+   */
+  findByIdForUpdate(id: string): Promise<Account | null>;
+
+  /**
    * Find an account by store ID.
    */
   findByStoreId(storeId: string): Promise<Account | null>;
+
+  /**
+   * Find an account by store ID and lock it for update within the current transaction.
+   */
+  findByStoreIdForUpdate(storeId: string): Promise<Account | null>;
 
   /**
    * Find accounts that have pending balance ready for release.

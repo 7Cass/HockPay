@@ -57,7 +57,11 @@ export class OutboxDispatcherJob implements OnModuleInit {
 
   private async dispatchEvents(): Promise<void> {
     try {
-      const events = await this.outboxRepository.findDispatchableEvents(50);
+      const watchdogUntil = this.nextDispatchWatchdog();
+      const events = await this.outboxRepository.claimDispatchableEvents({
+        limit: 50,
+        watchdogUntil,
+      });
 
       if (events.length === 0) {
         return;
@@ -73,11 +77,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
         const paymentId =
           typeof event.payload.id === "string" ? event.payload.id : event.aggregateId;
         try {
-          // BullMQ must accept the webhook job before the outbox leaves a dispatchable state.
           await this.webhookQueue.enqueue(event.id, undefined, requestId);
-
-          event.markAsDispatched(this.nextDispatchWatchdog());
-          await this.outboxRepository.update(event);
 
           try {
             await this.alertQueue.enqueue(event.id);

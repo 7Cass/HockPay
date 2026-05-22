@@ -38,6 +38,7 @@ import {
   IAlertConfigRepository,
   IAlertDeliveryLogRepository,
   IUnitOfWork,
+  ClaimProcessableWithdrawalsUseCase,
   MarkWithdrawalProcessingUseCase,
   RecordWithdrawalProcessingErrorUseCase,
   getWebhookUrlPolicyOptionsForNodeEnv,
@@ -172,6 +173,12 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
       inject: ["IUnitOfWork"],
     },
     {
+      provide: ClaimProcessableWithdrawalsUseCase,
+      useFactory: (unitOfWork: IUnitOfWork) =>
+        new ClaimProcessableWithdrawalsUseCase(unitOfWork),
+      inject: ["IUnitOfWork"],
+    },
+    {
       provide: MarkWithdrawalProcessingUseCase,
       useFactory: (unitOfWork: IUnitOfWork) =>
         new MarkWithdrawalProcessingUseCase(unitOfWork),
@@ -251,6 +258,7 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
     ProcessWebhookUseCase,
     ProcessAlertDeliveryUseCase,
     ReleasePaymentUseCase,
+    ClaimProcessableWithdrawalsUseCase,
     MarkWithdrawalProcessingUseCase,
     CompleteWithdrawalUseCase,
     FailWithdrawalUseCase,

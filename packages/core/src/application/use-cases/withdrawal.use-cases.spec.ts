@@ -50,6 +50,9 @@ describe("withdrawal use cases", () => {
     expect(fixture.transactions[0].type).toBe(
       TransactionType.WITHDRAWAL_RESERVED,
     );
+    expect(
+      fixture.accountRepository.findByStoreIdForUpdate,
+    ).toHaveBeenCalledWith(fixture.store.id);
     expect(fixture.outbox.map((event) => event.eventType)).toEqual([
       "withdrawal.created",
     ]);
@@ -132,6 +135,9 @@ describe("withdrawal use cases", () => {
     expect(result.withdrawal.pixE2eId).toBe("E2E-test");
     expect(result.account.available).toBe(10_000);
     expect(result.account.blocked).toBe(0);
+    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(
+      fixture.account.id,
+    );
     expect(fixture.transactions.map((tx) => tx.type)).toEqual([
       TransactionType.WITHDRAWAL_RESERVED,
       TransactionType.WITHDRAWAL_SENT,
@@ -158,6 +164,9 @@ describe("withdrawal use cases", () => {
     expect(result.withdrawal.failedReason).toBe("bank rejected");
     expect(result.account.available).toBe(20_000);
     expect(result.account.blocked).toBe(0);
+    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(
+      fixture.account.id,
+    );
     expect(fixture.transactions.at(-1)?.type).toBe(
       TransactionType.WITHDRAWAL_REVERSED,
     );
@@ -294,17 +303,25 @@ function makeFixture(
   const outbox: OutboxEvent[] = [];
   let dailyAmount = 0;
   let dailyCount = 0;
+  const accountRepository = {
+    findByStoreId: vi.fn(async (storeId: string) =>
+      storeId === store.id ? account : null,
+    ),
+    findByStoreIdForUpdate: vi.fn(async (storeId: string) =>
+      storeId === store.id ? account : null,
+    ),
+    findById: vi.fn(async (id: string) => (id === account.id ? account : null)),
+    findByIdForUpdate: vi.fn(async (id: string) =>
+      id === account.id ? account : null,
+    ),
+    update: vi.fn(async () => undefined),
+  };
 
   const repos = {
     storeRepository: {
       findById: async (id: string) => (id === store.id ? store : null),
     },
-    accountRepository: {
-      findByStoreId: async (storeId: string) =>
-        storeId === store.id ? account : null,
-      findById: async (id: string) => (id === account.id ? account : null),
-      update: async () => undefined,
-    },
+    accountRepository,
     bankAccountRepository: {
       findById: async (id: string) =>
         id === bankAccount.id ? bankAccount : null,
@@ -318,6 +335,7 @@ function makeFixture(
         withdrawals.set(withdrawal.id, withdrawal);
       },
       findById: async (id: string) => withdrawals.get(id) ?? null,
+      findByIdForUpdate: async (id: string) => withdrawals.get(id) ?? null,
       findByIdAndAccountId: async (id: string, accountId: string) => {
         const withdrawal = withdrawals.get(id);
         return withdrawal?.accountId === accountId ? withdrawal : null;
@@ -354,6 +372,7 @@ function makeFixture(
     withdrawals,
     transactions,
     outbox,
+    accountRepository,
     unitOfWork,
     get dailyAmount() {
       return dailyAmount;

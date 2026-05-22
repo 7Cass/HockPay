@@ -51,7 +51,7 @@ export class ConfirmPaymentUseCase {
 
   async execute(input: IConfirmPaymentInput): Promise<IConfirmPaymentOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const payment = await repos.paymentRepository.findByIdAndStoreId(
+      const payment = await repos.paymentRepository.findByIdAndStoreIdForUpdate(
         input.paymentId,
         input.storeId,
       );
@@ -64,10 +64,11 @@ export class ConfirmPaymentUseCase {
       if (payment.isPending() && payment.hasExpired()) {
         payment.expire();
         if (payment.pixChargeId) {
-          const charge = await repos.pixChargeRepository.findByIdAndStoreId(
-            payment.pixChargeId,
-            input.storeId,
-          );
+          const charge =
+            await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
+              payment.pixChargeId,
+              input.storeId,
+            );
           charge?.expire();
           if (charge) await repos.pixChargeRepository.update(charge);
         }
@@ -76,7 +77,7 @@ export class ConfirmPaymentUseCase {
       }
 
       const pixCharge = payment.pixChargeId
-        ? await repos.pixChargeRepository.findByIdAndStoreId(
+        ? await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
             payment.pixChargeId,
             input.storeId,
           )
@@ -101,7 +102,7 @@ export class ConfirmPaymentUseCase {
       }
 
       // Fetch Account to update pending balance
-      const account = await repos.accountRepository.findByStoreId(
+      const account = await repos.accountRepository.findByStoreIdForUpdate(
         input.storeId,
       );
       if (!account) {

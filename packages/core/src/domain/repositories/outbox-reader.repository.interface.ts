@@ -3,6 +3,12 @@ import {
   OutboxEventStatus,
 } from "../entities/outbox-event.entity";
 
+export interface ClaimDispatchableEventsParams {
+  limit: number;
+  now?: Date;
+  watchdogUntil: Date;
+}
+
 /**
  * Segregated interface for reading outbox events.
  *
@@ -32,6 +38,18 @@ export interface IOutboxReader {
    * @param now - Optional reference time, useful for deterministic tests
    */
   findDispatchableEvents(limit: number, now?: Date): Promise<OutboxEvent[]>;
+
+  /**
+   * Atomically claim events that should be enqueued or re-enqueued by the dispatcher.
+   * Claimed rows are moved to DISPATCHED with nextRetryAt set to watchdogUntil.
+   *
+   * @param params.limit - Maximum number of events to claim
+   * @param params.now - Optional reference time, useful for deterministic tests
+   * @param params.watchdogUntil - Time after which a claimed event can be reclaimed
+   */
+  claimDispatchableEvents(
+    params: ClaimDispatchableEventsParams,
+  ): Promise<OutboxEvent[]>;
 
   /**
    * Find events by aggregate type and ID.

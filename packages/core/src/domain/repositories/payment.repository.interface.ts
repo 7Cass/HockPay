@@ -1,5 +1,5 @@
-import { Payment } from '../entities/payment.entity';
-import { PaymentStatus } from '../enums/payment-status.enum';
+import { Payment } from "../entities/payment.entity";
+import { PaymentStatus } from "../enums/payment-status.enum";
 
 /**
  * Options for listing payments.
@@ -45,6 +45,12 @@ export interface IPaymentRepository {
   findById(id: string): Promise<Payment | null>;
 
   /**
+   * Find a payment by ID and lock it for update within the current transaction.
+   * Returns null if not found.
+   */
+  findByIdForUpdate(id: string): Promise<Payment | null>;
+
+  /**
    * Find a payment by ID and store ID.
    * This ensures the payment belongs to the store.
    * Returns null if not found or doesn't belong to the store.
@@ -52,12 +58,21 @@ export interface IPaymentRepository {
   findByIdAndStoreId(id: string, storeId: string): Promise<Payment | null>;
 
   /**
+   * Find a payment by ID and store ID and lock it for update within the current transaction.
+   * Returns null if not found or doesn't belong to the store.
+   */
+  findByIdAndStoreIdForUpdate(
+    id: string,
+    storeId: string,
+  ): Promise<Payment | null>;
+
+  /**
    * Find a payment by external ID and store ID.
    * Returns null if not found.
    */
   findByExternalIdAndStoreId(
     externalId: string,
-    storeId: string
+    storeId: string,
   ): Promise<Payment | null>;
 
   /**

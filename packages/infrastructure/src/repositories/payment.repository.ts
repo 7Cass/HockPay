@@ -14,6 +14,10 @@ import {
   Prisma,
 } from "@hockpay/database";
 
+type PaymentLockRow = {
+  id: string;
+};
+
 /**
  * Shared implementation of IPaymentRepository using Prisma.
  *
@@ -71,6 +75,18 @@ export class PaymentRepository implements IPaymentRepository {
     return this.toDomain(prismaPayment);
   }
 
+  async findByIdForUpdate(id: string): Promise<DomainPayment | null> {
+    const rows = await this.prisma.$queryRaw<PaymentLockRow[]>`
+      SELECT id
+      FROM payments
+      WHERE id = ${id}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    return row ? this.findById(row.id) : null;
+  }
+
   async findByIdAndStoreId(
     id: string,
     storeId: string,
@@ -88,6 +104,22 @@ export class PaymentRepository implements IPaymentRepository {
     }
 
     return this.toDomain(prismaPayment);
+  }
+
+  async findByIdAndStoreIdForUpdate(
+    id: string,
+    storeId: string,
+  ): Promise<DomainPayment | null> {
+    const rows = await this.prisma.$queryRaw<PaymentLockRow[]>`
+      SELECT id
+      FROM payments
+      WHERE id = ${id}
+        AND store_id = ${storeId}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    return row ? this.findByIdAndStoreId(row.id, storeId) : null;
   }
 
   async findByExternalIdAndStoreId(
@@ -255,7 +287,9 @@ export class PaymentRepository implements IPaymentRepository {
     return { pixCharge: true };
   }
 
-  private toDomain(prismaPayment: PrismaPayment & { pixCharge?: any }): DomainPayment {
+  private toDomain(
+    prismaPayment: PrismaPayment & { pixCharge?: any },
+  ): DomainPayment {
     const props: PaymentProps = {
       id: prismaPayment.id,
       storeId: prismaPayment.storeId,

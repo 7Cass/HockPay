@@ -1,12 +1,12 @@
-import { Withdrawal, WithdrawalStatus } from "@hockpay/core";
+import { Withdrawal, WithdrawalObject, WithdrawalStatus } from "@hockpay/core";
 import { WithdrawalProcessingJob } from "./withdrawal-processing.job";
 
 describe("WithdrawalProcessingJob", () => {
-  it("processes pending withdrawals to completed", async () => {
+  it("claims processable withdrawals and completes them", async () => {
     const withdrawal = makeWithdrawal();
     const deps = makeDeps([withdrawal]);
     const job = new WithdrawalProcessingJob(
-      deps.repository as any,
+      deps.claim as any,
       deps.markProcessing as any,
       deps.complete as any,
       deps.fail as any,
@@ -15,9 +15,8 @@ describe("WithdrawalProcessingJob", () => {
 
     await job.processPendingWithdrawals();
 
-    expect(deps.markProcessing.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ withdrawalId: withdrawal.id }),
-    );
+    expect(deps.claim.execute).toHaveBeenCalledWith({ limit: 50 });
+    expect(deps.markProcessing.execute).not.toHaveBeenCalled();
     expect(deps.complete.execute).toHaveBeenCalledWith(
       expect.objectContaining({ withdrawalId: withdrawal.id }),
     );
@@ -26,9 +25,9 @@ describe("WithdrawalProcessingJob", () => {
 
   it("records a retry for technical processor failures before final attempt", async () => {
     const withdrawal = makeWithdrawal();
-    const deps = makeDeps([withdrawal], { attemptsAfterMark: 1 });
+    const deps = makeDeps([withdrawal], { claimedAttempts: 1 });
     const job = new FailingWithdrawalProcessingJob(
-      deps.repository as any,
+      deps.claim as any,
       deps.markProcessing as any,
       deps.complete as any,
       deps.fail as any,
@@ -49,9 +48,9 @@ describe("WithdrawalProcessingJob", () => {
 
   it("fails after the final technical attempt", async () => {
     const withdrawal = makeWithdrawal();
-    const deps = makeDeps([withdrawal], { attemptsAfterMark: 3 });
+    const deps = makeDeps([withdrawal], { claimedAttempts: 3 });
     const job = new FailingWithdrawalProcessingJob(
-      deps.repository as any,
+      deps.claim as any,
       deps.markProcessing as any,
       deps.complete as any,
       deps.fail as any,
@@ -68,6 +67,32 @@ describe("WithdrawalProcessingJob", () => {
       }),
     );
   });
+
+  it("does not payout or complete when legacy mark returns alreadyProcessing", async () => {
+    const withdrawal = makeWithdrawal();
+    const deps = makeDeps([]);
+    deps.markProcessing.execute.mockResolvedValueOnce({
+      withdrawal: makeProcessingObject(withdrawal, 1),
+      alreadyProcessing: true,
+    });
+    const job = new WithdrawalProcessingJob(
+      deps.claim as any,
+      deps.markProcessing as any,
+      deps.complete as any,
+      deps.fail as any,
+      deps.recordRetry as any,
+    );
+
+    await job.processWithdrawal(withdrawal.id, "request-1");
+
+    expect(deps.markProcessing.execute).toHaveBeenCalledWith({
+      withdrawalId: withdrawal.id,
+      requestId: "request-1",
+    });
+    expect(deps.complete.execute).not.toHaveBeenCalled();
+    expect(deps.fail.execute).not.toHaveBeenCalled();
+    expect(deps.recordRetry.execute).not.toHaveBeenCalled();
+  });
 });
 
 class FailingWithdrawalProcessingJob extends WithdrawalProcessingJob {
@@ -78,25 +103,31 @@ class FailingWithdrawalProcessingJob extends WithdrawalProcessingJob {
 
 function makeDeps(
   withdrawals: Withdrawal[],
-  options: { attemptsAfterMark?: number } = {},
+  options: { claimedAttempts?: number; attemptsAfterMark?: number } = {},
 ) {
   return {
-    repository: {
-      findProcessablePending: jest.fn().mockResolvedValue(withdrawals),
+    claim: {
+      execute: jest.fn().mockResolvedValue({
+        withdrawals: withdrawals.map((withdrawal) =>
+          makeProcessingObject(
+            withdrawal,
+            options.claimedAttempts ??
+              withdrawal.toObject().processingAttempts + 1,
+          ),
+        ),
+      }),
     },
     markProcessing: {
       execute: jest.fn().mockImplementation(({ withdrawalId }) => {
         const withdrawal = withdrawals.find(
           (item) => item.id === withdrawalId,
         )!;
-        const object = withdrawal.toObject();
         return Promise.resolve({
-          withdrawal: {
-            ...object,
-            status: WithdrawalStatus.PROCESSING,
-            processingAttempts:
-              options.attemptsAfterMark ?? object.processingAttempts + 1,
-          },
+          withdrawal: makeProcessingObject(
+            withdrawal,
+            options.attemptsAfterMark ??
+              withdrawal.toObject().processingAttempts + 1,
+          ),
           alreadyProcessing: false,
         });
       }),
@@ -110,6 +141,19 @@ function makeDeps(
     recordRetry: {
       execute: jest.fn().mockResolvedValue({}),
     },
+  };
+}
+
+function makeProcessingObject(
+  withdrawal: Withdrawal,
+  processingAttempts: number,
+): WithdrawalObject {
+  return {
+    ...withdrawal.toObject(),
+    status: WithdrawalStatus.PROCESSING,
+    processingAttempts,
+    nextProcessAt: undefined,
+    lastProcessingError: undefined,
   };
 }
 

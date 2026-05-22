@@ -325,11 +325,19 @@ class InMemoryAccountRepository {
     return this.items.get(id) ?? null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Account | null> {
+    return this.findById(id);
+  }
+
   async findByStoreId(storeId: string): Promise<Account | null> {
     return (
       [...this.items.values()].find((account) => account.storeId === storeId) ??
       null
     );
+  }
+
+  async findByStoreIdForUpdate(storeId: string): Promise<Account | null> {
+    return this.findByStoreId(storeId);
   }
 
   async findWithPendingBalance(): Promise<Account[]> {
@@ -472,12 +480,23 @@ class InMemoryPaymentRepository {
     return this.items.get(id) ?? null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Payment | null> {
+    return this.findById(id);
+  }
+
   async findByIdAndStoreId(
     id: string,
     storeId: string,
   ): Promise<Payment | null> {
     const payment = this.items.get(id);
     return payment?.storeId === storeId ? payment : null;
+  }
+
+  async findByIdAndStoreIdForUpdate(
+    id: string,
+    storeId: string,
+  ): Promise<Payment | null> {
+    return this.findByIdAndStoreId(id, storeId);
   }
 
   async findByExternalIdAndStoreId(): Promise<Payment | null> {
@@ -571,6 +590,13 @@ class InMemoryPixChargeRepository {
   ): Promise<PixCharge | null> {
     const charge = this.items.get(id);
     return charge?.storeId === storeId ? charge : null;
+  }
+
+  async findByIdAndStoreIdForUpdate(
+    id: string,
+    storeId: string,
+  ): Promise<PixCharge | null> {
+    return this.findByIdAndStoreId(id, storeId);
   }
 
   async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {

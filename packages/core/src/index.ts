@@ -220,6 +220,7 @@ export * from "./application/use-cases/create-refund.use-case";
 export * from "./application/use-cases/create-withdrawal.use-case";
 export * from "./application/use-cases/list-withdrawals.use-case";
 export * from "./application/use-cases/get-withdrawal.use-case";
+export * from "./application/use-cases/claim-processable-withdrawals.use-case";
 export * from "./application/use-cases/mark-withdrawal-processing.use-case";
 export * from "./application/use-cases/complete-withdrawal.use-case";
 export * from "./application/use-cases/fail-withdrawal.use-case";

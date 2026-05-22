@@ -1,10 +1,27 @@
 import {
+  ClaimDispatchableEventsParams,
   IOutboxRepository,
   OutboxEvent,
   OutboxEventProps,
   OutboxEventStatus,
 } from "@hockpay/core";
 import { PrismaClient, OutboxStatus, Prisma } from "@hockpay/database";
+
+type OutboxEventRow = {
+  id: string;
+  aggregateType: string;
+  aggregateId: string;
+  eventType: string;
+  requestId: string | null;
+  payload: unknown;
+  status: OutboxStatus;
+  processedAt: Date | null;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt: Date | null;
+  errorMessage: string | null;
+  createdAt: Date;
+};
 
 /**
  * Shared implementation of IOutboxRepository using Prisma.
@@ -113,6 +130,75 @@ export class OutboxRepository implements IOutboxRepository {
       orderBy: { createdAt: "asc" },
       take: limit,
     });
+
+    return events.map((e) => this.toDomain(e));
+  }
+
+  async claimDispatchableEvents({
+    limit,
+    now = new Date(),
+    watchdogUntil,
+  }: ClaimDispatchableEventsParams): Promise<OutboxEvent[]> {
+    if (limit <= 0) {
+      return [];
+    }
+
+    const legacyDispatchedCutoff = new Date(
+      now.getTime() - OutboxRepository.LEGACY_DISPATCHED_STALE_MS,
+    );
+
+    const events = await this.prisma.$queryRaw<OutboxEventRow[]>(Prisma.sql`
+      WITH claimable AS (
+        SELECT "id"
+        FROM "outbox_events"
+        WHERE (
+          (
+            "status" = ${OutboxStatus.PENDING}::"OutboxStatus"
+            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${now})
+          )
+          OR (
+            "status" = ${OutboxStatus.FAILED}::"OutboxStatus"
+            AND "retry_count" < "max_retries"
+            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${now})
+          )
+          OR (
+            "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus"
+            AND "processed_at" IS NULL
+            AND "next_retry_at" <= ${now}
+          )
+          OR (
+            "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus"
+            AND "processed_at" IS NULL
+            AND "next_retry_at" IS NULL
+            AND "created_at" <= ${legacyDispatchedCutoff}
+          )
+        )
+        ORDER BY "created_at" ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE "outbox_events" AS oe
+      SET
+        "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus",
+        "next_retry_at" = ${watchdogUntil},
+        "error_message" = NULL
+      FROM claimable
+      WHERE oe."id" = claimable."id"
+      RETURNING
+        oe."id",
+        oe."aggregate_type" AS "aggregateType",
+        oe."aggregate_id" AS "aggregateId",
+        oe."event_type" AS "eventType",
+        oe."request_id" AS "requestId",
+        oe."payload",
+        oe."status",
+        oe."processed_at" AS "processedAt",
+        oe."retry_count" AS "retryCount",
+        oe."max_retries" AS "maxRetries",
+        oe."next_retry_at" AS "nextRetryAt",
+        oe."error_message" AS "errorMessage",
+        oe."created_at" AS "createdAt"
+    `);
 
     return events.map((e) => this.toDomain(e));
   }

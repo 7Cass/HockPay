@@ -39,7 +39,7 @@ export class CreateRefundUseCase {
     input: ICreateRefundInput,
     repos: ITransactedRepositories,
   ): Promise<ICreateRefundOutput> {
-    const payment = await repos.paymentRepository.findByIdAndStoreId(
+    const payment = await repos.paymentRepository.findByIdAndStoreIdForUpdate(
       input.paymentId,
       input.storeId,
     );
@@ -66,7 +66,9 @@ export class CreateRefundUseCase {
       );
     }
 
-    const account = await repos.accountRepository.findByStoreId(input.storeId);
+    const account = await repos.accountRepository.findByStoreIdForUpdate(
+      input.storeId,
+    );
     if (!account) {
       throw new AccountNotFoundError(input.storeId);
     }

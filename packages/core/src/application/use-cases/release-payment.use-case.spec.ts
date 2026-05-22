@@ -1,16 +1,22 @@
-import { describe, expect, it, vi } from 'vitest';
-import { ReleasePaymentUseCase } from './release-payment.use-case';
-import { Payment } from '../../domain/entities/payment.entity';
-import { Account } from '../../domain/entities/account.entity';
-import { Refund } from '../../domain/entities/refund.entity';
-import { TransactionType } from '../../domain/entities/transaction.entity';
+import { describe, expect, it, vi } from "vitest";
+import { ReleasePaymentUseCase } from "./release-payment.use-case";
+import { Payment } from "../../domain/entities/payment.entity";
+import { Account } from "../../domain/entities/account.entity";
+import { Refund } from "../../domain/entities/refund.entity";
+import { TransactionType } from "../../domain/entities/transaction.entity";
 
-describe('ReleasePaymentUseCase', () => {
-  function makeRepos(payment: Payment, account: Account | null, refunds: Refund[] = []) {
+describe("ReleasePaymentUseCase", () => {
+  function makeRepos(
+    payment: Payment,
+    account: Account | null,
+    refunds: Refund[] = [],
+  ) {
     return {
       paymentRepository: {
         findById: vi.fn().mockResolvedValue(payment),
+        findByIdForUpdate: vi.fn().mockResolvedValue(payment),
         findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
         update: vi.fn(),
       },
       refundRepository: {
@@ -18,6 +24,7 @@ describe('ReleasePaymentUseCase', () => {
       },
       accountRepository: {
         findByStoreId: vi.fn().mockResolvedValue(account),
+        findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
         update: vi.fn(),
       },
       transactionRepository: {
@@ -33,9 +40,9 @@ describe('ReleasePaymentUseCase', () => {
     };
   }
 
-  it('releases only the remaining net amount after processed refunds', async () => {
+  it("releases only the remaining net amount after processed refunds", async () => {
     const payment = Payment.create({
-      storeId: 'store-1',
+      storeId: "store-1",
       amount: 10_000,
       fee: 1_000,
       netAmount: 9_000,
@@ -52,12 +59,12 @@ describe('ReleasePaymentUseCase', () => {
     refund.process();
 
     const account = Account.reconstitute({
-      id: 'account-1',
-      storeId: 'store-1',
+      id: "account-1",
+      storeId: "store-1",
       available: 0,
       pending: 6_750,
       blocked: 0,
-      currency: 'BRL',
+      currency: "BRL",
       updatedAt: new Date(),
     });
 
@@ -77,13 +84,19 @@ describe('ReleasePaymentUseCase', () => {
     expect(transaction.fee).toBe(750);
     expect(transaction.netAmount).toBe(6_750);
     expect(transaction.balanceAfter).toBe(6_750);
-    expect(transaction.referenceType).toBe('PAYMENT');
+    expect(transaction.referenceType).toBe("PAYMENT");
     expect(transaction.referenceId).toBe(payment.id);
+    expect(repos.paymentRepository.findByIdForUpdate).toHaveBeenCalledWith(
+      payment.id,
+    );
+    expect(repos.accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(
+      payment.storeId,
+    );
   });
 
-  it('returns an already released payment without side effects', async () => {
+  it("returns an already released payment without side effects", async () => {
     const payment = Payment.create({
-      storeId: 'store-1',
+      storeId: "store-1",
       amount: 10_000,
       fee: 1_000,
       netAmount: 9_000,
@@ -93,12 +106,12 @@ describe('ReleasePaymentUseCase', () => {
     payment.release();
 
     const account = Account.reconstitute({
-      id: 'account-1',
-      storeId: 'store-1',
+      id: "account-1",
+      storeId: "store-1",
       available: 9_000,
       pending: 0,
       blocked: 0,
-      currency: 'BRL',
+      currency: "BRL",
       updatedAt: new Date(),
     });
 
@@ -112,6 +125,9 @@ describe('ReleasePaymentUseCase', () => {
     expect(result.alreadyReleased).toBe(true);
     expect(result.payment.id).toBe(payment.id);
     expect(result.account.id).toBe(account.id);
+    expect(repos.paymentRepository.findByIdForUpdate).toHaveBeenCalledWith(
+      payment.id,
+    );
     expect(repos.paymentRepository.update).not.toHaveBeenCalled();
     expect(repos.accountRepository.update).not.toHaveBeenCalled();
     expect(repos.transactionRepository.save).not.toHaveBeenCalled();
@@ -119,9 +135,9 @@ describe('ReleasePaymentUseCase', () => {
     expect(repos.refundRepository.findByPaymentId).not.toHaveBeenCalled();
   });
 
-  it('uses store-scoped lookup when storeId is provided', async () => {
+  it("uses store-scoped lookup when storeId is provided", async () => {
     const payment = Payment.create({
-      storeId: 'store-1',
+      storeId: "store-1",
       amount: 10_000,
       fee: 1_000,
       netAmount: 9_000,
@@ -130,12 +146,12 @@ describe('ReleasePaymentUseCase', () => {
     payment.confirm();
 
     const account = Account.reconstitute({
-      id: 'account-1',
-      storeId: 'store-1',
+      id: "account-1",
+      storeId: "store-1",
       available: 0,
       pending: 9_000,
       blocked: 0,
-      currency: 'BRL',
+      currency: "BRL",
       updatedAt: new Date(),
     });
 
@@ -145,14 +161,14 @@ describe('ReleasePaymentUseCase', () => {
     } as any);
 
     await useCase.execute({
-      storeId: 'store-1',
+      storeId: "store-1",
       paymentId: payment.id,
     });
 
-    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
-      payment.id,
-      'store-1',
-    );
+    expect(
+      repos.paymentRepository.findByIdAndStoreIdForUpdate,
+    ).toHaveBeenCalledWith(payment.id, "store-1");
     expect(repos.paymentRepository.findById).not.toHaveBeenCalled();
+    expect(repos.paymentRepository.findByIdForUpdate).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,16 @@ import {
   Prisma,
 } from "@hockpay/database";
 
+type AccountRow = {
+  id: string;
+  storeId: string;
+  available: number;
+  pending: number;
+  blocked: number;
+  currency: string;
+  updatedAt: Date;
+};
+
 /**
  * Shared implementation of IAccountRepository using Prisma.
  */
@@ -52,6 +62,25 @@ export class AccountRepository implements IAccountRepository {
     return this.toDomain(prismaAccount);
   }
 
+  async findByIdForUpdate(id: string): Promise<DomainAccount | null> {
+    const rows = await this.prisma.$queryRaw<AccountRow[]>`
+      SELECT
+        id,
+        store_id AS "storeId",
+        available,
+        pending,
+        blocked,
+        currency,
+        updated_at AS "updatedAt"
+      FROM accounts
+      WHERE id = ${id}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    return row ? this.toDomain(row) : null;
+  }
+
   async findByStoreId(storeId: string): Promise<DomainAccount | null> {
     const prismaAccount = await this.prisma.account.findUnique({
       where: { storeId },
@@ -62,6 +91,25 @@ export class AccountRepository implements IAccountRepository {
     }
 
     return this.toDomain(prismaAccount);
+  }
+
+  async findByStoreIdForUpdate(storeId: string): Promise<DomainAccount | null> {
+    const rows = await this.prisma.$queryRaw<AccountRow[]>`
+      SELECT
+        id,
+        store_id AS "storeId",
+        available,
+        pending,
+        blocked,
+        currency,
+        updated_at AS "updatedAt"
+      FROM accounts
+      WHERE store_id = ${storeId}
+      FOR UPDATE
+    `;
+
+    const row = rows[0];
+    return row ? this.toDomain(row) : null;
   }
 
   async findWithPendingBalance(cutoffDate: Date): Promise<DomainAccount[]> {

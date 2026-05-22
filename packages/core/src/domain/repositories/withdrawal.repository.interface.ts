@@ -34,10 +34,17 @@ export interface ListWithdrawalsResult {
   summary: WithdrawalSummary;
 }
 
+export interface ClaimProcessableWithdrawalsOptions {
+  limit: number;
+  now?: Date;
+  staleProcessingBefore?: Date;
+}
+
 export interface IWithdrawalRepository {
   save(withdrawal: Withdrawal): Promise<void>;
   update(withdrawal: Withdrawal): Promise<void>;
   findById(id: string): Promise<Withdrawal | null>;
+  findByIdForUpdate(id: string): Promise<Withdrawal | null>;
   findByIdAndAccountId(
     id: string,
     accountId: string,
@@ -58,4 +65,11 @@ export interface IWithdrawalRepository {
    * Implementations may also include stale PROCESSING rows for crash recovery.
    */
   findProcessablePending(limit: number, now?: Date): Promise<Withdrawal[]>;
+  /**
+   * Atomically claims withdrawals ready for processing.
+   * Implementations should move PENDING and stale PROCESSING rows to PROCESSING.
+   */
+  claimProcessableWithdrawals(
+    options: ClaimProcessableWithdrawalsOptions,
+  ): Promise<Withdrawal[]>;
 }

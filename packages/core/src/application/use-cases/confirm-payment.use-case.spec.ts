@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
 import { Payment } from "../../domain/entities/payment.entity";
+import { PixCharge } from "../../domain/entities/pix-charge.entity";
 import { Environment } from "../../domain/value-objects/environment.vo";
 import { Customer } from "../../domain/entities/customer.entity";
 import { Document } from "../../domain/value-objects/document.vo";
@@ -35,11 +36,11 @@ describe("ConfirmPaymentUseCase", () => {
       execute: async (work: any) =>
         work({
           paymentRepository: {
-            findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+            findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
             update: vi.fn(),
           },
           accountRepository: {
-            findByStoreId: vi.fn().mockResolvedValue(account),
+            findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
             update: vi.fn(),
           },
           transactionRepository: {
@@ -73,6 +74,79 @@ describe("ConfirmPaymentUseCase", () => {
     expect(savedReceipt.payerEmail).toBe("guest@example.com");
   });
 
+  it("locks payment, Pix charge and account before confirming a Pix payment", async () => {
+    const pixCharge = PixCharge.create({
+      storeId: "store-1",
+      amount: 7990,
+      pixQrCode: "qr-code",
+      pixCopyPaste: "copy-paste",
+      pixTxId: "tx-1",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const payment = Payment.create({
+      storeId: "store-1",
+      pixChargeId: pixCharge.id,
+      amount: 7990,
+      fee: 135,
+      netAmount: 7855,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.TEST,
+    });
+    const paymentRepository = {
+      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
+      findByPixChargeIdAndStoreId: vi.fn().mockResolvedValue([payment]),
+      update: vi.fn(),
+    };
+    const pixChargeRepository = {
+      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
+      update: vi.fn(),
+    };
+    const accountRepository = {
+      findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+      update: vi.fn(),
+    };
+    const unitOfWork = {
+      execute: async (work: any) =>
+        work({
+          paymentRepository,
+          pixChargeRepository,
+          accountRepository,
+          transactionRepository: {
+            save: vi.fn(),
+          },
+          bankAccountRepository: {},
+          outboxWriter: {
+            save: vi.fn(),
+          },
+          receiptRepository: {
+            incrementCounter: vi.fn().mockResolvedValue(1),
+            save: vi.fn(),
+          },
+          storeRepository: {
+            findById: vi.fn().mockResolvedValue(store),
+          },
+          customerRepository: {},
+        }),
+    };
+
+    await new ConfirmPaymentUseCase(unitOfWork as any).execute({
+      storeId: "store-1",
+      paymentId: payment.id,
+    });
+
+    expect(paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
+      payment.id,
+      "store-1",
+    );
+    expect(
+      pixChargeRepository.findByIdAndStoreIdForUpdate,
+    ).toHaveBeenCalledWith(pixCharge.id, "store-1");
+    expect(accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(
+      "store-1",
+    );
+    expect(pixChargeRepository.update).toHaveBeenCalledWith(pixCharge);
+  });
+
   it("falls back to the associated customer when the payment has no payer snapshot", async () => {
     const customer = Customer.create({
       storeId: "store-1",
@@ -100,11 +174,11 @@ describe("ConfirmPaymentUseCase", () => {
       execute: async (work: any) =>
         work({
           paymentRepository: {
-            findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+            findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
             update: vi.fn(),
           },
           accountRepository: {
-            findByStoreId: vi.fn().mockResolvedValue(account),
+            findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
             update: vi.fn(),
           },
           transactionRepository: {
