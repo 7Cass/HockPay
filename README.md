@@ -22,6 +22,8 @@ Base local da API:
 http://localhost:3000/api/v1
 ```
 
+Para variáveis de ambiente por app e opções de smoke local, use a matriz do [Runbook](./docs/RUNBOOK.md#vari%C3%A1veis-de-ambiente-por-app). A raiz também possui `.env.example` com placeholders seguros.
+
 ## Monorepo
 
 | Caminho | Papel |

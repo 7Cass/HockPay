@@ -30,12 +30,15 @@ formulário e renderer específicos do domínio.
 
 ### 1. Variáveis de ambiente
 
-Campos relevantes:
+| Variável | Uso | Default/placeholder local |
+| --- | --- | --- |
+| `HOCKPAY_API_KEY` | API key TEST usada para criar checkout sessions e, quando necessário, simular pagamentos via contrato autenticado | `hk_test_xxx` |
+| `HOCKPAY_BASE_URL` | Base da API Hockpay sem `/api/v1`; o código adiciona `/api/v1` internamente | `http://localhost:3000` |
+| `HOCKPAY_WEBHOOK_SECRET` | Secret retornado ao registrar o webhook da demo | `whsec_xxx` |
+| `NEXT_PUBLIC_APP_URL` | URL pública da própria demo usada em `successUrl` e `cancelUrl` | `http://localhost:3005` |
+| `PORT` | Porta do Next.js quando iniciada pelo runner/smoke | `3005` |
 
-- `HOCKPAY_API_KEY`
-- `HOCKPAY_BASE_URL`
-- `HOCKPAY_WEBHOOK_SECRET`
-- `NEXT_PUBLIC_APP_URL`
+Não configure `HOCKPAY_BASE_URL` com `/api/v1`. Use `http://localhost:3000`, não `http://localhost:3000/api/v1`.
 
 ## Registrar webhook no Hockpay
 

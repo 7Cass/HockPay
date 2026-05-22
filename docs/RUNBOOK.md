@@ -32,6 +32,86 @@ Portas esperadas:
 | Checkout | `http://localhost:3333` |
 | Demo Media Kit | `http://localhost:3005` |
 
+## Variáveis de Ambiente por App
+
+Use `.env.example` como base local, sem copiar valores reais de `.env`. API e worker precisam compartilhar `DATABASE_URL`, `ENCRYPTION_KEY` e o mesmo Redis operacional.
+
+### Root compartilhado
+
+| Variável | Uso | Default/placeholder local |
+| --- | --- | --- |
+| `NODE_ENV` | Seleciona comportamento de dev/test/prod em API, worker e checkout | `development` |
+| `DATABASE_URL` | PostgreSQL usado por Prisma, API, worker e migrations | `postgresql://hockpay:hockpay_dev_password@localhost:5432/hockpay?schema=public` |
+| `JWT_SECRET` | Assinatura de JWT do dashboard | placeholder forte local |
+| `ENCRYPTION_KEY` | Chave hex de 32 bytes para segredos sensíveis | 64 caracteres hex placeholder |
+| `REDIS_URL` | Redis da idempotência/cache da API e smoke de concorrência | `redis://localhost:6379` |
+| `REDIS_HOST` / `REDIS_PORT` | Redis de BullMQ, throttling, locks e scripts DLQ | `localhost` / `6379` |
+
+`REDIS_URL` e `REDIS_HOST`/`REDIS_PORT` não são substitutos automáticos entre si no código atual. Aponte os dois formatos para a mesma instância quando rodar API, worker e smokes integrados.
+
+### API
+
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `PORT` | Porta HTTP da API | `3000` |
+| `CORS_ORIGIN` | Origens permitidas separadas por vírgula | origens locais do monorepo |
+| `PIX_KEY` | Chave Pix fake em cobranças simuladas | `test@hockpay.com` |
+| `CHECKOUT_BASE_URL` | Base pública do checkout para Payment Links e checkout sessions | `http://localhost:3333` |
+| `PUBLIC_API_BASE_URL` | Base pública preferencial para URLs absolutas expostas pela API | vazio |
+| `APP_URL` | Fallback para URLs absolutas quando `PUBLIC_API_BASE_URL` não existe | vazio |
+
+### Worker
+
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `PORT` | Listener Nest do worker | `3001` |
+| `REDIS_HOST` / `REDIS_PORT` | BullMQ, locks distribuídos e jobs | `localhost` / `6379` |
+| `WORKER_CRON_OUTBOX_DISPATCHER` | Dispatcher de outbox | `*/10 * * * * *` |
+| `WORKER_CRON_PAYMENT_EXPIRATION` | Expiração de pagamentos pendentes | `* * * * *` |
+| `WORKER_CRON_SETTLEMENT` | Settlement simulado | `0 0 * * *` |
+| `WORKER_CRON_WITHDRAWAL_PROCESSING` | Processamento de saques simulados | `*/15 * * * * *` |
+| `WORKER_CRON_CLEANUP_LOGS` | Limpeza de logs | `0 3 * * *` |
+| `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | Limpeza de chaves idempotentes | `0 4 * * *` |
+| `WORKER_CRON_ANTI_FRAUD` | Varredura antifraude simulada | `0 * * * *` |
+| `WORKER_CRON_LOCK_TTL_MS` | TTL do lock distribuído | `300000` |
+| `WITHDRAWAL_SIMULATOR_FORCE_FAILURE` | Força falha técnica de saque quando `true` | `false` |
+
+O worker não lê `REDIS_URL`.
+
+### Checkout
+
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Base completa da API no browser, incluindo `/api/v1` | `http://localhost:3000/api/v1` |
+| `NEXT_PUBLIC_DEV_MODE` | Habilita botões de simulação de pagamento quando `true` | `true` em `NODE_ENV=development` |
+| `PORT` | Porta do Next.js | `3333` |
+
+### Demo Media Kit
+
+| Variável | Uso | Default/placeholder local |
+| --- | --- | --- |
+| `HOCKPAY_API_KEY` | API key TEST usada pela demo | `hk_test_xxx` |
+| `HOCKPAY_BASE_URL` | Base da API sem `/api/v1`; a demo adiciona `/api/v1` internamente | `http://localhost:3000` |
+| `HOCKPAY_WEBHOOK_SECRET` | Secret do webhook registrado para a demo | `whsec_xxx` |
+| `NEXT_PUBLIC_APP_URL` | URL pública da demo para redirects | `http://localhost:3005` |
+| `PORT` | Porta do Next.js | `3005` |
+
+### Smokes
+
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `HOCKPAY_API_URL` | Base completa da API usada por smokes, incluindo `/api/v1` | `http://localhost:3000/api/v1` |
+| `HOCKPAY_CHECKOUT_URL` | Base do checkout nos smokes de Payment Link/studycase/system | `http://localhost:3333` |
+| `HOCKPAY_WEB_URL` / `HOCKPAY_DASHBOARD_URL` | Base do dashboard em validações visuais/links | `http://localhost:4200` |
+| `HOCKPAY_STUDYCASE_DEMO_URL` | URL da demo Media Kit | `http://localhost:3005` |
+| `HOCKPAY_STUDYCASE_DEMO_PORT` | Porta para iniciar a demo no smoke | `3005` |
+| `HOCKPAY_STUDYCASE_START_DEMO` | Use `false` para nao iniciar a demo automaticamente | inicia por default |
+| `HOCKPAY_SMOKE_WEBHOOK_PORT` | Porta do receiver local de webhook | `3999` |
+| `HOCKPAY_SMOKE_TIMEOUT_MS` | Timeout dos smokes focados | varia por smoke |
+| `HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL` | Webhook real opcional para smoke de alerta Discord | vazio |
+| `HOCKPAY_SMOKE_CUSTOMERS` / `HOCKPAY_SMOKE_PAYMENTS` / `HOCKPAY_SMOKE_PAYMENT_LINKS` / `HOCKPAY_SMOKE_CONCURRENCY` | Volume do smoke `system` | defaults leves |
+| `HOCKPAY_SMOKE_IDEMPOTENCY_CONCURRENCY` | Concorrência do smoke de idempotência | `6` |
+
 ## Smoke Docker Local
 
 ```bash
@@ -51,10 +131,21 @@ Opcoes uteis:
 ```bash
 HOCKPAY_SMOKE_SUITE=withdrawals pnpm run smoke:docker
 HOCKPAY_SMOKE_SUITE=p0,payment-link pnpm run smoke:docker
+HOCKPAY_SMOKE_SUITE=idempotency,db-concurrency pnpm run smoke:docker
+HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker
+HOCKPAY_SMOKE_WORKER_PORT=3011 pnpm run smoke:docker
+HOCKPAY_SMOKE_CHECKOUT_PORT=3334 pnpm run smoke:docker
+HOCKPAY_SMOKE_STUDYCASE_PORT=3006 pnpm run smoke:docker
+HOCKPAY_SMOKE_WEBHOOK_PORT=4000 pnpm run smoke:docker
+HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS=120000 pnpm run smoke:docker
+HOCKPAY_SMOKE_HTTP_REQUEST_TIMEOUT_MS=10000 pnpm run smoke:docker
 HOCKPAY_SMOKE_KEEP_ALIVE=true pnpm run smoke:docker
 HOCKPAY_SMOKE_CLEAN_VOLUMES=true pnpm run smoke:docker
 HOCKPAY_SMOKE_MIGRATE_MODE=deploy pnpm run smoke:docker
+HOCKPAY_SMOKE_MIGRATE_MODE=dev pnpm run smoke:docker
 ```
+
+Suites suportadas por `HOCKPAY_SMOKE_SUITE`: `p0`, `payment-link`, `p3`, `studycase`, `system`, `withdrawals`, `idempotency` e `db-concurrency`. Quando a suite contem apenas `idempotency` e/ou `db-concurrency`, o runner sobe somente API, Postgres e Redis.
 
 ## Smokes
 
@@ -96,6 +187,8 @@ WORKER_CRON_WITHDRAWAL_PROCESSING="0 0 0 1 1 *" pnpm --filter @hockpay/worker de
 
 ### Criar pagamento
 
+O exemplo usa o contrato copiável de integração: `POST /api/v1/payments` com `Idempotency-Key`, `paymentMethod` e `customer.document`.
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/payments \
   -H "Authorization: Bearer hk_test_xxx" \
@@ -103,6 +196,7 @@ curl -X POST http://localhost:3000/api/v1/payments \
   -H "Idempotency-Key: pedido-123" \
   -d '{
     "amount": 1500,
+    "paymentMethod": "PIX",
     "customer": {
       "name": "Cliente Demo",
       "email": "cliente@hockpay.local",
@@ -116,6 +210,16 @@ curl -X POST http://localhost:3000/api/v1/payments \
 ```bash
 curl -X POST http://localhost:3000/api/v1/dev/simulate/PAYMENT_ID/confirm \
   -H "Authorization: Bearer hk_test_xxx"
+```
+
+Esse contrato autenticado aceita `confirm`, `fail`, `expire` e `release` em pagamentos TEST da store. A UI dev do checkout usa outro endpoint público, com `checkoutToken` no body:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payments/PAYMENT_ID/simulate/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checkoutToken": "checkout_token_da_session"
+  }'
 ```
 
 ### Criar Payment Link
@@ -177,4 +281,3 @@ CI nao roda `pnpm lint` nem smokes locais.
 - `smoke:payment-link` valida PixCharge paga apos tentativa final.
 - `smoke:withdrawals` valida reserva, envio, reversao e dashboard links.
 - Dashboard permite investigar payment, receipt, webhook, financials e withdrawal sem abrir o banco.
-

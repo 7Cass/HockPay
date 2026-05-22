@@ -86,15 +86,23 @@ Headers relevantes atualmente enviados ao merchant:
 
 ## Variáveis de Ambiente Relevantes
 
-| Variável                             | Uso                                                                                       |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `PORT`                               | Porta do processo Nest                                                                    |
-| `DATABASE_URL`                       | PostgreSQL                                                                                |
-| `REDIS_HOST` / `REDIS_PORT`          | conexão BullMQ/Redis                                                                      |
-| `ENCRYPTION_KEY`                     | descriptografia de segredos de webhook                                                    |
-| `WORKER_CRON_*`                      | agendamento dos jobs periodicos do worker                                                 |
-| `WORKER_CRON_LOCK_TTL_MS`            | TTL do lock distribuído dos cron jobs, default `300000`                                   |
-| `WITHDRAWAL_SIMULATOR_FORCE_FAILURE` | quando `true`, força falha técnica do processador de saques para testar retry/falha final |
+| Variável | Uso | Default local |
+| --- | --- | --- |
+| `PORT` | Porta do processo Nest | `3001` |
+| `DATABASE_URL` | PostgreSQL compartilhado com a API | obrigatório |
+| `REDIS_HOST` / `REDIS_PORT` | Redis de BullMQ, locks distribuídos e jobs | `localhost` / `6379` |
+| `ENCRYPTION_KEY` | Descriptografia de segredos de webhook, precisa ser a mesma da API | obrigatório |
+| `WORKER_CRON_OUTBOX_DISPATCHER` | Agendamento do dispatcher de outbox | `*/10 * * * * *` |
+| `WORKER_CRON_PAYMENT_EXPIRATION` | Agendamento de expiração de pagamentos | `* * * * *` |
+| `WORKER_CRON_SETTLEMENT` | Agendamento de settlement simulado | `0 0 * * *` |
+| `WORKER_CRON_WITHDRAWAL_PROCESSING` | Agendamento de processamento de saques | `*/15 * * * * *` |
+| `WORKER_CRON_CLEANUP_LOGS` | Agendamento de limpeza de logs | `0 3 * * *` |
+| `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | Agendamento de limpeza de chaves idempotentes | `0 4 * * *` |
+| `WORKER_CRON_ANTI_FRAUD` | Agendamento da varredura antifraude simulada | `0 * * * *` |
+| `WORKER_CRON_LOCK_TTL_MS` | TTL do lock distribuído dos cron jobs | `300000` |
+| `WITHDRAWAL_SIMULATOR_FORCE_FAILURE` | Quando `true`, força falha técnica do processador de saques para testar retry/falha final | `false` |
+
+O worker não lê `REDIS_URL`. Configure `REDIS_HOST` e `REDIS_PORT` para o mesmo Redis usado pela API em BullMQ/throttling. `DATABASE_URL` e `ENCRYPTION_KEY` também precisam ser compartilhados com a API para ler outbox, logs e segredos criptografados corretamente.
 
 ## Observações
 
