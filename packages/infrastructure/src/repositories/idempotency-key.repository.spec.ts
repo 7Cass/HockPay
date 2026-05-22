@@ -7,7 +7,7 @@ import { IdempotencyKeyRepository } from "./idempotency-key.repository";
 
 describe("IdempotencyKeyRepository", () => {
   const now = new Date("2026-05-20T12:00:00.000Z");
-  const future = new Date("2026-05-21T12:00:00.000Z");
+  const future = new Date("2030-05-21T12:00:00.000Z");
 
   const input = {
     key: "idem-1",
