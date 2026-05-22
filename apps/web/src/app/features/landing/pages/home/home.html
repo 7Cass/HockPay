@@ -100,19 +100,21 @@
                 <ng-icon hlm name="lucideCode2" size="xs" aria-hidden="true"></ng-icon>
                 Request
               </div>
-              <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 font-mono text-[10px] font-bold text-emerald-200">POST /payments</span>
+              <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 font-mono text-[10px] font-bold text-emerald-200">POST /api/v1/payments</span>
             </div>
 
-            <pre class="code-sample overflow-x-auto rounded-lg bg-zinc-950 p-4 text-[12px] leading-6 text-zinc-300"><code><span class="text-cyan-300">await</span> hockpay.payments.create(&#123;
-  amount: <span class="text-amber-200">25000</span>,
-  method: <span class="text-emerald-300">'pix'</span>,
-  scenario: <span class="text-emerald-300">'paid'</span>,
-  customer: &#123;
-    email: <span class="text-emerald-300">'dev&#64;app.com'</span>
-  &#125;
-&#125;, &#123;
-  idempotencyKey: <span class="text-emerald-300">'order-123'</span>
-&#125;)</code></pre>
+            <pre class="code-sample overflow-x-auto rounded-lg bg-zinc-950 p-4 text-[12px] leading-6 text-zinc-300"><code>curl -X POST <span class="text-emerald-300">https://api.hockpay.dev/api/v1/payments</span> \
+  -H <span class="text-emerald-300">"Authorization: Bearer hk_test_xxx"</span> \
+  -H <span class="text-emerald-300">"Content-Type: application/json"</span> \
+  -H <span class="text-emerald-300">"Idempotency-Key: order-123"</span> \
+  -d '&#123;
+    "amount": <span class="text-amber-200">25000</span>,
+    "paymentMethod": <span class="text-emerald-300">"PIX"</span>,
+    "customer": &#123;
+      "email": <span class="text-emerald-300">"dev&#64;app.com"</span>,
+      "document": <span class="text-emerald-300">"12345678909"</span>
+    &#125;
+  &#125;'</code></pre>
           </section>
 
           <section class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
@@ -129,7 +131,7 @@
             <div class="space-y-3">
               <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
                 <span class="text-sm text-zinc-400">Status</span>
-                <span class="rounded-full bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">PAID</span>
+                <span class="rounded-full bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">CONFIRMED</span>
               </div>
               <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
                 <span class="text-sm text-zinc-400">Valor líquido</span>
@@ -155,15 +157,15 @@
             <div class="event-card border-cyan-300/20">
               <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="sm" aria-hidden="true"></ng-icon>
               <div>
-                <p class="font-mono text-xs font-bold text-white">webhook.sent</p>
+                <p class="font-mono text-xs font-bold text-white">payment.confirmed</p>
                 <p class="text-xs text-zinc-500">Payload assinado entregue</p>
               </div>
             </div>
             <div class="event-card border-amber-300/20">
               <ng-icon hlm name="lucideRefreshCcw" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
               <div>
-                <p class="font-mono text-xs font-bold text-white">retry.safe</p>
-                <p class="text-xs text-zinc-500">Idempotência preservada</p>
+                <p class="font-mono text-xs font-bold text-white">payment.failed</p>
+                <p class="text-xs text-zinc-500">Falha simulada sob demanda</p>
               </div>
             </div>
           </div>
@@ -183,30 +185,30 @@
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
-        <article class="scenario-card">
+        <article class="state-card">
           <div class="flex items-start justify-between gap-4">
-            <span class="scenario-icon bg-emerald-400/15 text-emerald-300">
+            <span class="state-icon bg-emerald-400/15 text-emerald-300">
               <ng-icon hlm name="lucideCheckCircle2" size="sm" aria-hidden="true"></ng-icon>
             </span>
-            <span class="status-pill bg-emerald-400/15 text-emerald-200">PAID</span>
+            <span class="status-pill bg-emerald-400/15 text-emerald-200">CONFIRMED</span>
           </div>
           <h3>Pagamento aprovado</h3>
           <p>Confirme liberação de acesso, emissão de recibo, saldo e fechamento do pedido.</p>
           <dl>
             <div>
-              <dt>Cenário</dt>
-              <dd>scenario: 'paid'</dd>
+              <dt>Ação TEST</dt>
+              <dd>confirm</dd>
             </div>
             <div>
               <dt>Evento</dt>
-              <dd>payment.paid</dd>
+              <dd>payment.confirmed</dd>
             </div>
           </dl>
         </article>
 
-        <article class="scenario-card">
+        <article class="state-card">
           <div class="flex items-start justify-between gap-4">
-            <span class="scenario-icon bg-red-400/15 text-red-300">
+            <span class="state-icon bg-red-400/15 text-red-300">
               <ng-icon hlm name="lucideXCircle" size="sm" aria-hidden="true"></ng-icon>
             </span>
             <span class="status-pill bg-red-400/15 text-red-200">FAILED</span>
@@ -215,8 +217,8 @@
           <p>Valide mensagens de erro, nova tentativa e comportamento de carrinho sem cobrança.</p>
           <dl>
             <div>
-              <dt>Cenário</dt>
-              <dd>scenario: 'failed'</dd>
+              <dt>Ação TEST</dt>
+              <dd>fail</dd>
             </div>
             <div>
               <dt>Evento</dt>
@@ -225,9 +227,9 @@
           </dl>
         </article>
 
-        <article class="scenario-card">
+        <article class="state-card">
           <div class="flex items-start justify-between gap-4">
-            <span class="scenario-icon bg-amber-300/15 text-amber-200">
+            <span class="state-icon bg-amber-300/15 text-amber-200">
               <ng-icon hlm name="lucideClock" size="sm" aria-hidden="true"></ng-icon>
             </span>
             <span class="status-pill bg-amber-300/15 text-amber-100">EXPIRED</span>
@@ -236,8 +238,8 @@
           <p>Teste timer, tela de expiração e retorno seguro para gerar uma nova cobrança.</p>
           <dl>
             <div>
-              <dt>Cenário</dt>
-              <dd>scenario: 'expired'</dd>
+              <dt>Ação TEST</dt>
+              <dd>expire</dd>
             </div>
             <div>
               <dt>Evento</dt>
@@ -246,9 +248,9 @@
           </dl>
         </article>
 
-        <article class="scenario-card">
+        <article class="state-card">
           <div class="flex items-start justify-between gap-4">
-            <span class="scenario-icon bg-cyan-400/15 text-cyan-300">
+            <span class="state-icon bg-cyan-400/15 text-cyan-300">
               <ng-icon hlm name="lucideRefreshCcw" size="sm" aria-hidden="true"></ng-icon>
             </span>
             <span class="status-pill bg-cyan-400/15 text-cyan-100">IDEMPOTENT</span>
@@ -257,12 +259,12 @@
           <p>Repita chamadas com a mesma chave e garanta que o pedido não vira duas cobranças.</p>
           <dl>
             <div>
-              <dt>Cenário</dt>
+              <dt>Header</dt>
               <dd>Idempotency-Key</dd>
             </div>
             <div>
-              <dt>Evento</dt>
-              <dd>idempotency.replayed</dd>
+              <dt>Resultado</dt>
+              <dd>Mesmo Payment</dd>
             </div>
           </dl>
         </article>

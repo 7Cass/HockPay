@@ -64,7 +64,7 @@
 }
 
 .feature-card,
-.scenario-card,
+.state-card,
 .comparison-card {
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -78,7 +78,7 @@
 }
 
 .feature-card:hover,
-.scenario-card:hover,
+.state-card:hover,
 .comparison-card:hover {
   transform: translateY(-2px);
   border-color: rgba(52, 211, 153, 0.35);
@@ -87,7 +87,7 @@
 
 .feature-card h3,
 .step-card h3,
-.scenario-card h3,
+.state-card h3,
 .comparison-card h3 {
   margin-top: 1rem;
   color: #fff;
@@ -98,19 +98,19 @@
 
 .feature-card p,
 .step-card p,
-.scenario-card p {
+.state-card p {
   margin-top: 0.5rem;
   color: #a1a1aa;
   line-height: 1.7;
 }
 
-.scenario-card dl {
+.state-card dl {
   display: grid;
   gap: 0.5rem;
   margin-top: 1rem;
 }
 
-.scenario-card dl > div {
+.state-card dl > div {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -121,7 +121,7 @@
   padding: 0.65rem 0.75rem;
 }
 
-.scenario-card dt {
+.state-card dt {
   color: #71717a;
   font-size: 0.75rem;
   font-weight: 800;
@@ -129,7 +129,7 @@
   letter-spacing: 0.12em;
 }
 
-.scenario-card dd {
+.state-card dd {
   overflow: hidden;
   color: #e4e4e7;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
@@ -139,7 +139,7 @@
   white-space: nowrap;
 }
 
-.scenario-icon {
+.state-icon {
   display: inline-flex;
   height: 2.5rem;
   width: 2.5rem;
