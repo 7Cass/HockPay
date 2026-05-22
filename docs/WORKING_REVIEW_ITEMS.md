@@ -11,7 +11,7 @@ Progresso macro:
 - [x] 3. Gaps transacionais em auth/store/checkout
 - [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
 - [x] 5. PrismaService, migrations, claims e invariantes de banco
-- [ ] 6. Docs, env e contratos apos redesign da landing
+- [x] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
 
