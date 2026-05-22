@@ -12,7 +12,14 @@ const COMPOSE_FILE = resolve(
 );
 const COMPOSE_PROJECT = "hockpay-smoke";
 const DOCKER_ARGS = ["compose", "-p", COMPOSE_PROJECT, "-f", COMPOSE_FILE];
-const PORTS = [15432, 16379, 3000, 3001, 3333, 3005, 3999];
+const INFRA_PORTS = [15432, 16379];
+const DEFAULT_APP_PORTS = {
+  api: 3000,
+  worker: 3001,
+  checkout: 3333,
+  studycase: 3005,
+  webhook: 3999,
+};
 const DEFAULT_SUITES = ["p0", "payment-link", "p3", "studycase", "system", "withdrawals"];
 const HEALTH_TIMEOUT_MS = Number(
   process.env.HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS ?? 90000,
@@ -30,6 +37,7 @@ const suiteCommands = new Map([
   ["system", ["pnpm", ["run", "smoke:system"]]],
   ["withdrawals", ["pnpm", ["run", "smoke:withdrawals"]]],
   ["idempotency", ["pnpm", ["run", "smoke:idempotency"]]],
+  ["db-concurrency", ["pnpm", ["run", "smoke:db-concurrency"]]],
 ]);
 
 const children = new Set();
@@ -46,7 +54,40 @@ function randomHex(bytes) {
   return randomBytes(bytes).toString("hex");
 }
 
-function smokeEnv() {
+function smokePorts() {
+  return {
+    api: readSmokePort("HOCKPAY_SMOKE_API_PORT", DEFAULT_APP_PORTS.api),
+    worker: readSmokePort("HOCKPAY_SMOKE_WORKER_PORT", DEFAULT_APP_PORTS.worker),
+    checkout: readSmokePort(
+      "HOCKPAY_SMOKE_CHECKOUT_PORT",
+      DEFAULT_APP_PORTS.checkout,
+    ),
+    studycase: readSmokePort(
+      "HOCKPAY_SMOKE_STUDYCASE_PORT",
+      DEFAULT_APP_PORTS.studycase,
+    ),
+    webhook: readSmokePort(
+      "HOCKPAY_SMOKE_WEBHOOK_PORT",
+      DEFAULT_APP_PORTS.webhook,
+    ),
+  };
+}
+
+function readSmokePort(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") {
+    return fallback;
+  }
+
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${name} must be an integer port between 1 and 65535.`);
+  }
+
+  return port;
+}
+
+function smokeEnv(ports = smokePorts()) {
   const postgresUser = process.env.HOCKPAY_SMOKE_POSTGRES_USER ?? "hockpay";
   const generatedPostgresPassword =
     process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD === undefined;
@@ -58,7 +99,7 @@ function smokeEnv() {
   return {
     ...process.env,
     NODE_ENV: "test",
-    PORT: "3000",
+    PORT: String(ports.api),
     HOCKPAY_SMOKE_POSTGRES_USER: postgresUser,
     HOCKPAY_SMOKE_POSTGRES_PASSWORD: postgresPassword,
     HOCKPAY_SMOKE_GENERATED_POSTGRES_PASSWORD: generatedPostgresPassword
@@ -74,20 +115,20 @@ function smokeEnv() {
     JWT_SECRET:
       process.env.JWT_SECRET ?? `hockpay-smoke-${randomSecret(48)}`,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? randomHex(32),
-    CHECKOUT_BASE_URL: "http://localhost:3333",
-    HOCKPAY_API_URL: "http://localhost:3000/api/v1",
-    HOCKPAY_CHECKOUT_URL: "http://localhost:3333",
+    CHECKOUT_BASE_URL: `http://localhost:${ports.checkout}`,
+    HOCKPAY_API_URL: `http://localhost:${ports.api}/api/v1`,
+    HOCKPAY_CHECKOUT_URL: `http://localhost:${ports.checkout}`,
     HOCKPAY_WEB_URL: process.env.HOCKPAY_WEB_URL ?? "http://localhost:4200",
-    HOCKPAY_STUDYCASE_DEMO_URL: "http://localhost:3005",
-    HOCKPAY_STUDYCASE_DEMO_PORT: "3005",
-    HOCKPAY_SMOKE_WEBHOOK_PORT: "3999",
-    NEXT_PUBLIC_API_URL: "http://localhost:3000/api/v1",
+    HOCKPAY_STUDYCASE_DEMO_URL: `http://localhost:${ports.studycase}`,
+    HOCKPAY_STUDYCASE_DEMO_PORT: String(ports.studycase),
+    HOCKPAY_SMOKE_WEBHOOK_PORT: String(ports.webhook),
+    NEXT_PUBLIC_API_URL: `http://localhost:${ports.api}/api/v1`,
     NEXT_PUBLIC_DEV_MODE: "true",
     CORS_ORIGIN: [
       "http://localhost:4200",
-      "http://localhost:3333",
-      "http://localhost:3000",
-      "http://localhost:3005",
+      `http://localhost:${ports.checkout}`,
+      `http://localhost:${ports.api}`,
+      `http://localhost:${ports.studycase}`,
     ].join(","),
     WORKER_CRON_WITHDRAWAL_PROCESSING:
       process.env.WORKER_CRON_WITHDRAWAL_PROCESSING ?? "0 0 0 1 1 *",
@@ -368,10 +409,21 @@ function sleep(ms) {
 }
 
 async function main() {
-  const env = smokeEnv();
+  const ports = smokePorts();
+  const env = smokeEnv(ports);
   const suites = selectedSuites();
-  const idempotencyOnly = suites.length === 1 && suites[0] === "idempotency";
-  const requiredPorts = idempotencyOnly ? [15432, 16379, 3000] : PORTS;
+  const apiOnlySuites = new Set(["idempotency", "db-concurrency"]);
+  const apiOnly = suites.every((suite) => apiOnlySuites.has(suite));
+  const requiredPorts = apiOnly
+    ? [...INFRA_PORTS, ports.api]
+    : [
+        ...INFRA_PORTS,
+        ports.api,
+        ports.worker,
+        ports.checkout,
+        ports.studycase,
+        ports.webhook,
+      ];
   const migrateMode = process.env.HOCKPAY_SMOKE_MIGRATE_MODE ?? "deploy";
   const cleanVolumes =
     process.env.HOCKPAY_SMOKE_CLEAN_VOLUMES === "true" ||
@@ -411,12 +463,12 @@ async function main() {
       },
     );
 
-    const apiEnv = { ...env, PORT: "3000" };
-    const workerEnv = { ...env, PORT: "3001" };
-    const checkoutEnv = { ...env, PORT: "3333" };
+    const apiEnv = { ...env, PORT: String(ports.api) };
+    const workerEnv = { ...env, PORT: String(ports.worker) };
+    const checkoutEnv = { ...env, PORT: String(ports.checkout) };
 
     startProcess("api", "pnpm", ["--filter", "@hockpay/api", "start"], apiEnv);
-    if (!idempotencyOnly) {
+    if (!apiOnly) {
       startProcess(
         "worker",
         "pnpm",
@@ -432,11 +484,11 @@ async function main() {
     }
 
     await waitForHttp(
-      "http://localhost:3000/api/v1/health/live",
+      `http://localhost:${ports.api}/api/v1/health/live`,
       "API liveness",
     );
     await waitForHttp(
-      "http://localhost:3000/api/v1/health/ready",
+      `http://localhost:${ports.api}/api/v1/health/ready`,
       "API readiness",
     );
 
