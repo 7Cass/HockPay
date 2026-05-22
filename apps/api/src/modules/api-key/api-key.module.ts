@@ -9,7 +9,6 @@ import {
 } from '@hockpay/core';
 import { ApiKeyRepository } from 'src/infra/repositories/api-key.repository.impl';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
-import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 
 /**
@@ -33,7 +32,6 @@ import { AuthModule } from '../auth/auth.module';
     ApiKeyGuard,
 
     // Infrastructure
-    PrismaService,
     ApiKeyRepository,
     TokenGeneratorService,
 

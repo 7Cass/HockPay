@@ -23,7 +23,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
   imports: [PaymentModule, ApiKeyModule, AuthModule],
   controllers: [CheckoutSessionController],
   providers: [
-    PrismaService,
     {
       provide: StoreRepository,
       useFactory: (prisma: PrismaService) => new StoreRepository(prisma),

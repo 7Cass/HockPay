@@ -5,8 +5,20 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./nest": {
+      "types": "./dist/nest/index.d.ts",
+      "require": "./dist/nest/index.js",
+      "default": "./dist/nest/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc && cp -r src/generated dist/",
+    "build": "tsc && cp -R src/generated dist/ && mkdir -p dist/prisma/migrations && cp prisma/schema.prisma dist/prisma/schema.prisma && cp -R prisma/migrations/. dist/prisma/migrations/ && cp prisma.config.ts dist/prisma.config.ts",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
@@ -16,6 +28,18 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.2"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": {
+      "optional": true
+    },
+    "@nestjs/config": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

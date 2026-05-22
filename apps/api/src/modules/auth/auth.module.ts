@@ -40,7 +40,6 @@ import { PrismaService } from 'src/infra/database/prisma.service';
     RequireStoreGuard,
 
     // Infrastructure
-    PrismaService,
     {
       provide: MerchantRepository,
       useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),

@@ -30,7 +30,6 @@ import { PaymentLinkController } from './payment-link.controller';
   imports: [PaymentModule, ApiKeyModule, AuthModule],
   controllers: [PaymentLinkController],
   providers: [
-    PrismaService,
     {
       provide: StoreRepository,
       useFactory: (prisma: PrismaService) => new StoreRepository(prisma),

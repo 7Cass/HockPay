@@ -21,7 +21,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
     imports: [AuthModule, ApiKeyModule],
     controllers: [TransactionController],
     providers: [
-        PrismaService,
         JwtService,
         {
             provide: 'IAccountRepository',

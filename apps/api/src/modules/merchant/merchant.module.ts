@@ -20,7 +20,6 @@ import { PrismaService } from 'src/infra/database/prisma.service';
   controllers: [MerchantController],
   providers: [
     // Infrastructure
-    PrismaService,
     {
       provide: MerchantRepository,
       useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),

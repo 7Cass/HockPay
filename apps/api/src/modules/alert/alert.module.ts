@@ -24,7 +24,6 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
 @Module({
   controllers: [AlertController],
   providers: [
-    PrismaService,
     {
       provide: EncryptionService,
       useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),

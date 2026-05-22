@@ -20,7 +20,6 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [StoreController],
   providers: [
     // Infrastructure
-    PrismaService,
     {
       provide: StoreRepository,
       useFactory: (prisma: PrismaService) => new StoreRepository(prisma),

@@ -27,7 +27,6 @@ import { WithdrawalDevController } from './withdrawal-dev.controller';
   imports: [AuthModule, ApiKeyModule],
   controllers: [WithdrawalController, WithdrawalDevController],
   providers: [
-    PrismaService,
     JwtService,
     CombinedAuthGuard,
     WithdrawalPolicy,

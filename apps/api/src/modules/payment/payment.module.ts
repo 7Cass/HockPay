@@ -64,7 +64,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
   controllers: [PaymentController, DevController],
   providers: [
     // Infrastructure
-    PrismaService,
     JwtService,
     PixQrCodeGeneratorService,
     TokenGeneratorService,

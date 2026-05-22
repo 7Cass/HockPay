@@ -24,7 +24,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
   imports: [AuthModule, ApiKeyModule],
   controllers: [BankAccountController],
   providers: [
-    PrismaService,
     JwtService,
     {
       provide: 'IBankAccountRepository',

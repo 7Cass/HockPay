@@ -50,7 +50,6 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
   controllers: [WebhookController, WebhookInboxController],
   providers: [
     // Infrastructure
-    PrismaService,
     JwtService,
     {
       provide: EncryptionService,

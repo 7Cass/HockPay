@@ -28,7 +28,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
   controllers: [CustomerController],
   providers: [
     // Infrastructure
-    PrismaService,
     {
       provide: CustomerRepository,
       useFactory: (prisma: PrismaService) => new CustomerRepository(prisma),

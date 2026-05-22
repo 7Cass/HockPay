@@ -21,7 +21,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
   imports: [AuthModule, ApiKeyModule, PaymentModule, ReceiptModule],
   controllers: [CustomerHistoryController],
   providers: [
-    PrismaService,
     JwtService,
     CombinedAuthGuard,
     {
