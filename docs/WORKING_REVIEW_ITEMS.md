@@ -2,7 +2,7 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: em andamento, com 5/6 itens macro concluidos.
+Status geral: concluido, com 6/6 itens macro concluidos.
 
 Progresso macro:
 
@@ -594,6 +594,8 @@ O repo tem duplicacao e fragilidade no acesso ao banco:
 
 ## 6. Docs, env e contratos apos redesign da landing
 
+Status: concluido em 2026-05-22. Landing, READMEs, runbook e env examples foram alinhados ao contrato real `/api/v1`, sem alterar DTOs, Prisma schema ou runtime. Varreduras publicas ficaram limpas fora deste checklist; builds/testes focados passaram. O smoke integrado precisou de `HOCKPAY_SMOKE_API_PORT=3010` porque `3000` estava ocupada e de `HOCKPAY_SMOKE_TIMEOUT_MS=180000` para a suite `system` em volume default; com isso completou `p0,payment-link,p3,studycase,system,withdrawals`.
+
 ### Problema
 
 A documentacao e os exemplos visiveis ficaram parcialmente desalinhados do runtime atual.
@@ -642,51 +644,83 @@ A landing pode continuar com copy de marketing, mas exemplos devem ser reais ou 
 
 ### Tarefas
 
-- [ ] Atualizar exemplo da landing para REST real com `/api/v1/payments`, `Idempotency-Key`, `customer.document` e `paymentMethod: "PIX"`, ou marcar claramente como pseudocodigo nao copiavel.
-- [ ] Trocar/remover `scenario`, `webhook.sent` e `retry.safe`.
-- [ ] Usar eventos permitidos como `payment.created`, `payment.confirmed`, `payment.failed`, `payment.expired`.
-- [ ] Separar nos docs os dois contratos de simulacao: integracao autenticada TEST (`/dev/simulate`) e checkout dev UI (`/payments/:id/simulate/:action` + `checkoutToken`).
-- [ ] Adicionar matriz de env por app: root compartilhado, API, worker, checkout, demo e smoke.
-- [ ] Incluir `REDIS_URL`, `REDIS_HOST`, `REDIS_PORT`, `CHECKOUT_BASE_URL`, `PUBLIC_API_BASE_URL`, `APP_URL`, `NEXT_PUBLIC_API_URL`, `HOCKPAY_BASE_URL` e cron envs do worker.
-- [ ] Revisar `apps/api/README.md`, `apps/worker/README.md`, `apps/checkout/README.md`, `apps/demo-mediakit/README.md` e `docs/RUNBOOK.md`.
-- [ ] Nao documentar valores reais de `.env`; usar placeholders e, se necessario, criar/atualizar `.env.example` sem segredos.
+- [x] 6.1 Landing usa exemplo REST copiavel
+  - Problema: a landing mostra pseudo-SDK e endpoint sem `/api/v1`.
+  - Solucao: trocar o bloco visual por `POST /api/v1/payments` com headers reais, `paymentMethod: "PIX"`, `customer.email` e `customer.document`.
+  - Validacao: busca textual nao encontra pseudo-SDK ou endpoint antigo fora deste checklist; build do web passa.
+
+- [x] 6.2 Landing usa status e eventos reais
+  - Problema: exemplos publicos citam status/eventos inexistentes.
+  - Solucao: usar `CONFIRMED` e eventos de `ALLOWED_WEBHOOK_EVENTS`, mantendo a estrutura visual do redesign.
+  - Validacao: busca textual nao encontra eventos removidos fora deste checklist.
+
+- [x] 6.3 API README documenta contrato real de payments
+  - Problema: exemplos de pagamento e idempotencia estao incompletos para copia.
+  - Solucao: incluir `paymentMethod`, `Idempotency-Key`, `customer.document`, refund idempotente e eventos permitidos.
+  - Validacao: busca confirma `POST /api/v1/payments`, `Idempotency-Key`, `paymentMethod` e `customer.document`.
+
+- [x] 6.4 Docs distinguem simulacoes TEST e checkout dev UI
+  - Problema: os dois contratos de simulacao podem ser confundidos.
+  - Solucao: documentar `/api/v1/dev/simulate/:id/:action` autenticado TEST e `/api/v1/payments/:id/simulate/:action` com `checkoutToken`.
+  - Validacao: READMEs e runbook citam os dois contratos com auth/body corretos.
+
+- [x] 6.5 Matriz de env cobre root/API/worker/checkout/demo/smoke
+  - Problema: variaveis lidas pelo runtime aparecem dispersas e com Redis ambiguo.
+  - Solucao: adicionar matriz por app no runbook e normalizar READMEs.
+  - Validacao: comparar a matriz com `process.env`, `ConfigService`, `NEXT_PUBLIC_`, `HOCKPAY_`, `WORKER_CRON_` e `REDIS_` no codigo.
+
+- [x] 6.6 Env examples usam apenas placeholders seguros
+  - Problema: nao ha fonte local unica de exemplo de env na raiz.
+  - Solucao: criar/atualizar `.env.example` raiz e alinhar `apps/demo-mediakit/.env.example` sem copiar segredos reais.
+  - Validacao: revisar examples manualmente e garantir que contem apenas placeholders locais.
+
+- [x] 6.7 Docs gerais removem shorthand publico incorreto
+  - Problema: `docs/CURRENT_STATE.md` ainda usa shorthand de endpoint em uma linha de maturidade.
+  - Solucao: trocar por `POST /api/v1/payments` e adicionar ponteiro curto no README raiz para runbook/env matrix.
+  - Validacao: busca textual nao encontra `POST /payments` fora deste checklist.
+
+- [x] 6.8 Validacao focada e smoke integrado
+  - Problema: a correcao e documental, mas exemplos precisam ser conferidos contra build/testes existentes.
+  - Solucao: rodar varreduras obrigatorias, builds/testes focados e `smoke:docker`.
+  - Validacao: registrar resultados no fechamento do item.
 
 ### Criterios de corrigido
 
-- [ ] Nenhum exemplo copiavel usa endpoint sem `/api/v1`, salvo rotas do frontend como `/pay/:token` ou checkout `/:token`.
-- [ ] `rg` nao encontra `scenario: 'paid'`, `webhook.sent` ou `retry.safe` em exemplos tratados como contrato.
-- [ ] Todo exemplo de `POST /api/v1/payments` inclui `Idempotency-Key` e `customer.document`.
-- [ ] READMEs distinguem claramente `/api/v1/dev/simulate/:id/:action` de `/api/v1/payments/:id/simulate/:action`.
-- [ ] Matriz de env cobre todas as variaveis realmente lidas pelo runtime e explica o split `REDIS_URL` vs `REDIS_HOST`/`REDIS_PORT`.
-- [ ] Landing, docs e demo usam apenas eventos presentes em `ALLOWED_WEBHOOK_EVENTS`.
+- [x] Nenhum exemplo copiavel usa endpoint sem `/api/v1`, salvo rotas do frontend como `/pay/:token` ou checkout `/:token`.
+- [x] `rg` nao encontra `scenario: 'paid'`, `webhook.sent` ou `retry.safe` em exemplos tratados como contrato.
+- [x] Todo exemplo de `POST /api/v1/payments` inclui `Idempotency-Key` e `customer.document`.
+- [x] READMEs distinguem claramente `/api/v1/dev/simulate/:id/:action` de `/api/v1/payments/:id/simulate/:action`.
+- [x] Matriz de env cobre todas as variaveis realmente lidas pelo runtime e explica o split `REDIS_URL` vs `REDIS_HOST`/`REDIS_PORT`.
+- [x] Landing, docs e demo usam apenas eventos presentes em `ALLOWED_WEBHOOK_EVENTS`.
 
 ### Walkthrough de testes
 
-1. Rodar varredura textual:
+1. [x] Rodar varredura textual:
 
    ```bash
    rg -n "scenario:|webhook.sent|retry.safe|POST /payments|/payments/:id/simulate|/dev/simulate|REDIS_URL|CHECKOUT_BASE_URL|PUBLIC_API_BASE_URL" README.md docs apps/*/README.md apps/web/src/app/features/landing/pages/home/home.html
    ```
 
-2. Conferir matriz de env contra o codigo:
+2. [x] Conferir matriz de env contra o codigo:
 
    ```bash
    rg -n "process.env|ConfigService|get<string>|NEXT_PUBLIC_|HOCKPAY_" apps/api/src apps/worker/src apps/checkout/src apps/demo-mediakit
    ```
 
-3. Validar builds/testes focados:
+3. [x] Validar builds/testes focados:
 
    ```bash
    pnpm --filter @hockpay/web build
    pnpm --filter @hockpay/checkout build
+   pnpm --filter @hockpay/demo-mediakit build
    pnpm --filter @hockpay/api test
    pnpm --filter @hockpay/worker test
    ```
 
-4. Validar fluxo integrado:
+4. [x] Validar fluxo integrado:
 
    ```bash
-   pnpm run smoke:docker
+   HOCKPAY_SMOKE_API_PORT=3010 HOCKPAY_SMOKE_TIMEOUT_MS=180000 pnpm run smoke:docker
    ```
 
-5. Fazer checagem manual final na landing: exemplo visivel deve bater com os READMEs e nao parecer SDK/contrato inexistente.
+5. [x] Fazer checagem manual final na landing: exemplo visivel deve bater com os READMEs e nao parecer SDK/contrato inexistente.
