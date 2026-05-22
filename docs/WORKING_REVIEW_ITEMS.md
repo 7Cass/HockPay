@@ -2,7 +2,7 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: em andamento, com 4/6 itens macro concluidos.
+Status geral: em andamento, com 5/6 itens macro concluidos.
 
 Progresso macro:
 
@@ -10,7 +10,7 @@ Progresso macro:
 - [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 - [x] 3. Gaps transacionais em auth/store/checkout
 - [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
-- [ ] 5. PrismaService, migrations, claims e invariantes de banco
+- [x] 5. PrismaService, migrations, claims e invariantes de banco
 - [ ] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
@@ -493,6 +493,8 @@ Os botoes TEST de completar/falhar ficam travados se o usuario cancela `confirm(
 
 ## 5. PrismaService, migrations, claims e invariantes de banco
 
+Status: concluido em 2026-05-22. Esta leva corrigiu a autoridade transacional no banco: Prisma singleton por app, artefatos Prisma no build, claims atomicos no worker e locks de saldo nos fluxos financeiros. A suite opt-in `db-concurrency` cobre `FOR UPDATE SKIP LOCKED` e saldo concorrente com Postgres real; `withdrawals,p0` passou em infra descartavel. O orquestrador de smoke tambem aceita `HOCKPAY_SMOKE_API_PORT` para evitar conflito com outro processo local sem matar servicos fora do projeto.
+
 ### Problema
 
 O repo tem duplicacao e fragilidade no acesso ao banco:
@@ -531,34 +533,64 @@ O repo tem duplicacao e fragilidade no acesso ao banco:
 
 ### Tarefas
 
-- [ ] Remover `PrismaService` dos modulos da API que redeclaram provider.
-- [ ] Criar teste de bootstrap Nest garantindo uma unica instancia de `PrismaService`.
-- [ ] Consolidar implementacao duplicada de API/worker.
-- [ ] Atualizar `packages/database/package.json` para incluir artefatos Prisma no build.
-- [ ] Implementar `claimDispatchableEvents(limit)` no `OutboxRepository`.
-- [ ] Implementar `claimProcessableWithdrawals(limit)` no `WithdrawalRepository`.
-- [ ] Fazer `WithdrawalProcessingJob` processar apenas withdrawals efetivamente claimadas.
-- [ ] Proteger mutations de saldo com lock/update atomico.
-- [ ] Adicionar testes de concorrencia para outbox, withdrawals e saldo.
+- [x] 5.1 Prisma compartilhado e artefatos de deploy
+  - Problema: API e worker duplicam `PrismaService`, e o build de `@hockpay/database` nao publica schema/migrations/config.
+  - Solucao: criar `@hockpay/database/nest` com `PrismaService`/`PrismaModule`, manter entrypoint principal puro, reexportar via shims nos apps e copiar artefatos Prisma para `dist`.
+  - Validacao: `pnpm --filter @hockpay/database build` gera `dist/prisma/schema.prisma`, `dist/prisma/migrations` e `dist/prisma.config.ts`.
+
+- [x] 5.2 Provider Prisma unico na API
+  - Problema: modulos de negocio registram `PrismaService` localmente apesar do `PrismaModule` global.
+  - Solucao: remover `PrismaService` dos `providers` dos modulos que redeclaram provider, mantendo imports apenas para `inject/useFactory`.
+  - Validacao: `rg -n "^\\s*PrismaService,\\s*$" apps/api/src/modules -g "*.module.ts"` nao retorna resultados e teste guard cobre a regra.
+
+- [x] 5.3 Claim atomico de outbox
+  - Problema: o dispatcher seleciona eventos com `findMany` e so marca `DISPATCHED` depois do enqueue, permitindo dois workers selecionarem o mesmo evento.
+  - Solucao: adicionar `claimDispatchableEvents({ limit, now, watchdogUntil })` com `FOR UPDATE SKIP LOCKED` e `UPDATE ... RETURNING`; o job enfileira apenas eventos claimados.
+  - Validacao: specs de repository/job e teste concorrente real garantem ids disjuntos entre dois claimers.
+
+- [x] 5.4 Claim atomico de withdrawals
+  - Problema: withdrawals processaveis sao lidas sem claim, e `alreadyProcessing` nao bloqueia payout no job.
+  - Solucao: adicionar `claimProcessableWithdrawals({ limit, now, staleProcessingBefore })`, claim batch transacional com outbox `withdrawal.processing`, e job processando apenas linhas claimadas.
+  - Validacao: specs de repository/job/use case e teste concorrente real garantem uma unica transicao para `PROCESSING`.
+
+- [x] 5.5 Locks financeiros por `FOR UPDATE`
+  - Problema: saldos sao alterados por read-modify-write e `AccountRepository.update` sobrescreve valores absolutos.
+  - Solucao: adicionar leituras `find...ForUpdate` para Account/Payment/PixCharge/Withdrawal e usar esses locks nos use cases financeiros dentro do `UnitOfWork`.
+  - Validacao: specs provam uso dos locks e testes concorrentes nao deixam saldo perdido/negativo.
+
+- [x] 5.6 Indices para claims e locks
+  - Problema: claims com filtros por status/data precisam de indices coerentes para nao degradar o worker.
+  - Solucao: adicionar migration com indices para outbox dispatchable e withdrawals processable/stale.
+  - Validacao: `pnpm db:generate`, build e testes de repository passam com schema atualizado.
+
+- [x] 5.7 Cobertura concorrente e smoke
+  - Problema: testes mockados nao provam `SKIP LOCKED` nem lost updates em Postgres real.
+  - Solucao: adicionar suite opt-in `db-concurrency` para outbox, withdrawals e saldo concorrentes, alem de unitarios focados.
+  - Validacao: comandos focados, `HOCKPAY_SMOKE_SUITE=db-concurrency HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker` e `HOCKPAY_SMOKE_SUITE=withdrawals,p0 HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker` passam.
+
+- [x] 5.8 Rodada final e commits semanticos
+  - Problema: a mudanca cruza packages, API, worker e schema, entao precisa fechar com validacao ampla e historico claro.
+  - Solucao: rodar suites relevantes, atualizar este documento e comitar por escopo.
+  - Validacao: `pnpm build`, smokes opt-in/integrados e commits semanticos por grupo.
 
 ### Criterios de corrigido
 
-- [ ] So `PrismaModule` registra `PrismaService` por app.
-- [ ] `pnpm --filter @hockpay/database build` gera `dist` com client, schema e migrations.
-- [ ] Dois workers concorrentes nao claimam o mesmo outbox event ou withdrawal.
-- [ ] `alreadyProcessing` nao dispara payout.
-- [ ] Saldos nao tem lost update em confirmacoes, releases, refunds e withdrawals concorrentes.
-- [ ] `pnpm db:deploy` funciona a partir do artefato esperado de deploy.
+- [x] So `PrismaModule` registra `PrismaService` por app.
+- [x] `pnpm --filter @hockpay/database build` gera `dist` com client, schema e migrations.
+- [x] Dois workers concorrentes nao claimam o mesmo outbox event ou withdrawal.
+- [x] `alreadyProcessing` nao dispara payout.
+- [x] Saldos nao tem lost update em confirmacoes, releases, refunds e withdrawals concorrentes.
+- [x] `pnpm db:deploy` funciona a partir do artefato esperado de deploy.
 
 ### Walkthrough de testes
 
-1. Rodar `pnpm db:generate`.
-2. Rodar `pnpm --filter @hockpay/database build` e verificar `dist/prisma/schema.prisma` e `dist/prisma/migrations`.
-3. Rodar testes unitarios de API, worker e infrastructure.
-4. Adicionar teste concorrente de outbox com dois claimers e assert de ids distintos.
-5. Adicionar teste concorrente de withdrawals com dois claimers e assert de uma unica transicao para `PROCESSING`.
-6. Adicionar teste de saldo com duas confirmacoes/saques simultaneos e assert de saldo final/ledger.
-7. Rodar smoke de withdrawals e P0 apos subir Postgres/Redis e aplicar migrations.
+1. [x] Rodar `pnpm db:generate`.
+2. [x] Rodar `pnpm --filter @hockpay/database build` e verificar `dist/prisma/schema.prisma`, `dist/prisma/migrations`, `dist/prisma.config.ts` e `dist/nest/index.js`.
+3. [x] Rodar testes unitarios de core, API, worker e infrastructure.
+4. [x] Adicionar teste concorrente de outbox com dois claimers e assert de ids distintos pela suite opt-in `db-concurrency`.
+5. [x] Adicionar teste concorrente de withdrawals com dois claimers e assert de uma unica transicao para `PROCESSING` pela suite opt-in `db-concurrency`.
+6. [x] Adicionar teste de saldo com dois saques simultaneos e assert de saldo final/bloqueado pela suite opt-in `db-concurrency`.
+7. [x] Rodar smoke de withdrawals e P0 apos subir Postgres/Redis e aplicar migrations: `HOCKPAY_SMOKE_SUITE=withdrawals,p0 HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker`.
 
 ## 6. Docs, env e contratos apos redesign da landing
 
