@@ -80,9 +80,7 @@ describe('SettlementJob', () => {
   it('does not call release when no payments are eligible', async () => {
     const prisma = {
       store: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: 'store-1', settlementDays: 30 },
-        ]),
+        findMany: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
       },
       payment: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -101,18 +99,12 @@ describe('SettlementJob', () => {
   it('continues processing later payments when one release fails', async () => {
     const prisma = {
       store: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: 'store-1', settlementDays: 30 },
-        ]),
+        findMany: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
       },
       payment: {
         findMany: jest
           .fn()
-          .mockResolvedValue([
-            { id: 'payment-1' },
-            { id: 'payment-2' },
-            { id: 'payment-3' },
-          ]),
+          .mockResolvedValue([{ id: 'payment-1' }, { id: 'payment-2' }, { id: 'payment-3' }]),
       },
     };
     const releasePaymentUseCase = {

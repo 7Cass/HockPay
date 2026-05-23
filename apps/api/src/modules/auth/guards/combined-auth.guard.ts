@@ -77,7 +77,8 @@ export class CombinedAuthGuard implements CanActivate {
           return true;
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        const errorMsg =
+          error instanceof Error ? error.message : 'Unknown error';
         errors.push(`JWT: ${errorMsg}`);
         this.logger.debug(`JWT validation failed: ${errorMsg}`);
         // Continue to try API Key authentication
@@ -113,7 +114,8 @@ export class CombinedAuthGuard implements CanActivate {
 
           return true;
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          const errorMsg =
+            error instanceof Error ? error.message : 'Unknown error';
           errors.push(`API Key: ${errorMsg}`);
           this.logger.debug(`API Key validation failed: ${errorMsg}`);
         }
@@ -121,9 +123,10 @@ export class CombinedAuthGuard implements CanActivate {
     }
 
     // 3. No valid authentication found - include all errors for debugging
-    const errorMessage = errors.length > 0
-      ? `Authentication failed: ${errors.join('; ')}`
-      : 'Authentication required. Provide either a valid API key (Authorization: Bearer hk_xxx) or JWT cookie (hockpay_at).';
+    const errorMessage =
+      errors.length > 0
+        ? `Authentication failed: ${errors.join('; ')}`
+        : 'Authentication required. Provide either a valid API key (Authorization: Bearer hk_xxx) or JWT cookie (hockpay_at).';
 
     throw new UnauthorizedException(errorMessage);
   }

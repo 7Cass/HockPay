@@ -1,10 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import {
-  IWebhookQueuePort,
-  WebhookJobData,
-} from '@hockpay/core';
+import { IWebhookQueuePort, WebhookJobData } from '@hockpay/core';
 
 /**
  * BullMQ-based implementation of IWebhookQueuePort.
@@ -18,7 +15,7 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
   constructor(
     @InjectQueue(WebhookQueue.QUEUE_NAME)
     private readonly queue: Queue<WebhookJobData>,
-  ) { }
+  ) {}
 
   async onModuleDestroy() {
     if (this.queue) {
@@ -47,7 +44,8 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
   }
 
   async enqueueRetry(eventId: string, attempt: number): Promise<void> {
+    void attempt;
     // Deprecated: BullMQ handles generic backoffs via the `backoff` config directly in enqueue.
-    this.enqueue(eventId);
+    await this.enqueue(eventId);
   }
 }

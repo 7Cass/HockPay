@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { StoreController } from './store.controller';
-import { CreateStoreUseCase, IUnitOfWork, ListStoresUseCase } from '@hockpay/core';
+import {
+  CreateStoreUseCase,
+  IUnitOfWork,
+  ListStoresUseCase,
+} from '@hockpay/core';
 import { StoreRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';

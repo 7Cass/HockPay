@@ -1,7 +1,5 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
-import {
-  IdempotencyReservationStatus,
-} from '@hockpay/core';
+import { IdempotencyReservationStatus } from '@hockpay/core';
 import type {
   CachedIdempotencyResponse,
   ITransactedRepositories,

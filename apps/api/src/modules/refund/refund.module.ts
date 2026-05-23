@@ -1,12 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RefundController } from './refund.controller';
-import {
-  CreateRefundUseCase,
-  IUnitOfWork,
-} from '@hockpay/core';
-import {
-  UnitOfWork,
-} from '@hockpay/infrastructure';
+import { CreateRefundUseCase, IUnitOfWork } from '@hockpay/core';
+import { UnitOfWork } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';

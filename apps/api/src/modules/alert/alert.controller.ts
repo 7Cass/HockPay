@@ -54,7 +54,10 @@ export class AlertController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateAlertDto, @Req() req: Request): Promise<GetAlertResponseDto> {
+  async create(
+    @Body() dto: CreateAlertDto,
+    @Req() req: Request,
+  ): Promise<GetAlertResponseDto> {
     const result = await this.createAlertConfigUseCase.execute({
       storeId: this.getStoreId(req),
       name: dto.name,
@@ -77,13 +80,18 @@ export class AlertController {
     });
 
     return {
-      alerts: result.alertConfigs.map((alert) => mapAlertConfigToDto(alert.toPublicObject())),
+      alerts: result.alertConfigs.map((alert) =>
+        mapAlertConfigToDto(alert.toPublicObject()),
+      ),
     };
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async get(@Param('id') id: string, @Req() req: Request): Promise<GetAlertResponseDto> {
+  async get(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ): Promise<GetAlertResponseDto> {
     const result = await this.getAlertConfigUseCase.execute({
       storeId: this.getStoreId(req),
       configId: id,
@@ -126,7 +134,10 @@ export class AlertController {
 
   @Post(':id/test')
   @HttpCode(HttpStatus.OK)
-  async test(@Param('id') id: string, @Req() req: Request): Promise<TestAlertResponseDto> {
+  async test(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ): Promise<TestAlertResponseDto> {
     const result = await this.testAlertConfigUseCase.execute({
       storeId: this.getStoreId(req),
       configId: id,

@@ -136,11 +136,7 @@ describe('CheckoutSessionController', () => {
     );
 
     await expect(
-      controller.fulfillSession(
-        'token',
-        { customer: {} } as any,
-        {} as any,
-      ),
+      controller.fulfillSession('token', { customer: {} } as any, {} as any),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 });

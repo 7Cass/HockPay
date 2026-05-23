@@ -9,6 +9,7 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "lint:check": "turbo run lint:check",
     "test": "turbo run test",
     "test:cov": "turbo run test:cov",
     "test:e2e": "turbo run test:e2e",
@@ -25,6 +26,7 @@
     "dlq": "node scripts/dlq.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "turbo run format:check",
     "db:generate": "pnpm --filter @hockpay/database db:generate",
     "db:migrate": "pnpm --filter @hockpay/database db:migrate:dev",
     "db:deploy": "pnpm --filter @hockpay/database db:migrate:deploy"

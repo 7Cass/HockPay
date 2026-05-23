@@ -85,18 +85,12 @@ export class PixQrCodeGeneratorService implements IPixQrCodeGeneratorPort {
     );
 
     // Build Additional Data Field Template (ID 62)
-    const additionalData = this.buildField(
-      '62',
-      this.buildField('05', txId),
-    );
+    const additionalData = this.buildField('62', this.buildField('05', txId));
 
     // Build payload without CRC
     const payloadWithoutCrc =
       this.buildField('00', '01') + // Payload Format Indicator
-      this.buildField(
-        '01',
-        '11',
-      ) + // Point of Initiation Method (11 = dynamic QR)
+      this.buildField('01', '11') + // Point of Initiation Method (11 = dynamic QR)
       merchantAccountInfo +
       this.buildField('52', '0000') + // Merchant Category Code
       this.buildField('53', PixQrCodeGeneratorService.CURRENCY_BRL) + // Transaction Currency

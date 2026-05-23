@@ -7,16 +7,15 @@ describe('runExclusiveCronJob', () => {
     const firstRun = runExclusiveCronJob(
       'job-a',
       logger,
-      () => new Promise<void>((resolve) => {
-        release = resolve;
-      }),
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
     );
 
     await runExclusiveCronJob('job-a', logger, jest.fn());
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      'Skipping job-a; previous run still active',
-    );
+    expect(logger.warn).toHaveBeenCalledWith('Skipping job-a; previous run still active');
 
     release();
     await firstRun;

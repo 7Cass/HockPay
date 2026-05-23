@@ -54,7 +54,7 @@ export class JwtService implements IJwtServicePort {
   async verifyToken(token: string): Promise<JwtPayload> {
     try {
       return await this.nestJwtService.verifyAsync(token);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }

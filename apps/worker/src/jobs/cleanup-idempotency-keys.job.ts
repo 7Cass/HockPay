@@ -11,38 +11,38 @@ import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
  */
 @Injectable()
 export class CleanupIdempotencyKeysJob implements OnModuleInit {
-    private readonly logger = new Logger(CleanupIdempotencyKeysJob.name);
+  private readonly logger = new Logger(CleanupIdempotencyKeysJob.name);
 
-    constructor(
-        @Inject('IIdempotencyKeyRepository')
-        private readonly repository: IIdempotencyKeyRepository,
-        @Optional()
-        private readonly cronScheduler?: WorkerCronScheduler,
-    ) { }
+  constructor(
+    @Inject('IIdempotencyKeyRepository')
+    private readonly repository: IIdempotencyKeyRepository,
+    @Optional()
+    private readonly cronScheduler?: WorkerCronScheduler,
+  ) {}
 
-    onModuleInit(): void {
-        this.cronScheduler?.registerCronJob({
-            name: CleanupIdempotencyKeysJob.name,
-            envName: 'WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS',
-            defaultExpression: '0 4 * * *',
-            onTick: () => this.handleCleanup(),
-        });
+  onModuleInit(): void {
+    this.cronScheduler?.registerCronJob({
+      name: CleanupIdempotencyKeysJob.name,
+      envName: 'WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS',
+      defaultExpression: '0 4 * * *',
+      onTick: () => this.handleCleanup(),
+    });
+  }
+
+  async handleCleanup(): Promise<void> {
+    await runExclusiveCronJob(CleanupIdempotencyKeysJob.name, this.logger, async () => {
+      this.logger.log('Starting idempotency keys cleanup job...');
+      await this.runCleanup();
+    });
+  }
+
+  async runCleanup(): Promise<void> {
+    try {
+      const deletedCount = await this.repository.deleteExpired();
+
+      this.logger.log(`Cleanup completed: ${deletedCount} expired idempotency keys deleted`);
+    } catch (error) {
+      this.logger.error('Idempotency keys cleanup job failed:', error);
     }
-
-    async handleCleanup(): Promise<void> {
-        await runExclusiveCronJob(CleanupIdempotencyKeysJob.name, this.logger, async () => {
-            this.logger.log('Starting idempotency keys cleanup job...');
-            await this.runCleanup();
-        });
-    }
-
-    async runCleanup(): Promise<void> {
-        try {
-            const deletedCount = await this.repository.deleteExpired();
-
-            this.logger.log(`Cleanup completed: ${deletedCount} expired idempotency keys deleted`);
-        } catch (error) {
-            this.logger.error('Idempotency keys cleanup job failed:', error);
-        }
-    }
+  }
 }

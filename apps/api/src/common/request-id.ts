@@ -22,5 +22,7 @@ export function getOrCreateRequestId(request: Request): string {
 }
 
 function isValidRequestId(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0 && value.length <= 128;
+  return (
+    typeof value === 'string' && value.trim().length > 0 && value.length <= 128
+  );
 }

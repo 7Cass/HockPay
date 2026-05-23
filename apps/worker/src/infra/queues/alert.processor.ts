@@ -46,11 +46,7 @@ export class AlertProcessor extends WorkerHost {
       return;
     }
 
-    const deadLetterJob = buildDeadLetterJobData(
-      ALERT_DELIVERY_QUEUE,
-      job,
-      error,
-    );
+    const deadLetterJob = buildDeadLetterJobData(ALERT_DELIVERY_QUEUE, job, error);
 
     await this.deadLetterQueue.add('dead-letter', deadLetterJob, {
       jobId: `${ALERT_DELIVERY_QUEUE}:${job.id}`,

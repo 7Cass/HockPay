@@ -31,4 +31,4 @@ import { RedisDistributedLockService } from '../../common/redis-distributed-lock
   ],
   exports: [],
 })
-export class CronModule { }
+export class CronModule {}

@@ -44,9 +44,7 @@ describe('WebhookProcessor', () => {
 
     await processor.onFailed(job as any, new Error('delivery failed'));
 
-    expect(webhookLogRepository.findByOutboxEventId).toHaveBeenCalledWith(
-      'outbox-1',
-    );
+    expect(webhookLogRepository.findByOutboxEventId).toHaveBeenCalledWith('outbox-1');
     expect(webhookLogRepository.markOutboxDeliveriesFinalFailure).toHaveBeenCalledWith(
       'outbox-1',
       'delivery failed',

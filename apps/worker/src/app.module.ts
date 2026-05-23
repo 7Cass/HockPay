@@ -6,6 +6,7 @@ import { PrismaModule } from './infra/database/prisma.module';
 import { CoreModule } from './modules/core/core.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { CronModule } from './modules/queue/cron.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { CronModule } from './modules/queue/cron.module';
           pinoHttp: {
             level: isProd ? 'info' : 'debug',
             transport: isProd ? undefined : { target: 'pino-pretty' },
-            customProps: (req, res) => ({
+            customProps: () => ({
               context: 'WORKER',
             }),
           },
@@ -34,6 +35,7 @@ import { CronModule } from './modules/queue/cron.module';
     CoreModule,
     QueueModule,
     CronModule,
+    HealthModule,
   ],
   providers: [],
 })

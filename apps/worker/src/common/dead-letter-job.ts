@@ -35,16 +35,14 @@ export function buildDeadLetterJobData(
   error: Error,
 ): WorkerDeadLetterJobData {
   const payload = normalizePayload(job.data);
-  const requestId =
-    typeof payload.requestId === 'string' ? payload.requestId : undefined;
+  const requestId = typeof payload.requestId === 'string' ? payload.requestId : undefined;
   const outboxEventId =
     typeof payload.outboxEventId === 'string'
       ? payload.outboxEventId
       : typeof payload.eventId === 'string'
         ? payload.eventId
         : undefined;
-  const configId =
-    typeof payload.configId === 'string' ? payload.configId : undefined;
+  const configId = typeof payload.configId === 'string' ? payload.configId : undefined;
 
   return {
     originalQueue,
@@ -78,8 +76,7 @@ function normalizeJobOptions(
     options.delay = job.opts.delay;
   }
 
-  options.jobId =
-    typeof job.opts.jobId === 'string' ? job.opts.jobId : String(job.id);
+  options.jobId = typeof job.opts.jobId === 'string' ? job.opts.jobId : String(job.id);
 
   if (job.opts.removeOnComplete !== undefined) {
     options.removeOnComplete = job.opts.removeOnComplete;

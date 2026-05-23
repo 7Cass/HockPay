@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn, execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,6 +35,10 @@ const HEALTH_TIMEOUT_MS = Number(
 const HEALTH_INTERVAL_MS = 1000;
 const HTTP_REQUEST_TIMEOUT_MS = Number(
   process.env.HOCKPAY_SMOKE_HTTP_REQUEST_TIMEOUT_MS ?? 5000,
+);
+const SMOKE_ARTIFACT_DIR = resolve(
+  ROOT_DIR,
+  process.env.HOCKPAY_SMOKE_ARTIFACT_DIR ?? "artifacts/smoke",
 );
 
 const suiteCommands = new Map([
@@ -236,6 +241,29 @@ function execFileText(command, args, options = {}) {
   });
 }
 
+function execFileCombinedText(command, args, options = {}) {
+  return new Promise((resolveExec) => {
+    execFile(
+      command,
+      args,
+      { cwd: ROOT_DIR, env: options.env },
+      (error, stdout, stderr) => {
+        const output = [
+          `$ ${command} ${args.join(" ")}`,
+          stdout,
+          stderr,
+          error
+            ? `exit: ${error.code ?? error.signal ?? error.message}`
+            : "exit: 0",
+        ]
+          .filter(Boolean)
+          .join("\n");
+        resolveExec(output);
+      },
+    );
+  });
+}
+
 async function waitForContainerHealthy(containerName) {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
   let lastStatus = "unknown";
@@ -380,6 +408,33 @@ async function stopChildren() {
   children.clear();
 }
 
+async function collectSmokeDiagnostics(env, error) {
+  log(`Collecting failure diagnostics in ${SMOKE_ARTIFACT_DIR}`);
+  await mkdir(SMOKE_ARTIFACT_DIR, { recursive: true });
+  await writeArtifact(
+    "failure.txt",
+    error instanceof Error ? (error.stack ?? error.message) : String(error),
+  );
+  await writeArtifact(
+    "docker-compose-ps.txt",
+    await execFileCombinedText("docker", [...DOCKER_ARGS, "ps", "-a"], { env }),
+  );
+
+  for (const containerName of [
+    "hockpay-smoke-postgres",
+    "hockpay-smoke-redis",
+  ]) {
+    await writeArtifact(
+      `${containerName}.log`,
+      await execFileCombinedText("docker", ["logs", containerName], { env }),
+    );
+  }
+}
+
+async function writeArtifact(name, contents) {
+  await writeFile(resolve(SMOKE_ARTIFACT_DIR, name), `${contents}\n`);
+}
+
 function signalProcessTree(child, signal) {
   if (child.exitCode !== null || child.signalCode !== null) {
     return;
@@ -515,6 +570,16 @@ async function main() {
       `http://localhost:${ports.api}/api/v1/health/ready`,
       "API readiness",
     );
+    if (!apiOnly) {
+      await waitForHttp(
+        `http://localhost:${ports.worker}/health/live`,
+        "Worker liveness",
+      );
+      await waitForHttp(
+        `http://localhost:${ports.worker}/health/ready`,
+        "Worker readiness",
+      );
+    }
 
     for (const suite of suites) {
       const [command, args] = suiteCommands.get(suite);
@@ -526,6 +591,9 @@ async function main() {
     if (keepAlive) {
       await waitForSignal();
     }
+  } catch (error) {
+    await collectSmokeDiagnostics(env, error);
+    throw error;
   } finally {
     await stopChildren();
     const downArgs = ["down", "--remove-orphans"];

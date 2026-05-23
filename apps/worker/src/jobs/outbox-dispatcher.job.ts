@@ -1,16 +1,9 @@
-import { Injectable, Logger, Inject, OnModuleInit, Optional } from "@nestjs/common";
-import {
-  IAlertQueuePort,
-  IWebhookQueuePort,
-  IOutboxRepository,
-} from "@hockpay/core";
-import {
-  ALERT_QUEUE_PORT,
-  WEBHOOK_QUEUE_PORT,
-} from "../modules/queue/queue.module";
-import { createWorkerRequestId } from "../common/request-id";
-import { runExclusiveCronJob } from "../common/cron-guard";
-import { WorkerCronScheduler } from "../common/worker-cron-scheduler";
+import { Injectable, Logger, Inject, OnModuleInit, Optional } from '@nestjs/common';
+import { IAlertQueuePort, IWebhookQueuePort, IOutboxRepository } from '@hockpay/core';
+import { ALERT_QUEUE_PORT, WEBHOOK_QUEUE_PORT } from '../modules/queue/queue.module';
+import { createWorkerRequestId } from '../common/request-id';
+import { runExclusiveCronJob } from '../common/cron-guard';
+import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
 /**
  * Outbox Dispatcher Job
@@ -26,7 +19,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
   private readonly logger = new Logger(OutboxDispatcherJob.name);
 
   constructor(
-    @Inject("IOutboxRepository")
+    @Inject('IOutboxRepository')
     private readonly outboxRepository: IOutboxRepository,
     @Inject(WEBHOOK_QUEUE_PORT)
     private readonly webhookQueue: IWebhookQueuePort,
@@ -39,8 +32,8 @@ export class OutboxDispatcherJob implements OnModuleInit {
   onModuleInit(): void {
     this.cronScheduler?.registerCronJob({
       name: OutboxDispatcherJob.name,
-      envName: "WORKER_CRON_OUTBOX_DISPATCHER",
-      defaultExpression: "*/10 * * * * *",
+      envName: 'WORKER_CRON_OUTBOX_DISPATCHER',
+      defaultExpression: '*/10 * * * * *',
       onTick: () => this.handleDispatch(),
     });
   }
@@ -50,9 +43,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
    * Runs every 10 seconds.
    */
   async handleDispatch(): Promise<void> {
-    await runExclusiveCronJob(OutboxDispatcherJob.name, this.logger, () =>
-      this.dispatchEvents(),
-    );
+    await runExclusiveCronJob(OutboxDispatcherJob.name, this.logger, () => this.dispatchEvents());
   }
 
   private async dispatchEvents(): Promise<void> {
@@ -67,15 +58,12 @@ export class OutboxDispatcherJob implements OnModuleInit {
         return;
       }
 
-      this.logger.log(
-        `Dispatching ${events.length} outbox events to webhook queue`,
-      );
+      this.logger.log(`Dispatching ${events.length} outbox events to webhook queue`);
 
       for (const event of events) {
-        const requestId =
-          event.requestId ?? createWorkerRequestId("outbox-dispatcher", event.id);
+        const requestId = event.requestId ?? createWorkerRequestId('outbox-dispatcher', event.id);
         const paymentId =
-          typeof event.payload.id === "string" ? event.payload.id : event.aggregateId;
+          typeof event.payload.id === 'string' ? event.payload.id : event.aggregateId;
         try {
           await this.webhookQueue.enqueue(event.id, undefined, requestId);
 
@@ -92,10 +80,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
             `Dispatched webhook event requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId} eventType=${event.eventType}`,
           );
         } catch (error) {
-          event.markAsFailed(
-            "Failed to insert webhook job into BullMQ",
-            this.nextEnqueueRetry(),
-          );
+          event.markAsFailed('Failed to insert webhook job into BullMQ', this.nextEnqueueRetry());
           await this.outboxRepository.update(event);
           this.logger.error(
             `Failed to dispatch webhook event requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId}`,
@@ -104,7 +89,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
         }
       }
     } catch (error) {
-      this.logger.error("Error in outbox dispatcher", error);
+      this.logger.error('Error in outbox dispatcher', error);
     }
   }
 

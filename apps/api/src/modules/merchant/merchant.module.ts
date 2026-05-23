@@ -50,6 +50,10 @@ import { PrismaService } from 'src/infra/database/prisma.service';
       inject: [MerchantRepository],
     },
   ],
-  exports: [CreateMerchantUseCase, GetMerchantUseCase, GetCurrentMerchantUseCase],
+  exports: [
+    CreateMerchantUseCase,
+    GetMerchantUseCase,
+    GetCurrentMerchantUseCase,
+  ],
 })
-export class MerchantModule { }
+export class MerchantModule {}

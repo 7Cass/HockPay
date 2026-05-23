@@ -14,7 +14,6 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   CreatePaymentUseCase,

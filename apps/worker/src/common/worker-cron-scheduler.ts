@@ -25,10 +25,7 @@ export class WorkerCronScheduler implements OnModuleDestroy {
   ) {}
 
   registerCronJob(input: RegisterWorkerCronJobInput): void {
-    const expression = this.resolveExpression(
-      input.envName,
-      input.defaultExpression,
-    );
+    const expression = this.resolveExpression(input.envName, input.defaultExpression);
 
     let job: CronJob;
     try {
@@ -46,9 +43,7 @@ export class WorkerCronScheduler implements OnModuleDestroy {
     this.registeredJobNames.add(input.name);
     job.start();
 
-    this.logger.log(
-      `Registered cron job ${input.name} with ${input.envName}="${expression}"`,
-    );
+    this.logger.log(`Registered cron job ${input.name} with ${input.envName}="${expression}"`);
   }
 
   onModuleDestroy(): void {

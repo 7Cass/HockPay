@@ -1,10 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  ExpirePaymentUseCase,
-  IExpirePaymentInput,
-} from '@hockpay/core';
+import { ExpirePaymentUseCase, IExpirePaymentInput } from '@hockpay/core';
 import { createWorkerRequestId } from '../../common/request-id';
 
 /**
@@ -25,8 +22,7 @@ export class ExpirationProcessor extends WorkerHost {
   }
 
   async process(job: Job<IExpirePaymentInput>): Promise<void> {
-    const requestId =
-      job.data.requestId ?? createWorkerRequestId('payment-expiration', job.id);
+    const requestId = job.data.requestId ?? createWorkerRequestId('payment-expiration', job.id);
     this.logger.debug(
       `Processing expiration job requestId=${requestId} jobId=${job.id} paymentId=${job.data.paymentId}`,
     );

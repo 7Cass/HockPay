@@ -1,7 +1,4 @@
-import {
-  AlertConfigPublicObject,
-  AlertDeliveryLogObject,
-} from '@hockpay/core';
+import { AlertConfigPublicObject, AlertDeliveryLogObject } from '@hockpay/core';
 
 export class AlertConfigDto {
   id: string;
@@ -67,7 +64,9 @@ export class RetryAlertLogResponseDto {
   log: AlertDeliveryLogDto;
 }
 
-export function mapAlertConfigToDto(config: AlertConfigPublicObject): AlertConfigDto {
+export function mapAlertConfigToDto(
+  config: AlertConfigPublicObject,
+): AlertConfigDto {
   return {
     id: config.id,
     name: config.name,
@@ -82,7 +81,9 @@ export function mapAlertConfigToDto(config: AlertConfigPublicObject): AlertConfi
   };
 }
 
-export function mapAlertDeliveryLogToDto(log: AlertDeliveryLogObject): AlertDeliveryLogDto {
+export function mapAlertDeliveryLogToDto(
+  log: AlertDeliveryLogObject,
+): AlertDeliveryLogDto {
   return {
     id: log.id,
     alertConfigId: log.alertConfigId,

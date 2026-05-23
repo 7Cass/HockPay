@@ -24,7 +24,10 @@ export class ListWebhookLogsQueryDto {
 
   @IsOptional()
   @Transform(({ value }) =>
-    value === undefined || value === null || value === '' || value === 'undefined'
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    value === 'undefined'
       ? undefined
       : value,
   )

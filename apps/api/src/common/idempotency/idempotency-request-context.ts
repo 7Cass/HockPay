@@ -7,7 +7,9 @@ export interface IdempotencyRequestContext {
 
 const IDEMPOTENCY_REQUEST_CONTEXT = Symbol('IDEMPOTENCY_REQUEST_CONTEXT');
 
-export function readIdempotencyKeyHeader(request?: Request): string | undefined {
+export function readIdempotencyKeyHeader(
+  request?: Request,
+): string | undefined {
   const value = request?.headers['idempotency-key'];
   const key = Array.isArray(value) ? value[0] : value;
   const normalized = key?.trim();

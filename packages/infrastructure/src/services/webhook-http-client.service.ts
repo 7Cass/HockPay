@@ -1,7 +1,12 @@
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import {
   IWebhookSenderPort,
   WebhookResponse,
+  WebhookResolvedAddress,
   WebhookUrlPolicyOptions,
+  WebhookUrlPolicyResult,
+  validateWebhookResolvedAddress,
   validateWebhookUrl,
 } from "@hockpay/core";
 
@@ -15,7 +20,14 @@ export interface WebhookHttpClientOptions {
   timeoutMs?: number;
   logger?: WebhookHttpLogger;
   webhookUrlPolicyOptions?: WebhookUrlPolicyOptions;
+  dnsLookup?: WebhookDnsLookup;
+  maxRedirects?: number;
 }
+
+type WebhookDnsLookup = (hostname: string) => Promise<WebhookResolvedAddress[]>;
+
+const DEFAULT_MAX_REDIRECTS = 5;
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
 /**
  * Implementation of IWebhookSenderPort using native fetch.
@@ -24,11 +36,17 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
   private readonly timeoutMs: number;
   private readonly logger?: WebhookHttpLogger;
   private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions;
+  private readonly dnsLookup: WebhookDnsLookup;
+  private readonly maxRedirects: number;
 
   constructor(options: WebhookHttpClientOptions = {}) {
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.logger = options.logger;
     this.webhookUrlPolicyOptions = options.webhookUrlPolicyOptions ?? {};
+    this.dnsLookup =
+      options.dnsLookup ??
+      ((hostname) => lookup(hostname, { all: true, verbatim: true }));
+    this.maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   }
 
   async send(
@@ -36,50 +54,8 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     payload: Record<string, unknown>,
     headers: Record<string, string>,
   ): Promise<WebhookResponse> {
-    const policyResult = validateWebhookUrl(url, this.webhookUrlPolicyOptions);
-    if (!policyResult.valid) {
-      const message = policyResult.message ?? "Webhook URL is not allowed";
-      this.logger?.warn(`Blocked webhook target ${url}: ${message}`);
-
-      return {
-        statusCode: 0,
-        body: message,
-        success: false,
-      };
-    }
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      const body = await response.text();
-
-      if (response.ok) {
-        this.logger?.debug(`Webhook sent successfully to ${url}`);
-        return {
-          statusCode: response.status,
-          body,
-          success: true,
-        };
-      }
-
-      this.logger?.warn(
-        `Webhook returned ${response.status} for ${url}: ${body}`,
-      );
-      return {
-        statusCode: response.status,
-        body,
-        success: false,
-      };
+      return await this.sendWithManualRedirects(url, payload, headers);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -92,4 +68,162 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       };
     }
   }
+
+  private async sendWithManualRedirects(
+    initialUrl: string,
+    payload: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<WebhookResponse> {
+    let currentUrl = initialUrl;
+
+    for (let redirects = 0; redirects <= this.maxRedirects; redirects += 1) {
+      const policyResult = await this.validateTargetBeforeRequest(currentUrl);
+      if (!policyResult.valid) {
+        return this.blockedResponse(currentUrl, policyResult);
+      }
+
+      const response = await this.fetchOnce(currentUrl, payload, headers);
+
+      if (!REDIRECT_STATUS_CODES.has(response.status)) {
+        return this.responseFromFetchResult(currentUrl, response);
+      }
+
+      const location = response.headers.get("location");
+      if (!location) {
+        const body = await response.text();
+        this.logger?.warn(
+          `Webhook redirect ${response.status} for ${currentUrl} did not include Location`,
+        );
+
+        return {
+          statusCode: response.status,
+          body,
+          success: false,
+        };
+      }
+
+      if (redirects === this.maxRedirects) {
+        const message = "Webhook redirect limit exceeded.";
+        this.logger?.warn(`Blocked webhook target ${currentUrl}: ${message}`);
+
+        return {
+          statusCode: 0,
+          body: message,
+          success: false,
+        };
+      }
+
+      currentUrl = new URL(location, currentUrl).toString();
+    }
+
+    return {
+      statusCode: 0,
+      body: "Webhook redirect limit exceeded.",
+      success: false,
+    };
+  }
+
+  private async validateTargetBeforeRequest(
+    url: string,
+  ): Promise<WebhookUrlPolicyResult> {
+    const policyResult = validateWebhookUrl(url, this.webhookUrlPolicyOptions);
+    if (!policyResult.valid) {
+      return policyResult;
+    }
+
+    const parsed = new URL(url);
+    if (isExplicitLocalHttpTarget(parsed, this.webhookUrlPolicyOptions)) {
+      return { valid: true };
+    }
+
+    if (isIP(parsed.hostname)) {
+      return validateWebhookResolvedAddress({ address: parsed.hostname });
+    }
+
+    const resolvedAddresses = await this.dnsLookup(parsed.hostname);
+    if (resolvedAddresses.length === 0) {
+      return { valid: false, message: "Webhook URL hostname did not resolve." };
+    }
+
+    for (const resolvedAddress of resolvedAddresses) {
+      const resolvedPolicyResult =
+        validateWebhookResolvedAddress(resolvedAddress);
+      if (!resolvedPolicyResult.valid) {
+        return resolvedPolicyResult;
+      }
+    }
+
+    return { valid: true };
+  }
+
+  private async fetchOnce(
+    url: string,
+    payload: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      return await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        redirect: "manual",
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private async responseFromFetchResult(
+    url: string,
+    response: Response,
+  ): Promise<WebhookResponse> {
+    const body = await response.text();
+
+    if (response.ok) {
+      this.logger?.debug(`Webhook sent successfully to ${url}`);
+      return {
+        statusCode: response.status,
+        body,
+        success: true,
+      };
+    }
+
+    this.logger?.warn(`Webhook returned ${response.status} for ${url}: ${body}`);
+    return {
+      statusCode: response.status,
+      body,
+      success: false,
+    };
+  }
+
+  private blockedResponse(
+    url: string,
+    policyResult: WebhookUrlPolicyResult,
+  ): WebhookResponse {
+    const message = policyResult.message ?? "Webhook URL is not allowed";
+    this.logger?.warn(`Blocked webhook target ${url}: ${message}`);
+
+    return {
+      statusCode: 0,
+      body: message,
+      success: false,
+    };
+  }
+}
+
+function isExplicitLocalHttpTarget(
+  parsed: URL,
+  options: WebhookUrlPolicyOptions,
+): boolean {
+  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+
+  return (
+    parsed.protocol === "http:" &&
+    options.allowLocalHttp === true &&
+    (hostname === "localhost" || hostname === "127.0.0.1")
+  );
 }

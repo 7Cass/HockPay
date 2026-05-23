@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { CoreModule, EXPIRATION_QUEUE_PORT } from '../core/core.module';
 import { WebhookProcessor } from '../../infra/queues/webhook.processor';
 import { AlertProcessor } from '../../infra/queues/alert.processor';
@@ -7,7 +8,7 @@ import { ExpirationProcessor } from '../../infra/queues/expiration.processor';
 import { WebhookQueue } from '../../infra/queues/webhook.queue';
 import { AlertQueue } from '../../infra/queues/alert.queue';
 import { ExpirePaymentUseCase, IUnitOfWork } from '@hockpay/core';
-import { ExpirationQueue } from '@hockpay/infrastructure';
+import { ExpirationQueue, parseRedisEnv } from '@hockpay/infrastructure';
 
 // Token for IWebhookQueuePort (exported for use in OutboxDispatcherJob)
 export const WEBHOOK_QUEUE_PORT = 'IWebhookQueuePort';
@@ -21,11 +22,15 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
  */
 @Module({
   imports: [
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST ?? 'localhost',
-        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-      },
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: parseRedisEnv({
+          REDIS_URL: config.get<string>('REDIS_URL'),
+          REDIS_HOST: config.get<string>('REDIS_HOST'),
+          REDIS_PORT: config.get<string>('REDIS_PORT'),
+        }).connection,
+      }),
     }),
     // Register queues for @InjectQueue to work
     BullModule.registerQueue(
@@ -72,7 +77,15 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
     // Expiration Queue
     {
       provide: EXPIRATION_QUEUE_PORT,
-      useFactory: () => new ExpirationQueue(getRedisConnection()),
+      useFactory: (config: ConfigService) =>
+        new ExpirationQueue(
+          parseRedisEnv({
+            REDIS_URL: config.get<string>('REDIS_URL'),
+            REDIS_HOST: config.get<string>('REDIS_HOST'),
+            REDIS_PORT: config.get<string>('REDIS_PORT'),
+          }).connection,
+        ),
+      inject: [ConfigService],
     },
     // Webhook Queue
     {
@@ -86,20 +99,11 @@ export const ALERT_QUEUE_PORT = 'IAlertQueuePort';
     // ExpirePaymentUseCase with repository interfaces
     {
       provide: ExpirePaymentUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        expirationQueue: ExpirationQueue,
-      ) => new ExpirePaymentUseCase(unitOfWork, expirationQueue),
+      useFactory: (unitOfWork: IUnitOfWork, expirationQueue: ExpirationQueue) =>
+        new ExpirePaymentUseCase(unitOfWork, expirationQueue),
       inject: ['IUnitOfWork', EXPIRATION_QUEUE_PORT],
     },
   ],
   exports: [EXPIRATION_QUEUE_PORT, WEBHOOK_QUEUE_PORT, ALERT_QUEUE_PORT, ExpirePaymentUseCase],
 })
 export class QueueModule {}
-
-function getRedisConnection() {
-  return {
-    host: process.env.REDIS_HOST ?? 'localhost',
-    port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-  };
-}

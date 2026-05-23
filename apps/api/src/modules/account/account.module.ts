@@ -8,18 +8,18 @@ import { ApiKeyModule } from '../api-key/api-key.module';
 import { JwtService } from '../../infra/services/jwt.service';
 
 @Module({
-    imports: [AuthModule, ApiKeyModule],
-    controllers: [AccountController],
-    providers: [
-        JwtService,
-        {
-            provide: GetAccountUseCase,
-            useFactory: (prismaService: PrismaService) => {
-                const accountRepo = new AccountRepository(prismaService);
-                return new GetAccountUseCase(accountRepo);
-            },
-            inject: [PrismaService],
-        },
-    ],
+  imports: [AuthModule, ApiKeyModule],
+  controllers: [AccountController],
+  providers: [
+    JwtService,
+    {
+      provide: GetAccountUseCase,
+      useFactory: (prismaService: PrismaService) => {
+        const accountRepo = new AccountRepository(prismaService);
+        return new GetAccountUseCase(accountRepo);
+      },
+      inject: [PrismaService],
+    },
+  ],
 })
-export class AccountModule { }
+export class AccountModule {}

@@ -1,10 +1,16 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import {
   IIdempotencyCachePort,
   CachedIdempotencyResponse,
 } from '@hockpay/core';
+import { parseRedisEnv } from '@hockpay/infrastructure';
 
 /**
  * Redis-based implementation of IIdempotencyCachePort.
@@ -22,9 +28,14 @@ export class IdempotencyCacheService
   private readonly defaultTtl = 86400; // 24 hours
 
   constructor(private readonly configService: ConfigService) {
-    const redisUrl = this.configService.get<string>('REDIS_URL', 'redis://localhost:6379');
+    const redis = parseRedisEnv({
+      REDIS_URL: this.configService.get<string>('REDIS_URL'),
+      REDIS_HOST: this.configService.get<string>('REDIS_HOST'),
+      REDIS_PORT: this.configService.get<string>('REDIS_PORT'),
+    });
 
-    this.redis = new Redis(redisUrl, {
+    this.redis = new Redis({
+      ...redis.connection,
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 100, 3000),
       lazyConnect: true,
@@ -43,8 +54,10 @@ export class IdempotencyCacheService
     try {
       await this.redis.ping();
       this.logger.log('Redis connection established');
-    } catch (error) {
-      this.logger.warn('Redis connection failed, falling back to no-cache mode');
+    } catch {
+      this.logger.warn(
+        'Redis connection failed, falling back to no-cache mode',
+      );
     }
   }
 

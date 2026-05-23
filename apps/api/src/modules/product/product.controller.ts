@@ -115,12 +115,16 @@ export class ProductController {
     }
   }
 
-  private getContext(req?: Request): { storeId: string; environment: Environment } {
+  private getContext(req?: Request): {
+    storeId: string;
+    environment: Environment;
+  } {
     const storeId = (req as any)?.store?.id;
     if (!storeId) throw new Error('Store ID not found in request');
     return {
       storeId,
-      environment: ((req as any)?.environment ?? Environment.TEST) as Environment,
+      environment: ((req as any)?.environment ??
+        Environment.TEST) as Environment,
     };
   }
 
@@ -135,7 +139,10 @@ export class ProductController {
         error: { code: error.code, message: error.message },
       });
     }
-    if (error instanceof InvalidLineItemsError || error instanceof InvalidProductError) {
+    if (
+      error instanceof InvalidLineItemsError ||
+      error instanceof InvalidProductError
+    ) {
       throw new UnprocessableEntityException({
         error: { code: error.code, message: error.message },
       });

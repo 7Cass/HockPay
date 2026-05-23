@@ -1,7 +1,31 @@
-import { Controller, Post, Get, Body, Param, Req, HttpCode, HttpStatus, UseGuards, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Req,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { FulfillCheckoutSessionDto } from './dtos/fulfill-checkout-session.dto';
-import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase, StoreNotFoundError, StoreInactiveError, StoreNotApprovedError, CustomerIdentityConflictError, Environment, InvalidLineItemsError, ProductNotFoundError, ProductUnavailableError } from '@hockpay/core';
+import {
+  CreateCheckoutSessionUseCase,
+  GetCheckoutSessionUseCase,
+  FulfillCheckoutSessionUseCase,
+  StoreNotFoundError,
+  StoreInactiveError,
+  StoreNotApprovedError,
+  CustomerIdentityConflictError,
+  Environment,
+  InvalidLineItemsError,
+  ProductNotFoundError,
+  ProductUnavailableError,
+} from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import type { Request } from 'express';
@@ -14,19 +38,23 @@ export class CheckoutSessionController {
     private readonly createUseCase: CreateCheckoutSessionUseCase,
     private readonly getUseCase: GetCheckoutSessionUseCase,
     private readonly fulfillUseCase: FulfillCheckoutSessionUseCase,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(CombinedAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  async createSession(@Body() dto: CreateCheckoutSessionDto, @Req() req?: Request) {
+  async createSession(
+    @Body() dto: CreateCheckoutSessionDto,
+    @Req() req?: Request,
+  ) {
     try {
       const storeId = (req as any)?.store?.id;
       if (!storeId) throw new Error('Store ID not found in request');
 
       return await this.createUseCase.execute({
         storeId,
-        environment: ((req as any)?.environment ?? Environment.TEST) as Environment,
+        environment: ((req as any)?.environment ??
+          Environment.TEST) as Environment,
         amount: dto.amount,
         items: dto.items as any,
         description: dto.description,
@@ -38,13 +66,15 @@ export class CheckoutSessionController {
         metadata: dto.metadata,
       });
     } catch (e: any) {
-      if (e instanceof StoreNotFoundError || e instanceof ProductNotFoundError) throw new NotFoundException(e.message);
+      if (e instanceof StoreNotFoundError || e instanceof ProductNotFoundError)
+        throw new NotFoundException(e.message);
       if (
         e instanceof StoreInactiveError ||
         e instanceof StoreNotApprovedError ||
         e instanceof ProductUnavailableError ||
         e instanceof InvalidLineItemsError
-      ) throw new UnprocessableEntityException(e.message);
+      )
+        throw new UnprocessableEntityException(e.message);
       throw e;
     }
   }
@@ -61,10 +91,14 @@ export class CheckoutSessionController {
 
   @Post(':token/fulfill')
   @HttpCode(HttpStatus.OK)
-  async fulfillSession(@Param('token') token: string, @Body() dto: FulfillCheckoutSessionDto, @Req() req?: Request) {
+  async fulfillSession(
+    @Param('token') token: string,
+    @Body() dto: FulfillCheckoutSessionDto,
+    @Req() req?: Request,
+  ) {
     try {
       // In a real scenario, you might derive environment from the session or a referer.
-      // But for demo, Environment.TEST is a safe default. 
+      // But for demo, Environment.TEST is a safe default.
       // The Core FulfillCheckoutSessionUseCase relies on the environment for the sub-payment.
       const environment = (req as any)?.environment ?? Environment.TEST;
 

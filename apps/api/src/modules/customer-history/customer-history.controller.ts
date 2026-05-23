@@ -67,7 +67,9 @@ export class CustomerHistoryController {
       });
 
       return {
-        payments: result.payments.map((payment) => this.toPaymentResponse(payment)),
+        payments: result.payments.map((payment) =>
+          this.toPaymentResponse(payment),
+        ),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -130,7 +132,9 @@ export class CustomerHistoryController {
       });
 
       return {
-        receipts: result.receipts.map((receipt) => this.toReceiptResponse(receipt)),
+        receipts: result.receipts.map((receipt) =>
+          this.toReceiptResponse(receipt),
+        ),
         total: result.total,
         page: result.page,
         limit: result.limit,

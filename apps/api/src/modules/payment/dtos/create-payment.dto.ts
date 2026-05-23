@@ -8,7 +8,6 @@ import {
   IsObject,
   Matches,
   MaxLength,
-  IsUrl,
 } from 'class-validator';
 import { PaymentMethod } from '@hockpay/core';
 

@@ -1,22 +1,22 @@
-import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
-import { Job, Queue } from "bullmq";
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ProcessWebhookUseCase,
   IProcessWebhookInput,
   IOutboxRepository,
   IWebhookLogRepository,
   WebhookJobData,
-} from "@hockpay/core";
-import { createWorkerRequestId } from "../../common/request-id";
+} from '@hockpay/core';
+import { createWorkerRequestId } from '../../common/request-id';
 import {
   buildDeadLetterJobData,
   isFinalBullMqFailure,
   WorkerDeadLetterJobData,
-} from "../../common/dead-letter-job";
+} from '../../common/dead-letter-job';
 
-const WEBHOOK_DELIVERY_QUEUE = "webhook-delivery";
-const WEBHOOK_DEAD_LETTER_QUEUE = "webhook-dead-letter";
+const WEBHOOK_DELIVERY_QUEUE = 'webhook-delivery';
+const WEBHOOK_DEAD_LETTER_QUEUE = 'webhook-dead-letter';
 
 /**
  * BullMQ processor for webhook delivery jobs.
@@ -28,9 +28,9 @@ export class WebhookProcessor extends WorkerHost {
 
   constructor(
     private readonly processWebhookUseCase: ProcessWebhookUseCase,
-    @Inject("IOutboxRepository")
+    @Inject('IOutboxRepository')
     private readonly outboxRepository: IOutboxRepository,
-    @Inject("IWebhookLogRepository")
+    @Inject('IWebhookLogRepository')
     private readonly webhookLogRepository: IWebhookLogRepository,
     @InjectQueue(WEBHOOK_DEAD_LETTER_QUEUE)
     private readonly deadLetterQueue: Queue<WorkerDeadLetterJobData>,
@@ -39,8 +39,7 @@ export class WebhookProcessor extends WorkerHost {
   }
 
   async process(job: Job<WebhookJobData>): Promise<void> {
-    const requestId =
-      job.data.requestId ?? createWorkerRequestId("webhook-delivery", job.id);
+    const requestId = job.data.requestId ?? createWorkerRequestId('webhook-delivery', job.id);
     this.logger.debug(
       `Processing webhook job requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId}`,
     );
@@ -57,7 +56,7 @@ export class WebhookProcessor extends WorkerHost {
         `Webhook delivery failed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} aggregateType=${result.event.aggregateType} aggregateId=${result.event.aggregateId}: ${result.error}`,
       );
 
-      throw new Error(result.error ?? "Webhook delivery failed");
+      throw new Error(result.error ?? 'Webhook delivery failed');
     }
 
     this.logger.debug(
@@ -65,22 +64,15 @@ export class WebhookProcessor extends WorkerHost {
     );
   }
 
-  @OnWorkerEvent("failed")
+  @OnWorkerEvent('failed')
   async onFailed(job: Job<WebhookJobData> | undefined, error: Error): Promise<void> {
     if (!job || !isFinalBullMqFailure(job)) {
       return;
     }
 
-    const deadLetterJob = buildDeadLetterJobData(
-      WEBHOOK_DELIVERY_QUEUE,
-      job,
-      error,
-    );
+    const deadLetterJob = buildDeadLetterJobData(WEBHOOK_DELIVERY_QUEUE, job, error);
 
-    const failedConfigIds = await this.markCanonicalFinalFailure(
-      job,
-      deadLetterJob.failedReason,
-    );
+    const failedConfigIds = await this.markCanonicalFinalFailure(job, deadLetterJob.failedReason);
     if (failedConfigIds.length > 0) {
       deadLetterJob.configIds = failedConfigIds;
       if (failedConfigIds.length === 1) {
@@ -88,12 +80,12 @@ export class WebhookProcessor extends WorkerHost {
       }
     }
 
-    await this.deadLetterQueue.add("dead-letter", deadLetterJob, {
+    await this.deadLetterQueue.add('dead-letter', deadLetterJob, {
       jobId: `${WEBHOOK_DELIVERY_QUEUE}:${job.id}`,
     });
 
     this.logger.error(
-      `Webhook job moved to DLQ requestId=${deadLetterJob.requestId ?? "unknown"} jobId=${job.id} outboxEventId=${deadLetterJob.outboxEventId ?? "unknown"} attemptsMade=${job.attemptsMade}: ${deadLetterJob.failedReason}`,
+      `Webhook job moved to DLQ requestId=${deadLetterJob.requestId ?? 'unknown'} jobId=${job.id} outboxEventId=${deadLetterJob.outboxEventId ?? 'unknown'} attemptsMade=${job.attemptsMade}: ${deadLetterJob.failedReason}`,
     );
   }
 
@@ -102,9 +94,7 @@ export class WebhookProcessor extends WorkerHost {
     error: string,
   ): Promise<string[]> {
     const eventId = job.data.eventId;
-    const deliveries = await this.webhookLogRepository.findByOutboxEventId(
-      eventId,
-    );
+    const deliveries = await this.webhookLogRepository.findByOutboxEventId(eventId);
     const failedConfigIds = deliveries
       .filter((delivery) => !delivery.isDelivered())
       .map((delivery) => delivery.configId);

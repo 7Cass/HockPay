@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getWebhookUrlPolicyOptionsForNodeEnv,
+  validateWebhookResolvedAddress,
   validateWebhookUrl,
 } from "./webhook-url-policy.service";
 
@@ -42,6 +43,9 @@ describe("webhook URL policy", () => {
   });
 
   it("enables local HTTP only for local-like node environments", () => {
+    expect(getWebhookUrlPolicyOptionsForNodeEnv(undefined)).toEqual({
+      allowLocalHttp: false,
+    });
     expect(getWebhookUrlPolicyOptionsForNodeEnv("development")).toEqual({
       allowLocalHttp: true,
     });
@@ -54,5 +58,26 @@ describe("webhook URL policy", () => {
     expect(getWebhookUrlPolicyOptionsForNodeEnv("production")).toEqual({
       allowLocalHttp: false,
     });
+  });
+
+  it("rejects localhost HTTP when NODE_ENV is unset", () => {
+    expect(
+      validateWebhookUrl(
+        "http://localhost:3999/webhook",
+        getWebhookUrlPolicyOptionsForNodeEnv(undefined),
+      ).valid,
+    ).toBe(false);
+  });
+
+  it("rejects resolved private and reserved addresses", () => {
+    expect(validateWebhookResolvedAddress({ address: "127.0.0.1" }).valid).toBe(
+      false,
+    );
+    expect(
+      validateWebhookResolvedAddress({ address: "169.254.169.254" }).valid,
+    ).toBe(false);
+    expect(
+      validateWebhookResolvedAddress({ address: "93.184.216.34" }).valid,
+    ).toBe(true);
   });
 });

@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsObject, IsOptional, IsString, Matches, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class FulfillCheckoutCustomerDto {
   @IsOptional()

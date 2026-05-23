@@ -12,10 +12,7 @@ describe('WorkerCronScheduler', () => {
     };
 
     return {
-      scheduler: new WorkerCronScheduler(
-        registry as any,
-        config as unknown as ConfigService,
-      ),
+      scheduler: new WorkerCronScheduler(registry as any, config as unknown as ConfigService),
       registry,
       config,
     };
@@ -61,10 +58,7 @@ describe('WorkerCronScheduler', () => {
     });
 
     expect(registry.addCronJob).toHaveBeenCalledTimes(1);
-    expect(registry.addCronJob).toHaveBeenCalledWith(
-      'test-job',
-      expect.objectContaining({}),
-    );
+    expect(registry.addCronJob).toHaveBeenCalledWith('test-job', expect.objectContaining({}));
 
     const job = registry.addCronJob.mock.calls[0][1];
     job.stop();
@@ -99,9 +93,7 @@ describe('WorkerCronScheduler', () => {
         defaultExpression: '*/10 * * * * *',
         onTick: jest.fn(),
       }),
-    ).toThrow(
-      'Invalid cron expression for WORKER_CRON_TEST (test-job): "not-a-cron"',
-    );
+    ).toThrow('Invalid cron expression for WORKER_CRON_TEST (test-job): "not-a-cron"');
 
     expect(registry.addCronJob).not.toHaveBeenCalled();
   });

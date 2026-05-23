@@ -37,7 +37,6 @@ import { CreateWebhookDto } from './dtos/create-webhook.dto';
 import { UpdateWebhookDto } from './dtos/update-webhook.dto';
 import {
   WebhookConfigCreatedDto,
-  WebhookConfigDto,
   ListWebhooksResponseDto,
   GetWebhookResponseDto,
   TestWebhookResponseDto,

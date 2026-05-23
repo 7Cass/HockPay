@@ -1,7 +1,4 @@
-import {
-  buildDeadLetterJobData,
-  isFinalBullMqFailure,
-} from './dead-letter-job';
+import { buildDeadLetterJobData, isFinalBullMqFailure } from './dead-letter-job';
 
 describe('dead-letter-job helpers', () => {
   beforeEach(() => {

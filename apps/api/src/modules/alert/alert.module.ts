@@ -37,7 +37,8 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
     },
     {
       provide: 'IAlertDeliveryLogRepository',
-      useFactory: (prisma: PrismaService) => new AlertDeliveryLogRepository(prisma),
+      useFactory: (prisma: PrismaService) =>
+        new AlertDeliveryLogRepository(prisma),
       inject: [PrismaService],
     },
     {
@@ -100,7 +101,11 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
       useFactory: (
         alertLogRepository: IAlertDeliveryLogRepository,
         alertConfigRepository: IAlertConfigRepository,
-      ) => new ListAlertDeliveryLogsUseCase(alertLogRepository, alertConfigRepository),
+      ) =>
+        new ListAlertDeliveryLogsUseCase(
+          alertLogRepository,
+          alertConfigRepository,
+        ),
       inject: ['IAlertDeliveryLogRepository', 'IAlertConfigRepository'],
     },
     {

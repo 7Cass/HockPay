@@ -26,15 +26,16 @@ describe('IdempotencyCacheService', () => {
 
     service = new IdempotencyCacheService({
       get: jest.fn((key: string, fallback?: string) =>
-        key === 'REDIS_URL' ? 'redis://redis.test:6379' : fallback,
+        key === 'REDIS_URL' ? 'redis://redis.test:6380' : fallback,
       ),
     } as unknown as ConfigService);
   });
 
-  it('creates Redis with the configured URL and lazy connection settings', () => {
+  it('creates Redis with the unified Redis env and lazy connection settings', () => {
     expect(Redis).toHaveBeenCalledWith(
-      'redis://redis.test:6379',
       expect.objectContaining({
+        host: 'redis.test',
+        port: 6380,
         lazyConnect: true,
         maxRetriesPerRequest: 3,
       }),

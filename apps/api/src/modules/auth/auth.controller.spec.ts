@@ -45,7 +45,10 @@ describe('AuthController', () => {
     const res = response();
 
     await expect(
-      controller.refreshToken({ cookies: { hockpay_rt: 'bad-token' } } as any, res),
+      controller.refreshToken(
+        { cookies: { hockpay_rt: 'bad-token' } } as any,
+        res,
+      ),
     ).rejects.toThrow(UnauthorizedException);
 
     expect(res.clearCookie).toHaveBeenCalledTimes(2);

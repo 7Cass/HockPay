@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { PrismaModule } from './infra/database/prisma.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
@@ -32,6 +32,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { randomUUID } from 'crypto';
+import { parseRedisEnv } from '@hockpay/infrastructure';
 
 @Module({
   imports: [
@@ -50,7 +51,7 @@ import { randomUUID } from 'crypto';
             // Gerar ID de requisição se não vier no header
             genReqId: (req) => req.headers['x-request-id'] || randomUUID(),
             transport: isProd ? undefined : { target: 'pino-pretty' },
-            customProps: (req, res) => ({
+            customProps: () => ({
               context: 'HTTP',
             }),
             // Serializadores para não vazar dados sensíveis
@@ -77,8 +78,11 @@ import { randomUUID } from 'crypto';
           },
         ],
         storage: new ThrottlerStorageRedisService({
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
+          ...parseRedisEnv({
+            REDIS_URL: config.get<string>('REDIS_URL'),
+            REDIS_HOST: config.get<string>('REDIS_HOST'),
+            REDIS_PORT: config.get<string>('REDIS_PORT'),
+          }).connection,
         }),
       }),
     }),
@@ -111,6 +115,10 @@ import { randomUUID } from 'crypto';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

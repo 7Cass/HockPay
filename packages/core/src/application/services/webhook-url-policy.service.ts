@@ -10,6 +10,11 @@ export interface WebhookUrlPolicyResult {
   message?: string;
 }
 
+export interface WebhookResolvedAddress {
+  address: string;
+  family?: number;
+}
+
 const PUBLIC_HTTPS_MESSAGE =
   "Webhook URL must be a public HTTPS endpoint. Local HTTP is allowed only for localhost/127.0.0.1 in development.";
 
@@ -20,7 +25,6 @@ export function getWebhookUrlPolicyOptionsForNodeEnv(
 
   return {
     allowLocalHttp:
-      !normalized ||
       normalized === "development" ||
       normalized === "dev" ||
       normalized === "local" ||
@@ -83,8 +87,20 @@ export function validateWebhookUrl(
     );
   }
 
-  if (isBlockedLocalOrPrivateHost(hostname)) {
+  if (isBlockedLocalOrReservedHost(hostname)) {
     return invalid("Webhook URL host must be a public remote host.");
+  }
+
+  return { valid: true };
+}
+
+export function validateWebhookResolvedAddress(
+  resolvedAddress: WebhookResolvedAddress,
+): WebhookUrlPolicyResult {
+  const hostname = normalizeHostname(resolvedAddress.address);
+
+  if (isBlockedLocalOrReservedHost(hostname)) {
+    return invalid("Webhook URL resolved to a non-public address.");
   }
 
   return { valid: true };
@@ -106,7 +122,7 @@ function isAllowedLocalHttpHost(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1";
 }
 
-function isBlockedLocalOrPrivateHost(hostname: string): boolean {
+function isBlockedLocalOrReservedHost(hostname: string): boolean {
   if (hostname === "localhost" || hostname.endsWith(".localhost")) {
     return true;
   }
@@ -148,14 +164,24 @@ function parseIpv4Octets(hostname: string): number[] | null {
   return octets;
 }
 
-function isBlockedIpv4([a, b]: number[]): boolean {
+function isBlockedIpv4([a, b, c, d]: number[]): boolean {
   return (
     a === 0 ||
     a === 10 ||
+    (a === 100 && b >= 64 && b <= 127) ||
     a === 127 ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
+    (a === 192 && b === 0) ||
+    (a === 192 && b === 2) ||
+    (a === 192 && b === 88 && c === 99) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
+    (a >= 224 && a <= 239) ||
+    a >= 240 ||
+    (a === 255 && b === 255 && c === 255 && d === 255)
   );
 }
 
@@ -171,6 +197,12 @@ function isBlockedIpv6(hostname: string): boolean {
     words.slice(0, 7).every((word) => word === 0) && words[7] === 1;
   const isUniqueLocal = (words[0] & 0xfe00) === 0xfc00;
   const isLinkLocal = (words[0] & 0xffc0) === 0xfe80;
+  const isMulticast = (words[0] & 0xff00) === 0xff00;
+  const isDiscardOnly =
+    words[0] === 0x0100 && words.slice(1).every((word) => word === 0);
+  const isDocumentation = words[0] === 0x2001 && words[1] === 0x0db8;
+  const isBenchmarking =
+    words[0] === 0x2001 && words[1] === 0x0002 && words[2] === 0;
   const mappedIpv4 = getMappedIpv4Octets(words);
 
   return (
@@ -178,6 +210,10 @@ function isBlockedIpv6(hostname: string): boolean {
     isLoopback ||
     isUniqueLocal ||
     isLinkLocal ||
+    isMulticast ||
+    isDiscardOnly ||
+    isDocumentation ||
+    isBenchmarking ||
     (mappedIpv4 !== null && isBlockedIpv4(mappedIpv4))
   );
 }

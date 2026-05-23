@@ -20,7 +20,8 @@ import { PrismaService } from '../../infra/database/prisma.service';
     // Repository (PostgreSQL)
     {
       provide: 'IIdempotencyKeyRepository',
-      useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
+      useFactory: (prisma: PrismaService) =>
+        new IdempotencyKeyRepository(prisma),
       inject: [PrismaService],
     },
     {

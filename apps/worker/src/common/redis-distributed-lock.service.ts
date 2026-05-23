@@ -2,23 +2,13 @@ import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
+import { parseRedisEnv } from '@hockpay/infrastructure';
 
 export const REDIS_DISTRIBUTED_LOCK_CLIENT = 'REDIS_DISTRIBUTED_LOCK_CLIENT';
 
 type RedisLockClient = {
-  set(
-    key: string,
-    value: string,
-    px: 'PX',
-    ttlMs: number,
-    nx: 'NX',
-  ): Promise<'OK' | null>;
-  eval(
-    script: string,
-    numKeys: number,
-    key: string,
-    token: string,
-  ): Promise<number | string>;
+  set(key: string, value: string, px: 'PX', ttlMs: number, nx: 'NX'): Promise<'OK' | null>;
+  eval(script: string, numKeys: number, key: string, token: string): Promise<number | string>;
   quit(): Promise<unknown>;
 };
 
@@ -48,8 +38,11 @@ return 0
     this.redis =
       redis ??
       (new Redis({
-        host: this.configService.get<string>('REDIS_HOST') ?? 'localhost',
-        port: Number(this.configService.get<string>('REDIS_PORT') ?? 6379),
+        ...parseRedisEnv({
+          REDIS_URL: this.configService.get<string>('REDIS_URL'),
+          REDIS_HOST: this.configService.get<string>('REDIS_HOST'),
+          REDIS_PORT: this.configService.get<string>('REDIS_PORT'),
+        }).connection,
         maxRetriesPerRequest: 1,
       }) as unknown as RedisLockClient);
     this.ownsClient = !redis;

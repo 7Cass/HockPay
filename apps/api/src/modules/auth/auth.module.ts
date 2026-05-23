@@ -89,17 +89,9 @@ import { PrismaService } from 'src/infra/database/prisma.service';
         jwtService: JwtService,
         tokenGenerator: TokenGeneratorService,
       ) => {
-        return new RefreshTokenUseCase(
-          unitOfWork,
-          jwtService,
-          tokenGenerator,
-        );
+        return new RefreshTokenUseCase(unitOfWork, jwtService, tokenGenerator);
       },
-      inject: [
-        'IUnitOfWork',
-        JwtService,
-        TokenGeneratorService,
-      ],
+      inject: ['IUnitOfWork', JwtService, TokenGeneratorService],
     },
     {
       provide: LogoutUseCase,
@@ -115,17 +107,9 @@ import { PrismaService } from 'src/infra/database/prisma.service';
         jwtService: JwtService,
         tokenGenerator: TokenGeneratorService,
       ) => {
-        return new SwitchStoreUseCase(
-          unitOfWork,
-          jwtService,
-          tokenGenerator,
-        );
+        return new SwitchStoreUseCase(unitOfWork, jwtService, tokenGenerator);
       },
-      inject: [
-        'IUnitOfWork',
-        JwtService,
-        TokenGeneratorService,
-      ],
+      inject: ['IUnitOfWork', JwtService, TokenGeneratorService],
     },
   ],
   exports: [

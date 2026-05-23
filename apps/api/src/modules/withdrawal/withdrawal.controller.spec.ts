@@ -6,12 +6,14 @@ import {
 import { WithdrawalController } from './withdrawal.controller';
 
 describe('WithdrawalController', () => {
-  function makeController(overrides: {
-    createWithdrawalUseCase?: Partial<CreateWithdrawalUseCase>;
-    listWithdrawalsUseCase?: Partial<ListWithdrawalsUseCase>;
-    getWithdrawalUseCase?: Partial<GetWithdrawalUseCase>;
-    idempotencyService?: any;
-  } = {}) {
+  function makeController(
+    overrides: {
+      createWithdrawalUseCase?: Partial<CreateWithdrawalUseCase>;
+      listWithdrawalsUseCase?: Partial<ListWithdrawalsUseCase>;
+      getWithdrawalUseCase?: Partial<GetWithdrawalUseCase>;
+      idempotencyService?: any;
+    } = {},
+  ) {
     const createWithdrawalUseCase = {
       executeInTransaction: jest.fn(),
       ...overrides.createWithdrawalUseCase,
@@ -34,7 +36,7 @@ describe('WithdrawalController', () => {
         createWithdrawalUseCase as unknown as CreateWithdrawalUseCase,
         listWithdrawalsUseCase as unknown as ListWithdrawalsUseCase,
         getWithdrawalUseCase as unknown as GetWithdrawalUseCase,
-        idempotencyService as any,
+        idempotencyService,
       ),
       createWithdrawalUseCase,
       listWithdrawalsUseCase,
@@ -57,25 +59,22 @@ describe('WithdrawalController', () => {
       createdAt: new Date('2026-01-01T10:00:00.000Z'),
       updatedAt: new Date('2026-01-01T10:00:00.000Z'),
     };
-    const {
-      controller,
-      createWithdrawalUseCase,
-      idempotencyService,
-    } = makeController({
-      createWithdrawalUseCase: {
-        executeInTransaction: jest.fn().mockResolvedValue({ withdrawal }),
-      },
-      idempotencyService: {
-        execute: jest.fn(async (input) => {
-          const body = await input.operation(repos);
-          return {
-            body,
-            status: input.responseStatus,
-            replayed: false,
-          };
-        }),
-      },
-    });
+    const { controller, createWithdrawalUseCase, idempotencyService } =
+      makeController({
+        createWithdrawalUseCase: {
+          executeInTransaction: jest.fn().mockResolvedValue({ withdrawal }),
+        },
+        idempotencyService: {
+          execute: jest.fn(async (input) => {
+            const body = await input.operation(repos);
+            return {
+              body,
+              status: input.responseStatus,
+              replayed: false,
+            };
+          }),
+        },
+      });
     const response = {
       status: jest.fn(),
       setHeader: jest.fn(),

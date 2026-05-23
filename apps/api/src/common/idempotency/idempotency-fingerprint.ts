@@ -30,7 +30,8 @@ export function matchesIdempotencyFingerprint(
   request: IdempotencyFingerprint,
 ): boolean {
   return (
-    cached.requestMethod.toUpperCase() === request.requestMethod.toUpperCase() &&
+    cached.requestMethod.toUpperCase() ===
+      request.requestMethod.toUpperCase() &&
     cached.requestPath === request.requestPath &&
     cached.requestHash === request.requestHash
   );

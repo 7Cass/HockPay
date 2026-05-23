@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
+import { parseRedisEnv } from '@hockpay/infrastructure';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -16,7 +17,7 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   logger.log(`Worker is running on port ${port}`);
-  logger.log(`Redis: ${process.env.REDIS_HOST ?? 'localhost'}:${process.env.REDIS_PORT ?? 6379}`);
+  logger.log(`Redis: ${parseRedisEnv(process.env).displayName}`);
 }
 
-bootstrap();
+void bootstrap();

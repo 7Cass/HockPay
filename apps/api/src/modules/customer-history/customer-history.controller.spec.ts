@@ -40,11 +40,10 @@ describe('CustomerHistoryController', () => {
 
   it('rejects dashboard cookie auth because the surface is API-key only', async () => {
     await expect(
-      controller.listPayments(
-        'cust_123',
-        {},
-        { authType: 'jwt', store: { id: 'store-1' } } as any,
-      ),
+      controller.listPayments('cust_123', {}, {
+        authType: 'jwt',
+        store: { id: 'store-1' },
+      } as any),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -86,11 +85,10 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.listReceipts(
-        'missing',
-        {},
-        { authType: 'api_key', store: { id: 'store-1' } } as any,
-      ),
+      controller.listReceipts('missing', {}, {
+        authType: 'api_key',
+        store: { id: 'store-1' },
+      } as any),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -100,11 +98,10 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getPayment(
-        'cust_123',
-        'payment-1',
-        { authType: 'api_key', store: { id: 'store-1' } } as any,
-      ),
+      controller.getPayment('cust_123', 'payment-1', {
+        authType: 'api_key',
+        store: { id: 'store-1' },
+      } as any),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -114,11 +111,10 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getReceipt(
-        'cust_123',
-        'receipt-1',
-        { authType: 'api_key', store: { id: 'store-1' } } as any,
-      ),
+      controller.getReceipt('cust_123', 'receipt-1', {
+        authType: 'api_key',
+        store: { id: 'store-1' },
+      } as any),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

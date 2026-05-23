@@ -85,9 +85,12 @@ describe('ReceiptController', () => {
       },
     });
 
-    const response = await controller.getReceiptByNumber('RCP-20260419-STORE1-00001', {
-      store: { id: 'store-1' },
-    } as any);
+    const response = await controller.getReceiptByNumber(
+      'RCP-20260419-STORE1-00001',
+      {
+        store: { id: 'store-1' },
+      } as any,
+    );
 
     expect(getReceiptUseCase.execute).toHaveBeenCalledWith({
       receiptNumber: 'RCP-20260419-STORE1-00001',

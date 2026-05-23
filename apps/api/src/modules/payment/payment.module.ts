@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
 import { DevController } from './dev.controller';
 import {
@@ -32,6 +33,7 @@ import {
   TransactionRepository,
   UnitOfWork,
   WebhookLogRepository,
+  parseRedisEnv,
 } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
@@ -69,7 +71,15 @@ import { JwtService } from 'src/infra/services/jwt.service';
     TokenGeneratorService,
     {
       provide: ExpirationQueue,
-      useFactory: () => new ExpirationQueue(getRedisConnection()),
+      useFactory: (config: ConfigService) =>
+        new ExpirationQueue(
+          parseRedisEnv({
+            REDIS_URL: config.get<string>('REDIS_URL'),
+            REDIS_HOST: config.get<string>('REDIS_HOST'),
+            REDIS_PORT: config.get<string>('REDIS_PORT'),
+          }).connection,
+        ),
+      inject: [ConfigService],
     },
 
     // Factory providers for shared repositories (from @hockpay/infrastructure)
@@ -273,10 +283,3 @@ import { JwtService } from 'src/infra/services/jwt.service';
   ],
 })
 export class PaymentModule {}
-
-function getRedisConnection() {
-  return {
-    host: process.env.REDIS_HOST ?? 'localhost',
-    port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
-  };
-}

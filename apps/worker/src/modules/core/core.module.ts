@@ -1,6 +1,6 @@
-import { Logger, Module } from "@nestjs/common";
-import { PrismaModule } from "../../infra/database/prisma.module";
-import { PrismaService } from "../../infra/database/prisma.service";
+import { Logger, Module } from '@nestjs/common';
+import { PrismaModule } from '../../infra/database/prisma.module';
+import { PrismaService } from '../../infra/database/prisma.service';
 
 // Repositories
 import {
@@ -19,7 +19,7 @@ import {
   UnitOfWork,
   WithdrawalRepository,
   WebhookHttpClientService,
-} from "@hockpay/infrastructure";
+} from '@hockpay/infrastructure';
 
 // Use Cases
 import {
@@ -31,7 +31,6 @@ import {
   DetectAnomaliesUseCase,
   FailWithdrawalUseCase,
   IPaymentRepository,
-  IWithdrawalRepository,
   IOutboxRepository,
   IWebhookConfigRepository,
   IWebhookLogRepository,
@@ -42,10 +41,10 @@ import {
   MarkWithdrawalProcessingUseCase,
   RecordWithdrawalProcessingErrorUseCase,
   getWebhookUrlPolicyOptionsForNodeEnv,
-} from "@hockpay/core";
+} from '@hockpay/core';
 
 // Token for IExpirationQueuePort (exported for use in QueueModule)
-export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
+export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
 
 /**
  * Core Module
@@ -58,50 +57,47 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
   providers: [
     // Factory providers for shared repositories (from @hockpay/infrastructure)
     {
-      provide: "IPaymentRepository",
+      provide: 'IPaymentRepository',
       useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IOutboxRepository",
+      provide: 'IOutboxRepository',
       useFactory: (prisma: PrismaService) => new OutboxRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IWebhookConfigRepository",
-      useFactory: (prisma: PrismaService) =>
-        new WebhookConfigRepository(prisma),
+      provide: 'IWebhookConfigRepository',
+      useFactory: (prisma: PrismaService) => new WebhookConfigRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IWebhookLogRepository",
+      provide: 'IWebhookLogRepository',
       useFactory: (prisma: PrismaService) => new WebhookLogRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IAlertConfigRepository",
+      provide: 'IAlertConfigRepository',
       useFactory: (prisma: PrismaService) => new AlertConfigRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IAlertDeliveryLogRepository",
-      useFactory: (prisma: PrismaService) =>
-        new AlertDeliveryLogRepository(prisma),
+      provide: 'IAlertDeliveryLogRepository',
+      useFactory: (prisma: PrismaService) => new AlertDeliveryLogRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IIdempotencyKeyRepository",
-      useFactory: (prisma: PrismaService) =>
-        new IdempotencyKeyRepository(prisma),
+      provide: 'IIdempotencyKeyRepository',
+      useFactory: (prisma: PrismaService) => new IdempotencyKeyRepository(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IUnitOfWork",
+      provide: 'IUnitOfWork',
       useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
     {
-      provide: "IWithdrawalRepository",
+      provide: 'IWithdrawalRepository',
       useFactory: (prisma: PrismaService) => new WithdrawalRepository(prisma),
       inject: [PrismaService],
     },
@@ -126,14 +122,12 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
       useFactory: () =>
         new WebhookHttpClientService({
           logger: new Logger(WebhookHttpClientService.name),
-          webhookUrlPolicyOptions: getWebhookUrlPolicyOptionsForNodeEnv(
-            process.env.NODE_ENV,
-          ),
+          webhookUrlPolicyOptions: getWebhookUrlPolicyOptionsForNodeEnv(process.env.NODE_ENV),
         }),
     },
     {
       provide: EncryptionService,
-      useFactory: () => new EncryptionService(getRequiredEnv("ENCRYPTION_KEY")),
+      useFactory: () => new EncryptionService(getRequiredEnv('ENCRYPTION_KEY')),
     },
     DiscordAlertSenderService,
 
@@ -158,9 +152,9 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
           new Logger(ProcessWebhookUseCase.name),
         ),
       inject: [
-        "IOutboxRepository",
-        "IWebhookConfigRepository",
-        "IWebhookLogRepository",
+        'IOutboxRepository',
+        'IWebhookConfigRepository',
+        'IWebhookLogRepository',
         WebhookHttpClientService,
         HmacSignerService,
         EncryptionService,
@@ -168,39 +162,34 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
     },
     {
       provide: ReleasePaymentUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new ReleasePaymentUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      useFactory: (unitOfWork: IUnitOfWork) => new ReleasePaymentUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: ClaimProcessableWithdrawalsUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new ClaimProcessableWithdrawalsUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      useFactory: (unitOfWork: IUnitOfWork) => new ClaimProcessableWithdrawalsUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: MarkWithdrawalProcessingUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new MarkWithdrawalProcessingUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      useFactory: (unitOfWork: IUnitOfWork) => new MarkWithdrawalProcessingUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: CompleteWithdrawalUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new CompleteWithdrawalUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      useFactory: (unitOfWork: IUnitOfWork) => new CompleteWithdrawalUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: FailWithdrawalUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new FailWithdrawalUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      useFactory: (unitOfWork: IUnitOfWork) => new FailWithdrawalUseCase(unitOfWork),
+      inject: ['IUnitOfWork'],
     },
     {
       provide: RecordWithdrawalProcessingErrorUseCase,
       useFactory: (unitOfWork: IUnitOfWork) =>
         new RecordWithdrawalProcessingErrorUseCase(unitOfWork),
-      inject: ["IUnitOfWork"],
+      inject: ['IUnitOfWork'],
     },
     {
       provide: ProcessAlertDeliveryUseCase,
@@ -219,9 +208,9 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
           encryption,
         ),
       inject: [
-        "IOutboxRepository",
-        "IAlertConfigRepository",
-        "IAlertDeliveryLogRepository",
+        'IOutboxRepository',
+        'IAlertConfigRepository',
+        'IAlertDeliveryLogRepository',
         DiscordAlertSenderService,
         EncryptionService,
       ],
@@ -232,26 +221,26 @@ export const EXPIRATION_QUEUE_PORT = "IExpirationQueuePort";
         webhookLogRepository: IWebhookLogRepository,
         outboxRepository: IOutboxRepository,
       ) => new CleanupLogsUseCase(webhookLogRepository, outboxRepository),
-      inject: ["IWebhookLogRepository", "IOutboxRepository"],
+      inject: ['IWebhookLogRepository', 'IOutboxRepository'],
     },
     {
       provide: DetectAnomaliesUseCase,
       useFactory: (paymentRepository: IPaymentRepository) =>
         new DetectAnomaliesUseCase(paymentRepository),
-      inject: ["IPaymentRepository"],
+      inject: ['IPaymentRepository'],
     },
   ],
   exports: [
     // Repositories (tokens for shared)
-    "IPaymentRepository",
-    "IOutboxRepository",
-    "IWebhookConfigRepository",
-    "IWebhookLogRepository",
-    "IAlertConfigRepository",
-    "IAlertDeliveryLogRepository",
-    "IIdempotencyKeyRepository",
-    "IUnitOfWork",
-    "IWithdrawalRepository",
+    'IPaymentRepository',
+    'IOutboxRepository',
+    'IWebhookConfigRepository',
+    'IWebhookLogRepository',
+    'IAlertConfigRepository',
+    'IAlertDeliveryLogRepository',
+    'IIdempotencyKeyRepository',
+    'IUnitOfWork',
+    'IWithdrawalRepository',
     AccountRepository,
     TransactionRepository,
     // Use Cases

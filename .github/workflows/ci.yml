@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -43,6 +46,12 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm db:generate
+
+      - name: Lint check
+        run: pnpm run lint:check
+
+      - name: Format check
+        run: pnpm run format:check
 
       - name: Build workspace
         run: pnpm build
@@ -127,3 +136,42 @@ jobs:
 
       - name: API e2e tests
         run: pnpm --filter @hockpay/api test:e2e
+
+  smoke-minimal:
+    name: Minimal smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Run minimal smoke suite
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/smoke
+          HOCKPAY_SMOKE_SUITE=p0,payment-link HOCKPAY_SMOKE_ARTIFACT_DIR=artifacts/smoke pnpm run smoke:docker 2>&1 | tee artifacts/smoke/smoke.log
+
+      - name: Upload smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-diagnostics
+          path: artifacts/smoke

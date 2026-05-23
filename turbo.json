@@ -8,6 +8,12 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "lint:check": {
+      "dependsOn": ["^lint:check"]
+    },
+    "format:check": {
+      "dependsOn": ["^format:check"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
