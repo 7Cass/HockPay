@@ -86,4 +86,13 @@ export interface IWebhookLogRepository {
     error: string,
     attemptsMade?: number,
   ): Promise<number>;
+
+  /**
+   * Reset non-delivered canonical delivery rows before DLQ requeue.
+   * When configIds is omitted, all non-delivered rows for the outbox event are reset.
+   */
+  resetOutboxDeliveriesForRequeue(
+    outboxEventId: string,
+    configIds?: string[],
+  ): Promise<number>;
 }

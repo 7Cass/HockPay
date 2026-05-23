@@ -172,4 +172,28 @@ describe("OutboxRepository", () => {
       }),
     });
   });
+
+  it("resets an outbox event before DLQ requeue", async () => {
+    const prisma = {
+      outboxEvent: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const repository = new OutboxRepository(prisma as any);
+    const watchdogUntil = new Date("2026-01-01T00:45:00.000Z");
+
+    const count = await repository.resetForRequeue("outbox-1", watchdogUntil);
+
+    expect(count).toBe(1);
+    expect(prisma.outboxEvent.updateMany).toHaveBeenCalledWith({
+      where: { id: "outbox-1" },
+      data: {
+        status: "DISPATCHED",
+        processedAt: null,
+        retryCount: 0,
+        nextRetryAt: watchdogUntil,
+        errorMessage: null,
+      },
+    });
+  });
 });

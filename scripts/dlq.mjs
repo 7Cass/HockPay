@@ -1,4 +1,14 @@
 import { Queue } from 'bullmq';
+import {
+  OutboxStatus,
+  PrismaClient,
+  WebhookDeliveryStatus,
+} from '@hockpay/database';
+import {
+  buildWebhookResetForRequeue,
+  formatConfigIds,
+  requeueDlqJob,
+} from './dlq-helpers.mjs';
 
 const QUEUE_ALIASES = {
   webhook: 'webhook-dead-letter',
@@ -15,6 +25,7 @@ const connection = {
   host: process.env.REDIS_HOST ?? 'localhost',
   port: Number(process.env.REDIS_PORT ?? 6379),
 };
+const REQUEUE_WATCHDOG_MS = 45 * 60 * 1000;
 
 main().catch((error) => {
   console.error(`[dlq] ${formatError(error)}`);
@@ -45,7 +56,15 @@ async function main() {
 
     if (command === 'requeue') {
       requireJobId();
-      await requeueJob(dlq, jobId);
+      await requeueDlqJob({
+        dlq,
+        id: jobId,
+        createQueue: (name) => new Queue(name, { connection }),
+        force: hasFlag('--force'),
+        remove: hasFlag('--remove'),
+        beforeEnqueue: ({ data, dlqName }) =>
+          resetCanonicalWebhookDeliveryForRequeue(dlqName, data),
+      });
       return;
     }
 
@@ -94,137 +113,49 @@ async function showJob(dlq, id) {
     throw new Error(`DLQ job ${id} was not found in ${dlq.name}`);
   }
 
-  console.log(JSON.stringify({ id: job.id, name: job.name, data: job.data }, null, 2));
+  console.log(
+    JSON.stringify({ id: job.id, name: job.name, data: job.data }, null, 2),
+  );
 }
 
-async function requeueJob(dlq, id) {
-  const job = await dlq.getJob(id);
-  if (!job) {
-    throw new Error(`DLQ job ${id} was not found in ${dlq.name}`);
+async function resetCanonicalWebhookDeliveryForRequeue(dlqName, data) {
+  const reset = buildWebhookResetForRequeue(dlqName, data);
+  if (!reset) {
+    return;
   }
 
-  const data = job.data ?? {};
-  if (!data.originalQueue || !data.payload) {
-    throw new Error(`DLQ job ${id} does not contain originalQueue and payload`);
-  }
-
-  const target = new Queue(data.originalQueue, { connection });
+  const prisma = new PrismaClient();
   try {
-    const options = buildRequeueOptions(data);
-    if (options.jobId && !hasFlag('--force')) {
-      const existing = await target.getJob(options.jobId);
-      if (existing) {
-        const state = await existing.getState();
-        throw new Error(
-          `Target job ${data.originalQueue}/${options.jobId} already exists with state ${state}. Use --force to bypass this guard.`,
-        );
-      }
-    }
+    await prisma.webhookLog.updateMany({
+      where: {
+        outboxEventId: reset.outboxEventId,
+        status: { not: WebhookDeliveryStatus.DELIVERED },
+        ...(reset.configIds ? { configId: { in: reset.configIds } } : {}),
+      },
+      data: {
+        status: WebhookDeliveryStatus.PENDING,
+        attempt: 0,
+        nextRetryAt: null,
+        failedAt: null,
+        lastError: null,
+        responseStatus: null,
+        responseBody: null,
+      },
+    });
 
-    const requeued = await target.add(
-      data.originalJobName ?? 'deliver',
-      data.payload,
-      options,
-    );
-    console.log(
-      `[dlq] requeued ${dlq.name}/${id} to ${data.originalQueue}/${requeued.id}`,
-    );
-
-    if (hasFlag('--remove')) {
-      await job.remove();
-      console.log(`[dlq] removed ${dlq.name}/${id}`);
-    }
+    await prisma.outboxEvent.updateMany({
+      where: { id: reset.outboxEventId },
+      data: {
+        status: OutboxStatus.DISPATCHED,
+        processedAt: null,
+        retryCount: 0,
+        nextRetryAt: new Date(Date.now() + REQUEUE_WATCHDOG_MS),
+        errorMessage: null,
+      },
+    });
   } finally {
-    await target.close();
+    await prisma.$disconnect();
   }
-}
-
-function buildRequeueOptions(data) {
-  return {
-    ...defaultJobOptionsFor(data),
-    ...sanitizeJobOptions(data.originalJobOptions),
-  };
-}
-
-function defaultJobOptionsFor(data) {
-  if (data.originalQueue === 'webhook-delivery') {
-    const eventId = readEventId(data.payload);
-    return {
-      delay: 0,
-      jobId: eventId ? `webhook-${eventId}` : data.originalJobId,
-      attempts: 5,
-      backoff: {
-        type: 'exponential',
-        delay: 60000,
-      },
-      removeOnComplete: {
-        count: 1000,
-        age: 24 * 60 * 60,
-      },
-      removeOnFail: {
-        age: 7 * 24 * 60 * 60,
-      },
-    };
-  }
-
-  if (data.originalQueue === 'alert-delivery') {
-    const eventId = readEventId(data.payload);
-    return {
-      delay: 0,
-      jobId: eventId ? `alert-${eventId}` : data.originalJobId,
-      attempts: 5,
-      backoff: {
-        type: 'exponential',
-        delay: 60000,
-      },
-      removeOnComplete: {
-        count: 1000,
-        age: 24 * 60 * 60,
-      },
-      removeOnFail: {
-        age: 7 * 24 * 60 * 60,
-      },
-    };
-  }
-
-  return {
-    delay: 0,
-    ...(data.originalJobId ? { jobId: data.originalJobId } : {}),
-  };
-}
-
-function sanitizeJobOptions(options) {
-  if (!options || typeof options !== 'object' || Array.isArray(options)) {
-    return {};
-  }
-
-  const sanitized = {};
-  for (const key of [
-    'attempts',
-    'backoff',
-    'delay',
-    'jobId',
-    'removeOnComplete',
-    'removeOnFail',
-  ]) {
-    if (options[key] !== undefined) {
-      sanitized[key] = options[key];
-    }
-  }
-
-  return sanitized;
-}
-
-function readEventId(payload) {
-  return payload && typeof payload.eventId === 'string' ? payload.eventId : undefined;
-}
-
-function formatConfigIds(data) {
-  if (Array.isArray(data.configIds) && data.configIds.length > 0) {
-    return data.configIds.join(',');
-  }
-
-  return data.configId ?? 'unknown';
 }
 
 function resolveQueueName(value) {

@@ -69,6 +69,25 @@ describe("OutboxEvent", () => {
     expect(event.errorMessage).toBeUndefined();
   });
 
+  it("resets to a requeueable state", () => {
+    const event = OutboxEvent.create({
+      aggregateType: "Payment",
+      aggregateId: "payment-1",
+      eventType: "payment.created",
+      payload: { id: "payment-1" },
+    });
+    const watchdogUntil = new Date("2026-01-01T00:45:00.000Z");
+
+    event.markAsFailed("temporary failure", new Date("2026-01-01T00:00:00.000Z"));
+    event.resetForRequeue(watchdogUntil);
+
+    expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
+    expect(event.retryCount).toBe(0);
+    expect(event.nextRetryAt).toBe(watchdogUntil);
+    expect(event.errorMessage).toBeUndefined();
+    expect(event.processedAt).toBeUndefined();
+  });
+
   it("adds an explicit top-level storeId to the payload when provided", () => {
     const event = OutboxEvent.create({
       aggregateType: "Payment",

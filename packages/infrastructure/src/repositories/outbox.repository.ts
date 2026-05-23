@@ -69,6 +69,21 @@ export class OutboxRepository implements IOutboxRepository {
     });
   }
 
+  async resetForRequeue(id: string, watchdogUntil: Date): Promise<number> {
+    const result = await this.prisma.outboxEvent.updateMany({
+      where: { id },
+      data: {
+        status: OutboxStatus.DISPATCHED,
+        processedAt: null,
+        retryCount: 0,
+        nextRetryAt: watchdogUntil,
+        errorMessage: null,
+      },
+    });
+
+    return result.count;
+  }
+
   async findById(id: string): Promise<OutboxEvent | null> {
     const prismaEvent = await this.prisma.outboxEvent.findUnique({
       where: { id },

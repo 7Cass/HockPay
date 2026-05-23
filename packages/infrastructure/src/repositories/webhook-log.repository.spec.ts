@@ -239,4 +239,58 @@ describe("WebhookLogRepository", () => {
       }),
     });
   });
+
+  it("resets non-delivered outbox deliveries for selected configs before requeue", async () => {
+    const prisma = {
+      webhookLog: {
+        updateMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+    const repository = new WebhookLogRepository(prisma as any);
+
+    const count = await repository.resetOutboxDeliveriesForRequeue("outbox-1", [
+      "config-1",
+      "config-2",
+    ]);
+
+    expect(count).toBe(2);
+    expect(prisma.webhookLog.updateMany).toHaveBeenCalledWith({
+      where: {
+        outboxEventId: "outbox-1",
+        status: { not: WebhookDeliveryStatus.DELIVERED },
+        configId: { in: ["config-1", "config-2"] },
+      },
+      data: {
+        status: WebhookDeliveryStatus.PENDING,
+        attempt: 0,
+        nextRetryAt: null,
+        failedAt: null,
+        lastError: null,
+        responseStatus: null,
+        responseBody: null,
+      },
+    });
+  });
+
+  it("resets all non-delivered outbox deliveries when configIds are absent", async () => {
+    const prisma = {
+      webhookLog: {
+        updateMany: vi.fn().mockResolvedValue({ count: 3 }),
+      },
+    };
+    const repository = new WebhookLogRepository(prisma as any);
+
+    await repository.resetOutboxDeliveriesForRequeue("outbox-1");
+
+    expect(prisma.webhookLog.updateMany).toHaveBeenCalledWith({
+      where: {
+        outboxEventId: "outbox-1",
+        status: { not: WebhookDeliveryStatus.DELIVERED },
+      },
+      data: expect.objectContaining({
+        status: WebhookDeliveryStatus.PENDING,
+        attempt: 0,
+      }),
+    });
+  });
 });

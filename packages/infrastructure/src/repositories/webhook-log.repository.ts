@@ -170,6 +170,32 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     return result.count;
   }
 
+  async resetOutboxDeliveriesForRequeue(
+    outboxEventId: string,
+    configIds?: string[],
+  ): Promise<number> {
+    const result = await this.prisma.webhookLog.updateMany({
+      where: {
+        outboxEventId,
+        status: { not: WebhookDeliveryStatus.DELIVERED as any },
+        ...(configIds && configIds.length > 0
+          ? { configId: { in: configIds } }
+          : {}),
+      },
+      data: {
+        status: WebhookDeliveryStatus.PENDING as any,
+        attempt: 0,
+        nextRetryAt: null,
+        failedAt: null,
+        lastError: null,
+        responseStatus: null,
+        responseBody: null,
+      },
+    });
+
+    return result.count;
+  }
+
   private buildConfigStatusWhere(configId: string, status?: WebhookLogStatus) {
     switch (status) {
       case "delivered":

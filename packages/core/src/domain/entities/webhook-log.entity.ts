@@ -272,6 +272,23 @@ export class WebhookLog {
   }
 
   /**
+   * Reset a non-delivered canonical delivery row before DLQ requeue.
+   */
+  resetForRequeue(): void {
+    if (this.isDelivered()) {
+      return;
+    }
+
+    this._status = WebhookDeliveryStatus.PENDING;
+    this._attempt = 0;
+    this._nextRetryAt = undefined;
+    this._failedAt = undefined;
+    this._lastError = undefined;
+    this._responseStatus = undefined;
+    this._responseBody = undefined;
+  }
+
+  /**
    * Set request headers for logging.
    */
   setRequestHeaders(headers: Record<string, string>): void {

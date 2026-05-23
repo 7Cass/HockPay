@@ -75,4 +75,33 @@ describe("WebhookLog", () => {
     expect(log.lastError).toBe("delivery failed");
     expect(log.canRetry()).toBe(false);
   });
+
+  it("resets non-delivered delivery state before DLQ requeue", () => {
+    const log = makeLog(5);
+    log.beginAttempt("req-1");
+    log.recordFailure(500, "server error");
+
+    log.resetForRequeue();
+
+    expect(log.status).toBe(WebhookDeliveryStatus.PENDING);
+    expect(log.attempt).toBe(0);
+    expect(log.nextRetryAt).toBeUndefined();
+    expect(log.failedAt).toBeUndefined();
+    expect(log.lastError).toBeUndefined();
+    expect(log.responseStatus).toBeUndefined();
+    expect(log.responseBody).toBeUndefined();
+  });
+
+  it("does not reset delivered logs before DLQ requeue", () => {
+    const log = makeLog();
+    log.beginAttempt("req-1");
+    log.recordSuccess(200, "ok");
+
+    log.resetForRequeue();
+
+    expect(log.status).toBe(WebhookDeliveryStatus.DELIVERED);
+    expect(log.attempt).toBe(1);
+    expect(log.responseStatus).toBe(200);
+    expect(log.responseBody).toBe("ok");
+  });
 });

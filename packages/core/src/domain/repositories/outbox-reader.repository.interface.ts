@@ -82,4 +82,9 @@ export interface IOutboxUpdater {
    * Update an existing outbox event.
    */
   update(event: OutboxEvent): Promise<void>;
+
+  /**
+   * Reset an outbox event to a processor-runnable state before DLQ requeue.
+   */
+  resetForRequeue(id: string, watchdogUntil: Date): Promise<number>;
 }

@@ -198,6 +198,17 @@ export class OutboxEvent {
   }
 
   /**
+   * Reset the event so a DLQ requeue can execute the processor again.
+   */
+  resetForRequeue(watchdogUntil: Date): void {
+    this._status = OutboxEventStatus.DISPATCHED;
+    this._processedAt = undefined;
+    this._retryCount = 0;
+    this._nextRetryAt = watchdogUntil;
+    this._errorMessage = undefined;
+  }
+
+  /**
    * Convert to plain object.
    */
   toObject(): OutboxEventObject {
