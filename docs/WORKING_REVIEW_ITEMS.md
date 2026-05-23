@@ -2,16 +2,16 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: reaberto em 2026-05-22 apos auditoria paralela. Follow-ups dos itens 1, 2, 4 e 5 foram implementados; 2/6 itens macro ainda tem follow-ups de auditoria abertos.
+Status geral: concluido em 2026-05-22 apos auditoria paralela. Follow-ups dos itens 1, 2, 3, 4, 5 e 6 foram implementados e validados.
 
 Progresso macro:
 
 - [x] 1. Idempotencia atomica na API
 - [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
-- [ ] 3. Gaps transacionais em auth/store/checkout
+- [x] 3. Gaps transacionais em auth/store/checkout
 - [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
 - [x] 5. PrismaService, migrations, claims e invariantes de banco
-- [ ] 6. Docs, env e contratos apos redesign da landing
+- [x] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
 
@@ -386,7 +386,7 @@ Correcao minima aceitavel, se schema novo for grande demais: antes de enviar par
 
 Status: concluido em 2026-05-20. A implementacao local foi concluida, comitada e validada com smoke P0 em infra descartavel.
 
-Auditoria 2026-05-22: reaberto por validacao superdeclarada. A implementacao principal parece no lugar, mas os testes de checkout nao provam rollback real nem concorrencia real do claim.
+Auditoria 2026-05-22: follow-ups concluidos. O smoke `db-concurrency` agora prova rollback real de checkout apos criar payment e duplo fulfill concorrente contra claim real com PostgreSQL/API reais.
 
 Notas da implementacao:
 
@@ -501,15 +501,25 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 
 ### Tarefas reabertas pela auditoria 2026-05-22
 
-- [ ] 3.9 Provar rollback de checkout apos criar payment
+- [x] 3.9.1 Instalar falha controlada apos criar payment no checkout
   - Problema: a spec atual mocka `CreatePaymentUseCase` e usa `UnitOfWork` fake sem snapshot/rollback, entao nao prova que payment/pix/outbox somem quando salvar a sessao falha.
-  - Solucao: adicionar teste com transacao real ou fixture que exercite o caminho completo de `FulfillCheckoutSessionUseCase` e force falha depois da criacao do pagamento.
-  - Validacao: assert confirma que nao ha `Payment`, `PixCharge` ou `OutboxEvent` persistidos sem checkout session `COMPLETED`.
+  - Solucao: adicionar ao smoke `db-concurrency` um trigger PostgreSQL temporario em `checkout_sessions`, restrito a metadata `checkoutRollbackSmokeRunId`, que falha no update para `COMPLETED` depois de verificar que `Payment`, `PixCharge` e `OutboxEvent payment.created` existem dentro da mesma transacao.
+  - Validacao: resposta HTTP e mensagem do trigger provam que a falha ocorreu depois das escritas do payment e antes do commit da sessao.
 
-- [ ] 3.10 Provar duplo fulfill concorrente contra claim real
+- [x] 3.9.2 Provar rollback real do checkout no banco
+  - Problema: a validacao precisa confirmar rollback completo, nao apenas erro HTTP.
+  - Solucao: apos o `422`, remover trigger/function em `finally` e consultar o banco para confirmar que a session continua `OPEN`, `paymentId` e `null`, nao ha payment/outbox pelo `requestId`, e a contagem de pix charges voltou ao valor anterior.
+  - Validacao: `HOCKPAY_SMOKE_SUITE=db-concurrency HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker` falha se sobrar `Payment`, `PixCharge` ou `OutboxEvent` sem session `COMPLETED`.
+
+- [x] 3.10.1 Executar duplo fulfill HTTP concorrente contra claim real
   - Problema: a spec simula `claimOpenByToken` retornando uma sessao uma vez e `null` depois, mas nao exercita duas transacoes concorrentes sobre o repositorio real.
-  - Solucao: adicionar teste de concorrencia com PostgreSQL real ou smoke opt-in que chame fulfill duas vezes em paralelo para a mesma session.
-  - Validacao: apenas uma chamada cria pagamento e completa a sessao; a outra retorna erro/estado esperado sem segundo payment.
+  - Solucao: adicionar ao smoke `db-concurrency` um cenario que cria checkout session `GUEST` via API e chama `POST /checkout-sessions/:token/fulfill` duas vezes em paralelo.
+  - Validacao: exatamente uma resposta `200` com `paymentId` e uma resposta `422` de sessao ja `COMPLETED`.
+
+- [x] 3.10.2 Provar unicidade de payment/pix/outbox no duplo fulfill
+  - Problema: o erro perdedor so fecha o risco se o banco provar que nao houve segunda mutacao.
+  - Solucao: consultar `CheckoutSession`, `Payment`, `PixCharge` e `OutboxEvent` pelo cenario do smoke apos as duas requests.
+  - Validacao: uma unica session `COMPLETED`, um unico payment, um unico pix charge ligado ao payment e um unico outbox `payment.created`.
 
 ## 4. Store creation, auth hydration, refresh waiters e withdrawals
 
@@ -787,7 +797,7 @@ O repo tem duplicacao e fragilidade no acesso ao banco:
 
 Status: concluido em 2026-05-22. Landing, READMEs, runbook e env examples foram alinhados ao contrato real `/api/v1`, sem alterar DTOs, Prisma schema ou runtime. Varreduras publicas ficaram limpas fora deste checklist; builds/testes focados passaram. O smoke integrado precisou de `HOCKPAY_SMOKE_API_PORT=3010` porque `3000` estava ocupada e de `HOCKPAY_SMOKE_TIMEOUT_MS=180000` para a suite `system` em volume default; com isso completou `p0,payment-link,p3,studycase,system,withdrawals`.
 
-Auditoria 2026-05-22: reaberto para ajustes de docs/env. O contrato publico parece alinhado, mas os defaults de smoke e a matriz de env ainda nao refletem totalmente o runner.
+Auditoria 2026-05-22: follow-ups concluidos. `.env.example`, runbook e README agora refletem o timeout recomendado da suite default completa, a matriz de env do runner/scripts smoke e a suite `idempotency-redis-unavailable`.
 
 ### Problema
 
@@ -920,12 +930,22 @@ A landing pode continuar com copy de marketing, mas exemplos devem ser reais ou 
 
 ### Tarefas reabertas pela auditoria 2026-05-22
 
-- [ ] 6.9 Alinhar timeout do smoke default em `.env.example` e runbook
+- [x] 6.9.1 Alinhar timeout recomendado do smoke default em `.env.example`
   - Problema: a validacao final precisou de `HOCKPAY_SMOKE_TIMEOUT_MS=180000`, mas `.env.example` combina a suite default completa com `HOCKPAY_SMOKE_TIMEOUT_MS=60000`.
-  - Solucao: ajustar o placeholder/default documentado ou explicar claramente quando usar timeout maior para a suite `system` em volume default.
-  - Validacao: `.env.example`, runbook e status do item nao se contradizem sobre o comando reproduzivel do smoke integrado.
+  - Solucao: trocar o placeholder para `HOCKPAY_SMOKE_TIMEOUT_MS=180000` quando a suite default completa estiver selecionada.
+  - Validacao: `.env.example` nao contradiz o comando reproduzivel do smoke integrado.
 
-- [ ] 6.10 Completar matriz de env dos smokes no runbook
+- [x] 6.9.2 Documentar timeout dos scripts filhos versus smoke integrado
+  - Problema: `HOCKPAY_SMOKE_TIMEOUT_MS` e lida pelos scripts filhos, nao pelo runner, e os defaults internos variam entre smokes focados.
+  - Solucao: explicar no runbook que `180000` e o valor recomendado para `pnpm run smoke:docker` completo, enquanto smokes focados podem usar defaults menores dos scripts.
+  - Validacao: runbook e README apontam para a mesma recomendacao sem sugerir que o runner le diretamente esse timeout.
+
+- [x] 6.10.1 Completar matriz de env do runner `smoke:docker`
   - Problema: a matriz de smoke nao lista todas as variaveis lidas pelo runner, como health/request timeouts, portas, Postgres smoke, suite, migrate mode, clean volumes e keep alive.
-  - Solucao: expandir a tabela de smokes com todas as variaveis lidas por `scripts/smoke-orchestrate-local.mjs`, mantendo defaults/placeholders seguros.
+  - Solucao: expandir a tabela de smokes com as variaveis lidas por `scripts/smoke-orchestrate-local.mjs`, mantendo defaults/placeholders seguros e registrando `HOCKPAY_SMOKE_GENERATED_POSTGRES_PASSWORD` como interno.
   - Validacao: busca por `HOCKPAY_SMOKE_` no runner bate com a matriz do runbook ou cada excecao fica justificada.
+
+- [x] 6.10.2 Completar matriz de env dos scripts filhos
+  - Problema: a matriz tambem precisa cobrir volume do smoke `system`, concorrencia de idempotencia, Redis container do smoke de Redis indisponivel e Discord opcional.
+  - Solucao: documentar `HOCKPAY_SMOKE_CUSTOMERS`, `HOCKPAY_SMOKE_PAYMENTS`, `HOCKPAY_SMOKE_PAYMENT_LINKS`, `HOCKPAY_SMOKE_CONCURRENCY`, `HOCKPAY_SMOKE_IDEMPOTENCY_CONCURRENCY`, `HOCKPAY_SMOKE_REDIS_CONTAINER` e `HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL`.
+  - Validacao: varreduras textuais em scripts e docs mostram que todas as variaveis `HOCKPAY_SMOKE_*` relevantes estao cobertas.
