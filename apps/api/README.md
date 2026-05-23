@@ -236,6 +236,8 @@ Payments, withdrawals e refunds retornam `x-idempotency-key` e um indicador bool
 
 `REDIS_URL` e `REDIS_HOST`/`REDIS_PORT` precisam apontar para o mesmo Redis quando API e worker rodam juntos; o primeiro atende idempotência/cache, os demais atendem BullMQ, throttling e jobs.
 
+Para migrations, `pnpm run db:deploy` no workspace-fonte pode usar o `.env` da raiz. Se o deploy executar o artefato `packages/database/dist/prisma.config.ts`, exporte `DATABASE_URL` no ambiente do processo; não conte com descoberta de `.env` dentro de `dist`.
+
 ## Documentação Canônica
 
 - [Estado atual](../../docs/CURRENT_STATE.md)

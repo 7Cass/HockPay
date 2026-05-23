@@ -49,6 +49,8 @@ Use `.env.example` como base local, sem copiar valores reais de `.env`. API e wo
 
 `REDIS_URL` e `REDIS_HOST`/`REDIS_PORT` não são substitutos automáticos entre si no código atual. Aponte os dois formatos para a mesma instância quando rodar API, worker e smokes integrados.
 
+`pnpm run db:deploy` no workspace-fonte pode usar o `.env` da raiz. Deploy por artefato que execute `packages/database/dist/prisma.config.ts` deve exportar `DATABASE_URL` no ambiente do processo; não dependa de descoberta de `.env` a partir de `dist`.
+
 ### API
 
 | Variável | Uso | Default local |
