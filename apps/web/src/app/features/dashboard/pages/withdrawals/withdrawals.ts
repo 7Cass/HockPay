@@ -34,6 +34,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BankAccount, BankAccountService } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
     ListWithdrawalsResponse,
     Withdrawal,
@@ -91,6 +92,7 @@ function parseBrlToCents(value: string | number | null | undefined): number {
         ...HlmSheetImports,
         ...HlmSpinnerImports,
         ...HlmTableImports,
+        ...DialogImports,
     ],
     providers: [
         provideIcons({
@@ -145,6 +147,8 @@ export class Withdrawals implements OnInit {
     readonly createdWithdrawalId = signal<string | null>(null);
     readonly copiedValue = signal<string | null>(null);
     readonly settingDefaultBankAccountId = signal<string | null>(null);
+    readonly bankAccountToDelete = signal<BankAccount | null>(null);
+    readonly deleteBankAccountDialogState = signal<'open' | 'closed'>('closed');
     readonly withdrawalSheetState = signal<'open' | 'closed'>('closed');
     readonly accountsSheetState = signal<'open' | 'closed'>('closed');
     readonly statusFilter = signal<WithdrawalStatus | 'all'>('all');
@@ -416,14 +420,30 @@ export class Withdrawals implements OnInit {
             this.bankAccountError.set('Esta conta tem saques vinculados e não pode ser removida.');
             return;
         }
-        if (!window.confirm(`Remover a conta Pix ${account.pixKey}?`)) return;
+        this.bankAccountToDelete.set(account);
+        this.deleteBankAccountDialogState.set('open');
+    }
+
+    closeDeleteBankAccountDialog(): void {
+        if (this.deletingBankAccountId()) return;
+        this.deleteBankAccountDialogState.set('closed');
+        this.bankAccountToDelete.set(null);
+    }
+
+    confirmDeleteBankAccount(): void {
+        const account = this.bankAccountToDelete();
+        if (!account || this.deletingBankAccountId()) return;
 
         this.deletingBankAccountId.set(account.id);
         this.bankAccountService
             .delete(account.id)
             .pipe(finalize(() => this.deletingBankAccountId.set(null)))
             .subscribe({
-                next: () => this.loadBankAccounts(),
+                next: () => {
+                    this.deleteBankAccountDialogState.set('closed');
+                    this.bankAccountToDelete.set(null);
+                    this.loadBankAccounts();
+                },
                 error: (err) => this.bankAccountError.set(this.extractErrorMessage(err, 'Erro ao remover conta Pix')),
             });
     }

@@ -21,6 +21,7 @@ import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { finalize } from 'rxjs';
 import { BankAccount } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
     Withdrawal,
     WithdrawalService,
@@ -42,6 +43,7 @@ import {
         ...HlmButtonImports,
         HlmIconImports,
         ...HlmSpinnerImports,
+        ...DialogImports,
     ],
     providers: [
         provideIcons({
@@ -71,6 +73,8 @@ export class WithdrawalDetail implements OnInit {
     readonly account = signal<AccountObject | null>(null);
     readonly isLoading = signal(true);
     readonly actionLoading = signal<'complete' | 'fail' | null>(null);
+    readonly confirmDialogState = signal<'open' | 'closed'>('closed');
+    readonly pendingDevAction = signal<'complete' | 'fail' | null>(null);
     readonly error = signal<string | null>(null);
     readonly actionError = signal<string | null>(null);
 
@@ -113,48 +117,63 @@ export class WithdrawalDetail implements OnInit {
         const withdrawal = this.withdrawal();
         if (!withdrawal || !this.canSimulate() || this.actionLoading()) return;
 
-        this.actionLoading.set('complete');
         this.actionError.set(null);
-        if (!window.confirm('Completar este saque no ambiente TEST?')) {
-            this.actionLoading.set(null);
-            return;
-        }
-
-        this.withdrawalService
-            .completeDev(withdrawal.id)
-            .pipe(finalize(() => this.actionLoading.set(null)))
-            .subscribe({
-                next: (response) => {
-                    this.withdrawal.set(response.withdrawal);
-                    this.loadAccount();
-                    this.reload();
-                },
-                error: (err) => this.actionError.set(this.extractErrorMessage(err, 'Erro ao completar saque')),
-            });
+        this.pendingDevAction.set('complete');
+        this.confirmDialogState.set('open');
     }
 
     fail(): void {
         const withdrawal = this.withdrawal();
         if (!withdrawal || !this.canSimulate() || this.actionLoading()) return;
 
-        this.actionLoading.set('fail');
         this.actionError.set(null);
-        if (!window.confirm('Falhar este saque no ambiente TEST e devolver saldo disponível?')) {
-            this.actionLoading.set(null);
-            return;
-        }
+        this.pendingDevAction.set('fail');
+        this.confirmDialogState.set('open');
+    }
 
-        this.withdrawalService
-            .failDev(withdrawal.id)
+    closeConfirmDialog(): void {
+        if (this.actionLoading()) return;
+        this.confirmDialogState.set('closed');
+        this.pendingDevAction.set(null);
+    }
+
+    confirmDevAction(): void {
+        const withdrawal = this.withdrawal();
+        const action = this.pendingDevAction();
+        if (!withdrawal || !action || !this.canSimulate() || this.actionLoading()) return;
+
+        this.actionLoading.set(action);
+        this.actionError.set(null);
+        const request = action === 'complete'
+            ? this.withdrawalService.completeDev(withdrawal.id)
+            : this.withdrawalService.failDev(withdrawal.id);
+
+        request
             .pipe(finalize(() => this.actionLoading.set(null)))
             .subscribe({
                 next: (response) => {
+                    this.confirmDialogState.set('closed');
+                    this.pendingDevAction.set(null);
                     this.withdrawal.set(response.withdrawal);
                     this.loadAccount();
                     this.reload();
                 },
-                error: (err) => this.actionError.set(this.extractErrorMessage(err, 'Erro ao falhar saque')),
+                error: (err) => {
+                    const fallback = action === 'complete' ? 'Erro ao completar saque' : 'Erro ao falhar saque';
+                    this.actionError.set(this.extractErrorMessage(err, fallback));
+                },
             });
+    }
+
+    confirmActionTitle(): string {
+        return this.pendingDevAction() === 'complete' ? 'Completar saque TEST' : 'Falhar saque TEST';
+    }
+
+    confirmActionDescription(): string {
+        if (this.pendingDevAction() === 'complete') {
+            return 'Esta ação marca o saque como concluído no ambiente TEST.';
+        }
+        return 'Esta ação marca o saque como falho no ambiente TEST e devolve o saldo disponível.';
     }
 
     statusLabel(status: WithdrawalStatus): string {

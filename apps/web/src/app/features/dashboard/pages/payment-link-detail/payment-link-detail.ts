@@ -21,6 +21,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
   PaymentLinkRecord,
   PaymentLinkService,
@@ -40,6 +41,7 @@ import type { PaymentObject } from '../../../../core/services/payment.service';
     HlmBadgeImports,
     HlmIconImports,
     HlmSpinnerImports,
+    ...DialogImports,
   ],
   providers: [
     provideIcons({
@@ -58,6 +60,31 @@ import type { PaymentObject } from '../../../../core/services/payment.service';
     }),
   ],
   template: `
+    <brn-dialog [closeDelay]="150" [state]="cancelDialogState()" (closed)="closeCancelDialog()">
+      <ng-template brnDialogContent let-ctx>
+        <app-dialog-overlay />
+        <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+          <app-dialog-close />
+          <app-dialog-header
+            title="Cancelar payment link"
+            description="O checkout público deixará de aceitar novas tentativas para esta cobrança."
+          />
+          @if (linkToCancel(); as paymentLink) {
+            <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+              <p class="font-semibold text-zinc-900">{{ title(paymentLink) }}</p>
+              <p class="mt-1 font-mono text-xs text-zinc-500">{{ paymentLink.checkoutUrl }}</p>
+            </div>
+          }
+          <app-dialog-footer>
+            <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="actionInProgress()">Voltar</button>
+            <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmCancel()" [disabled]="actionInProgress()">
+              {{ actionInProgress() ? 'Cancelando...' : 'Sim, cancelar link' }}
+            </button>
+          </app-dialog-footer>
+        </div>
+      </ng-template>
+    </brn-dialog>
+
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -350,6 +377,8 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
   readonly actionError = signal<string | null>(null);
   readonly actionInProgress = signal(false);
   readonly copied = signal(false);
+  readonly cancelDialogState = signal<'open' | 'closed'>('closed');
+  readonly linkToCancel = signal<PaymentLinkRecord | null>(null);
   readonly currentId = computed(() => this.link()?.id ?? null);
 
   ngOnInit(): void {
@@ -391,7 +420,23 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
 
   cancel(paymentLink: PaymentLinkRecord): void {
     if (!this.canCancel(paymentLink)) return;
-    this.runAction(() => this.service.cancel(paymentLink.id));
+    this.linkToCancel.set(paymentLink);
+    this.cancelDialogState.set('open');
+  }
+
+  closeCancelDialog(): void {
+    if (this.actionInProgress()) return;
+    this.cancelDialogState.set('closed');
+    this.linkToCancel.set(null);
+  }
+
+  confirmCancel(): void {
+    const paymentLink = this.linkToCancel();
+    if (!paymentLink || !this.canCancel(paymentLink)) return;
+    this.runAction(() => this.service.cancel(paymentLink.id), () => {
+      this.cancelDialogState.set('closed');
+      this.linkToCancel.set(null);
+    });
   }
 
   copy(paymentLink: PaymentLinkRecord): void {
@@ -512,13 +557,16 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
     return 'Indisponível para links pagos, expirados ou cancelados.';
   }
 
-  private runAction(request: () => Observable<unknown>): void {
+  private runAction(request: () => Observable<unknown>, afterSuccess?: () => void): void {
     this.actionInProgress.set(true);
     this.actionError.set(null);
     request()
       .pipe(finalize(() => this.actionInProgress.set(false)))
       .subscribe({
-        next: () => this.load(),
+        next: () => {
+          afterSuccess?.();
+          this.load();
+        },
         error: (err: Error) => this.actionError.set(err.message || 'Erro ao executar ação'),
       });
   }

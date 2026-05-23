@@ -63,7 +63,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
   const sectionClass = "space-y-4";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-7 sm:space-y-8">
       <div className={sectionClass}>
         <h3 className="text-lg font-semibold text-gray-900">Sobre Você</h3>
         <div>
@@ -89,7 +89,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
             placeholder="Criador de conteúdo tech..."
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Nicho</label>
             <input
@@ -115,7 +115,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
 
       <div className={sectionClass}>
         <h3 className="text-lg font-semibold text-gray-900">Redes Sociais</h3>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-3">
             <p className="text-sm font-medium text-gray-600">Instagram</p>
             <input
@@ -172,7 +172,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
 
       <div className={sectionClass}>
         <h3 className="text-lg font-semibold text-gray-900">Audiência</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelClass}>Faixa Etária</label>
             <input
@@ -210,7 +210,7 @@ export function MediaKitForm({ onSubmit, isLoading }: Props) {
         <h3 className="text-lg font-semibold text-gray-900">
           Tabela de Preços
         </h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelClass}>Post</label>
             <input

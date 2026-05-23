@@ -68,6 +68,13 @@ export interface ListPaymentLinksResponse {
     stats: PaymentLinkStats;
 }
 
+export interface ListPaymentLinksQuery {
+    page?: number;
+    limit?: number;
+    status?: PaymentLinkStatus;
+    hasFailures?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PaymentLinkService {
     private readonly apiClient = inject(ApiClientService);
@@ -75,16 +82,22 @@ export class PaymentLinkService {
     private readonly linksState = signal<PaymentLinkRecord[]>([]);
     private readonly statsState = signal<PaymentLinkStats | null>(null);
     private readonly totalState = signal(0);
+    private readonly pageState = signal(1);
+    private readonly limitState = signal(20);
+    private readonly totalPagesState = signal(1);
     private readonly isLoadingState = signal(false);
     private readonly errorState = signal<string | null>(null);
 
     readonly links = computed(() => this.linksState());
     readonly stats = computed(() => this.statsState());
     readonly total = computed(() => this.totalState());
+    readonly page = computed(() => this.pageState());
+    readonly limit = computed(() => this.limitState());
+    readonly totalPages = computed(() => this.totalPagesState());
     readonly isLoading = computed(() => this.isLoadingState());
     readonly error = computed(() => this.errorState());
 
-    load(query: { page?: number; limit?: number; status?: PaymentLinkStatus; hasFailures?: boolean } = {}) {
+    load(query: ListPaymentLinksQuery = {}) {
         this.isLoadingState.set(true);
         this.errorState.set(null);
 
@@ -101,6 +114,9 @@ export class PaymentLinkService {
                     this.linksState.set(response.items);
                     this.statsState.set(response.stats);
                     this.totalState.set(response.total);
+                    this.pageState.set(response.page);
+                    this.limitState.set(response.limit);
+                    this.totalPagesState.set(Math.max(response.totalPages, 1));
                 },
                 error: err => this.errorState.set(err.message || 'Erro ao carregar links de pagamento'),
             });

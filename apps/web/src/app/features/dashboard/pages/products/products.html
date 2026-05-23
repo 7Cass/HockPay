@@ -1,4 +1,29 @@
 <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
+  <brn-dialog [closeDelay]="150" [state]="archiveDialogState()" (closed)="closeArchiveDialog()">
+    <ng-template brnDialogContent let-ctx>
+      <app-dialog-overlay />
+      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+        <app-dialog-close />
+        <app-dialog-header
+          title="Arquivar produto"
+          description="Produtos arquivados deixam de aparecer na listagem ativa, mas podem ser reativados depois."
+        />
+        @if (productToArchive(); as product) {
+          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+            <p class="font-semibold text-zinc-900">{{ product.name }}</p>
+            <p class="mt-1 text-zinc-600">{{ (product.price / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
+          </div>
+        }
+        <app-dialog-footer>
+          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="isArchiving()">Voltar</button>
+          <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmArchive()" [disabled]="isArchiving()">
+            {{ isArchiving() ? 'Arquivando...' : 'Sim, arquivar' }}
+          </button>
+        </app-dialog-footer>
+      </div>
+    </ng-template>
+  </brn-dialog>
+
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Produtos</h1>
@@ -73,14 +98,19 @@
   }
 
   <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-    <div class="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-4">
+    <div class="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-base font-semibold text-zinc-900">Catálogo</h2>
         <p class="mt-1 text-xs text-zinc-500">{{ service.total() }} produto(s)</p>
       </div>
-      @if (service.isLoading()) {
-        <span class="text-xs font-medium text-zinc-500">Atualizando...</span>
-      }
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors" [ngClass]="activeFilter() === 'active' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'" (click)="setActiveFilter('active')">Ativos</button>
+        <button type="button" class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors" [ngClass]="activeFilter() === 'inactive' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'" (click)="setActiveFilter('inactive')">Arquivados</button>
+        <button type="button" class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors" [ngClass]="activeFilter() === 'all' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'" (click)="setActiveFilter('all')">Todos</button>
+        @if (service.isLoading()) {
+          <span class="text-xs font-medium text-zinc-500">Atualizando...</span>
+        }
+      </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -121,12 +151,18 @@
               <td hlmTd class="px-5 py-4 text-sm text-zinc-600">{{ product.createdAt | date:'dd/MM HH:mm' }}</td>
               <td hlmTd class="px-5 py-4">
                 <div class="flex justify-end gap-2">
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" title="Editar" (click)="edit(product)">
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" aria-label="Editar produto" title="Editar" (click)="edit(product)">
                     <ng-icon hlm name="lucidePencil" size="xs"></ng-icon>
                   </button>
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200 text-zinc-700" title="Arquivar" [disabled]="!product.isActive" (click)="archive(product)">
-                    <ng-icon hlm name="lucideArchive" size="xs"></ng-icon>
-                  </button>
+                  @if (product.isActive) {
+                    <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200 text-zinc-700" aria-label="Arquivar produto" title="Arquivar" (click)="archive(product)">
+                      <ng-icon hlm name="lucideArchive" size="xs"></ng-icon>
+                    </button>
+                  } @else {
+                    <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-emerald-200 text-emerald-700" aria-label="Reativar produto" title="Reativar" (click)="reactivate(product)">
+                      <ng-icon hlm name="lucideRotateCcw" size="xs"></ng-icon>
+                    </button>
+                  }
                 </div>
               </td>
             </tr>

@@ -57,25 +57,41 @@ describe('WithdrawalDetail', () => {
         return TestBed.runInInjectionContext(() => new WithdrawalDetail());
     }
 
-    it('clears complete loading when the confirmation is cancelled', () => {
+    it('opens a custom confirmation before completing a TEST withdrawal', () => {
         const component = createComponent();
         component.withdrawal.set(withdrawal);
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+        const confirmSpy = vi.spyOn(window, 'confirm');
 
         component.complete();
 
+        expect(confirmSpy).not.toHaveBeenCalled();
+        expect(component.confirmDialogState()).toBe('open');
+        expect(component.pendingDevAction()).toBe('complete');
         expect(component.actionLoading()).toBeNull();
         expect(withdrawalService.completeDev).not.toHaveBeenCalled();
     });
 
-    it('clears fail loading when the confirmation is cancelled', () => {
+    it('opens a custom confirmation before failing a TEST withdrawal', () => {
         const component = createComponent();
         component.withdrawal.set(withdrawal);
-        vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+        const confirmSpy = vi.spyOn(window, 'confirm');
 
         component.fail();
 
+        expect(confirmSpy).not.toHaveBeenCalled();
+        expect(component.confirmDialogState()).toBe('open');
+        expect(component.pendingDevAction()).toBe('fail');
         expect(component.actionLoading()).toBeNull();
         expect(withdrawalService.failDev).not.toHaveBeenCalled();
+    });
+
+    it('runs the selected action only after confirming the dialog', () => {
+        const component = createComponent();
+        component.withdrawal.set(withdrawal);
+
+        component.complete();
+        component.confirmDevAction();
+
+        expect(withdrawalService.completeDev).toHaveBeenCalledWith('withdrawal-1');
     });
 });

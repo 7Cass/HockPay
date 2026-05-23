@@ -270,6 +270,31 @@
     </hlm-sheet-content>
   </hlm-sheet>
 
+  <brn-dialog [closeDelay]="150" [state]="deleteBankAccountDialogState()" (closed)="closeDeleteBankAccountDialog()">
+    <ng-template brnDialogContent let-ctx>
+      <app-dialog-overlay />
+      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+        <app-dialog-close />
+        <app-dialog-header
+          title="Remover conta Pix"
+          description="Esta conta deixará de aparecer como destino para novos saques."
+        />
+        @if (bankAccountToDelete(); as account) {
+          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+            <p class="font-mono font-semibold text-zinc-900">{{ account.pixKeyType }} {{ maskDocument(account.pixKey) }}</p>
+            <p class="mt-1 text-zinc-600">{{ account.holderName }}</p>
+          </div>
+        }
+        <app-dialog-footer>
+          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="deletingBankAccountId() !== null">Voltar</button>
+          <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmDeleteBankAccount()" [disabled]="deletingBankAccountId() !== null">
+            {{ deletingBankAccountId() ? 'Removendo...' : 'Sim, remover' }}
+          </button>
+        </app-dialog-footer>
+      </div>
+    </ng-template>
+  </brn-dialog>
+
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Saques</h1>

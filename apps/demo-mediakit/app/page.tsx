@@ -71,42 +71,44 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">
+        <div className="max-w-5xl mx-auto flex flex-col gap-1 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <h1 className="text-lg font-bold text-gray-900 sm:text-xl">
             {studyCaseConfig.productName}
           </h1>
-          <span className="text-sm text-gray-500">Powered by HockPay</span>
+          <span className="text-xs text-gray-500 sm:text-sm">
+            Powered by HockPay
+          </span>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 sm:py-12">
         {/* Hero */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-3 sm:text-4xl sm:mb-4">
             {studyCaseConfig.productTitle}
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base text-gray-600 max-w-2xl mx-auto sm:text-lg">
             {studyCaseConfig.productDescription}
           </p>
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-3 gap-6 mb-12">
-          <div className="text-center p-4">
+        <div className="grid grid-cols-1 gap-3 mb-8 sm:grid-cols-3 sm:gap-6 sm:mb-12">
+          <div className="text-center rounded-xl border border-gray-100 bg-white p-4 sm:border-0 sm:bg-transparent">
             <Zap className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-gray-700">Instantâneo</p>
             <p className="text-xs text-gray-500 mt-1">
               Geração automática após pagamento
             </p>
           </div>
-          <div className="text-center p-4">
+          <div className="text-center rounded-xl border border-gray-100 bg-white p-4 sm:border-0 sm:bg-transparent">
             <Shield className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-gray-700">Seguro</p>
             <p className="text-xs text-gray-500 mt-1">
               Pagamento via Pix com HockPay
             </p>
           </div>
-          <div className="text-center p-4">
+          <div className="text-center rounded-xl border border-gray-100 bg-white p-4 sm:border-0 sm:bg-transparent">
             <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-gray-700">
               Webhook Real-time
@@ -118,7 +120,7 @@ export default function HomePage() {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:rounded-2xl sm:p-8">
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}

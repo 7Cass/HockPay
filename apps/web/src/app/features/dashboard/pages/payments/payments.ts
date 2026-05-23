@@ -1,7 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DatePipe, CurrencyPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { PaymentService, PaymentStatus } from '../../../../core/services/payment.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { PaymentService, PaymentStatus, ListPaymentsQueryDto } from '../../../../core/services/payment.service';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
@@ -15,7 +16,10 @@ import {
   lucideXCircle,
   lucideArrowRightLeft,
   lucideReceipt,
-  lucideLink
+  lucideLink,
+  lucideSearch,
+  lucideChevronLeft,
+  lucideChevronRight
 } from '@ng-icons/lucide';
 
 @Component({
@@ -30,7 +34,10 @@ import {
       lucideXCircle,
       lucideArrowRightLeft,
       lucideReceipt,
-      lucideLink
+      lucideLink,
+      lucideSearch,
+      lucideChevronLeft,
+      lucideChevronRight
     })
   ],
   template: `
@@ -44,12 +51,57 @@ import {
         </div>
         
         <div class="flex items-center gap-3">
-          <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white border-zinc-200/80 shadow-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900" (click)="paymentService.loadPayments()">
+          <button hlmBtn variant="outline" size="sm" class="gap-2 bg-white border-zinc-200/80 shadow-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900" (click)="reload()">
             <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
             Atualizar
           </button>
         </div>
       </div>
+
+      <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+        <div class="grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_auto]">
+          <label class="text-sm font-medium text-zinc-700">
+            <span class="mb-1.5 block">Busca</span>
+            <div class="relative">
+              <ng-icon hlm name="lucideSearch" size="xs" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></ng-icon>
+              <input
+                class="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                placeholder="External ID"
+                [value]="search()"
+                (input)="setSearch($event)"
+                (keydown.enter)="applyFilters()"
+              />
+            </div>
+          </label>
+
+          <label class="text-sm font-medium text-zinc-700">
+            <span class="mb-1.5 block">Status</span>
+            <select class="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" [value]="status()" (change)="setStatus($event)">
+              @for (option of statusOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="text-sm font-medium text-zinc-700">
+            <span class="mb-1.5 block">Início</span>
+            <input type="date" class="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" [value]="startDate()" (input)="setStartDate($event)" />
+          </label>
+
+          <label class="text-sm font-medium text-zinc-700">
+            <span class="mb-1.5 block">Fim</span>
+            <input type="date" class="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" [value]="endDate()" (input)="setEndDate($event)" />
+          </label>
+
+          <div class="flex items-end gap-2">
+            <button hlmBtn type="button" variant="outline" class="h-10 border-zinc-200 bg-white" (click)="clearFilters()">Limpar</button>
+            <button hlmBtn type="button" class="h-10 gap-2 bg-indigo-600 text-white hover:bg-indigo-700" (click)="applyFilters()">
+              <ng-icon hlm name="lucideSearch" size="xs"></ng-icon>
+              Filtrar
+            </button>
+          </div>
+        </div>
+      </section>
 
       <!-- Error State -->
       @if (paymentService.error()) {
@@ -78,7 +130,10 @@ import {
               <ng-icon hlm name="lucideReceipt" size="xl" class="text-indigo-600 opacity-80" strokeWidth="1.5"></ng-icon>
             </div>
             <h3 class="text-base font-semibold text-zinc-900 mb-1.5">Nenhum pagamento encontrado</h3>
-            <p class="text-sm text-zinc-500 max-w-sm mx-auto">Não há registros de transações no período selecionado. Quando houver vendas, elas aparecerão aqui.</p>
+            <p class="text-sm text-zinc-500 max-w-sm mx-auto">{{ emptyStateMessage() }}</p>
+            @if (hasActiveFilters()) {
+              <button hlmBtn type="button" variant="outline" size="sm" class="mt-5 border-zinc-200 bg-white" (click)="clearFilters()">Limpar filtros</button>
+            }
           </div>
         }
 
@@ -154,24 +209,168 @@ import {
           </div>
           
           <!-- Elegant Footer -->
-          <div class="px-6 py-4 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex justify-between items-center rounded-b-xl">
+          <div class="px-6 py-4 border-t border-zinc-200/80 bg-zinc-50/50 text-xs text-zinc-500 flex flex-col gap-3 rounded-b-xl sm:flex-row sm:items-center sm:justify-between">
             <span class="flex items-center gap-1.5">
-              Exibindo <span class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm">{{ paymentService.payments().length }}</span> registros
+              Exibindo <span class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm">{{ paymentService.payments().length }}</span> de <span class="font-semibold text-zinc-700">{{ paymentService.total() }}</span> registros
             </span>
-            <span class="flex items-center gap-2">
-              Total base: 
-              <span class="font-semibold text-zinc-900">{{ paymentService.total() }}</span>
-            </span>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2">
+                <span>Por página</span>
+                <select class="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs" [value]="limit()" (change)="setLimit($event)">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </label>
+              <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="paymentService.page() <= 1" (click)="changePage(-1)">
+                <ng-icon hlm name="lucideChevronLeft" size="xs"></ng-icon>
+                Anterior
+              </button>
+              <span class="font-medium text-zinc-600">Página {{ paymentService.page() }} de {{ paymentService.totalPages() }}</span>
+              <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="paymentService.page() >= paymentService.totalPages()" (click)="changePage(1)">
+                Próxima
+                <ng-icon hlm name="lucideChevronRight" size="xs"></ng-icon>
+              </button>
+            </div>
           </div>
         }
       </div>
   `
 })
-export class Payments implements OnInit {
+export class Payments implements OnInit, OnDestroy {
   public paymentService = inject(PaymentService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private routeSub?: Subscription;
+
+  readonly search = signal('');
+  readonly status = signal<PaymentStatus | 'all'>('all');
+  readonly startDate = signal('');
+  readonly endDate = signal('');
+  readonly page = signal(1);
+  readonly limit = signal(20);
+  readonly statusOptions: Array<{ value: PaymentStatus | 'all'; label: string }> = [
+    { value: 'all', label: 'Todos' },
+    { value: PaymentStatus.PENDING, label: 'Pendente' },
+    { value: PaymentStatus.CONFIRMED, label: 'Confirmado' },
+    { value: PaymentStatus.RELEASED, label: 'Liquidado' },
+    { value: PaymentStatus.FAILED, label: 'Falhou' },
+    { value: PaymentStatus.EXPIRED, label: 'Expirado' },
+    { value: PaymentStatus.REFUNDED, label: 'Estornado' },
+  ];
 
   ngOnInit() {
-    this.paymentService.loadPayments();
+    this.routeSub = this.route.queryParamMap.subscribe((params) => {
+      const status = params.get('status');
+      const page = this.parsePositiveInt(params.get('page'), 1);
+      const limit = this.parsePositiveInt(params.get('limit'), 20);
+
+      this.search.set(params.get('q') ?? '');
+      this.status.set(this.parseStatus(status));
+      this.startDate.set(params.get('startDate') ?? '');
+      this.endDate.set(params.get('endDate') ?? '');
+      this.page.set(page);
+      this.limit.set(limit);
+      this.loadCurrentQuery();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
+
+  reload(): void {
+    this.loadCurrentQuery();
+  }
+
+  setSearch(event: Event): void {
+    this.search.set(this.eventValue(event));
+  }
+
+  setStatus(event: Event): void {
+    this.status.set(this.parseStatus(this.eventValue(event)));
+  }
+
+  setStartDate(event: Event): void {
+    this.startDate.set(this.eventValue(event));
+  }
+
+  setEndDate(event: Event): void {
+    this.endDate.set(this.eventValue(event));
+  }
+
+  setLimit(event: Event): void {
+    this.limit.set(this.parsePositiveInt(this.eventValue(event), 20));
+    this.updateQueryParams(1);
+  }
+
+  applyFilters(): void {
+    this.updateQueryParams(1);
+  }
+
+  clearFilters(): void {
+    this.search.set('');
+    this.status.set('all');
+    this.startDate.set('');
+    this.endDate.set('');
+    this.limit.set(20);
+    this.updateQueryParams(1);
+  }
+
+  changePage(delta: number): void {
+    const nextPage = this.page() + delta;
+    if (nextPage < 1 || nextPage > this.paymentService.totalPages()) return;
+    this.updateQueryParams(nextPage);
+  }
+
+  hasActiveFilters(): boolean {
+    return Boolean(this.search().trim() || this.status() !== 'all' || this.startDate() || this.endDate());
+  }
+
+  emptyStateMessage(): string {
+    if (this.hasActiveFilters()) {
+      return 'Nenhum pagamento corresponde aos filtros atuais. Ajuste a busca, status ou período para ampliar o resultado.';
+    }
+    return 'Não há registros de transações no período selecionado. Quando houver vendas, elas aparecerão aqui.';
+  }
+
+  private loadCurrentQuery(): void {
+    const query: ListPaymentsQueryDto = {
+      page: this.page(),
+      limit: this.limit(),
+      status: this.status() === 'all' ? undefined : this.status() as PaymentStatus,
+      externalId: this.search().trim() || undefined,
+      startDate: this.startDate() || undefined,
+      endDate: this.endDate() || undefined,
+    };
+    this.paymentService.loadPayments(query);
+  }
+
+  private updateQueryParams(page: number): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        q: this.search().trim() || null,
+        status: this.status() === 'all' ? null : this.status(),
+        startDate: this.startDate() || null,
+        endDate: this.endDate() || null,
+        page: page > 1 ? page : null,
+        limit: this.limit() === 20 ? null : this.limit(),
+      },
+    });
+  }
+
+  private parseStatus(value: string | null): PaymentStatus | 'all' {
+    return Object.values(PaymentStatus).includes(value as PaymentStatus) ? value as PaymentStatus : 'all';
+  }
+
+  private parsePositiveInt(value: string | null, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private eventValue(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLSelectElement | null)?.value ?? '';
   }
 
   formatCurrency(value: number): string {

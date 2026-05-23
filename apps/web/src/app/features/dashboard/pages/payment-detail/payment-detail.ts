@@ -1,7 +1,8 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { provideIcons } from '@ng-icons/core';
 import {
   lucideArrowLeft,
@@ -24,6 +25,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
   PaymentService,
   PaymentStatus,
@@ -32,6 +34,16 @@ import {
   PaymentObject,
   TransactionObject,
 } from '../../../../core/services/payment.service';
+import { RefundService } from '../../../../core/services/refund.service';
+
+function parseBrlToCents(value: string | number | null | undefined): number {
+  if (typeof value === 'number') return Math.round(value * 100);
+  const raw = String(value ?? '').trim();
+  if (!raw) return 0;
+  const normalized = raw.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
 
 @Component({
   selector: 'app-payment-detail',
@@ -41,10 +53,12 @@ import {
     RouterLink,
     DatePipe,
     CurrencyPipe,
+    ReactiveFormsModule,
     HlmButtonImports,
     HlmBadgeImports,
     HlmIconImports,
     HlmSpinnerImports,
+    ...DialogImports,
   ],
   providers: [
     provideIcons({
@@ -66,6 +80,60 @@ import {
     }),
   ],
   template: `
+    <brn-dialog [closeDelay]="150" [state]="refundDialogState()" (closed)="closeRefundDialog()">
+      <ng-template brnDialogContent let-ctx>
+        <app-dialog-overlay />
+        <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+          <app-dialog-close />
+          <app-dialog-header
+            title="Iniciar estorno"
+            [description]="'Valor restante reembolsável: ' + formatRefundRemaining()"
+          />
+
+          <form class="space-y-4" [formGroup]="refundForm" (ngSubmit)="submitRefund()">
+            <div>
+              <label class="text-sm font-medium text-zinc-900" for="refund-amount">Valor</label>
+              <input
+                id="refund-amount"
+                formControlName="amount"
+                inputmode="decimal"
+                placeholder="129,90"
+                class="mt-2 h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+              />
+              @if (refundAmountError()) {
+                <p class="mt-2 text-sm text-red-600">{{ refundAmountError() }}</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-sm font-medium text-zinc-900" for="refund-reason">Motivo</label>
+              <textarea
+                id="refund-reason"
+                formControlName="reason"
+                rows="3"
+                placeholder="Pedido cancelado pelo cliente"
+                class="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+              ></textarea>
+            </div>
+
+            @if (refundError()) {
+              <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ refundError() }}</div>
+            }
+
+            <app-dialog-footer>
+              <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="isRefundSubmitting()">Cancelar</button>
+              <button hlmBtn type="submit" class="gap-2 bg-red-600 font-semibold text-white hover:bg-red-700" [disabled]="isRefundSubmitting() || !canSubmitRefund()">
+                @if (isRefundSubmitting()) {
+                  <hlm-spinner size="sm" class="mr-2" />
+                }
+                Confirmar estorno
+              </button>
+            </app-dialog-footer>
+          </form>
+        </div>
+      </ng-template>
+    </brn-dialog>
+
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -397,7 +465,23 @@ import {
             </section>
 
             <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
-              <p class="text-sm font-semibold text-zinc-900">Estornos</p>
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-zinc-900">Estornos</p>
+                  <p class="mt-1 text-xs text-zinc-500">Restante: {{ refundableAmount(data.payment) / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+                </div>
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="border-red-200 bg-white text-red-700 hover:bg-red-50"
+                  [disabled]="!canRefund(data.payment)"
+                  (click)="openRefundDialog(data.payment)"
+                >
+                  Iniciar
+                </button>
+              </div>
               @if (data.refunds.length > 0) {
                 <div class="mt-4 space-y-3">
                   @for (refund of data.refunds; track refund.id) {
@@ -522,8 +606,19 @@ import {
 })
 export class PaymentDetail implements OnInit, OnDestroy {
   readonly paymentService = inject(PaymentService);
+  private readonly refundService = inject(RefundService);
   private readonly route = inject(ActivatedRoute);
   private routeSub?: Subscription;
+  private activeRefundIdempotencyKey: string | null = null;
+  private refundPaymentId: string | null = null;
+
+  readonly refundDialogState = signal<'open' | 'closed'>('closed');
+  readonly isRefundSubmitting = signal(false);
+  readonly refundError = signal<string | null>(null);
+  readonly refundForm = new FormGroup({
+    amount: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    reason: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(500)] }),
+  });
 
   ngOnInit(): void {
     this.routeSub = this.route.paramMap.subscribe((params) => {
@@ -541,6 +636,98 @@ export class PaymentDetail implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
     this.paymentService.clearTimelineState();
+  }
+
+  openRefundDialog(payment: PaymentObject): void {
+    if (!this.canRefund(payment)) return;
+    this.refundPaymentId = payment.id;
+    this.refundError.set(null);
+    this.refundForm.reset({
+      amount: this.formatMoneyInput(this.refundableAmount(payment)),
+      reason: '',
+    });
+    this.refundForm.markAsPristine();
+    this.refundForm.markAsUntouched();
+    this.refundDialogState.set('open');
+  }
+
+  closeRefundDialog(): void {
+    if (this.isRefundSubmitting()) return;
+    this.refundDialogState.set('closed');
+    this.refundError.set(null);
+    this.refundPaymentId = null;
+    this.activeRefundIdempotencyKey = null;
+    this.refundForm.reset({ amount: '', reason: '' });
+  }
+
+  submitRefund(): void {
+    const data = this.paymentService.currentTimeline();
+    const payment = data?.payment;
+    const amount = parseBrlToCents(this.refundForm.controls.amount.value);
+
+    if (!payment || this.refundPaymentId !== payment.id || this.isRefundSubmitting()) return;
+    if (!this.canRefund(payment) || this.refundForm.invalid || amount < 1 || amount > this.refundableAmount(payment)) {
+      this.refundForm.markAllAsTouched();
+      this.refundError.set(this.refundAmountError() || 'Revise os dados do estorno antes de continuar.');
+      return;
+    }
+
+    this.isRefundSubmitting.set(true);
+    this.refundError.set(null);
+    this.activeRefundIdempotencyKey ??= this.refundService.createIdempotencyKey();
+
+    this.refundService.create({
+      paymentId: payment.id,
+      amount,
+      reason: this.refundForm.controls.reason.value.trim() || undefined,
+      idempotencyKey: this.activeRefundIdempotencyKey,
+    })
+      .pipe(finalize(() => this.isRefundSubmitting.set(false)))
+      .subscribe({
+        next: () => {
+          this.activeRefundIdempotencyKey = null;
+          this.refundDialogState.set('closed');
+          this.paymentService.loadPaymentTimeline(payment.id);
+        },
+        error: (err) => {
+          this.refundError.set(this.extractErrorMessage(err, 'Falha ao iniciar estorno.'));
+        },
+      });
+  }
+
+  canRefund(payment: PaymentObject): boolean {
+    return (
+      (payment.status === PaymentStatus.CONFIRMED || payment.status === PaymentStatus.RELEASED) &&
+      this.refundableAmount(payment) > 0
+    );
+  }
+
+  canSubmitRefund(): boolean {
+    const data = this.paymentService.currentTimeline();
+    const payment = data?.payment;
+    if (!payment || this.refundForm.invalid) return false;
+    const amount = parseBrlToCents(this.refundForm.controls.amount.value);
+    return !this.isRefundSubmitting() && amount > 0 && amount <= this.refundableAmount(payment);
+  }
+
+  refundableAmount(payment: PaymentObject): number {
+    return Math.max(payment.amount - (payment.totalRefunded || 0), 0);
+  }
+
+  refundAmountError(): string | null {
+    const data = this.paymentService.currentTimeline();
+    const payment = data?.payment;
+    const amount = parseBrlToCents(this.refundForm.controls.amount.value);
+
+    if (!this.refundForm.controls.amount.touched && !this.refundForm.controls.amount.dirty) return null;
+    if (amount < 1) return 'Informe um valor maior que zero.';
+    if (payment && amount > this.refundableAmount(payment)) return 'O valor não pode exceder o restante reembolsável.';
+    return null;
+  }
+
+  formatRefundRemaining(): string {
+    const payment = this.paymentService.currentTimeline()?.payment;
+    return payment ? this.formatCurrency(this.refundableAmount(payment)) : '-';
   }
 
   shortId(value?: string | null): string {
@@ -831,5 +1018,21 @@ export class PaymentDetail implements OnInit, OnDestroy {
     if (log.deliveredAt) return 'text-emerald-700';
     if (log.responseStatus) return 'text-red-700';
     return 'text-amber-700';
+  }
+
+  private formatMoneyInput(cents: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
+  }
+
+  private extractErrorMessage(err: unknown, fallback: string): string {
+    const error = err as {
+      message?: string;
+      error?: { message?: string; error?: { message?: string } };
+    };
+
+    return error?.error?.error?.message || error?.error?.message || error?.message || fallback;
   }
 }

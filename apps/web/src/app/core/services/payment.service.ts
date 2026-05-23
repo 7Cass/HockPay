@@ -196,6 +196,9 @@ export class PaymentService {
 
     private paymentsState = signal<PaymentObject[]>([]);
     private totalState = signal<number>(0);
+    private pageState = signal<number>(1);
+    private limitState = signal<number>(20);
+    private totalPagesState = signal<number>(1);
     private isLoadingState = signal<boolean>(false);
     private errorState = signal<string | null>(null);
     private currentTimelineState = signal<GetPaymentTimelineResponseDto | null>(null);
@@ -205,6 +208,9 @@ export class PaymentService {
     // Expose computed signals for components to consume
     readonly payments = computed(() => this.paymentsState());
     readonly total = computed(() => this.totalState());
+    readonly page = computed(() => this.pageState());
+    readonly limit = computed(() => this.limitState());
+    readonly totalPages = computed(() => this.totalPagesState());
     readonly isLoading = computed(() => this.isLoadingState());
     readonly error = computed(() => this.errorState());
     readonly currentTimeline = computed(() => this.currentTimelineState());
@@ -237,6 +243,9 @@ export class PaymentService {
                 next: (response) => {
                     this.paymentsState.set(response.payments);
                     this.totalState.set(response.total);
+                    this.pageState.set(response.page);
+                    this.limitState.set(response.limit);
+                    this.totalPagesState.set(Math.max(response.totalPages, 1));
                 },
                 error: (err) => {
                     console.error('Failed to load payments:', err);

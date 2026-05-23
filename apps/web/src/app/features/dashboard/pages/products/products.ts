@@ -2,11 +2,12 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { lucideArchive, lucidePackagePlus, lucidePencil, lucideRefreshCw, lucideSave, lucideX } from '@ng-icons/lucide';
+import { lucideArchive, lucidePackagePlus, lucidePencil, lucideRefreshCw, lucideRotateCcw, lucideSave, lucideX } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { ProductItem, ProductService } from '../../../../core/services/product.service';
+import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 
 function parseBrlToCents(value: string | number | null | undefined): number {
     if (typeof value === 'number') return Math.round(value * 100);
@@ -32,6 +33,7 @@ function parseBrlToCents(value: string | number | null | undefined): number {
         ...HlmButtonImports,
         ...HlmInputImports,
         ...HlmTableImports,
+        ...DialogImports,
     ],
     providers: [
         provideIcons({
@@ -39,6 +41,7 @@ function parseBrlToCents(value: string | number | null | undefined): number {
             lucidePackagePlus,
             lucidePencil,
             lucideRefreshCw,
+            lucideRotateCcw,
             lucideSave,
             lucideX,
         }),
@@ -48,7 +51,11 @@ function parseBrlToCents(value: string | number | null | undefined): number {
 export class Products implements OnInit {
     readonly service = inject(ProductService);
     readonly isSaving = signal(false);
+    readonly isArchiving = signal(false);
     readonly editingProduct = signal<ProductItem | null>(null);
+    readonly productToArchive = signal<ProductItem | null>(null);
+    readonly archiveDialogState = signal<'open' | 'closed'>('closed');
+    readonly activeFilter = signal<'active' | 'inactive' | 'all'>('active');
     readonly metadataError = signal<string | null>(null);
 
     readonly form = new FormGroup({
@@ -65,7 +72,16 @@ export class Products implements OnInit {
     }
 
     load() {
-        this.service.load({ page: 1, limit: 50 });
+        this.service.load({
+            page: 1,
+            limit: 50,
+            isActive: this.activeFilter() === 'all' ? undefined : this.activeFilter() === 'active',
+        });
+    }
+
+    setActiveFilter(value: 'active' | 'inactive' | 'all') {
+        this.activeFilter.set(value);
+        this.load();
     }
 
     edit(product: ProductItem) {
@@ -82,7 +98,36 @@ export class Products implements OnInit {
     }
 
     archive(product: ProductItem) {
-        this.service.update(product.id, { isActive: false }).subscribe(() => this.load());
+        if (!product.isActive) return;
+        this.productToArchive.set(product);
+        this.archiveDialogState.set('open');
+    }
+
+    closeArchiveDialog() {
+        if (this.isArchiving()) return;
+        this.archiveDialogState.set('closed');
+        this.productToArchive.set(null);
+    }
+
+    confirmArchive() {
+        const product = this.productToArchive();
+        if (!product || this.isArchiving()) return;
+
+        this.isArchiving.set(true);
+        this.service.update(product.id, { isActive: false }).subscribe({
+            next: () => {
+                this.isArchiving.set(false);
+                this.archiveDialogState.set('closed');
+                this.productToArchive.set(null);
+                this.load();
+            },
+            error: () => this.isArchiving.set(false),
+        });
+    }
+
+    reactivate(product: ProductItem) {
+        if (product.isActive) return;
+        this.service.update(product.id, { isActive: true }).subscribe(() => this.load());
     }
 
     resetForm() {

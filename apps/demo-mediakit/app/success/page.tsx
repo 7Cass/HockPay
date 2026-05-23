@@ -47,7 +47,7 @@ function SuccessContent() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">
@@ -67,8 +67,8 @@ function SuccessContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">
+        <div className="max-w-5xl mx-auto flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <h1 className="text-lg font-bold text-gray-900 sm:text-xl">
             Media Kit Generator
           </h1>
           <Link
@@ -80,15 +80,15 @@ function SuccessContent() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 sm:py-12">
         {status === "pending" && <PaymentPending />}
 
         {status === "ready" && data && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-8">
-              <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="flex items-start gap-3 mb-8">
+              <CheckCircle className="w-8 h-8 shrink-0 text-green-500" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
                   Seu Media Kit está pronto!
                 </h2>
                 <p className="text-gray-600">

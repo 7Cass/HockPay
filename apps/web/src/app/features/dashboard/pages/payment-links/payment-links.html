@@ -111,6 +111,31 @@
     </hlm-sheet-content>
   </hlm-sheet>
 
+  <brn-dialog [closeDelay]="150" [state]="cancelDialogState()" (closed)="closeCancelDialog()">
+    <ng-template brnDialogContent let-ctx>
+      <app-dialog-overlay />
+      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+        <app-dialog-close />
+        <app-dialog-header
+          title="Cancelar link"
+          description="O checkout público deixará de aceitar novas tentativas para esta cobrança."
+        />
+        @if (linkToCancel(); as link) {
+          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+            <p class="font-semibold text-zinc-900">{{ paymentTitle(link) }}</p>
+            <p class="mt-1 font-mono text-xs text-zinc-500">{{ link.checkoutUrl }}</p>
+          </div>
+        }
+        <app-dialog-footer>
+          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="isCancelling()">Voltar</button>
+          <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmCancel()" [disabled]="isCancelling()">
+            {{ isCancelling() ? 'Cancelando...' : 'Sim, cancelar link' }}
+          </button>
+        </app-dialog-footer>
+      </div>
+    </ng-template>
+  </brn-dialog>
+
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Links de pagamento</h1>
@@ -217,18 +242,18 @@
                   <a hlmBtn variant="outline" size="sm" class="h-8 gap-2 border-zinc-200" [routerLink]="['/dashboard/payment-links', link.id]" title="Ver detalhes" (click)="$event.stopPropagation()">
                     Ver detalhes
                   </a>
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'" (click)="$event.stopPropagation(); copy(link)">
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [attr.aria-label]="copiedId() === link.id ? 'Link copiado' : 'Copiar link'" [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'" (click)="$event.stopPropagation(); copy(link)">
                     <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
                   </button>
-                  <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [href]="link.checkoutUrl" target="_blank" rel="noreferrer" title="Abrir link" (click)="$event.stopPropagation()">
+                  <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [href]="link.checkoutUrl" target="_blank" rel="noreferrer" aria-label="Abrir link público" title="Abrir link" (click)="$event.stopPropagation()">
                     <ng-icon hlm name="lucideExternalLink" size="xs"></ng-icon>
                   </a>
                   @if (link.lastPaymentId) {
-                    <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [routerLink]="['/dashboard/payments', link.lastPaymentId]" title="Ver pagamento" (click)="$event.stopPropagation()">
+                    <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [routerLink]="['/dashboard/payments', link.lastPaymentId]" aria-label="Ver pagamento relacionado" title="Ver pagamento" (click)="$event.stopPropagation()">
                       <ng-icon hlm name="lucideReceipt" size="xs"></ng-icon>
                     </a>
                   }
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-red-200 text-red-700 hover:bg-red-50" title="Cancelar link" [disabled]="!canCancel(link)" (click)="$event.stopPropagation(); cancel(link)">
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-red-200 text-red-700 hover:bg-red-50" aria-label="Cancelar link" title="Cancelar link" [disabled]="!canCancel(link)" (click)="$event.stopPropagation(); cancel(link)">
                     <ng-icon hlm name="lucideXCircle" size="xs"></ng-icon>
                   </button>
                 </div>
@@ -236,11 +261,37 @@
             </tr>
           } @empty {
             <tr hlmTr>
-              <td hlmTd colspan="6" class="px-5 py-14 text-center text-sm text-zinc-500">Nenhum link de pagamento encontrado.</td>
+              <td hlmTd colspan="6" class="px-5 py-14 text-center text-sm text-zinc-500">{{ emptyStateMessage() }}</td>
             </tr>
           }
         </tbody>
       </table>
+    </div>
+
+    <div class="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+      <span>
+        Exibindo <span class="font-semibold text-zinc-800">{{ service.links().length }}</span>
+        de <span class="font-semibold text-zinc-800">{{ service.total() }}</span> link(s)
+      </span>
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="flex items-center gap-2">
+          <span>Por página</span>
+          <select class="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs" [value]="limit()" (change)="setLimit($event)">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="service.page() <= 1" (click)="changePage(-1)">
+          <ng-icon hlm name="lucideChevronLeft" size="xs"></ng-icon>
+          Anterior
+        </button>
+        <span class="font-medium text-zinc-600">Página {{ service.page() }} de {{ service.totalPages() }}</span>
+        <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="service.page() >= service.totalPages()" (click)="changePage(1)">
+          Próxima
+          <ng-icon hlm name="lucideChevronRight" size="xs"></ng-icon>
+        </button>
+      </div>
     </div>
   </section>
 </div>

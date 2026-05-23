@@ -1,4 +1,26 @@
 <div class="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10">
+  <brn-dialog [closeDelay]="150" [state]="confirmDialogState()" (closed)="closeConfirmDialog()">
+    <ng-template brnDialogContent let-ctx>
+      <app-dialog-overlay />
+      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+        <app-dialog-close />
+        <app-dialog-header [title]="confirmActionTitle()" [description]="confirmActionDescription()" />
+        @if (withdrawal(); as item) {
+          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+            <p class="font-mono font-semibold text-zinc-900">{{ shortId(item.id) }}</p>
+            <p class="mt-1 text-zinc-600">{{ item.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+          </div>
+        }
+        <app-dialog-footer>
+          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="actionLoading() !== null">Voltar</button>
+          <button hlmBtn type="button" class="font-semibold text-white" [ngClass]="pendingDevAction() === 'complete' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'" (click)="confirmDevAction()" [disabled]="actionLoading() !== null">
+            {{ actionLoading() ? 'Executando...' : 'Confirmar' }}
+          </button>
+        </app-dialog-footer>
+      </div>
+    </ng-template>
+  </brn-dialog>
+
   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <a routerLink="/dashboard/withdrawals" class="mb-3 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900">
