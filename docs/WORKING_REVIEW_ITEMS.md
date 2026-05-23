@@ -2,15 +2,15 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: reaberto em 2026-05-22 apos auditoria paralela. Follow-ups dos itens 1 e 2 foram implementados nesta rodada; 4/6 itens macro ainda tem follow-ups de auditoria abertos.
+Status geral: reaberto em 2026-05-22 apos auditoria paralela. Follow-ups dos itens 1, 2, 4 e 5 foram implementados; 2/6 itens macro ainda tem follow-ups de auditoria abertos.
 
 Progresso macro:
 
 - [x] 1. Idempotencia atomica na API
 - [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 - [ ] 3. Gaps transacionais em auth/store/checkout
-- [ ] 4. Store creation, auth hydration, refresh waiters e withdrawals
-- [ ] 5. PrismaService, migrations, claims e invariantes de banco
+- [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
+- [x] 5. PrismaService, migrations, claims e invariantes de banco
 - [ ] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
@@ -515,7 +515,7 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 
 Status: concluido em 2026-05-20. Criacao de loja agora atualiza access/refresh cookies, o web trata create-store como troca de tenant, auth passa a hidratar perfil completo, refresh concorrente propaga falha para todos os waiters e withdrawals usa contexto de store estruturado.
 
-Auditoria 2026-05-22: reaberto. O contrato `NO_CURRENT_STORE` provavelmente se perde no filtro HTTP global e falta cobertura HTTP negativa para withdrawals sem store.
+Auditoria 2026-05-22: follow-ups concluidos. O filtro HTTP preserva `NO_CURRENT_STORE` no formato Nest esperado, endpoints idempotentes com JWT sem store retornam `403 NO_CURRENT_STORE`, e withdrawals sem store tem cobertura HTTP para `GET` e `POST`.
 
 Notas da implementacao:
 
@@ -633,21 +633,31 @@ Os botoes TEST de completar/falhar ficam travados se o usuario cancela `confirm(
 
 ### Tarefas reabertas pela auditoria 2026-05-22
 
-- [ ] 4.7 Preservar `NO_CURRENT_STORE` no JSON final do filtro HTTP
+- [x] 4.7.1 Preservar `NO_CURRENT_STORE` no JSON final do filtro HTTP
   - Problema: `CurrentStore` lanca `ForbiddenException` com `code` no topo do response, mas `HttpExceptionFilter` so preserva codigo customizado em `{ error: { code, message } }`; o HTTP final tende a virar `FORBIDDEN`.
-  - Solucao: alinhar o formato da exception ou ampliar o filtro para preservar `responseObj.code` quando existir.
-  - Validacao: teste do filtro ou e2e confirma `error.code === "NO_CURRENT_STORE"` no response final.
+  - Solucao: ampliar o filtro para preservar `responseObj.code` top-level quando existir, sem quebrar o formato nested `{ error: { code, message } }` nem excecoes genericas.
+  - Validacao: spec do filtro confirma `error.code === "NO_CURRENT_STORE"` para `ForbiddenException` top-level e `FORBIDDEN` para forbidden generico.
 
-- [ ] 4.8 Cobrir withdrawals sem store em teste HTTP
+- [x] 4.7.2 Preservar `NO_CURRENT_STORE` em endpoints idempotentes com JWT sem store
+  - Problema: em `POST /withdrawals`, o `IdempotencyInterceptor` roda antes do decorator `@CurrentStore()` e pode retornar `IDEMPOTENCY_STORE_REQUIRED`.
+  - Solucao: quando houver JWT autenticado sem `storeId`, retornar `403 NO_CURRENT_STORE`; manter `IDEMPOTENCY_STORE_REQUIRED` para request com `Idempotency-Key` mas sem contexto autenticado/store.
+  - Validacao: spec do interceptor cobre JWT sem store, ausencia total de store e store valido.
+
+- [x] 4.8.1 Cobrir `GET /api/v1/withdrawals` sem store em teste HTTP
   - Problema: a cobertura atual chama controller/decorator diretamente e nao valida `@CurrentStore()` junto com guards/filtro global em rota real.
-  - Solucao: adicionar teste HTTP/e2e ou integração Nest com `WithdrawalController` registrando JWT valido sem `storeId`.
-  - Validacao: `POST/GET /api/v1/withdrawals` sem store retorna 403 estruturado com `NO_CURRENT_STORE`, nao 500 nem `FORBIDDEN` generico.
+  - Solucao: adicionar teste HTTP/e2e com JWT valido sem `storeId`, `WithdrawalController`, guard real/mocado e filtros globais.
+  - Validacao: `GET /api/v1/withdrawals` retorna 403 estruturado com `NO_CURRENT_STORE`, nao 500 nem `FORBIDDEN` generico.
+
+- [x] 4.8.2 Cobrir `POST /api/v1/withdrawals` sem store em teste HTTP
+  - Problema: `POST /withdrawals` combina `@CurrentStore()` e `@Idempotent`, entao a cobertura precisa provar que o erro e de store/contexto, nao de header ou body.
+  - Solucao: adicionar teste HTTP/e2e com JWT valido sem `storeId`, body valido e `Idempotency-Key`.
+  - Validacao: `POST /api/v1/withdrawals` retorna 403 estruturado com `NO_CURRENT_STORE` e nao chama use case/idempotency operation.
 
 ## 5. PrismaService, migrations, claims e invariantes de banco
 
 Status: concluido em 2026-05-22. Esta leva corrigiu a autoridade transacional no banco: Prisma singleton por app, artefatos Prisma no build, claims atomicos no worker e locks de saldo nos fluxos financeiros. A suite opt-in `db-concurrency` cobre `FOR UPDATE SKIP LOCKED` e saldo concorrente com Postgres real; `withdrawals,p0` passou em infra descartavel. O orquestrador de smoke tambem aceita `HOCKPAY_SMOKE_API_PORT` para evitar conflito com outro processo local sem matar servicos fora do projeto.
 
-Auditoria 2026-05-22: reaberto por lacunas de validacao/documentacao. A implementacao principal parece feita, mas o smoke de concorrencia reimplementa SQL local e o artefato `prisma.config.ts` pode apontar para `.env` diferente em `dist`.
+Auditoria 2026-05-22: follow-ups concluidos. O smoke `db-concurrency` agora exercita `OutboxRepository` e `WithdrawalRepository` reais, e o contrato de deploy por artefato Prisma explicita `DATABASE_URL` no ambiente.
 
 ### Problema
 
@@ -748,15 +758,30 @@ O repo tem duplicacao e fragilidade no acesso ao banco:
 
 ### Tarefas reabertas pela auditoria 2026-05-22
 
-- [ ] 5.9 Fazer `db-concurrency` exercitar os repositorios reais
+- [x] 5.9.1 Trocar SQL duplicado por repositorios reais no smoke `db-concurrency`
   - Problema: o smoke valida SQL local reimplementado, enquanto os repositorios de producao usam seus proprios metodos/SQL; isso permite drift entre teste e runtime.
-  - Solucao: ajustar a suite para chamar `OutboxRepository.claimDispatchableEvents` e `WithdrawalRepository.claimProcessableWithdrawals`, ou adicionar teste de integracao com Postgres real que chame esses repositorios.
-  - Validacao: a concorrencia real passa exercitando os metodos de producao, nao apenas SQL duplicado no script.
+  - Solucao: remover helpers locais de claim e chamar `OutboxRepository.claimDispatchableEvents` e `WithdrawalRepository.claimProcessableWithdrawals` em duas instancias sobre dois `PrismaClient`s.
+  - Validacao: busca no script nao encontra helpers/SQL local de claim e confirma uso dos metodos reais.
 
-- [ ] 5.10 Corrigir ou documentar caminho de `.env` no `prisma.config.ts` de `dist`
+- [x] 5.9.2 Tornar fixtures do smoke deterministicas contra claims globais
+  - Problema: os metodos reais claimam linhas elegiveis globalmente, nao por `requestId` ou `withdrawalId`.
+  - Solucao: executar claim de outbox antes do setup HTTP, semear linhas com `createdAt` antigo e assertar que os IDs claimados batem exatamente com os IDs semeados; manter saldo concorrente via HTTP inalterado.
+  - Validacao: `db-concurrency` falha claramente se claimar linha alheia ou duplicar ID.
+
+- [x] 5.9.3 Validar smoke `db-concurrency` com repositorios reais
+  - Problema: a suite so fecha quando roda contra Postgres/Redis reais e pacote infrastructure buildado.
+  - Solucao: rodar build de infrastructure, `node --check`, varreduras textuais e smoke opt-in.
+  - Validacao: `HOCKPAY_SMOKE_SUITE=db-concurrency HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker` passa.
+
+- [x] 5.10.1 Documentar contrato de `DATABASE_URL` para deploy por artefato Prisma
   - Problema: `resolve(__dirname, "../../.env")` aponta para a raiz no fonte, mas em `dist/prisma.config.ts` aponta para `packages/.env`; deploy baseado no artefato depende de `DATABASE_URL` injetado.
-  - Solucao: ajustar o config gerado/build para resolver a raiz correta ou documentar explicitamente que `db:deploy` pelo artefato exige `DATABASE_URL` no ambiente.
-  - Validacao: teste/checagem de build confirma `pnpm db:deploy` no modo esperado, com ou sem `.env` conforme contrato documentado.
+  - Solucao: documentar no runbook e README da API que `pnpm run db:deploy` em source workspace pode usar `.env` raiz, mas artifact deploy com `packages/database/dist/prisma.config.ts` exige `DATABASE_URL` exportado no ambiente.
+  - Validacao: docs nao sugerem depender de descoberta de `.env` a partir de `dist`.
+
+- [x] 5.10.2 Validar config Prisma de artifact com `DATABASE_URL`
+  - Problema: a documentacao precisa ser reproduzivel e o build precisa continuar emitindo schema/config.
+  - Solucao: rodar build do database e validar o config em `packages/database/dist` com `DATABASE_URL` explicito.
+  - Validacao: `pnpm --filter @hockpay/database build` passa e `prisma validate --config prisma.config.ts` funciona em `dist` com `DATABASE_URL` no ambiente.
 
 ## 6. Docs, env e contratos apos redesign da landing
 
