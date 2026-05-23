@@ -108,11 +108,27 @@ O worker não lê `REDIS_URL`.
 | `HOCKPAY_STUDYCASE_DEMO_URL` | URL da demo Media Kit | `http://localhost:3005` |
 | `HOCKPAY_STUDYCASE_DEMO_PORT` | Porta para iniciar a demo no smoke | `3005` |
 | `HOCKPAY_STUDYCASE_START_DEMO` | Use `false` para nao iniciar a demo automaticamente | inicia por default |
-| `HOCKPAY_SMOKE_WEBHOOK_PORT` | Porta do receiver local de webhook | `3999` |
-| `HOCKPAY_SMOKE_TIMEOUT_MS` | Timeout dos smokes focados | varia por smoke |
-| `HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL` | Webhook real opcional para smoke de alerta Discord | vazio |
-| `HOCKPAY_SMOKE_CUSTOMERS` / `HOCKPAY_SMOKE_PAYMENTS` / `HOCKPAY_SMOKE_PAYMENT_LINKS` / `HOCKPAY_SMOKE_CONCURRENCY` | Volume do smoke `system` | defaults leves |
-| `HOCKPAY_SMOKE_IDEMPOTENCY_CONCURRENCY` | Concorrência do smoke de idempotência | `6` |
+| `HOCKPAY_SMOKE_SUITE` | Lista de suites do `smoke:docker`, separada por virgulas | `p0,payment-link,p3,studycase,system,withdrawals` |
+| `HOCKPAY_SMOKE_API_PORT` | Porta local da API iniciada pelo runner Docker | `3000` |
+| `HOCKPAY_SMOKE_WORKER_PORT` | Porta local do worker iniciado pelo runner Docker | `3001` |
+| `HOCKPAY_SMOKE_CHECKOUT_PORT` | Porta local do checkout iniciado pelo runner Docker | `3333` |
+| `HOCKPAY_SMOKE_STUDYCASE_PORT` | Porta local da demo studycase iniciada pelo runner Docker | `3005` |
+| `HOCKPAY_SMOKE_WEBHOOK_PORT` | Porta do receiver local de webhook nos smokes `p0`, `p3` e `system` | `3999` |
+| `HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS` | Timeout do runner para Postgres, Redis e health checks HTTP da API | `90000` |
+| `HOCKPAY_SMOKE_HTTP_REQUEST_TIMEOUT_MS` | Timeout por tentativa de health check HTTP no runner | `5000` |
+| `HOCKPAY_SMOKE_TIMEOUT_MS` | Timeout repassado aos scripts filhos; use `180000` para a suite default completa porque ela inclui `system` | `180000` em `.env.example`; fallback interno varia por script |
+| `HOCKPAY_SMOKE_POSTGRES_USER` | Usuario do Postgres de smoke Docker | `hockpay` |
+| `HOCKPAY_SMOKE_POSTGRES_PASSWORD` | Senha do Postgres de smoke Docker; se ausente, o runner gera uma senha temporaria | obrigatório no compose, gerado pelo runner quando ausente |
+| `HOCKPAY_SMOKE_POSTGRES_DB` | Banco do Postgres de smoke Docker | `hockpay_smoke` |
+| `HOCKPAY_SMOKE_MIGRATE_MODE` | Modo de migration do runner: `deploy` usa `db:deploy`, `dev` usa `db:migrate` | `deploy` |
+| `HOCKPAY_SMOKE_CLEAN_VOLUMES` | Use `true` para recriar volumes Docker antes da execucao | `false`; tambem limpa quando a senha foi gerada |
+| `HOCKPAY_SMOKE_KEEP_ALIVE` | Use `true` para manter processos e containers vivos apos os smokes | `false` |
+| `HOCKPAY_SMOKE_CUSTOMERS` / `HOCKPAY_SMOKE_PAYMENTS` / `HOCKPAY_SMOKE_PAYMENT_LINKS` / `HOCKPAY_SMOKE_CONCURRENCY` | Volume e paralelismo do smoke `system` | `50` / `200` / `30` / `8` |
+| `HOCKPAY_SMOKE_IDEMPOTENCY_CONCURRENCY` | Concorrencia do smoke `idempotency` | `6` |
+| `HOCKPAY_SMOKE_REDIS_CONTAINER` | Container Redis que o smoke `idempotency-redis-unavailable` para e reinicia | `hockpay-smoke-redis` |
+| `HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL` | Webhook real opcional para validar entrega externa de alerta Discord no smoke `system` | vazio; sem valor, usa destino fake e nao entrega externamente |
+
+`HOCKPAY_SMOKE_GENERATED_POSTGRES_PASSWORD` e um marcador interno do runner quando ele gera a senha temporaria do Postgres. Nao adicione essa variavel ao `.env.example`.
 
 ## Smoke Docker Local
 
@@ -133,7 +149,7 @@ Opcoes uteis:
 ```bash
 HOCKPAY_SMOKE_SUITE=withdrawals pnpm run smoke:docker
 HOCKPAY_SMOKE_SUITE=p0,payment-link pnpm run smoke:docker
-HOCKPAY_SMOKE_SUITE=idempotency,db-concurrency pnpm run smoke:docker
+HOCKPAY_SMOKE_SUITE=idempotency,idempotency-redis-unavailable,db-concurrency pnpm run smoke:docker
 HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker
 HOCKPAY_SMOKE_WORKER_PORT=3011 pnpm run smoke:docker
 HOCKPAY_SMOKE_CHECKOUT_PORT=3334 pnpm run smoke:docker
@@ -141,13 +157,14 @@ HOCKPAY_SMOKE_STUDYCASE_PORT=3006 pnpm run smoke:docker
 HOCKPAY_SMOKE_WEBHOOK_PORT=4000 pnpm run smoke:docker
 HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS=120000 pnpm run smoke:docker
 HOCKPAY_SMOKE_HTTP_REQUEST_TIMEOUT_MS=10000 pnpm run smoke:docker
+HOCKPAY_SMOKE_TIMEOUT_MS=180000 pnpm run smoke:docker
 HOCKPAY_SMOKE_KEEP_ALIVE=true pnpm run smoke:docker
 HOCKPAY_SMOKE_CLEAN_VOLUMES=true pnpm run smoke:docker
 HOCKPAY_SMOKE_MIGRATE_MODE=deploy pnpm run smoke:docker
 HOCKPAY_SMOKE_MIGRATE_MODE=dev pnpm run smoke:docker
 ```
 
-Suites suportadas por `HOCKPAY_SMOKE_SUITE`: `p0`, `payment-link`, `p3`, `studycase`, `system`, `withdrawals`, `idempotency` e `db-concurrency`. Quando a suite contem apenas `idempotency` e/ou `db-concurrency`, o runner sobe somente API, Postgres e Redis.
+Suites suportadas por `HOCKPAY_SMOKE_SUITE`: `p0`, `payment-link`, `p3`, `studycase`, `system`, `withdrawals`, `idempotency`, `idempotency-redis-unavailable` e `db-concurrency`. Quando a suite contem apenas `idempotency`, `idempotency-redis-unavailable` e/ou `db-concurrency`, o runner sobe somente API, Postgres e Redis.
 
 ## Smokes
 
@@ -159,6 +176,9 @@ Suites suportadas por `HOCKPAY_SMOKE_SUITE`: `p0`, `payment-link`, `p3`, `studyc
 | `pnpm run smoke:studycase:mediakit` | Demo integrada com checkout hospedado, webhook assinado e estado final renderizavel. |
 | `pnpm run smoke:system` | Volume leve cobrindo APIs principais, Payment Links, alerts, bank accounts e withdrawals. |
 | `pnpm run smoke:withdrawals` | Fluxo E2E de saques, bank accounts, saldo, ledger, listagem, detalhe e dashboard links. |
+| `pnpm run smoke:idempotency` | Concorrencia de idempotency keys com Redis disponivel. |
+| `pnpm run smoke:idempotency-redis-unavailable` | Degradacao de idempotencia quando o container Redis fica indisponivel e volta. |
+| `pnpm run smoke:db-concurrency` | Concorrencia de saldo, ledger e withdrawals apoiada pelo banco. |
 | `pnpm run smoke:docker` | Orquestra infra Docker local e smokes sequenciais. |
 
 ## Smoke de Withdrawals

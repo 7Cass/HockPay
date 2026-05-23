@@ -59,6 +59,7 @@ pnpm run smoke:docker
 ```
 
 `pnpm run smoke:docker` sobe Postgres/Redis em Docker e roda API, worker e checkout como processos Node no host. A suite default e `p0,payment-link,p3,studycase,system,withdrawals`.
+Para a suite default completa, siga os defaults e timeout recomendados no [Runbook](./docs/RUNBOOK.md#smoke-docker-local).
 
 ## CI
 
