@@ -18,27 +18,27 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ## Módulos Relevantes
 
-| Módulo | Função atual |
-| --- | --- |
-| `auth` | login, refresh, logout e troca de store |
-| `merchant` | cadastro e leitura de merchant |
-| `store` | criação e listagem de stores |
-| `api-key` | emissão, listagem e revogação de API keys |
-| `customer` | CRUD básico de customers |
-| `customer-history` | histórico de pagamentos e receipts por customer external id |
-| `product` | CRUD de catálogo store-scoped para Payment Links e checkout sessions |
-| `payment` | criação, listagem, leitura, timeline e simulação TEST |
-| `payment-link` | criação/listagem/detalhe/cancelamento e fluxo público de link |
-| `checkout-session` | criação, leitura e fulfill do checkout hospedado |
-| `webhook` | CRUD, teste, logs, retry e inbox dev |
-| `alert` | configs, teste, logs e retry de alertas operacionais |
-| `dashboard` | métricas da visão geral |
-| `account` / `transaction` | leitura financeira e extrato |
-| `bank-account` | gestão de contas Pix de saque |
-| `withdrawal` | criação/listagem/detalhe, summary, timeline e ações TEST |
-| `refund` | criação de refunds |
-| `receipt` | leitura/gestão de receipts |
-| `idempotency` | persistência/cache para endpoints idempotentes |
+| Módulo                    | Função atual                                                  |
+| ------------------------- | ------------------------------------------------------------- |
+| `auth`                    | login, refresh, logout e troca de store                       |
+| `merchant`                | cadastro e leitura de merchant                                |
+| `store`                   | criação e listagem de stores                                  |
+| `api-key`                 | emissão, listagem e revogação de API keys                     |
+| `customer`                | CRUD básico de customers                                      |
+| `customer-history`        | histórico de pagamentos e receipts por customer external id   |
+| `product`                 | CRUD de catálogo store-scoped usado por checkout sessions     |
+| `payment`                 | criação, listagem, leitura, timeline e simulação TEST         |
+| `payment-link`            | criação/listagem/detalhe/cancelamento e fluxo público de link |
+| `checkout-session`        | criação, leitura e fulfill do checkout hospedado              |
+| `webhook`                 | CRUD, teste, logs, retry e inbox dev                          |
+| `alert`                   | configs, teste, logs e retry de alertas operacionais          |
+| `dashboard`               | métricas da visão geral                                       |
+| `account` / `transaction` | leitura financeira e extrato                                  |
+| `bank-account`            | gestão de contas Pix de saque                                 |
+| `withdrawal`              | criação/listagem/detalhe, summary, timeline e ações TEST      |
+| `refund`                  | criação de refunds                                            |
+| `receipt`                 | leitura/gestão de receipts                                    |
+| `idempotency`             | persistência/cache para endpoints idempotentes                |
 
 ## Observações Importantes
 
@@ -50,7 +50,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
 - A API cria outbox e agenda jobs, mas a entrega efetiva de webhook depende do worker conectado ao mesmo Redis/PostgreSQL.
 - `paymentMethod` aceita valores modelados alem de `PIX`, mas o runtime nao possui processador real para cartao, boleto ou debito.
-- Products sao opcionais e separados por store/environment; `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items`.
+- Products sao opcionais e separados por store/environment; hoje alimentam checkout sessions com `items`. `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items`.
 - Payment Links aceitam apenas `amount`. Se `items` for enviado, a API rejeita o contrato.
 - Checkout sessions aceitam exatamente um de `amount` ou `items`; `items` referencia produtos existentes por `productId` e o total e derivado de `quantity * product.price`.
 
@@ -279,19 +279,19 @@ Payments, withdrawals e refunds retornam `x-idempotency-key` e um indicador bool
 
 ## Variáveis de Ambiente Relevantes
 
-| Variável | Uso | Default local |
-| --- | --- | --- |
-| `PORT` | Porta HTTP da API | `3000` |
-| `DATABASE_URL` | Conexão Prisma/PostgreSQL | obrigatório |
-| `REDIS_URL` | Redis usado pelo cache de idempotência da API | `redis://localhost:6379` |
-| `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e filas de expiração | `localhost` / `6379` |
-| `JWT_SECRET` | Assinatura de tokens do dashboard | obrigatório |
-| `ENCRYPTION_KEY` | Criptografia de segredos sensíveis; precisa ter 64 chars hex | obrigatório |
-| `PIX_KEY` | Chave Pix simulada usada no payload do pagamento | `test@hockpay.com` |
-| `CHECKOUT_BASE_URL` | Base pública do checkout usada em links e checkout sessions | `http://localhost:3333` |
-| `PUBLIC_API_BASE_URL` | Base pública preferencial para URLs absolutas expostas pela API | vazio |
-| `APP_URL` | Fallback de base pública quando `PUBLIC_API_BASE_URL` não existe | vazio |
-| `CORS_ORIGIN` | Lista de origens permitidas separada por vírgula | origens locais do monorepo |
+| Variável                    | Uso                                                              | Default local              |
+| --------------------------- | ---------------------------------------------------------------- | -------------------------- |
+| `PORT`                      | Porta HTTP da API                                                | `3000`                     |
+| `DATABASE_URL`              | Conexão Prisma/PostgreSQL                                        | obrigatório                |
+| `REDIS_URL`                 | Redis usado pelo cache de idempotência da API                    | `redis://localhost:6379`   |
+| `REDIS_HOST` / `REDIS_PORT` | Redis para BullMQ, throttling e filas de expiração               | `localhost` / `6379`       |
+| `JWT_SECRET`                | Assinatura de tokens do dashboard                                | obrigatório                |
+| `ENCRYPTION_KEY`            | Criptografia de segredos sensíveis; precisa ter 64 chars hex     | obrigatório                |
+| `PIX_KEY`                   | Chave Pix simulada usada no payload do pagamento                 | `test@hockpay.com`         |
+| `CHECKOUT_BASE_URL`         | Base pública do checkout usada em links e checkout sessions      | `http://localhost:3333`    |
+| `PUBLIC_API_BASE_URL`       | Base pública preferencial para URLs absolutas expostas pela API  | vazio                      |
+| `APP_URL`                   | Fallback de base pública quando `PUBLIC_API_BASE_URL` não existe | vazio                      |
+| `CORS_ORIGIN`               | Lista de origens permitidas separada por vírgula                 | origens locais do monorepo |
 
 `REDIS_URL` e `REDIS_HOST`/`REDIS_PORT` precisam apontar para o mesmo Redis quando API e worker rodam juntos; o primeiro atende idempotência/cache, os demais atendem BullMQ, throttling e jobs.
 

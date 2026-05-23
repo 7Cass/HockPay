@@ -7,22 +7,22 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 - Sem dependência de NestJS
 - Sem dependência direta de Prisma
 - Exporta:
-  - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `PixCharge`, `PaymentLink`, `WebhookConfig`, `WebhookLog`, `AlertConfig`, `Account`, `Transaction`, `Refund`, `Receipt`, `BankAccount` e `Withdrawal`
+  - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `PixCharge`, `PaymentLink`, `Product`, `PaymentItem`, `WebhookConfig`, `WebhookLog`, `AlertConfig`, `Account`, `Transaction`, `Refund`, `Receipt`, `BankAccount` e `Withdrawal`
   - value objects como `Email`, `Document`, `Environment`, `Money`
   - interfaces de repositório e portas
   - use cases do fluxo principal
 
 ## Estrutura Atual
 
-| Área | Conteúdo |
-|------|----------|
-| `domain/entities` | aggregates e entidades |
-| `domain/value-objects` | VOs atuais do domínio |
-| `domain/errors` | erros de negócio |
-| `domain/repositories` | contratos de persistência |
-| `application/ports` | contratos de adapters externos |
-| `application/services` | lógica compartilhada |
-| `application/use-cases` | casos de uso reais do sistema |
+| Área                    | Conteúdo                       |
+| ----------------------- | ------------------------------ |
+| `domain/entities`       | aggregates e entidades         |
+| `domain/value-objects`  | VOs atuais do domínio          |
+| `domain/errors`         | erros de negócio               |
+| `domain/repositories`   | contratos de persistência      |
+| `application/ports`     | contratos de adapters externos |
+| `application/services`  | lógica compartilhada           |
+| `application/use-cases` | casos de uso reais do sistema  |
 
 ## Observações
 
@@ -45,11 +45,13 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 - refunds
 - withdrawals
 - customer history
+- products/catalog
 
 ## Limites
 
-- `Product` e `PaymentItem` nao fazem parte do slice consolidado do `core` atual.
+- `Product` e `PaymentItem` fazem parte do core atual para catalogo e snapshots de checkout sessions. Payment Links seguem como cobranca avulsa por `amount`, sem items de produto.
 - `PaymentMethod` tem valores modelados alem de Pix, mas nao ha use case de processamento real para cartao, boleto ou debito.
+- `DetectAnomaliesUseCase` e o job antifraude atual existem como varredura simulada/stub; nao devem ser tratados como motor antifraude real.
 
 ## Scripts
 
