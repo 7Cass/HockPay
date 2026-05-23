@@ -533,6 +533,18 @@ async function main() {
         label: `db:${migrateMode}`,
       },
     );
+    await runCommand("pnpm", ["--filter", "@hockpay/core", "build"], {
+      env,
+      label: "build:core",
+    });
+    await runCommand("pnpm", ["--filter", "@hockpay/database", "build"], {
+      env,
+      label: "build:database",
+    });
+    await runCommand("pnpm", ["--filter", "@hockpay/infrastructure", "build"], {
+      env,
+      label: "build:infrastructure",
+    });
 
     const apiEnv = { ...env, PORT: String(ports.api) };
     const workerEnv = { ...env, PORT: String(ports.worker) };
