@@ -2,16 +2,16 @@
 
 > Arquivo temporario de acompanhamento. Remover este arquivo quando todos os itens abaixo forem concluidos, validados e refletidos nas docs canonicas quando necessario.
 
-Status geral: concluido, com 6/6 itens macro concluidos.
+Status geral: reaberto em 2026-05-22 apos auditoria paralela. Follow-ups dos itens 1 e 2 foram implementados nesta rodada; 4/6 itens macro ainda tem follow-ups de auditoria abertos.
 
 Progresso macro:
 
 - [x] 1. Idempotencia atomica na API
 - [x] 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
-- [x] 3. Gaps transacionais em auth/store/checkout
-- [x] 4. Store creation, auth hydration, refresh waiters e withdrawals
-- [x] 5. PrismaService, migrations, claims e invariantes de banco
-- [x] 6. Docs, env e contratos apos redesign da landing
+- [ ] 3. Gaps transacionais em auth/store/checkout
+- [ ] 4. Store creation, auth hydration, refresh waiters e withdrawals
+- [ ] 5. PrismaService, migrations, claims e invariantes de banco
+- [ ] 6. Docs, env e contratos apos redesign da landing
 
 Uso sugerido:
 
@@ -23,6 +23,8 @@ Uso sugerido:
 ## 1. Idempotencia atomica na API
 
 Status: concluido em 2026-05-20. A barreira atomica agora e o PostgreSQL, dentro do mesmo `UnitOfWork` da mutacao financeira. Redis ficou apenas como cache de replay. O smoke concorrente real da suite opt-in `idempotency`, as suites focadas e o build final passaram.
+
+Auditoria 2026-05-22: follow-ups de validacao concluidos. O contrato foi refinado para cache de idempotencia indisponivel, com cobertura dedicada de `IdempotencyCacheService`, `IdempotencyInterceptor` e smoke opt-in `idempotency-redis-unavailable`.
 
 Notas da implementacao:
 
@@ -132,7 +134,7 @@ A correcao recomendada e transformar a idempotencia em uma reserva transacional:
 - [x] Duas requisicoes simultaneas identicas com o mesmo `Idempotency-Key` usam uma unica reserva transacional por `(key, storeId)`.
 - [x] A segunda resposta retorna o mesmo recurso/DTO persistido e `x-idempotency-replayed: true` quando a chave ja esta completa.
 - [x] Mesma chave com body/path/metodo diferente retorna `409 IDEMPOTENCY_KEY_CONFLICT` sem executar nova mutacao.
-- [x] Redis desligado ou limpo nao quebra idempotencia; PostgreSQL continua sendo a fonte da verdade.
+- [x] Redis limpo ou cache de idempotencia indisponivel nao quebra replay/nao duplicacao da idempotencia; PostgreSQL continua sendo a fonte da verdade. A plataforma operacional completa ainda depende de Redis para filas, throttling e outros componentes.
 - [x] Falha no meio da transacao nao deixa recurso criado sem chave idempotente completada, porque a chave e completada no mesmo `UnitOfWork`.
 - [x] Chaves expiradas continuam reutilizaveis com limpeza por chave/store antes da nova reserva.
 - [x] `payments`, `withdrawals` e `refunds` tem cobertura concorrente com PostgreSQL/Redis reais pela suite opt-in `idempotency`.
@@ -148,9 +150,63 @@ A correcao recomendada e transformar a idempotencia em uma reserva transacional:
 7. [x] Enviar mesma chave com body/path diferente e confirmar `409` sem novas linhas de dominio em teste unitario do wrapper/repositorio.
 8. [x] Rodar suites relevantes no estado final: `pnpm --filter @hockpay/core test:ci`, `pnpm --filter @hockpay/infrastructure test`, `pnpm --filter @hockpay/api test`, `pnpm --filter @hockpay/worker test` e `pnpm build`.
 
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [x] 1.9.1 Refinar criterio de Redis indisponivel
+  - Problema: o criterio atual mistura cache de idempotencia com Redis operacional da API/worker, incluindo throttling e filas.
+  - Solucao: limitar o contrato a replay/nao duplicacao via PostgreSQL quando o cache Redis de idempotencia falha, mantendo claro que a plataforma completa ainda depende de Redis.
+  - Validacao: este documento distingue Redis limpo, Redis cache indisponivel e Redis operacional da plataforma.
+
+- [x] 1.9.2 Cobrir degradacao do cache de idempotencia
+  - Problema: `IdempotencyCacheService` deve degradar em `get/set` com erro, mas isso ainda nao tem spec dedicada.
+  - Solucao: adicionar spec com Redis mockado falhando em `get`, `setex` e lifecycle quando aplicavel.
+  - Validacao: `pnpm --filter @hockpay/api test -- idempotency-cache.service.spec.ts` passa e prova que erro de cache nao propaga para o fluxo.
+
+- [x] 1.9.3 Provar fallback para PostgreSQL quando o cache falha
+  - Problema: o interceptor consulta cache antes de PostgreSQL; a validacao deve garantir que cache miss/falha nao impede replay pelo banco.
+  - Solucao: cobrir no spec do `IdempotencyInterceptor` que cache sem resposta leva a `repository.findCompleted()` e replaya o registro persistido.
+  - Validacao: spec focada falha se o interceptor deixar de consultar PostgreSQL quando o cache nao retorna resposta.
+
+- [x] 1.9.4 Criar smoke opt-in para Redis indisponivel
+  - Problema: o smoke atual apaga a chave no Redis, mas nao simula conexao indisponivel.
+  - Solucao: adicionar suite opt-in `idempotency-redis-unavailable` que cria payment com Redis ativo, para Redis, repete a mesma request e reinicia Redis em `finally`.
+  - Validacao: replay retorna `x-idempotency-replayed: true`, mesmo DTO e sem duplicar `Payment`, `PixCharge`, `OutboxEvent` ou chave idempotente.
+
+- [x] 1.10.1 Criar harness unitario do `IdempotencyInterceptor`
+  - Problema: nao ha spec direta para o interceptor, e seus branches dependem de `ExecutionContext`, response e `CallHandler`.
+  - Solucao: criar helpers de teste para contexto, response, next handler, cache e repository fakes.
+  - Validacao: spec consegue resolver/rejeitar o observable com `firstValueFrom` sem subir Nest real.
+
+- [x] 1.10.2 Cobrir bypass, header obrigatorio e store ausente
+  - Problema: header ausente e store ausente sao contratos publicos de erro.
+  - Solucao: testar endpoint sem decorator, decorator sem header, `required=true` sem header/blank header e header com `request.store` ausente.
+  - Validacao: respostas esperadas incluem `IDEMPOTENCY_KEY_REQUIRED` e `IDEMPOTENCY_STORE_REQUIRED`, e bypass nao consulta cache/repository.
+
+- [x] 1.10.3 Cobrir normalizacao de header e contexto TTL
+  - Problema: chave pode vir com espacos ou array, e o wrapper transacional depende do contexto no request.
+  - Solucao: testar trim, primeiro valor de array e `ttlSeconds` em `getIdempotencyRequestContext`.
+  - Validacao: handler recebe contexto com chave normalizada e TTL correto.
+
+- [x] 1.10.4 Cobrir replay e conflito por Redis
+  - Problema: cache hit deve responder sem handler/repository e conflito deve retornar `IDEMPOTENCY_KEY_CONFLICT`.
+  - Solucao: testar cache hit com fingerprint igual e divergente.
+  - Validacao: headers `x-idempotency-replayed`/`x-idempotency-key`, status persistido e ausencia de chamada ao handler/repository.
+
+- [x] 1.10.5 Cobrir replay e conflito por PostgreSQL
+  - Problema: replay via banco e recache em Redis sao parte do contrato quando Redis nao tem resposta.
+  - Solucao: testar `findCompleted` com fingerprint igual, divergente e nulo.
+  - Validacao: replay usa resposta/status persistidos, chama `cacheService.set` no caso feliz e retorna conflito sem handler no caso divergente.
+
+- [x] 1.10.6 Cobrir modo sem repository
+  - Problema: o interceptor aceita repository opcional e precisa manter cache-only/bypass seguro.
+  - Solucao: instanciar com `repository=null` e validar cache miss seguindo para handler.
+  - Validacao: spec cobre branch sem repository.
+
 ## 2. Modelo de estado Outbox/Webhook/BullMQ/DLQ
 
 Status: concluido em 2026-05-20. Nesta leva, `WebhookLog` foi adaptado como linha canonica de entrega por `configId + outboxEventId`, sem introduzir uma tabela nova nem trocar endpoints publicos. BullMQ continua como motor tecnico de retries por outbox, e a DLQ agora preserva opcoes de requeue e aponta para o estado canonico no banco.
+
+Auditoria 2026-05-22: follow-ups concluidos. O requeue de DLQ agora reseta estado canonico antes de reenfileirar, a UI usa status de entrega canonico, retry manual valida `configId` da rota e o script de DLQ tem helpers cobertos por `node --test`.
 
 Notas da implementacao:
 
@@ -159,6 +215,7 @@ Notas da implementacao:
 - `ProcessWebhookUseCase` reutiliza a entrega existente, pula configs ja `DELIVERED` e atualiza a mesma linha em novas tentativas.
 - `WebhookProcessor.onFailed` marca entregas nao entregues como `FAILED_FINAL`, torna o `OutboxEvent` uma falha terminal e so entao cria o job na DLQ.
 - `scripts/dlq.mjs` requeuea com `jobId`, `attempts`, `backoff`, `removeOnComplete` e `removeOnFail`, bloqueando job alvo existente sem `--force`.
+- Requeue manual de webhook reseta apenas entregas nao `DELIVERED`, respeita `configIds` quando presentes e marca o outbox como `DISPATCHED` com watchdog futuro para evitar duplicidade imediata pelo dispatcher.
 - Como o job ainda e por outbox, a DLQ registra `configIds` afetados quando eles existem; job por entrega fica fora desta leva.
 
 ### Problema
@@ -258,9 +315,78 @@ Correcao minima aceitavel, se schema novo for grande demais: antes de enviar par
 6. [x] Rodar `pnpm --filter @hockpay/api test` para contrato DTO/timeline.
 7. [x] Rodar `pnpm build` no estado final.
 
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [x] 2.9.1 Definir contrato de reset canonico no requeue
+  - Problema: requeue de DLQ hoje recria job sem preparar o estado persistido da entrega.
+  - Solucao: documentar que apenas entregas nao `DELIVERED` do `outboxEventId` sao resetadas; `configIds` da DLQ limitam o reset quando existirem; alert DLQ fica fora desta rodada.
+  - Validacao: este item registra a regra antes da implementacao e preserva entregas ja entregues.
+
+- [x] 2.9.2 Resetar entregas de webhook para tentativa operacional
+  - Problema: uma entrega `FAILED_FINAL` pode continuar com tentativa esgotada e falhar imediatamente apos requeue.
+  - Solucao: adicionar metodo de dominio/repositorio para resetar `status=PENDING`, `attempt=0` e limpar `nextRetryAt`, `failedAt`, `lastError`, `responseStatus` e `responseBody`.
+  - Validacao: specs de entidade/repositorio provam reset por `outboxEventId`, filtro por `configIds` e preservacao de `DELIVERED`.
+
+- [x] 2.9.3 Resetar `OutboxEvent` para estado reprocessavel
+  - Problema: o outbox pode permanecer em falha terminal enquanto o job foi reenfileirado.
+  - Solucao: marcar o outbox como `DISPATCHED` ou estado equivalente de reprocessamento, limpar erro e preparar watchdog/retry sem criar duplicidade.
+  - Validacao: spec prova que requeue nao deixa outbox terminal e nao abre caminho para dispatcher duplicar job imediatamente.
+
+- [x] 2.9.4 Integrar reset ao `dlq requeue`
+  - Problema: a ordem da operacao precisa evitar processamento com estado antigo e tambem evitar reset se o job alvo ja existe sem `--force`.
+  - Solucao: validar DLQ job, montar opcoes, checar job alvo, resetar banco, adicionar job e remover DLQ apenas com `--remove`.
+  - Validacao: teste do helper/script prova reset antes de `target.add` e depois do guard de job existente.
+
+- [x] 2.10.1 Tipar status canonico no contrato web/API
+  - Problema: o backend expoe status, mas o web nao tipa `status`, `failedAt` e `lastError`.
+  - Solucao: adicionar union `PENDING | DELIVERED | FAILED_RETRYABLE | FAILED_FINAL` e campos opcionais ao tipo de log usado no dashboard.
+  - Validacao: build/test web e API continuam tipando o DTO.
+
+- [x] 2.10.2 Centralizar semantica visual de entrega
+  - Problema: o template decide estado por HTTP status, o que confunde pendente, retryable e final.
+  - Solucao: criar helpers `resolveLogStatus`, label, icon/classes, detail e `canRetryLog` usando status canonico com fallback legado.
+  - Validacao: spec cobre os quatro status canonicos e fallback para log legado sem `status`.
+
+- [x] 2.10.3 Atualizar historico de webhooks no dashboard
+  - Problema: a UI nao mostra estado canonico nem detalhes como `lastError`, `failedAt` e `nextRetryAt`.
+  - Solucao: atualizar o HTML para badge/status canonico e detalhes coerentes; manter filtro `Falhas` agregado.
+  - Validacao: build web passa e fixture/spec garante que `PENDING` nao parece falha final por falta de HTTP status.
+
+- [x] 2.10.4 Ajustar acao manual de retry
+  - Problema: a UI mostra retry para qualquer log sem 2xx, incluindo pendentes.
+  - Solucao: usar `canRetryLog` e permitir acao apenas para `FAILED_RETRYABLE` e `FAILED_FINAL`.
+  - Validacao: spec garante sem retry para `PENDING`/`DELIVERED` e retry para falhas.
+
+- [x] 2.11.1 Passar `configId` da rota para o use case
+  - Problema: o retry manual ignora `:id` da URL.
+  - Solucao: alterar input interno para incluir `configId` e fazer `WebhookController.retryLog` enviar `configId: id`.
+  - Validacao: spec do controller verifica payload enviado ao use case.
+
+- [x] 2.11.2 Validar config da rota antes do log
+  - Problema: o use case usa a config do proprio log, permitindo retry via URL de outra config da mesma store.
+  - Solucao: buscar config por `input.configId`, validar ownership da store e usar essa config para secret/url.
+  - Validacao: specs cobrem config inexistente e config de outra store como `WEBHOOK_CONFIG_NOT_FOUND`.
+
+- [x] 2.11.3 Mascarar log inexistente ou de outra config
+  - Problema: `logId` de outra config da mesma store nao deve ser retryado.
+  - Solucao: criar/usar erro `WEBHOOK_LOG_NOT_FOUND` quando log nao existe ou `log.configId !== config.id`.
+  - Validacao: spec cobre log de outra config da mesma store sem chamar sender/update.
+
+- [x] 2.12.1 Extrair helpers testaveis do script de DLQ
+  - Problema: `buildRequeueOptions` e guards vivem como funcoes locais sem cobertura direta.
+  - Solucao: mover funcoes puras/orquestracao injetavel para helper ESM e manter `dlq.mjs` como CLI fino.
+  - Validacao: `node --check scripts/dlq.mjs` e `node --check scripts/dlq-helpers.mjs`.
+
+- [x] 2.12.2 Cobrir opcoes e guards de requeue
+  - Problema: defaults, overrides, `removeOnComplete`, `removeOnFail` e `--force` podem regredir sem teste.
+  - Solucao: adicionar `node --test` para defaults webhook/alert, sanitizacao de opcoes, guard de job existente e `--force`.
+  - Validacao: `node --test scripts/dlq-helpers.test.mjs` falha se requeue perder opcoes ou ignorar guard.
+
 ## 3. Gaps transacionais em auth/store/checkout
 
 Status: concluido em 2026-05-20. A implementacao local foi concluida, comitada e validada com smoke P0 em infra descartavel.
+
+Auditoria 2026-05-22: reaberto por validacao superdeclarada. A implementacao principal parece no lugar, mas os testes de checkout nao provam rollback real nem concorrencia real do claim.
 
 Notas da implementacao:
 
@@ -373,9 +499,23 @@ Para checkout, tornar `FulfillCheckoutSessionUseCase` dono de uma transacao que 
 7. [x] Rodar `pnpm build`.
 8. [x] Em ambiente descartavel com infra local e API/worker recem-subidos, rodar `HOCKPAY_SMOKE_SUITE=p0 pnpm run smoke:docker`.
 
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [ ] 3.9 Provar rollback de checkout apos criar payment
+  - Problema: a spec atual mocka `CreatePaymentUseCase` e usa `UnitOfWork` fake sem snapshot/rollback, entao nao prova que payment/pix/outbox somem quando salvar a sessao falha.
+  - Solucao: adicionar teste com transacao real ou fixture que exercite o caminho completo de `FulfillCheckoutSessionUseCase` e force falha depois da criacao do pagamento.
+  - Validacao: assert confirma que nao ha `Payment`, `PixCharge` ou `OutboxEvent` persistidos sem checkout session `COMPLETED`.
+
+- [ ] 3.10 Provar duplo fulfill concorrente contra claim real
+  - Problema: a spec simula `claimOpenByToken` retornando uma sessao uma vez e `null` depois, mas nao exercita duas transacoes concorrentes sobre o repositorio real.
+  - Solucao: adicionar teste de concorrencia com PostgreSQL real ou smoke opt-in que chame fulfill duas vezes em paralelo para a mesma session.
+  - Validacao: apenas uma chamada cria pagamento e completa a sessao; a outra retorna erro/estado esperado sem segundo payment.
+
 ## 4. Store creation, auth hydration, refresh waiters e withdrawals
 
 Status: concluido em 2026-05-20. Criacao de loja agora atualiza access/refresh cookies, o web trata create-store como troca de tenant, auth passa a hidratar perfil completo, refresh concorrente propaga falha para todos os waiters e withdrawals usa contexto de store estruturado.
+
+Auditoria 2026-05-22: reaberto. O contrato `NO_CURRENT_STORE` provavelmente se perde no filtro HTTP global e falta cobertura HTTP negativa para withdrawals sem store.
 
 Notas da implementacao:
 
@@ -491,9 +631,23 @@ Os botoes TEST de completar/falhar ficam travados se o usuario cancela `confirm(
 5. [x] Validar fluxo integrado com infra descartavel por `HOCKPAY_SMOKE_SUITE=p0 pnpm run smoke:docker`.
 6. [x] Validar concorrencia de refresh por spec do `AuthService` com multiplos waiters recebendo a mesma falha sem spinner pendurado.
 
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [ ] 4.7 Preservar `NO_CURRENT_STORE` no JSON final do filtro HTTP
+  - Problema: `CurrentStore` lanca `ForbiddenException` com `code` no topo do response, mas `HttpExceptionFilter` so preserva codigo customizado em `{ error: { code, message } }`; o HTTP final tende a virar `FORBIDDEN`.
+  - Solucao: alinhar o formato da exception ou ampliar o filtro para preservar `responseObj.code` quando existir.
+  - Validacao: teste do filtro ou e2e confirma `error.code === "NO_CURRENT_STORE"` no response final.
+
+- [ ] 4.8 Cobrir withdrawals sem store em teste HTTP
+  - Problema: a cobertura atual chama controller/decorator diretamente e nao valida `@CurrentStore()` junto com guards/filtro global em rota real.
+  - Solucao: adicionar teste HTTP/e2e ou integração Nest com `WithdrawalController` registrando JWT valido sem `storeId`.
+  - Validacao: `POST/GET /api/v1/withdrawals` sem store retorna 403 estruturado com `NO_CURRENT_STORE`, nao 500 nem `FORBIDDEN` generico.
+
 ## 5. PrismaService, migrations, claims e invariantes de banco
 
 Status: concluido em 2026-05-22. Esta leva corrigiu a autoridade transacional no banco: Prisma singleton por app, artefatos Prisma no build, claims atomicos no worker e locks de saldo nos fluxos financeiros. A suite opt-in `db-concurrency` cobre `FOR UPDATE SKIP LOCKED` e saldo concorrente com Postgres real; `withdrawals,p0` passou em infra descartavel. O orquestrador de smoke tambem aceita `HOCKPAY_SMOKE_API_PORT` para evitar conflito com outro processo local sem matar servicos fora do projeto.
+
+Auditoria 2026-05-22: reaberto por lacunas de validacao/documentacao. A implementacao principal parece feita, mas o smoke de concorrencia reimplementa SQL local e o artefato `prisma.config.ts` pode apontar para `.env` diferente em `dist`.
 
 ### Problema
 
@@ -592,9 +746,23 @@ O repo tem duplicacao e fragilidade no acesso ao banco:
 6. [x] Adicionar teste de saldo com dois saques simultaneos e assert de saldo final/bloqueado pela suite opt-in `db-concurrency`.
 7. [x] Rodar smoke de withdrawals e P0 apos subir Postgres/Redis e aplicar migrations: `HOCKPAY_SMOKE_SUITE=withdrawals,p0 HOCKPAY_SMOKE_API_PORT=3010 pnpm run smoke:docker`.
 
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [ ] 5.9 Fazer `db-concurrency` exercitar os repositorios reais
+  - Problema: o smoke valida SQL local reimplementado, enquanto os repositorios de producao usam seus proprios metodos/SQL; isso permite drift entre teste e runtime.
+  - Solucao: ajustar a suite para chamar `OutboxRepository.claimDispatchableEvents` e `WithdrawalRepository.claimProcessableWithdrawals`, ou adicionar teste de integracao com Postgres real que chame esses repositorios.
+  - Validacao: a concorrencia real passa exercitando os metodos de producao, nao apenas SQL duplicado no script.
+
+- [ ] 5.10 Corrigir ou documentar caminho de `.env` no `prisma.config.ts` de `dist`
+  - Problema: `resolve(__dirname, "../../.env")` aponta para a raiz no fonte, mas em `dist/prisma.config.ts` aponta para `packages/.env`; deploy baseado no artefato depende de `DATABASE_URL` injetado.
+  - Solucao: ajustar o config gerado/build para resolver a raiz correta ou documentar explicitamente que `db:deploy` pelo artefato exige `DATABASE_URL` no ambiente.
+  - Validacao: teste/checagem de build confirma `pnpm db:deploy` no modo esperado, com ou sem `.env` conforme contrato documentado.
+
 ## 6. Docs, env e contratos apos redesign da landing
 
 Status: concluido em 2026-05-22. Landing, READMEs, runbook e env examples foram alinhados ao contrato real `/api/v1`, sem alterar DTOs, Prisma schema ou runtime. Varreduras publicas ficaram limpas fora deste checklist; builds/testes focados passaram. O smoke integrado precisou de `HOCKPAY_SMOKE_API_PORT=3010` porque `3000` estava ocupada e de `HOCKPAY_SMOKE_TIMEOUT_MS=180000` para a suite `system` em volume default; com isso completou `p0,payment-link,p3,studycase,system,withdrawals`.
+
+Auditoria 2026-05-22: reaberto para ajustes de docs/env. O contrato publico parece alinhado, mas os defaults de smoke e a matriz de env ainda nao refletem totalmente o runner.
 
 ### Problema
 
@@ -724,3 +892,15 @@ A landing pode continuar com copy de marketing, mas exemplos devem ser reais ou 
    ```
 
 5. [x] Fazer checagem manual final na landing: exemplo visivel deve bater com os READMEs e nao parecer SDK/contrato inexistente.
+
+### Tarefas reabertas pela auditoria 2026-05-22
+
+- [ ] 6.9 Alinhar timeout do smoke default em `.env.example` e runbook
+  - Problema: a validacao final precisou de `HOCKPAY_SMOKE_TIMEOUT_MS=180000`, mas `.env.example` combina a suite default completa com `HOCKPAY_SMOKE_TIMEOUT_MS=60000`.
+  - Solucao: ajustar o placeholder/default documentado ou explicar claramente quando usar timeout maior para a suite `system` em volume default.
+  - Validacao: `.env.example`, runbook e status do item nao se contradizem sobre o comando reproduzivel do smoke integrado.
+
+- [ ] 6.10 Completar matriz de env dos smokes no runbook
+  - Problema: a matriz de smoke nao lista todas as variaveis lidas pelo runner, como health/request timeouts, portas, Postgres smoke, suite, migrate mode, clean volumes e keep alive.
+  - Solucao: expandir a tabela de smokes com todas as variaveis lidas por `scripts/smoke-orchestrate-local.mjs`, mantendo defaults/placeholders seguros.
+  - Validacao: busca por `HOCKPAY_SMOKE_` no runner bate com a matriz do runbook ou cada excecao fica justificada.
