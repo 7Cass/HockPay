@@ -3,6 +3,7 @@ import {
   CallHandler,
   ConflictException,
   ExecutionContext,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { lastValueFrom, of } from 'rxjs';
@@ -161,15 +162,63 @@ describe('IdempotencyInterceptor', () => {
     expect(cacheService.get).not.toHaveBeenCalled();
   });
 
-  it('rejects idempotent requests without store context', async () => {
+  it('rejects idempotent requests without authenticated store context', async () => {
     const { interceptor } = makeInterceptor({ options: { required: true } });
     const request = makeRequest({ store: undefined });
+    const rejection = lastValueFrom(
+      interceptor.intercept(makeExecutionContext(request), makeNext()),
+    );
 
-    await expect(
-      lastValueFrom(
-        interceptor.intercept(makeExecutionContext(request), makeNext()),
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(rejection).rejects.toBeInstanceOf(BadRequestException);
+    await expect(rejection).rejects.toMatchObject({
+      response: expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'IDEMPOTENCY_STORE_REQUIRED',
+        }),
+      }),
+    });
+  });
+
+  it('rejects JWT requests without a current store as NO_CURRENT_STORE', async () => {
+    const { interceptor } = makeInterceptor({ options: { required: true } });
+    const request = makeRequest({
+      authType: 'jwt',
+      store: undefined,
+      user: { sub: 'merchant-1', storeId: null },
+    });
+    const rejection = lastValueFrom(
+      interceptor.intercept(makeExecutionContext(request), makeNext()),
+    );
+
+    await expect(rejection).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(rejection).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'NO_CURRENT_STORE',
+      }),
+    });
+  });
+
+  it('uses JWT user storeId when request.store is absent', async () => {
+    const { interceptor, cacheService, repository } = makeInterceptor({
+      options: { required: true },
+    });
+    const request = makeRequest({
+      store: undefined,
+      authType: 'jwt',
+      user: { sub: 'merchant-1', storeId: 'store-from-user' },
+    });
+
+    await lastValueFrom(
+      interceptor.intercept(makeExecutionContext(request), makeNext()),
+    );
+
+    expect(cacheService.get).toHaveBeenCalledWith(
+      generateIdempotencyCacheKey('idem-1', 'store-from-user'),
+    );
+    expect(repository.findCompleted).toHaveBeenCalledWith(
+      'idem-1',
+      'store-from-user',
+    );
   });
 
   it('normalizes array headers, trims keys, and exposes ttl in request context', async () => {

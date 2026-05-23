@@ -56,7 +56,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         details = customError.details as ErrorDetail[] | undefined;
       } else {
         message = (responseObj.message as string) || exception.message;
-        code = this.getErrorCode(statusCode);
+        const hasNestHttpShape =
+          responseObj.statusCode === statusCode &&
+          typeof responseObj.error === 'string';
+        code =
+          hasNestHttpShape && typeof responseObj.code === 'string'
+            ? responseObj.code
+            : this.getErrorCode(statusCode);
         details = this.extractDetails(responseObj);
       }
     } else {

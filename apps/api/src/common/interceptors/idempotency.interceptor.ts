@@ -3,6 +3,7 @@ import {
   CallHandler,
   ConflictException,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   Logger,
   Inject,
@@ -105,10 +106,28 @@ export class IdempotencyInterceptor implements NestInterceptor {
     }
 
     // 3. Get storeId from request (injected by CombinedAuthGuard)
-    const storeId = (request as any).store?.id;
+    const authenticatedRequest = request as any;
+    const storeId =
+      authenticatedRequest.store?.id ?? authenticatedRequest.user?.storeId;
 
     if (!storeId) {
       this.logger.warn('Idempotency key provided but no storeId in request');
+      if (
+        authenticatedRequest.authType === 'jwt' &&
+        authenticatedRequest.user
+      ) {
+        return throwError(
+          () =>
+            new ForbiddenException({
+              statusCode: 403,
+              error: 'Forbidden',
+              message:
+                'No store selected or could not be determined from authentication context.',
+              code: 'NO_CURRENT_STORE',
+            }),
+        );
+      }
+
       return throwError(
         () =>
           new BadRequestException({
