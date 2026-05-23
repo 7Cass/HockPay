@@ -233,4 +233,49 @@ describe('API HTTP boundary (e2e)', () => {
       statusCode: 400,
     });
   });
+
+  it('GET /api/v1/withdrawals returns NO_CURRENT_STORE for a valid JWT without store context', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/withdrawals')
+      .set('Cookie', 'hockpay_at=valid-access-token-without-store')
+      .expect(403);
+
+    expect(response.body.error).toMatchObject({
+      code: 'NO_CURRENT_STORE',
+      statusCode: 403,
+    });
+    expect(response.body.error.code).not.toBe('FORBIDDEN');
+    expect(mocks.listWithdrawalsUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      mocks.createWithdrawalUseCase.executeInTransaction,
+    ).not.toHaveBeenCalled();
+    expect(mocks.getWithdrawalUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      mocks.transactionalIdempotencyService.execute,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/v1/withdrawals returns NO_CURRENT_STORE before withdrawal or idempotency operation for a valid JWT without store context', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/withdrawals')
+      .set('Cookie', 'hockpay_at=valid-access-token-without-store')
+      .set('Idempotency-Key', 'withdrawal-no-store-1')
+      .send({ bankAccountId: 'bank-account-1', amount: 1000 })
+      .expect(403);
+
+    expect(response.body.error).toMatchObject({
+      code: 'NO_CURRENT_STORE',
+      statusCode: 403,
+    });
+    expect(response.body.error.code).not.toBe('FORBIDDEN');
+    expect(response.body.error.code).not.toBe('IDEMPOTENCY_STORE_REQUIRED');
+    expect(
+      mocks.createWithdrawalUseCase.executeInTransaction,
+    ).not.toHaveBeenCalled();
+    expect(mocks.listWithdrawalsUseCase.execute).not.toHaveBeenCalled();
+    expect(mocks.getWithdrawalUseCase.execute).not.toHaveBeenCalled();
+    expect(
+      mocks.transactionalIdempotencyService.execute,
+    ).not.toHaveBeenCalled();
+  });
 });

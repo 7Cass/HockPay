@@ -7,7 +7,7 @@ import {
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import {
   HealthCheckService,
@@ -18,26 +18,36 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import {
   CreateStoreUseCase,
+  CreateWithdrawalUseCase,
+  GetWithdrawalUseCase,
   ListStoresUseCase,
+  ListWithdrawalsUseCase,
   LoginUseCase,
   LogoutUseCase,
   RefreshTokenUseCase,
   SwitchStoreUseCase,
+  ValidateApiKeyUseCase,
 } from '@hockpay/core';
 import {
   DomainExceptionFilter,
   HttpExceptionFilter,
   TimeoutInterceptor,
 } from '../src/common';
+import { IdempotencyInterceptor } from '../src/common/interceptors/idempotency.interceptor';
+import { TransactionalIdempotencyService } from '../src/common/idempotency/transactional-idempotency.service';
 import {
   getOrCreateRequestId,
   RESPONSE_REQUEST_ID_HEADER,
 } from '../src/common/request-id';
+import { IdempotencyCacheService } from '../src/infra/services/idempotency-cache.service';
+import { JwtService } from '../src/infra/services/jwt.service';
 import { IS_PUBLIC_KEY } from '../src/modules/auth/decorators/public.decorator';
+import { CombinedAuthGuard } from '../src/modules/auth/guards/combined-auth.guard';
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { PrismaService } from '../src/infra/database/prisma.service';
 import { HealthController } from '../src/modules/health/health.controller';
 import { StoreController } from '../src/modules/store/store.controller';
+import { WithdrawalController } from '../src/modules/withdrawal/withdrawal.controller';
 
 export type ApiE2eMocks = {
   loginUseCase: { execute: jest.Mock };
@@ -46,6 +56,18 @@ export type ApiE2eMocks = {
   switchStoreUseCase: { execute: jest.Mock };
   createStoreUseCase: { execute: jest.Mock };
   listStoresUseCase: { execute: jest.Mock };
+  createWithdrawalUseCase: { executeInTransaction: jest.Mock };
+  listWithdrawalsUseCase: { execute: jest.Mock };
+  getWithdrawalUseCase: { execute: jest.Mock };
+  transactionalIdempotencyService: { execute: jest.Mock };
+  validateApiKeyUseCase: { execute: jest.Mock };
+  jwtService: { verifyToken: jest.Mock };
+  idempotencyCacheService: {
+    get: jest.Mock;
+    set: jest.Mock;
+    delete: jest.Mock;
+  };
+  idempotencyKeyRepository: { findCompleted: jest.Mock };
 };
 
 @Injectable()
@@ -91,14 +113,58 @@ export async function createApiE2eTestApp(): Promise<{
     switchStoreUseCase: { execute: jest.fn() },
     createStoreUseCase: { execute: jest.fn() },
     listStoresUseCase: { execute: jest.fn() },
+    createWithdrawalUseCase: { executeInTransaction: jest.fn() },
+    listWithdrawalsUseCase: { execute: jest.fn() },
+    getWithdrawalUseCase: { execute: jest.fn() },
+    transactionalIdempotencyService: { execute: jest.fn() },
+    validateApiKeyUseCase: { execute: jest.fn() },
+    jwtService: {
+      verifyToken: jest.fn(async (token: string) => {
+        if (token === 'valid-access-token-without-store') {
+          return {
+            sub: 'merchant-1',
+            iat: 1,
+            exp: 9999999999,
+          };
+        }
+
+        if (token === 'valid-access-token') {
+          return {
+            sub: 'merchant-1',
+            storeId: 'store-1',
+            iat: 1,
+            exp: 9999999999,
+          };
+        }
+
+        throw new UnauthorizedException('Invalid token');
+      }),
+    },
+    idempotencyCacheService: {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      delete: jest.fn().mockResolvedValue(undefined),
+    },
+    idempotencyKeyRepository: {
+      findCompleted: jest.fn().mockResolvedValue(null),
+    },
   };
 
   const moduleRef = await Test.createTestingModule({
-    controllers: [HealthController, AuthController, StoreController],
+    controllers: [
+      HealthController,
+      AuthController,
+      StoreController,
+      WithdrawalController,
+    ],
     providers: [
       {
         provide: APP_GUARD,
         useClass: TestJwtGuard,
+      },
+      {
+        provide: APP_INTERCEPTOR,
+        useClass: IdempotencyInterceptor,
       },
       {
         provide: HealthCheckService,
@@ -124,6 +190,18 @@ export async function createApiE2eTestApp(): Promise<{
         useValue: {},
       },
       {
+        provide: JwtService,
+        useValue: mocks.jwtService,
+      },
+      {
+        provide: ValidateApiKeyUseCase,
+        useValue: mocks.validateApiKeyUseCase,
+      },
+      {
+        provide: CombinedAuthGuard,
+        useClass: CombinedAuthGuard,
+      },
+      {
         provide: LoginUseCase,
         useValue: mocks.loginUseCase,
       },
@@ -146,6 +224,30 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: ListStoresUseCase,
         useValue: mocks.listStoresUseCase,
+      },
+      {
+        provide: CreateWithdrawalUseCase,
+        useValue: mocks.createWithdrawalUseCase,
+      },
+      {
+        provide: ListWithdrawalsUseCase,
+        useValue: mocks.listWithdrawalsUseCase,
+      },
+      {
+        provide: GetWithdrawalUseCase,
+        useValue: mocks.getWithdrawalUseCase,
+      },
+      {
+        provide: TransactionalIdempotencyService,
+        useValue: mocks.transactionalIdempotencyService,
+      },
+      {
+        provide: IdempotencyCacheService,
+        useValue: mocks.idempotencyCacheService,
+      },
+      {
+        provide: 'IIdempotencyKeyRepository',
+        useValue: mocks.idempotencyKeyRepository,
       },
     ],
   }).compile();
