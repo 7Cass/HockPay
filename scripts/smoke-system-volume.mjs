@@ -34,6 +34,8 @@ const state = {
   merchantPassword: PASSWORD,
   merchantDocument: undefined,
   storeId: undefined,
+  productId: undefined,
+  productExternalId: undefined,
   apiKeyPrefix: undefined,
   webhookId: undefined,
   alertId: undefined,
@@ -67,6 +69,9 @@ const summary = {
     open: 0,
     canceled: 0,
   },
+  catalog: {
+    checkoutSessionItems: 0,
+  },
 };
 
 const cookieJar = new Map();
@@ -75,6 +80,7 @@ const explicitCustomers = [];
 const directPayments = [];
 const checkoutPayments = [];
 const paymentLinkPayments = [];
+let catalogProduct;
 let receiver;
 let currentStage = 'initializing';
 let lastHttp;
@@ -310,6 +316,83 @@ async function mapLimit(items, limit, worker) {
     Array.from({ length: Math.min(limit, items.length) }, () => runWorker()),
   );
   return results;
+}
+
+async function createCatalogProduct() {
+  const externalId = `system-${runId}-catalog`;
+  const created = await requestJson('/products', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      externalId,
+      name: 'System Volume Catalog Item',
+      description: 'Catalog-backed item exercised by system smoke',
+      price: 1299,
+      imageUrl: `${CHECKOUT_URL}/assets/system-smoke-product.png`,
+      metadata: {
+        smokeRunId: runId,
+        source: 'system_smoke',
+      },
+    }),
+  });
+
+  const product = created?.product;
+  assert(product?.id, 'Product catalog smoke did not return a product id.');
+  assert(product.externalId === externalId, 'Product catalog smoke returned an unexpected externalId.');
+  assert(product.price === 1299, 'Product catalog smoke returned an unexpected price.');
+
+  state.productId = product.id;
+  state.productExternalId = product.externalId;
+  catalogProduct = product;
+}
+
+function catalogCheckoutItems() {
+  assert(catalogProduct?.id, 'Catalog product is required for checkout item smoke.');
+  return [
+    {
+      productId: catalogProduct.id,
+      quantity: 2,
+      metadata: {
+        smokeRunId: runId,
+        source: 'checkout_catalog_item',
+      },
+    },
+  ];
+}
+
+function expectedItemsTotal(items) {
+  return items.reduce((total, item) => {
+    const unitPrice = item.unitPrice ?? catalogProduct.price;
+    return total + unitPrice * (item.quantity ?? 1);
+  }, 0);
+}
+
+function assertPrivatePaymentItems(payment, expectedCount, source) {
+  assert(Array.isArray(payment?.items), `${source} payment did not include items.`);
+  assert(payment.items.length === expectedCount, `${source} payment item count did not match.`);
+  const productItem = payment.items.find((item) => item.productId === catalogProduct.id);
+  assert(productItem, `${source} payment did not include the catalog product item.`);
+  assert(
+    productItem.productExternalId === catalogProduct.externalId,
+    `${source} payment item did not snapshot productExternalId.`,
+  );
+  assert(
+    productItem.metadata?.smokeRunId === runId,
+    `${source} payment item did not preserve item metadata.`,
+  );
+  assert(
+    payment.items.every((item) => item.metadata?.source),
+    `${source} payment items did not preserve authenticated metadata.`,
+  );
+}
+
+function assertPublicItems(items, expectedCount, source) {
+  assert(Array.isArray(items), `${source} public response did not include items.`);
+  assert(items.length === expectedCount, `${source} public item count did not match.`);
+  assert(
+    items.every((item) => item.metadata === undefined && item.productId === undefined && item.productExternalId === undefined),
+    `${source} public response leaked private item fields.`,
+  );
 }
 
 function buildCpf(seed) {
@@ -794,6 +877,9 @@ async function createCheckoutSessions(apiKey) {
   const checkoutCount = Math.max(3, Math.min(10, Math.floor(PAYMENT_COUNT / 20)));
   const indexes = Array.from({ length: checkoutCount }, (_, index) => index);
   const sessions = await mapLimit(indexes, 1, async (index) => {
+    const usesCatalogItems = index === 0;
+    const items = usesCatalogItems ? catalogCheckoutItems() : undefined;
+    const expectedCatalogTotal = usesCatalogItems ? expectedItemsTotal(items) : undefined;
     const customer =
       index % 2 === 0
         ? explicitCustomers[(index + 1) % explicitCustomers.length]
@@ -802,7 +888,8 @@ async function createCheckoutSessions(apiKey) {
       method: 'POST',
       headers: apiKeyHeaders(apiKey),
       body: JSON.stringify({
-        amount: 1800 + index * 333,
+        amount: usesCatalogItems ? undefined : 1800 + index * 333,
+        items,
         description: `System volume checkout ${index}`,
         customerCollectionMode: 'IDENTIFIED',
         prefillCustomer: customer
@@ -826,6 +913,10 @@ async function createCheckoutSessions(apiKey) {
 
     const publicSession = await requestJson(`/checkout-sessions/${created.checkoutToken}`);
     assert(publicSession?.status === 'OPEN', 'Checkout public lookup did not return an open session.');
+    if (usesCatalogItems) {
+      assert(publicSession.amount === expectedCatalogTotal, 'Checkout itemized session returned an unexpected amount.');
+      assertPublicItems(publicSession.items, 1, 'Checkout session');
+    }
 
     const fulfilled = await requestJson(`/checkout-sessions/${created.checkoutToken}/fulfill`, {
       method: 'POST',
@@ -840,6 +931,11 @@ async function createCheckoutSessions(apiKey) {
       headers: apiKeyHeaders(apiKey),
     });
     assert(payment?.payment?.id === fulfilled.paymentId, 'Fulfilled checkout payment lookup returned an unexpected payment.');
+    if (usesCatalogItems) {
+      assert(payment.payment.amount === expectedCatalogTotal, 'Checkout itemized payment returned an unexpected amount.');
+      assertPrivatePaymentItems(payment.payment, 1, 'Checkout session');
+      summary.catalog.checkoutSessionItems = payment.payment.items.length;
+    }
 
     const confirmed = await requestJson(`/dev/simulate/${fulfilled.paymentId}/confirm`, {
       method: 'POST',
@@ -867,7 +963,9 @@ async function createCheckoutSessions(apiKey) {
 
 async function createPaymentLinks(apiKey) {
   const indexes = Array.from({ length: PAYMENT_LINK_COUNT }, (_, index) => index);
+  const publicCheckoutIndex = Math.min(2, PAYMENT_LINK_COUNT - 1);
   const links = await mapLimit(indexes, 1, async (index) => {
+    const usesPublicCheckout = index === publicCheckoutIndex;
     const created = await requestJson('/payment-links', {
       method: 'POST',
       jwtCookie: true,
@@ -919,11 +1017,22 @@ async function createPaymentLinks(apiKey) {
       incrementCount(summary.paymentLinkPayments, 'FAILED');
       summary.paymentLinks.failedOpen += 1;
     } else if (bucket === 2) {
-      const paid = await requestJson(`/payment-links/${linkId}/pay`, {
-        method: 'POST',
-        jwtCookie: true,
-      });
+      if (usesPublicCheckout) {
+        const opened = await requestJson(`/payment-links/public/${created.paymentLink.publicToken}`);
+        assert(opened?.paymentLink?.id === linkId, 'Public payment link open returned an unexpected link.');
+        assert(opened.paymentLink.amount === created.paymentLink.amount, 'Public payment link returned an unexpected amount.');
+      }
+
+      const paid = usesPublicCheckout
+        ? await requestJson(`/payment-links/public/${created.paymentLink.publicToken}/pay`, {
+            method: 'POST',
+          })
+        : await requestJson(`/payment-links/${linkId}/pay`, {
+            method: 'POST',
+          jwtCookie: true,
+        });
       assert(paid?.payment?.status === 'CONFIRMED', 'Payment link paid attempt did not return a confirmed payment.');
+      assert(Array.isArray(paid.payment.items) && paid.payment.items.length === 0, 'Payment link payments should not include items.');
       paymentLinkPayments.push({ ...paid.payment, source: 'payment_link', finalStatus: 'CONFIRMED' });
       expectWebhook('payment.created');
       expectWebhook('payment.confirmed');
@@ -1194,6 +1303,9 @@ async function run() {
   step('Creating dashboard API key, bank account, webhook, and alert config');
   const apiKey = await configureDashboardSurface();
 
+  step('Creating catalog product for itemized checkout and payment link coverage');
+  await createCatalogProduct();
+
   step(`Creating ${CUSTOMER_COUNT} explicit customers`);
   await createExplicitCustomers(apiKey);
 
@@ -1232,6 +1344,10 @@ async function run() {
           password: state.merchantPassword,
         },
         storeId: state.storeId,
+        product: {
+          id: state.productId,
+          externalId: state.productExternalId,
+        },
         apiKeyPrefix: state.apiKeyPrefix,
         webhookId: state.webhookId,
         alertId: state.alertId,
@@ -1249,6 +1365,7 @@ async function run() {
             paymentLinks: summary.paymentLinkPayments,
           },
           linkOutcomes: summary.paymentLinks,
+          catalog: summary.catalog,
           receipts: finalState.receipts,
           transactions: finalState.transactions,
           customers: finalState.customers,
@@ -1272,10 +1389,9 @@ async function run() {
           alerts: `${DASHBOARD_URL}/dashboard/alerts`,
           apiKeys: `${DASHBOARD_URL}/dashboard/api-keys`,
           paymentLinks: `${DASHBOARD_URL}/dashboard/payment-links`,
+          products: `${DASHBOARD_URL}/dashboard/products`,
         },
         outOfScopeByPartialMaturity: [
-          'products',
-          'payment_items',
           'external Discord alert delivery unless HOCKPAY_SMOKE_DISCORD_WEBHOOK_URL is set',
         ],
       },

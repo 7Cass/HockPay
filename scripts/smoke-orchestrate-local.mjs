@@ -494,7 +494,15 @@ async function main() {
       startProcess(
         "checkout",
         "pnpm",
-        ["--filter", "@hockpay/checkout", "dev"],
+        [
+          "--filter",
+          "@hockpay/checkout",
+          "exec",
+          "next",
+          "dev",
+          "-p",
+          String(ports.checkout),
+        ],
         checkoutEnv,
       );
     }
