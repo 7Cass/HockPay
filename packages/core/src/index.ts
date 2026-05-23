@@ -68,6 +68,7 @@ export * from "./domain/errors/account-not-found.error";
 export * from "./domain/errors/webhook-delivery-failed.error";
 export * from "./domain/errors/payment-not-confirmed.error";
 export * from "./domain/errors/webhook-config-not-found.error";
+export * from "./domain/errors/webhook-log-not-found.error";
 export * from "./domain/errors/invalid-webhook-events.error";
 export * from "./domain/errors/invalid-webhook-url.error";
 export * from "./domain/errors/alert-config-not-found.error";

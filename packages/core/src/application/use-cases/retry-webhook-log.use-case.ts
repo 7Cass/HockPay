@@ -6,6 +6,7 @@ import {
   IEncryptionPort,
   WebhookLog,
   WebhookConfigNotFoundError,
+  WebhookLogNotFoundError,
   WebhookResponse,
 } from '../..';
 
@@ -18,6 +19,7 @@ type OperationalLogger = {
  * Input for retrying a webhook log.
  */
 export interface IRetryWebhookLogInput {
+  configId: string;
   logId: string;
   storeId: string;
   requestId?: string;
@@ -48,21 +50,16 @@ export class RetryWebhookLogUseCase {
   ) {}
 
   async execute(input: IRetryWebhookLogInput): Promise<IRetryWebhookLogOutput> {
+    const config = await this.webhookConfigRepository.findById(input.configId);
+
+    if (!config || config.storeId !== input.storeId) {
+      throw new WebhookConfigNotFoundError(input.configId);
+    }
+
     const log = await this.webhookLogRepository.findById(input.logId);
 
-    if (!log) {
-      throw new Error(`Webhook log not found: ${input.logId}`);
-    }
-
-    // Get config and validate ownership
-    const config = await this.webhookConfigRepository.findById(log.configId);
-
-    if (!config) {
-      throw new WebhookConfigNotFoundError(log.configId);
-    }
-
-    if (config.storeId !== input.storeId) {
-      throw new Error(`Webhook log not found: ${input.logId}`);
+    if (!log || log.configId !== config.id) {
+      throw new WebhookLogNotFoundError(input.logId);
     }
 
     // Decrypt the secret

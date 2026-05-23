@@ -27,6 +27,7 @@ import {
   ListWebhookInboxEventsUseCase,
   RetryWebhookLogUseCase,
   WebhookConfigNotFoundError,
+  WebhookLogNotFoundError,
   InvalidWebhookEventsError,
   InvalidWebhookUrlError,
 } from '@hockpay/core';
@@ -491,6 +492,7 @@ export class WebhookController {
 
     try {
       const result = await this.retryWebhookLogUseCase.execute({
+        configId: id,
         logId,
         storeId,
         requestId: getRequestId(req),
@@ -512,10 +514,10 @@ export class WebhookController {
           },
         });
       }
-      if (error.message.includes('not found')) {
+      if (error instanceof WebhookLogNotFoundError) {
         throw new NotFoundException({
           error: {
-            code: 'WEBHOOK_LOG_NOT_FOUND',
+            code: error.code,
             message: error.message,
           },
         });
