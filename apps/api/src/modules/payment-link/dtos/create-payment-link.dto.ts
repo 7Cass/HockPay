@@ -17,7 +17,9 @@ export class CreatePaymentLinkDto {
   amount?: number;
 
   @IsOptional()
-  @IsEmpty({ message: 'items are not supported for payment links; provide amount' })
+  @IsEmpty({
+    message: 'items are not supported for payment links; provide amount',
+  })
   items?: never;
 
   @IsOptional()

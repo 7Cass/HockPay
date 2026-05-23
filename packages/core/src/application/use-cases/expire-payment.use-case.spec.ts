@@ -3,6 +3,7 @@ import { ExpirePaymentUseCase } from './expire-payment.use-case';
 import { Payment } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { InvalidPaymentStatusError } from '../../domain/errors/invalid-payment-status.error';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { PixCharge, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
 
@@ -36,10 +37,13 @@ describe('ExpirePaymentUseCase', () => {
       paymentRepository: {
         findById: vi.fn().mockResolvedValue(payment),
         findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+        findByIdForUpdate: vi.fn().mockResolvedValue(payment),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
         update: vi.fn(),
       },
       pixChargeRepository: {
         findByIdAndStoreId: vi.fn().mockResolvedValue(pixCharge),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
         update: vi.fn(),
       },
       outboxWriter: {
@@ -71,7 +75,7 @@ describe('ExpirePaymentUseCase', () => {
       paymentId: payment.id,
     });
 
-    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
+    expect(repos.paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
       payment.id,
       'store-1',
     );
@@ -149,6 +153,25 @@ describe('ExpirePaymentUseCase', () => {
       },
       alreadyExpired: false,
     });
+  });
+
+  it('rejects non-pending payments when strictPending is enabled', async () => {
+    const pixCharge = makePixCharge();
+    const payment = makePayment(pixCharge);
+    payment.confirm();
+    const { useCase, repos, expirationQueue } = makeUseCase(payment, pixCharge);
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentId: payment.id,
+        strictPending: true,
+      }),
+    ).rejects.toBeInstanceOf(InvalidPaymentStatusError);
+
+    expect(repos.paymentRepository.update).not.toHaveBeenCalled();
+    expect(repos.outboxWriter.save).not.toHaveBeenCalled();
+    expect(expirationQueue.cancelExpiration).not.toHaveBeenCalled();
   });
 
   it('throws PaymentNotFoundError without cancelling expiration', async () => {

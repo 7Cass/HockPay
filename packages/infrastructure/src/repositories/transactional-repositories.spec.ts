@@ -2,9 +2,29 @@ import { describe, expect, it, vi } from "vitest";
 import { CustomerCollectionMode } from "@hockpay/core";
 import { CheckoutSessionRepository } from "./checkout-session.repository";
 import { MerchantRepository } from "./merchant.repository";
+import { PaymentLinkRepository } from "./payment-link.repository";
 import { RefreshTokenRepository } from "./refresh-token.repository";
+import { UnitOfWork } from "./unit-of-work";
 
 describe("transactional repository helpers", () => {
+  it("exposes payment link repository inside UnitOfWork transactions", async () => {
+    const tx = {};
+    const prisma = {
+      $transaction: vi.fn(async (handler: any) => handler(tx)),
+    };
+    const unitOfWork = new UnitOfWork(
+      prisma as any,
+      "http://checkout.test",
+    );
+
+    await unitOfWork.execute(async (repos) => {
+      expect(repos.paymentLinkRepository).toBeInstanceOf(PaymentLinkRepository);
+      return undefined;
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
   it("locks and reconstitutes a merchant by id", async () => {
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValue([

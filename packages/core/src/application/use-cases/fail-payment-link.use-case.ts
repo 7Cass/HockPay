@@ -1,10 +1,14 @@
 import { Payment, PaymentMethod, PaymentObject } from "../../domain/entities/payment.entity";
 import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { PaymentLinkStatus } from "../../domain/entities/payment-link.entity";
+import {
+  PaymentLinkListItem,
+  PaymentLinkStatus,
+} from "../../domain/entities/payment-link.entity";
 import { PixChargeStatus } from "../../domain/entities/pix-charge.entity";
 import { Environment } from "../../domain/value-objects/environment.vo";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
+import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 import { FeePolicy } from "../services/fee-policy.service";
 import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
 import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
@@ -29,42 +33,36 @@ export class FailPaymentLinkUseCase {
   ) {}
 
   async execute(input: IFailPaymentLinkInput): Promise<IFailPaymentLinkOutput> {
-    const item = await this.paymentLinkRepository.findPublicByToken(
-      input.publicToken,
-    );
-    if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
-    this.ensureFailable(item.status, item.pixCharge.status);
-
     return this.unitOfWork.execute(async (repos) => {
+      const item = await repos.paymentLinkRepository.findPublicByTokenForUpdate(
+        input.publicToken,
+      );
+      if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
+
+      this.ensureSimulationAllowed(input.environment, item.environment);
+      this.ensureFailable(item.status, item.pixCharge.status);
+
+      const pixCharge =
+        await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
+          item.pixCharge.id,
+          item.storeId,
+        );
+      if (!pixCharge) {
+        throw new PaymentLinkUnavailableError("Payment link Pix charge is invalid");
+      }
+      if (pixCharge.hasExpired()) {
+        pixCharge.expire();
+        await repos.pixChargeRepository.update(pixCharge);
+        throw new PaymentLinkUnavailableError("Payment link has expired");
+      }
+      if (!pixCharge.isOpen()) {
+        throw new PaymentLinkUnavailableError("Payment link is not failable");
+      }
+
       const store = await repos.storeRepository.findById(item.storeId);
       if (!store) throw new PaymentLinkUnavailableError("Payment link store is invalid");
 
-      const feeResult = this.feePolicy.calculate({
-        amountInCents: item.amount,
-        feePercent: store.feePercent,
-        feeFixed: store.feeFixed,
-      });
-      const paymentExpiresAt =
-        item.pixCharge.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
-
-      const payment = Payment.create({
-        storeId: item.storeId,
-        pixChargeId: item.pixCharge.id,
-        amount: item.amount,
-        fee: feeResult.feeInCents,
-        netAmount: feeResult.netAmountInCents,
-        currency: item.currency,
-        description: item.description ?? item.title ?? undefined,
-        environment: item.environment ?? input.environment,
-        paymentMethod: PaymentMethod.PIX,
-        pixCharge: item.pixCharge,
-        expiresAt: paymentExpiresAt,
-        metadata: {
-          origin: "payment_link",
-          paymentLinkId: item.id,
-          internalReference: item.internalReference ?? undefined,
-        },
-      });
+      const payment = this.createAttempt(input, item, pixCharge.toObject(), store);
 
       payment.fail(input.reason ?? "Payment link simulated failure");
       await repos.paymentRepository.save(payment);
@@ -91,6 +89,52 @@ export class FailPaymentLinkUseCase {
         payment: paymentPayload,
       };
     });
+  }
+
+  private createAttempt(
+    input: IFailPaymentLinkInput,
+    item: PaymentLinkListItem,
+    pixCharge: PaymentLinkListItem["pixCharge"],
+    store: { feePercent: number; feeFixed: number },
+  ): Payment {
+    const feeResult = this.feePolicy.calculate({
+      amountInCents: item.amount,
+      feePercent: store.feePercent,
+      feeFixed: store.feeFixed,
+    });
+    const paymentExpiresAt =
+      pixCharge.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
+
+    return Payment.create({
+      storeId: item.storeId,
+      pixChargeId: pixCharge.id,
+      amount: item.amount,
+      fee: feeResult.feeInCents,
+      netAmount: feeResult.netAmountInCents,
+      currency: item.currency,
+      description: item.description ?? item.title ?? undefined,
+      environment: item.environment ?? input.environment,
+      paymentMethod: PaymentMethod.PIX,
+      pixCharge,
+      expiresAt: paymentExpiresAt,
+      metadata: {
+        origin: "payment_link",
+        paymentLinkId: item.id,
+        internalReference: item.internalReference ?? undefined,
+      },
+    });
+  }
+
+  private ensureSimulationAllowed(
+    requestEnvironment: Environment,
+    linkEnvironment: Environment,
+  ): void {
+    if (
+      requestEnvironment === Environment.LIVE ||
+      linkEnvironment === Environment.LIVE
+    ) {
+      throw new LiveEnvironmentNotAllowedError();
+    }
   }
 
   private ensureFailable(

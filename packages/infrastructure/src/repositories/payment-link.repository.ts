@@ -12,6 +12,10 @@ import {
 } from "@hockpay/core";
 import { Prisma, PrismaClient } from "@hockpay/database";
 
+type PaymentLinkLockRow = {
+  id: string;
+};
+
 export class PaymentLinkRepository implements IPaymentLinkRepository {
   constructor(
     private readonly prisma: PrismaClient | Prisma.TransactionClient,
@@ -49,6 +53,21 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     return row ? this.toDomain(row) : null;
   }
 
+  async findByIdAndStoreIdForUpdate(
+    id: string,
+    storeId: string,
+  ): Promise<PaymentLink | null> {
+    const rows = await (this.prisma as any).$queryRaw<PaymentLinkLockRow[]>`
+      SELECT id
+      FROM payment_links
+      WHERE id = ${id}
+        AND store_id = ${storeId}
+      FOR UPDATE
+    `;
+
+    return rows[0] ? this.findByIdAndStoreId(rows[0].id, storeId) : null;
+  }
+
   async findListItemByIdAndStoreId(
     id: string,
     storeId: string,
@@ -70,6 +89,26 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   async findPublicByToken(token: string): Promise<PaymentLinkListItem | null> {
     const row = await (this.prisma as any).paymentLink.findUnique({
       where: { publicToken: token },
+      include: this.includePayment(),
+    });
+    return row ? this.toListItem(row) : null;
+  }
+
+  async findPublicByTokenForUpdate(
+    token: string,
+  ): Promise<PaymentLinkListItem | null> {
+    const rows = await (this.prisma as any).$queryRaw<PaymentLinkLockRow[]>`
+      SELECT id
+      FROM payment_links
+      WHERE public_token = ${token}
+      FOR UPDATE
+    `;
+
+    const lock = rows[0];
+    if (!lock) return null;
+
+    const row = await (this.prisma as any).paymentLink.findUnique({
+      where: { id: lock.id },
       include: this.includePayment(),
     });
     return row ? this.toListItem(row) : null;

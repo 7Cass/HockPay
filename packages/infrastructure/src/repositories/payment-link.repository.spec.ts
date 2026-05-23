@@ -1,8 +1,60 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PaymentStatus, PixChargeStatus } from "@hockpay/core";
 import { PaymentLinkRepository } from "./payment-link.repository";
 
 describe("PaymentLinkRepository", () => {
+  it("locks a payment link by store before returning the domain entity", async () => {
+    const row = makePaymentLinkRow();
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: row.id }]),
+      paymentLink: {
+        findFirst: vi.fn().mockResolvedValue(row),
+      },
+    };
+    const repository = new PaymentLinkRepository(
+      prisma as any,
+      "http://localhost:3333",
+    );
+
+    const link = await repository.findByIdAndStoreIdForUpdate(
+      row.id,
+      row.storeId,
+    );
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.paymentLink.findFirst).toHaveBeenCalledWith({
+      where: { id: row.id, storeId: row.storeId },
+    });
+    expect(link?.id).toBe(row.id);
+  });
+
+  it("locks a public payment link token before returning the list item", async () => {
+    const row = {
+      ...makePaymentLinkRow(),
+      pixCharge: makePixChargeRow([]),
+    };
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: row.id }]),
+      paymentLink: {
+        findUnique: vi.fn().mockResolvedValue(row),
+      },
+    };
+    const repository = new PaymentLinkRepository(
+      prisma as any,
+      "http://localhost:3333",
+    );
+
+    const item = await repository.findPublicByTokenForUpdate(row.publicToken);
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.paymentLink.findUnique).toHaveBeenCalledWith({
+      where: { id: row.id },
+      include: expect.any(Object),
+    });
+    expect(item?.id).toBe(row.id);
+    expect(item?.pixCharge.status).toBe(PixChargeStatus.OPEN);
+  });
+
   it("calculates conversion from paid links over created links", () => {
     const repository = new PaymentLinkRepository({} as any, "http://localhost:3333");
 
@@ -46,25 +98,10 @@ describe("PaymentLinkRepository", () => {
       cancelledAt: null,
       createdAt: new Date("2026-05-15T12:00:00.000Z"),
       updatedAt: new Date("2026-05-15T12:00:00.000Z"),
-      pixCharge: {
-        id: "charge-1",
-        storeId: "store-1",
-        amount: 5000,
-        currency: "BRL",
-        status: PixChargeStatus.OPEN,
-        pixQrCode: "qr-code",
-        pixCopyPaste: "pix-copy-paste",
-        pixTxId: "pix-tx-id",
-        expiresAt: null,
-        paidAt: null,
-        cancelledAt: null,
-        createdAt: new Date("2026-05-15T12:00:00.000Z"),
-        updatedAt: new Date("2026-05-15T12:00:00.000Z"),
-        payments: [
+      pixCharge: makePixChargeRow([
           makePaymentRow("payment-2", PaymentStatus.CONFIRMED, "2026-05-15T12:02:00.000Z"),
           makePaymentRow("payment-1", PaymentStatus.FAILED, "2026-05-15T12:01:00.000Z"),
-        ],
-      },
+      ]),
     };
 
     const item = (repository as any).toListItem(row);
@@ -80,6 +117,45 @@ describe("PaymentLinkRepository", () => {
     expect(item.attempts[0].pixCharge.pixTxId).toBe("pix-tx-id");
   });
 });
+
+function makePaymentLinkRow() {
+  return {
+    id: "link-1",
+    storeId: "store-1",
+    pixChargeId: "charge-1",
+    publicToken: "public-token",
+    amount: 5000,
+    currency: "BRL",
+    environment: "TEST",
+    title: "Venda avulsa",
+    description: null,
+    internalReference: null,
+    expiresAt: null,
+    openedAt: null,
+    cancelledAt: null,
+    createdAt: new Date("2026-05-15T12:00:00.000Z"),
+    updatedAt: new Date("2026-05-15T12:00:00.000Z"),
+  };
+}
+
+function makePixChargeRow(payments: ReturnType<typeof makePaymentRow>[]) {
+  return {
+    id: "charge-1",
+    storeId: "store-1",
+    amount: 5000,
+    currency: "BRL",
+    status: PixChargeStatus.OPEN,
+    pixQrCode: "qr-code",
+    pixCopyPaste: "pix-copy-paste",
+    pixTxId: "pix-tx-id",
+    expiresAt: null,
+    paidAt: null,
+    cancelledAt: null,
+    createdAt: new Date("2026-05-15T12:00:00.000Z"),
+    updatedAt: new Date("2026-05-15T12:00:00.000Z"),
+    payments,
+  };
+}
 
 function makePaymentRow(id: string, status: PaymentStatus, createdAt: string) {
   return {

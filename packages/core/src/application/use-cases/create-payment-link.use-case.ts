@@ -7,6 +7,7 @@ import { Environment } from "../../domain/value-objects/environment.vo";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
 import { IPixChargeRepository } from "../../domain/repositories/pix-charge.repository.interface";
 import { IStoreRepository } from "../../domain/repositories/store.repository.interface";
+import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { ITokenGeneratorPort } from "../ports/token-generator.port";
 import { IPixQrCodeGeneratorPort } from "../ports/pix-qr-code-generator.port";
 import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
@@ -46,6 +47,7 @@ export class CreatePaymentLinkUseCase {
     private readonly pixQrCodeGenerator: IPixQrCodeGeneratorPort,
     private readonly checkoutBaseUrl: string,
     private readonly pixKey: string,
+    private readonly unitOfWork?: IUnitOfWork,
   ) {}
 
   async execute(input: ICreatePaymentLinkInput): Promise<ICreatePaymentLinkOutput> {
@@ -91,8 +93,15 @@ export class CreatePaymentLinkUseCase {
       expiresAt,
     });
 
-    await this.pixChargeRepository.save(pixCharge);
-    await this.paymentLinkRepository.save(link);
+    if (this.unitOfWork) {
+      await this.unitOfWork.execute(async (repos) => {
+        await repos.pixChargeRepository.save(pixCharge);
+        await repos.paymentLinkRepository.save(link);
+      });
+    } else {
+      await this.pixChargeRepository.save(pixCharge);
+      await this.paymentLinkRepository.save(link);
+    }
 
     return {
       paymentLink: {

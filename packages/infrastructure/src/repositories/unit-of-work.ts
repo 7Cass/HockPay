@@ -15,6 +15,7 @@ import { IdempotencyKeyRepository } from "./idempotency-key.repository";
 import { MerchantRepository } from "./merchant.repository";
 import { RefreshTokenRepository } from "./refresh-token.repository";
 import { CheckoutSessionRepository } from "./checkout-session.repository";
+import { PaymentLinkRepository } from "./payment-link.repository";
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -23,7 +24,11 @@ import { CheckoutSessionRepository } from "./checkout-session.repository";
  * repositories to the execute callback.
  */
 export class UnitOfWork implements IUnitOfWork {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly checkoutBaseUrl =
+      process.env.CHECKOUT_BASE_URL ?? "http://localhost:3333",
+  ) {}
 
   async execute<T>(
     work: (repos: ITransactedRepositories) => Promise<T>,
@@ -45,6 +50,10 @@ export class UnitOfWork implements IUnitOfWork {
           merchantRepository: new MerchantRepository(tx),
           refreshTokenRepository: new RefreshTokenRepository(tx),
           checkoutSessionRepository: new CheckoutSessionRepository(tx),
+          paymentLinkRepository: new PaymentLinkRepository(
+            tx,
+            this.checkoutBaseUrl,
+          ),
           customerRepository: new CustomerRepository(tx),
           idempotencyKeyRepository: new IdempotencyKeyRepository(tx),
         };

@@ -4,6 +4,7 @@ import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.erro
 import { PaymentExpiredError } from "../../domain/errors/payment-expired.error";
 import { InvalidPaymentStatusError } from "../../domain/errors/invalid-payment-status.error";
 import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
+import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import {
   Transaction,
@@ -83,12 +84,20 @@ export class ConfirmPaymentUseCase {
           )
         : null;
 
+      if (payment.pixChargeId && !pixCharge) {
+        throw new PixChargeNotOpenError(payment.pixChargeId);
+      }
+
       if (pixCharge?.hasExpired()) {
         pixCharge.expire();
         await repos.pixChargeRepository.update(pixCharge);
         payment.expire();
         await repos.paymentRepository.update(payment);
         throw new PaymentExpiredError(input.paymentId);
+      }
+
+      if (pixCharge && !pixCharge.isOpen()) {
+        throw new PixChargeNotOpenError(pixCharge.id, pixCharge.status);
       }
 
       // Attempt to confirm - will throw InvalidPaymentStatusError if not PENDING
@@ -113,7 +122,7 @@ export class ConfirmPaymentUseCase {
       account.addToPending(payment.netAmount);
       await repos.accountRepository.update(account);
 
-      if (pixCharge?.isOpen()) {
+      if (pixCharge) {
         pixCharge.markPaid();
         await repos.pixChargeRepository.update(pixCharge);
       }

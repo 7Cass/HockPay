@@ -106,6 +106,7 @@ export class DevController {
         storeId,
         paymentId: id,
         requestId: getRequestId(req),
+        strictPending: true,
       });
 
       return {

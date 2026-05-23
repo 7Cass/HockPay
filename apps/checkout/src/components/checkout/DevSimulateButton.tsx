@@ -15,19 +15,21 @@ interface DevSimulateButtonProps {
 
 export function DevSimulateButton({ paymentId, checkoutToken, onSimulated }: DevSimulateButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!env.devMode) {
     return null;
   }
 
   const handleSimulate = async (action: 'confirm' | 'expire' | 'fail') => {
+    setError(null);
     setLoading(action);
     try {
       const result = await simulatePayment(paymentId, checkoutToken, action);
       if (result.success) {
         onSimulated(action, result.payment);
       } else {
-        alert(result.error || 'Erro ao simular pagamento.');
+        setError(result.error || 'Erro ao simular pagamento.');
       }
     } finally {
       setLoading(null);
@@ -39,6 +41,11 @@ export function DevSimulateButton({ paymentId, checkoutToken, onSimulated }: Dev
       <p className="text-sm text-yellow-800 font-medium mb-3">
         Modo Desenvolvimento - Simular Pagamento ({paymentId})
       </p>
+      {error && (
+        <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
       <div className="flex gap-2 flex-wrap">
         <Button
           variant="primary"

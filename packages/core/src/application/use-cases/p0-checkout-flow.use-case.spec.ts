@@ -63,6 +63,7 @@ describe("P0 checkout happy path", () => {
       merchantRepository: merchants,
       refreshTokenRepository: refreshTokens,
       checkoutSessionRepository: sessions,
+      paymentLinkRepository: {} as any,
       customerRepository: customers,
       idempotencyKeyRepository: {} as any,
     });

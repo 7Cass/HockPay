@@ -44,7 +44,7 @@ export class FailPaymentUseCase {
 
   async execute(input: IFailPaymentInput): Promise<IFailPaymentOutput> {
     const result = await this.unitOfWork.execute(async (repos) => {
-      const payment = await repos.paymentRepository.findByIdAndStoreId(
+      const payment = await repos.paymentRepository.findByIdAndStoreIdForUpdate(
         input.paymentId,
         input.storeId,
       );
@@ -68,7 +68,7 @@ export class FailPaymentUseCase {
 
       let pixChargeObject = payment.pixCharge;
       if (!input.keepPixChargeOpen && payment.pixChargeId) {
-        const pixCharge = await repos.pixChargeRepository.findByIdAndStoreId(
+        const pixCharge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
           payment.pixChargeId,
           payment.storeId,
         );

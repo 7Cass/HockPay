@@ -81,7 +81,9 @@ describe('PaymentLinkController', () => {
 
   it('maps itemized payment link creation to an explicit contract error', async () => {
     createUseCase.execute.mockRejectedValue(
-      new InvalidLineItemsError('Payment links do not support items; provide amount'),
+      new InvalidLineItemsError(
+        'Payment links do not support items; provide amount',
+      ),
     );
 
     await expect(

@@ -36,10 +36,12 @@ describe('FailPaymentUseCase', () => {
     const repos = {
       paymentRepository: {
         findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
         update: vi.fn(),
       },
       pixChargeRepository: {
         findByIdAndStoreId: vi.fn().mockResolvedValue(pixCharge),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
         update: vi.fn(),
       },
       outboxWriter: {
@@ -92,7 +94,7 @@ describe('FailPaymentUseCase', () => {
     });
 
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1);
-    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
+    expect(repos.paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
       payment.id,
       'store-1',
     );

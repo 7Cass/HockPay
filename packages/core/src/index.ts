@@ -69,6 +69,7 @@ export * from "./domain/errors/external-id-already-exists.error";
 export * from "./domain/errors/account-not-found.error";
 export * from "./domain/errors/webhook-delivery-failed.error";
 export * from "./domain/errors/payment-not-confirmed.error";
+export * from "./domain/errors/pix-charge-not-open.error";
 export * from "./domain/errors/webhook-config-not-found.error";
 export * from "./domain/errors/webhook-log-not-found.error";
 export * from "./domain/errors/invalid-webhook-events.error";

@@ -33,7 +33,7 @@ export class GetPaymentUseCase {
 
   async execute(input: IGetPaymentInput): Promise<IGetPaymentOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const payment = await repos.paymentRepository.findByIdAndStoreId(
+      const payment = await repos.paymentRepository.findByIdAndStoreIdForUpdate(
         input.paymentId,
         input.storeId,
       );
@@ -46,7 +46,7 @@ export class GetPaymentUseCase {
       if (payment.isPending() && payment.hasExpired()) {
         payment.expire();
         if (payment.pixChargeId) {
-          const charge = await repos.pixChargeRepository.findByIdAndStoreId(
+          const charge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
             payment.pixChargeId,
             payment.storeId,
           );

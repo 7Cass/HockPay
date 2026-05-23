@@ -55,7 +55,11 @@ import { PaymentLinkController } from './payment-link.controller';
     },
     {
       provide: 'IUnitOfWorkPaymentLink',
-      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
+      useFactory: (prisma: PrismaService) =>
+        new UnitOfWork(
+          prisma,
+          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
+        ),
       inject: [PrismaService],
     },
     {
@@ -66,6 +70,7 @@ import { PaymentLinkController } from './payment-link.controller';
         storeRepo: StoreRepository,
         tokenGenerator: TokenGeneratorService,
         pixGenerator: PixQrCodeGeneratorService,
+        unitOfWork: IUnitOfWork,
       ) =>
         new CreatePaymentLinkUseCase(
           paymentLinkRepo,
@@ -75,6 +80,7 @@ import { PaymentLinkController } from './payment-link.controller';
           pixGenerator,
           process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
           process.env.PIX_KEY ?? 'test@hockpay.com',
+          unitOfWork,
         ),
       inject: [
         'IPaymentLinkRepository',
@@ -82,6 +88,7 @@ import { PaymentLinkController } from './payment-link.controller';
         StoreRepository,
         TokenGeneratorService,
         PixQrCodeGeneratorService,
+        'IUnitOfWorkPaymentLink',
       ],
     },
     {
@@ -96,9 +103,21 @@ import { PaymentLinkController } from './payment-link.controller';
     },
     {
       provide: CancelPaymentLinkUseCase,
-      useFactory: (paymentLinkRepo: any, pixChargeRepo: any) =>
-        new CancelPaymentLinkUseCase(paymentLinkRepo, pixChargeRepo),
-      inject: ['IPaymentLinkRepository', 'IPixChargeRepository'],
+      useFactory: (
+        paymentLinkRepo: any,
+        pixChargeRepo: any,
+        unitOfWork: IUnitOfWork,
+      ) =>
+        new CancelPaymentLinkUseCase(
+          paymentLinkRepo,
+          pixChargeRepo,
+          unitOfWork,
+        ),
+      inject: [
+        'IPaymentLinkRepository',
+        'IPixChargeRepository',
+        'IUnitOfWorkPaymentLink',
+      ],
     },
     {
       provide: OpenPaymentLinkUseCase,

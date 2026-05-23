@@ -21,6 +21,7 @@ interface PaymentLinkPageProps {
 export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps) {
   const [session, setSession] = useState(initialSession);
   const [loadingAction, setLoadingAction] = useState<'pay' | 'fail' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const payment = session.lastPayment;
   const isPaid = session.paymentLink.status === 'PAID' || payment?.status === 'CONFIRMED' || payment?.status === 'RELEASED';
   const isUnavailable =
@@ -41,11 +42,15 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
   }, [isPaid, isUnavailable, token]);
 
   const handleSimulate = async (action: 'pay' | 'fail') => {
+    if (action === 'pay' && !session.actions.canPay) return;
+    if (action === 'fail' && !session.actions.canFail) return;
+
+    setActionError(null);
     setLoadingAction(action);
     try {
       const result = await simulatePaymentLink(token, action);
       if (!result.success) {
-        alert(result.error || 'Erro ao simular pagamento.');
+        setActionError(result.error || 'Erro ao simular pagamento.');
         return;
       }
 
@@ -117,39 +122,48 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
               </div>
             )}
 
-            {env.devMode && (
+            {env.devMode && (session.actions.canPay || session.actions.canFail) && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800 font-medium mb-3">
                   Modo Desenvolvimento - Simular Link
                 </p>
+                {actionError && (
+                  <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {actionError}
+                  </p>
+                )}
                 <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleSimulate('pay')}
-                    disabled={loadingAction !== null}
-                  >
-                    {loadingAction === 'pay' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-1" />
-                        Pagar
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSimulate('fail')}
-                    disabled={loadingAction !== null}
-                  >
-                    {loadingAction === 'fail' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Falhar'
-                    )}
-                  </Button>
+                  {session.actions.canPay && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleSimulate('pay')}
+                      disabled={loadingAction !== null}
+                    >
+                      {loadingAction === 'pay' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 mr-1" />
+                          Pagar
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {session.actions.canFail && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSimulate('fail')}
+                      disabled={loadingAction !== null}
+                    >
+                      {loadingAction === 'fail' ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Falhar'
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

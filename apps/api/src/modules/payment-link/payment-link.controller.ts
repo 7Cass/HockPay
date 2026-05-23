@@ -13,6 +13,7 @@ import {
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import {
   CancelPaymentLinkUseCase,
@@ -63,7 +64,8 @@ export class PaymentLinkController {
 
       return await this.createUseCase.execute({
         storeId,
-        environment: ((req as any)?.environment ?? Environment.TEST) as Environment,
+        environment: ((req as any)?.environment ??
+          Environment.TEST) as Environment,
         amount: dto.amount,
         items: (dto as any).items,
         title: dto.title,
@@ -94,7 +96,7 @@ export class PaymentLinkController {
 
   @Get('public/:token')
   @HttpCode(HttpStatus.OK)
-  async openPublic(@Param('token') token: string, @Req() req?: Request) {
+  async openPublic(@Param('token') token: string) {
     try {
       return await this.openUseCase.execute({
         publicToken: token,
@@ -105,6 +107,7 @@ export class PaymentLinkController {
   }
 
   @Post('public/:token/pay')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async payPublic(@Param('token') token: string, @Req() req?: Request) {
     try {
@@ -119,6 +122,7 @@ export class PaymentLinkController {
   }
 
   @Post('public/:token/fail')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async failPublic(@Param('token') token: string, @Req() req?: Request) {
     try {
@@ -232,11 +236,18 @@ export class PaymentLinkController {
   }
 
   private mapError(error: unknown): never {
-    if (error instanceof PaymentLinkNotFoundError || error instanceof StoreNotFoundError) {
-      throw new NotFoundException({ error: { code: (error as any).code, message: (error as Error).message } });
+    if (
+      error instanceof PaymentLinkNotFoundError ||
+      error instanceof StoreNotFoundError
+    ) {
+      throw new NotFoundException({
+        error: { code: (error as any).code, message: (error as Error).message },
+      });
     }
     if (error instanceof ProductNotFoundError) {
-      throw new NotFoundException({ error: { code: error.code, message: error.message } });
+      throw new NotFoundException({
+        error: { code: error.code, message: error.message },
+      });
     }
     if (
       error instanceof StoreInactiveError ||
@@ -246,10 +257,14 @@ export class PaymentLinkController {
       error instanceof ProductUnavailableError ||
       error instanceof InvalidLineItemsError
     ) {
-      throw new UnprocessableEntityException({ error: { code: (error as any).code, message: (error as Error).message } });
+      throw new UnprocessableEntityException({
+        error: { code: (error as any).code, message: (error as Error).message },
+      });
     }
     if (error instanceof PaymentLinkCannotBeCancelledError) {
-      throw new ConflictException({ error: { code: error.code, message: error.message } });
+      throw new ConflictException({
+        error: { code: error.code, message: error.message },
+      });
     }
     throw error;
   }

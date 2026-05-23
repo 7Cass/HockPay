@@ -27,6 +27,7 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
   const [email, setEmail] = useState('');
   const [isFulfilling, setIsFulfilling] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [fulfillError, setFulfillError] = useState<string | null>(null);
 
   const payment = session.payment;
   const requiresDocument =
@@ -69,6 +70,7 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
 
   const handleFulfill = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFulfillError(null);
     setIsFulfilling(true);
     const result = await fulfillCheckoutSession(token, {
       document: document.trim() || undefined,
@@ -76,7 +78,7 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
       email: email.trim() || undefined,
     });
     if (!result.success) {
-      alert(result.error);
+      setFulfillError(result.error || 'Não foi possível gerar o Pix.');
       setIsFulfilling(false);
     }
     // If success, StatusPoller will automatically pull the updated session with Payment object
@@ -160,6 +162,11 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
           {isFulfilling ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
           {isFulfilling ? 'Processando...' : 'Gerar Pix'}
         </Button>
+        {fulfillError && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {fulfillError}
+          </p>
+        )}
       </div>
     </form>
   );

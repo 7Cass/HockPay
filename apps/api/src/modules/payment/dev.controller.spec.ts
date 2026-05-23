@@ -109,6 +109,7 @@ describe('DevController', () => {
       storeId: 'store-1',
       paymentId: 'payment-1',
       requestId: 'req-1',
+      strictPending: true,
     });
     expect(result).toEqual({
       payment: { id: 'payment-1', status: 'EXPIRED' },

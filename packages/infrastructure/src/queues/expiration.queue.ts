@@ -1,10 +1,8 @@
 import { Queue } from "bullmq";
 import { IExpirationQueuePort } from "@hockpay/core";
+import { RedisConnectionOptions } from "../config/redis-env";
 
-export interface ExpirationQueueConnectionOptions {
-  host: string;
-  port: number;
-}
+export type ExpirationQueueConnectionOptions = RedisConnectionOptions;
 
 /**
  * BullMQ-based implementation of IExpirationQueuePort.

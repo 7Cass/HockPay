@@ -94,6 +94,7 @@ export class SimulateCheckoutPaymentUseCase {
           storeId: payment.storeId,
           paymentId: payment.id,
           requestId: input.requestId,
+          strictPending: true,
         });
 
       case "fail":

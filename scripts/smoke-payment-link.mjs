@@ -24,6 +24,17 @@ function apiPath(path) {
 }
 
 async function requestJson(path, options = {}) {
+  const response = await requestMaybeJson(path, options);
+  if (!response.ok) {
+    throw new SmokeError(
+      `${options.method ?? 'GET'} ${path} failed with ${response.status}: ${response.text || 'empty response'}`,
+    );
+  }
+
+  return response.body;
+}
+
+async function requestMaybeJson(path, options = {}) {
   const {
     jwtCookie = false,
     body,
@@ -55,12 +66,20 @@ async function requestJson(path, options = {}) {
   const responseBody = text ? parseJson(text, `${fetchOptions.method ?? 'GET'} ${path}`) : undefined;
 
   if (!response.ok) {
-    throw new SmokeError(
-      `${fetchOptions.method ?? 'GET'} ${path} failed with ${response.status}: ${text || 'empty response'}`,
-    );
+    return {
+      ok: false,
+      status: response.status,
+      body: responseBody,
+      text,
+    };
   }
 
-  return responseBody;
+  return {
+    ok: true,
+    status: response.status,
+    body: responseBody,
+    text,
+  };
 }
 
 function buildCookieHeader() {
@@ -162,6 +181,118 @@ function randomPassword() {
   return randomBytes(18).toString('base64url');
 }
 
+function slugify(value) {
+  return value.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+}
+
+function terminalStatusForAction(action) {
+  return {
+    confirm: 'CONFIRMED',
+    expire: 'EXPIRED',
+    fail: 'FAILED',
+  }[action];
+}
+
+async function createDirectPayment(label, amount) {
+  const slug = slugify(label);
+  const created = await requestJson('/payments', {
+    method: 'POST',
+    jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `payment-link-smoke-${runId}-${slug}`,
+    },
+    body: JSON.stringify({
+      externalId: `payment-link-smoke-${runId}-${slug}`,
+      amount,
+      description: `Payment link smoke terminal race: ${label}`,
+      paymentMethod: 'PIX',
+      customer: {
+        name: `Payment Link Race Customer ${label}`,
+        email: `payment-link-race-${slug}-${runId}@hockpay.local`,
+        document: buildCpf(`${Date.now()}${randomInt(1000, 9999)}`),
+      },
+      metadata: {
+        smokeRunId: runId,
+        terminalRace: label,
+      },
+    }),
+  });
+
+  const payment = created?.payment;
+  assert(payment?.id, `${label}: payment creation did not return an id.`);
+  assert(payment.status === 'PENDING', `${label}: new payment should start PENDING.`);
+  assert(payment.pixChargeId, `${label}: payment should have a PixCharge.`);
+
+  return payment;
+}
+
+async function simulatePaymentAction(paymentId, action, label) {
+  const query =
+    action === 'fail'
+      ? `?reason=${encodeURIComponent(`${label} smoke terminal race`)}`
+      : '';
+
+  return requestMaybeJson(`/dev/simulate/${paymentId}/${action}${query}`, {
+    method: 'POST',
+    jwtCookie: true,
+  });
+}
+
+async function assertTerminalRace(label, actions, amount) {
+  step(`Racing terminal transitions: ${label}`);
+  const payment = await createDirectPayment(label, amount);
+  const accountBefore = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+  const pendingBefore = accountBefore?.account?.pending ?? 0;
+
+  const responses = await Promise.all(
+    actions.map((action) => simulatePaymentAction(payment.id, action, label)),
+  );
+  const statusSet = responses.map((response) => response.status).join(', ');
+  assert(
+    responses.every((response) => response.ok || [409, 422].includes(response.status)),
+    `${label}: unexpected race response statuses: ${statusSet}.`,
+  );
+  assert(
+    responses.filter((response) => response.ok).length === 1,
+    `${label}: expected exactly one successful terminal transition, got ${statusSet}.`,
+  );
+
+  const winnerIndex = responses.findIndex((response) => response.ok);
+  const winningAction = actions[winnerIndex];
+  const expectedStatus = terminalStatusForAction(winningAction);
+  const detail = await requestJson(`/payments/${payment.id}`, {
+    jwtCookie: true,
+  });
+  assert(
+    detail?.payment?.status === expectedStatus,
+    `${label}: expected final payment status ${expectedStatus}, got ${detail?.payment?.status}.`,
+  );
+
+  const accountAfter = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+  if (winningAction === 'confirm') {
+    assert(
+      accountAfter.account.pending === pendingBefore + detail.payment.netAmount,
+      `${label}: confirm winner should increment pending balance exactly once.`,
+    );
+    const receipt = await requestJson(`/receipts/payment/${payment.id}`, {
+      jwtCookie: true,
+    });
+    assert(
+      receipt?.receipt?.paymentId === payment.id,
+      `${label}: confirm winner should create one receipt.`,
+    );
+  } else {
+    assert(
+      accountAfter.account.pending === pendingBefore,
+      `${label}: non-confirm winner should not change pending balance.`,
+    );
+  }
+}
+
 async function run() {
   step(`Using API ${API_URL}`);
 
@@ -261,6 +392,157 @@ async function run() {
     ['CONFIRMED', 'RELEASED'].includes(paidDetail.paymentLink.attempts[1].status),
     'Second attempt should be confirmed or released.',
   );
+
+  step('Creating a second payment link for concurrent public pay simulation');
+  const concurrentCreated = await requestJson('/payment-links', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      amount: 3500,
+      title: 'Concurrent Payment Link Smoke',
+      internalReference: `pl-concurrent-${runId}`,
+    }),
+  });
+  const concurrentLinkId = concurrentCreated?.paymentLink?.id;
+  const concurrentToken = concurrentCreated?.paymentLink?.publicToken;
+  assert(concurrentLinkId, 'Concurrent payment link creation did not return an id.');
+  assert(concurrentToken, 'Concurrent payment link creation did not return a public token.');
+
+  const accountBeforeConcurrentPay = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+  const pendingBefore = accountBeforeConcurrentPay?.account?.pending ?? 0;
+
+  step('Paying the same public token concurrently');
+  const concurrentResponses = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      requestMaybeJson(`/payment-links/public/${concurrentToken}/pay`, {
+        method: 'POST',
+      }),
+    ),
+  );
+  const successfulConcurrentPays = concurrentResponses.filter((response) => response.ok);
+  assert(
+    concurrentResponses.every(
+      (response) => response.ok || [409, 422, 429].includes(response.status),
+    ),
+    `Concurrent public pay returned an unexpected status set: ${concurrentResponses.map((response) => response.status).join(', ')}`,
+  );
+  assert(
+    successfulConcurrentPays.length === 1,
+    `Expected exactly one successful concurrent public pay, got ${successfulConcurrentPays.length}.`,
+  );
+
+  const concurrentPayment = successfulConcurrentPays[0].body?.payment;
+  assert(concurrentPayment?.id, 'Concurrent pay did not return a payment id.');
+  assert(
+    concurrentPayment.status === 'CONFIRMED',
+    'Concurrent public pay success should return CONFIRMED payment.',
+  );
+
+  const concurrentDetail = await requestJson(`/payment-links/${concurrentLinkId}`, {
+    jwtCookie: true,
+  });
+  const confirmedConcurrentAttempts = concurrentDetail.paymentLink.attempts.filter((attempt) =>
+    ['CONFIRMED', 'RELEASED'].includes(attempt.status),
+  );
+  assert(
+    confirmedConcurrentAttempts.length === 1,
+    'Concurrent public pay should create exactly one confirmed/released attempt.',
+  );
+
+  const concurrentReceipt = await requestJson(`/receipts/payment/${concurrentPayment.id}`, {
+    jwtCookie: true,
+  });
+  assert(
+    concurrentReceipt?.receipt?.paymentId === concurrentPayment.id,
+    'Concurrent public pay should create one receipt for the confirmed payment.',
+  );
+
+  const accountAfterConcurrentPay = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+  assert(
+    accountAfterConcurrentPay.account.pending === pendingBefore + concurrentPayment.netAmount,
+    'Concurrent public pay should increment pending balance exactly once.',
+  );
+
+  step('Racing cancel against public pay on a third payment link');
+  const cancelRaceCreated = await requestJson('/payment-links', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      amount: 4100,
+      title: 'Cancel Race Payment Link Smoke',
+      internalReference: `pl-cancel-race-${runId}`,
+    }),
+  });
+  const cancelRaceLinkId = cancelRaceCreated?.paymentLink?.id;
+  const cancelRaceToken = cancelRaceCreated?.paymentLink?.publicToken;
+  assert(cancelRaceLinkId, 'Cancel race link creation did not return an id.');
+  assert(cancelRaceToken, 'Cancel race link creation did not return a public token.');
+
+  const accountBeforeCancelRace = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+  const cancelRacePendingBefore = accountBeforeCancelRace?.account?.pending ?? 0;
+
+  const [cancelRaceCancel, cancelRacePay] = await Promise.all([
+    requestMaybeJson(`/payment-links/${cancelRaceLinkId}/cancel`, {
+      method: 'POST',
+      jwtCookie: true,
+    }),
+    requestMaybeJson(`/payment-links/public/${cancelRaceToken}/pay`, {
+      method: 'POST',
+    }),
+  ]);
+  assert(
+    [cancelRaceCancel, cancelRacePay].every(
+      (response) => response.ok || [409, 422, 429].includes(response.status),
+    ),
+    `Cancel vs pay race returned unexpected statuses: ${cancelRaceCancel.status}, ${cancelRacePay.status}`,
+  );
+  assert(
+    Number(cancelRaceCancel.ok) + Number(cancelRacePay.ok) === 1,
+    `Expected exactly one successful cancel/pay race action, got statuses ${cancelRaceCancel.status}, ${cancelRacePay.status}.`,
+  );
+
+  const cancelRaceDetail = await requestJson(`/payment-links/${cancelRaceLinkId}`, {
+    jwtCookie: true,
+  });
+  const cancelRaceAccountAfter = await requestJson('/accounts/me', {
+    jwtCookie: true,
+  });
+
+  if (cancelRacePay.ok) {
+    const racePayment = cancelRacePay.body?.payment;
+    const confirmedRaceAttempts = cancelRaceDetail.paymentLink.attempts.filter((attempt) =>
+      ['CONFIRMED', 'RELEASED'].includes(attempt.status),
+    );
+    assert(cancelRaceDetail.paymentLink.status === 'PAID', 'Pay winner should leave link PAID.');
+    assert(confirmedRaceAttempts.length === 1, 'Pay winner should create one confirmed attempt.');
+    assert(
+      cancelRaceAccountAfter.account.pending === cancelRacePendingBefore + racePayment.netAmount,
+      'Pay winner should increment pending balance exactly once.',
+    );
+  } else {
+    assert(
+      cancelRaceDetail.paymentLink.status === 'CANCELLED',
+      'Cancel winner should leave link CANCELLED.',
+    );
+    assert(
+      cancelRaceDetail.paymentLink.attempts.length === 0,
+      'Cancel winner should not create payment attempts.',
+    );
+    assert(
+      cancelRaceAccountAfter.account.pending === cancelRacePendingBefore,
+      'Cancel winner should not change pending balance.',
+    );
+  }
+
+  await assertTerminalRace('confirm-vs-expire', ['confirm', 'expire'], 4300);
+  await assertTerminalRace('confirm-vs-fail', ['confirm', 'fail'], 4400);
+  await assertTerminalRace('fail-vs-expire', ['fail', 'expire'], 4500);
 
   step('Validating list conversion and grouped attempts');
   const list = await requestJson('/payment-links?limit=10', {

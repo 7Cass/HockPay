@@ -21,6 +21,11 @@ describe('GetPaymentUseCase', () => {
     const repos = {
       paymentRepository: {
         findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+        findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
+        update: vi.fn(),
+      },
+      pixChargeRepository: {
+        findByIdAndStoreIdForUpdate: vi.fn(),
         update: vi.fn(),
       },
       outboxWriter: {

@@ -5,6 +5,7 @@ import {
 import { PixChargeObject } from "../../domain/entities/pix-charge.entity";
 import { PaymentObject } from "../../domain/entities/payment.entity";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
+import { Environment } from "../../domain/value-objects/environment.vo";
 import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
 
 export class PaymentLinkUnavailableError extends Error {
@@ -68,9 +69,16 @@ export class OpenPaymentLinkUseCase {
       pixCharge: item.pixCharge,
       lastPayment: item.lastPayment ?? null,
       actions: {
-        canPay: item.status === "ACTIVE" || item.status === "OPENED",
-        canFail: item.status === "ACTIVE" || item.status === "OPENED",
+        canPay: this.canSimulate(item),
+        canFail: this.canSimulate(item),
       },
     };
+  }
+
+  private canSimulate(item: PaymentLinkListItem): boolean {
+    return (
+      item.environment === Environment.TEST &&
+      (item.status === "ACTIVE" || item.status === "OPENED")
+    );
   }
 }

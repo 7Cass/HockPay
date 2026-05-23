@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
 import { Payment } from "../../domain/entities/payment.entity";
-import { PixCharge } from "../../domain/entities/pix-charge.entity";
+import { PixCharge, PixChargeStatus } from "../../domain/entities/pix-charge.entity";
 import { Environment } from "../../domain/value-objects/environment.vo";
 import { Customer } from "../../domain/entities/customer.entity";
 import { Document } from "../../domain/value-objects/document.vo";
+import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
 
 describe("ConfirmPaymentUseCase", () => {
   const account = {
@@ -145,6 +146,59 @@ describe("ConfirmPaymentUseCase", () => {
       "store-1",
     );
     expect(pixChargeRepository.update).toHaveBeenCalledWith(pixCharge);
+  });
+
+  it("rejects a Pix payment when the locked Pix charge is no longer open", async () => {
+    const pixCharge = PixCharge.create({
+      storeId: "store-1",
+      amount: 7990,
+      pixQrCode: "qr-code",
+      pixCopyPaste: "copy-paste",
+      pixTxId: "tx-1",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    pixCharge.cancel();
+    const payment = Payment.create({
+      storeId: "store-1",
+      pixChargeId: pixCharge.id,
+      amount: 7990,
+      fee: 135,
+      netAmount: 7855,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.TEST,
+    });
+    const paymentRepository = {
+      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
+      update: vi.fn(),
+    };
+    const pixChargeRepository = {
+      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
+      update: vi.fn(),
+    };
+    const accountRepository = {
+      findByStoreIdForUpdate: vi.fn(),
+      update: vi.fn(),
+    };
+    const unitOfWork = {
+      execute: async (work: any) =>
+        work({
+          paymentRepository,
+          pixChargeRepository,
+          accountRepository,
+        }),
+    };
+
+    await expect(
+      new ConfirmPaymentUseCase(unitOfWork as any).execute({
+        storeId: "store-1",
+        paymentId: payment.id,
+      }),
+    ).rejects.toBeInstanceOf(PixChargeNotOpenError);
+
+    expect(payment.status).toBe("PENDING");
+    expect(pixCharge.status).toBe(PixChargeStatus.CANCELLED);
+    expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
+    expect(paymentRepository.update).not.toHaveBeenCalled();
   });
 
   it("falls back to the associated customer when the payment has no payer snapshot", async () => {
