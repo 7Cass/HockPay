@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import {
   OutboxStatus,
   PrismaClient,
   WithdrawalStatus,
 } from '@hockpay/database';
+import {
+  OutboxRepository,
+  WithdrawalRepository,
+} from '@hockpay/infrastructure';
 import {
   SmokeError,
   assert,
@@ -291,28 +295,43 @@ async function fundAvailableBalance(ctx) {
 }
 
 async function runOutboxClaimConcurrency() {
-  step('Claiming outbox events concurrently with SKIP LOCKED');
+  step('Claiming outbox events concurrently through OutboxRepository');
   const requestId = `smoke-db-concurrency-outbox-${runId}`;
   const now = new Date();
   const watchdogUntil = new Date(now.getTime() + 60000);
+  const fixtureCreatedAt = new Date('2000-01-01T00:00:00.000Z');
+  const seededEvents = Array.from({ length: 4 }, (_, index) => ({
+    id: randomUUID(),
+    aggregateType: 'SmokeDbConcurrency',
+    aggregateId: `${runId}-${index}`,
+    eventType: 'payment.created',
+    requestId,
+    payload: { runId, index },
+    status: OutboxStatus.PENDING,
+    createdAt: new Date(fixtureCreatedAt.getTime() + index),
+  }));
+  const seededIds = seededEvents.map((event) => event.id);
+
   await prisma.outboxEvent.createMany({
-    data: Array.from({ length: 4 }, (_, index) => ({
-      aggregateType: 'SmokeDbConcurrency',
-      aggregateId: `${runId}-${index}`,
-      eventType: 'payment.created',
-      requestId,
-      payload: { runId, index },
-      status: OutboxStatus.PENDING,
-      createdAt: new Date(now.getTime() + index),
-    })),
+    data: seededEvents,
   });
 
   const claimerA = new PrismaClient();
   const claimerB = new PrismaClient();
+  const outboxRepositoryA = new OutboxRepository(claimerA);
+  const outboxRepositoryB = new OutboxRepository(claimerB);
   try {
     const [firstClaim, secondClaim] = await Promise.all([
-      claimOutboxEvents(claimerA, { requestId, limit: 2, now, watchdogUntil }),
-      claimOutboxEvents(claimerB, { requestId, limit: 2, now, watchdogUntil }),
+      outboxRepositoryA.claimDispatchableEvents({
+        limit: 2,
+        now,
+        watchdogUntil,
+      }),
+      outboxRepositoryB.claimDispatchableEvents({
+        limit: 2,
+        now,
+        watchdogUntil,
+      }),
     ]);
 
     const claimedIds = [...firstClaim, ...secondClaim].map((event) => event.id);
@@ -330,14 +349,31 @@ async function runOutboxClaimConcurrency() {
       firstClaim,
       secondClaim,
     });
+    assertSameIds(
+      claimedIds,
+      seededIds,
+      'Concurrent outbox claimers should claim exactly the seeded events.',
+      {
+        claimedIds,
+        seededIds,
+        firstClaim: firstClaim.map((event) => event.id),
+        secondClaim: secondClaim.map((event) => event.id),
+      },
+    );
   } finally {
     await Promise.allSettled([claimerA.$disconnect(), claimerB.$disconnect()]);
   }
 
   const rows = await prisma.outboxEvent.findMany({
-    where: { requestId },
+    where: { id: { in: seededIds } },
     select: { id: true, status: true, nextRetryAt: true },
   });
+  assertSameIds(
+    rows.map((event) => event.id),
+    seededIds,
+    'Seeded outbox rows should be present after repository claims.',
+    { rows, seededIds },
+  );
   assert(rows.every((event) => event.status === OutboxStatus.DISPATCHED), 'Claimed outbox events should be DISPATCHED.', {
     rows,
   });
@@ -346,34 +382,8 @@ async function runOutboxClaimConcurrency() {
   });
 }
 
-function claimOutboxEvents(client, { requestId, limit, now, watchdogUntil }) {
-  return client.$queryRaw`
-    WITH claimable AS (
-      SELECT "id"
-      FROM "outbox_events"
-      WHERE "request_id" = ${requestId}
-        AND "status" = ${OutboxStatus.PENDING}::"OutboxStatus"
-        AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${now})
-      ORDER BY "created_at" ASC
-      LIMIT ${limit}
-      FOR UPDATE SKIP LOCKED
-    )
-    UPDATE "outbox_events" AS oe
-    SET
-      "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus",
-      "next_retry_at" = ${watchdogUntil},
-      "error_message" = NULL
-    FROM claimable
-    WHERE oe."id" = claimable."id"
-    RETURNING
-      oe."id",
-      oe."status",
-      oe."next_retry_at" AS "nextRetryAt"
-  `;
-}
-
 async function runWithdrawalClaimConcurrency(ctx) {
-  step('Claiming one withdrawal concurrently with SKIP LOCKED');
+  step('Claiming one withdrawal concurrently through WithdrawalRepository');
   const now = new Date();
   const amount = 5000;
   const withdrawal = await prisma.withdrawal.create({
@@ -392,17 +402,17 @@ async function runWithdrawalClaimConcurrency(ctx) {
   const staleProcessingBefore = new Date(now.getTime() - 5 * 60 * 1000);
   const claimerA = new PrismaClient();
   const claimerB = new PrismaClient();
+  const withdrawalRepositoryA = new WithdrawalRepository(claimerA);
+  const withdrawalRepositoryB = new WithdrawalRepository(claimerB);
   let claims;
   try {
     claims = await Promise.all([
-      claimWithdrawal(claimerA, {
-        withdrawalId: withdrawal.id,
+      withdrawalRepositoryA.claimProcessableWithdrawals({
         limit: 1,
         now,
         staleProcessingBefore,
       }),
-      claimWithdrawal(claimerB, {
-        withdrawalId: withdrawal.id,
+      withdrawalRepositoryB.claimProcessableWithdrawals({
         limit: 1,
         now,
         staleProcessingBefore,
@@ -431,42 +441,6 @@ async function runWithdrawalClaimConcurrency(ctx) {
   assert(row?.processingAttempts === 1, 'Claimed withdrawal should increment attempts exactly once.', {
     row,
   });
-}
-
-function claimWithdrawal(client, { withdrawalId, limit, now, staleProcessingBefore }) {
-  return client.$queryRaw`
-    WITH candidates AS (
-      SELECT id
-      FROM withdrawals
-      WHERE id = ${withdrawalId}
-        AND (
-          (
-            status = ${WithdrawalStatus.PENDING}::"WithdrawalStatus"
-            AND (next_process_at IS NULL OR next_process_at <= ${now})
-          )
-          OR (
-            status = ${WithdrawalStatus.PROCESSING}::"WithdrawalStatus"
-            AND updated_at <= ${staleProcessingBefore}
-          )
-        )
-      ORDER BY created_at ASC, id ASC
-      LIMIT ${limit}
-      FOR UPDATE SKIP LOCKED
-    )
-    UPDATE withdrawals AS w
-    SET
-      status = ${WithdrawalStatus.PROCESSING}::"WithdrawalStatus",
-      processing_attempts = w.processing_attempts + 1,
-      next_process_at = NULL,
-      last_processing_error = NULL,
-      updated_at = ${now}
-    FROM candidates
-    WHERE w.id = candidates.id
-    RETURNING
-      w.id,
-      w.status,
-      w.processing_attempts AS "processingAttempts"
-  `;
 }
 
 async function runConcurrentWithdrawalBalance(ctx, available) {
@@ -566,10 +540,21 @@ function summarizeHttpResponse(response) {
   };
 }
 
+function assertSameIds(actualIds, expectedIds, message, details = {}) {
+  const actual = [...actualIds].sort();
+  const expected = [...expectedIds].sort();
+  assert(
+    actual.length === expected.length &&
+      actual.every((id, index) => id === expected[index]),
+    message,
+    { ...details, actual, expected },
+  );
+}
+
 async function main() {
   step(`Using API ${API_URL}`);
-  const ctx = await createContext();
   await runOutboxClaimConcurrency();
+  const ctx = await createContext();
   await runWithdrawalClaimConcurrency(ctx);
   const funding = await fundAvailableBalance(ctx);
   await runConcurrentWithdrawalBalance(ctx, funding.payment.netAmount);
