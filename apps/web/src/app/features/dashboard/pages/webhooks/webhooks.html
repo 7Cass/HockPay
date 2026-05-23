@@ -894,27 +894,9 @@
               >
                 <div class="p-3.5 flex flex-wrap gap-4 justify-between items-center sm:flex-nowrap">
                   <div class="flex items-center gap-3">
-                    <!-- Status indicator -->
-                    @if (
-                      log.responseStatus && log.responseStatus >= 200 && log.responseStatus < 300
-                    ) {
-                      <div
-                        class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0"
-                      >
-                        <ng-icon
-                          hlm
-                          name="lucideCheck"
-                          size="sm"
-                          class="text-emerald-600"
-                        ></ng-icon>
-                      </div>
-                    } @else {
-                      <div
-                        class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 shrink-0"
-                      >
-                        <ng-icon hlm name="lucideXCircle" size="sm" class="text-red-600"></ng-icon>
-                      </div>
-                    }
+                    <div [class]="getLogStatusClasses(log)">
+                      <ng-icon hlm [name]="getLogStatusIcon(log)" size="sm"></ng-icon>
+                    </div>
 
                     <div>
                       <div class="flex items-center gap-2">
@@ -924,8 +906,12 @@
                           log.createdAt | date: 'dd/MM HH:mm:ss'
                         }}</span>
                       </div>
-                      <div class="text-xs text-zinc-500 mt-0.5 font-mono">
-                        Status HTTP {{ log.responseStatus || 'Falha/Timeout' }}
+                      <div class="mt-0.5 flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-semibold text-zinc-700">{{
+                          getLogStatusLabel(log)
+                        }}</span>
+                        <span class="text-xs text-zinc-400">&bull;</span>
+                        <span class="text-xs text-zinc-500">{{ getLogStatusDetail(log) }}</span>
                       </div>
                     </div>
                   </div>
@@ -937,7 +923,7 @@
                         {{ log.attempt }}/{{ log.maxAttempts }}
                       </div>
                     </div>
-                    @if (!log.responseStatus || log.responseStatus >= 300) {
+                    @if (canRetryLog(log)) {
                       <button
                         hlmBtn
                         variant="outline"
@@ -950,7 +936,11 @@
                           <hlm-spinner size="sm" />
                         } @else {
                           <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
-                          Tentar de novo
+                          {{
+                            resolveLogStatus(log) === 'FAILED_FINAL'
+                              ? 'Reprocessar'
+                              : 'Tentar de novo'
+                          }}
                         }
                       </button>
                     }
@@ -1028,6 +1018,26 @@
                       </div>
                       <div class="mt-1 text-zinc-700">
                         {{ log.deliveredAt | date: 'dd/MM HH:mm:ss' }}
+                      </div>
+                    </div>
+                  }
+                  @if (log.failedAt) {
+                    <div class="min-w-0">
+                      <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                        Falhou em
+                      </div>
+                      <div class="mt-1 text-zinc-700">
+                        {{ log.failedAt | date: 'dd/MM HH:mm:ss' }}
+                      </div>
+                    </div>
+                  }
+                  @if (log.lastError) {
+                    <div class="min-w-0 sm:col-span-2">
+                      <div class="font-semibold uppercase tracking-wider text-zinc-400">
+                        Último erro
+                      </div>
+                      <div class="mt-1 break-words text-zinc-700">
+                        {{ log.lastError }}
                       </div>
                     </div>
                   }

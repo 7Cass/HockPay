@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angula
 import {
   WebhookService,
   WebhookConfig,
+  WebhookDeliveryStatus,
   WebhookInboxEvent,
   WebhookLog,
 } from '../../../../core/services/webhook.service';
@@ -30,6 +31,7 @@ import {
   lucideCopy,
   lucideAlertTriangle,
   lucideCheck,
+  lucideClock,
 } from '@ng-icons/lucide';
 
 @Component({
@@ -60,6 +62,7 @@ import {
       lucideCopy,
       lucideAlertTriangle,
       lucideCheck,
+      lucideClock,
     }),
   ],
   templateUrl: './webhooks.html',
@@ -391,11 +394,98 @@ export class Webhooks implements OnInit {
     return Boolean(hook?.url.includes('/api/v1/dev/webhook-inbox/'));
   }
 
+  resolveLogStatus(log: WebhookLog): WebhookDeliveryStatus {
+    if (this.isWebhookDeliveryStatus(log.status)) {
+      return log.status;
+    }
+
+    if (log.deliveredAt || this.isSuccessfulResponse(log.responseStatus)) {
+      return 'DELIVERED';
+    }
+
+    if (
+      log.failedAt ||
+      log.lastError ||
+      this.isFailedResponse(log.responseStatus) ||
+      this.isLegacyAttemptedWithoutResponse(log)
+    ) {
+      return log.attempt >= log.maxAttempts ? 'FAILED_FINAL' : 'FAILED_RETRYABLE';
+    }
+
+    return 'PENDING';
+  }
+
+  getLogStatusLabel(log: WebhookLog): string {
+    const labels: Record<WebhookDeliveryStatus, string> = {
+      PENDING: 'Pendente',
+      DELIVERED: 'Entregue',
+      FAILED_RETRYABLE: 'Falha temporária',
+      FAILED_FINAL: 'Falha final',
+    };
+
+    return labels[this.resolveLogStatus(log)];
+  }
+
+  getLogStatusClasses(log: WebhookLog): string {
+    const classes: Record<WebhookDeliveryStatus, string> = {
+      PENDING:
+        'w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center border border-zinc-200 text-zinc-500 shrink-0',
+      DELIVERED:
+        'w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-600 shrink-0',
+      FAILED_RETRYABLE:
+        'w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-600 shrink-0',
+      FAILED_FINAL:
+        'w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 text-red-600 shrink-0',
+    };
+
+    return classes[this.resolveLogStatus(log)];
+  }
+
+  getLogStatusIcon(log: WebhookLog): string {
+    const icons: Record<WebhookDeliveryStatus, string> = {
+      PENDING: 'lucideClock',
+      DELIVERED: 'lucideCheck',
+      FAILED_RETRYABLE: 'lucideAlertTriangle',
+      FAILED_FINAL: 'lucideXCircle',
+    };
+
+    return icons[this.resolveLogStatus(log)];
+  }
+
+  getLogStatusDetail(log: WebhookLog): string {
+    const status = this.resolveLogStatus(log);
+    const responseDetail =
+      log.responseStatus !== undefined ? `HTTP ${log.responseStatus}` : 'sem resposta HTTP';
+
+    if (status === 'PENDING') {
+      return 'Aguardando processamento';
+    }
+
+    if (status === 'DELIVERED') {
+      return log.responseStatus !== undefined ? `${responseDetail} entregue` : 'Entrega confirmada';
+    }
+
+    if (log.lastError) {
+      return log.lastError;
+    }
+
+    return status === 'FAILED_RETRYABLE'
+      ? `${responseDetail}; nova tentativa disponível`
+      : `${responseDetail}; reprocessamento manual disponível`;
+  }
+
+  canRetryLog(log: WebhookLog): boolean {
+    const status = this.resolveLogStatus(log);
+    return status === 'FAILED_RETRYABLE' || status === 'FAILED_FINAL';
+  }
+
   prettyJson(value: unknown): string {
     return JSON.stringify(value, null, 2);
   }
 
   retryLog(log: WebhookLog) {
+    if (!this.canRetryLog(log)) return;
+
     this.isRetrying.update((state) => ({ ...state, [log.id]: true }));
 
     this.webhookService.retryLog(log.configId, log.id).subscribe({
@@ -410,6 +500,27 @@ export class Webhooks implements OnInit {
         toast.error('Falha ao reprocessar esse evento.');
       },
     });
+  }
+
+  private isWebhookDeliveryStatus(status: unknown): status is WebhookDeliveryStatus {
+    return (
+      status === 'PENDING' ||
+      status === 'DELIVERED' ||
+      status === 'FAILED_RETRYABLE' ||
+      status === 'FAILED_FINAL'
+    );
+  }
+
+  private isSuccessfulResponse(status?: number): boolean {
+    return status !== undefined && status >= 200 && status < 300;
+  }
+
+  private isFailedResponse(status?: number): boolean {
+    return status !== undefined && status >= 300;
+  }
+
+  private isLegacyAttemptedWithoutResponse(log: WebhookLog): boolean {
+    return log.responseStatus === undefined && log.attempt > 0;
   }
 
   loadWebhooks() {

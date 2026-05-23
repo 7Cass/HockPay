@@ -25,6 +25,8 @@ export interface CreateWebhookConfigResponse extends WebhookConfig {
 /**
  * Webhook Log
  */
+export type WebhookDeliveryStatus = 'PENDING' | 'DELIVERED' | 'FAILED_RETRYABLE' | 'FAILED_FINAL';
+
 export interface WebhookLog {
   id: string;
   configId: string;
@@ -37,10 +39,13 @@ export interface WebhookLog {
   requestHeaders?: any;
   responseStatus?: number;
   responseBody?: string;
+  status?: WebhookDeliveryStatus;
   attempt: number;
   maxAttempts: number;
   nextRetryAt?: string;
   deliveredAt?: string;
+  failedAt?: string;
+  lastError?: string;
   createdAt: string;
 }
 
