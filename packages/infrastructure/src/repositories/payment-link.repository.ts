@@ -122,6 +122,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       pixCharge: {
         include: {
           payments: {
+            include: { items: { orderBy: { createdAt: "asc" } } },
             orderBy: { createdAt: "desc" },
           },
         },
@@ -137,6 +138,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       publicToken: link.publicToken,
       amount: link.amount,
       currency: link.currency,
+      environment: link.environment as any,
       title: link.title,
       description: link.description,
       internalReference: link.internalReference,
@@ -156,6 +158,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       publicToken: row.publicToken,
       amount: row.amount,
       currency: row.currency,
+      environment: row.environment,
       title: row.title ?? undefined,
       description: row.description ?? undefined,
       internalReference: row.internalReference ?? undefined,
@@ -251,6 +254,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       acquirerId: payment.acquirerId ?? undefined,
       totalRefunded: payment.totalRefunded ?? 0,
       pixCharge,
+      items: this.toLineItems(payment.items ?? []),
       expiresAt: payment.expiresAt,
       paidAt: payment.paidAt ?? undefined,
       releasedAt: payment.releasedAt ?? undefined,
@@ -259,6 +263,23 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
     };
+  }
+
+  private toLineItems(rows: any[]) {
+    return rows.map((item) => ({
+      id: item.id,
+      productId: item.productId ?? undefined,
+      productExternalId: item.productExternalId ?? undefined,
+      name: item.name,
+      description: item.description ?? undefined,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+      imageUrl: item.imageUrl ?? undefined,
+      metadata: (item.metadata as Record<string, unknown>) ?? undefined,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
   }
 
   private enrichPaymentAttempts(payments: PaymentObject[]): PaymentObject[] {

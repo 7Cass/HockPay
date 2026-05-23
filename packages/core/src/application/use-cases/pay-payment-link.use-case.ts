@@ -56,7 +56,7 @@ export class PayPaymentLinkUseCase {
         netAmount: feeResult.netAmountInCents,
         currency: item.currency,
         description: item.description ?? item.title ?? undefined,
-        environment: input.environment,
+        environment: item.environment ?? input.environment,
         paymentMethod: PaymentMethod.PIX,
         pixCharge: item.pixCharge,
         expiresAt: paymentExpiresAt,

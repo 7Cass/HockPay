@@ -5,6 +5,7 @@ import {
   Environment,
   FailPaymentLinkUseCase,
   GetPaymentLinkUseCase,
+  InvalidLineItemsError,
   ListPaymentLinksUseCase,
   OpenPaymentLinkUseCase,
   PayPaymentLinkUseCase,
@@ -13,11 +14,17 @@ import { PaymentLinkController } from './payment-link.controller';
 
 describe('PaymentLinkController', () => {
   let controller: PaymentLinkController;
+  let createUseCase: { execute: jest.Mock };
   let getUseCase: { execute: jest.Mock };
   let payUseCase: { execute: jest.Mock };
   let failUseCase: { execute: jest.Mock };
 
   beforeEach(() => {
+    createUseCase = {
+      execute: jest.fn().mockResolvedValue({
+        paymentLink: { id: 'link-1' },
+      }),
+    };
     getUseCase = {
       execute: jest.fn().mockResolvedValue({
         paymentLink: {
@@ -38,7 +45,7 @@ describe('PaymentLinkController', () => {
     };
 
     controller = new PaymentLinkController(
-      { execute: jest.fn() } as unknown as CreatePaymentLinkUseCase,
+      createUseCase as unknown as CreatePaymentLinkUseCase,
       { execute: jest.fn() } as unknown as ListPaymentLinksUseCase,
       getUseCase as unknown as GetPaymentLinkUseCase,
       { execute: jest.fn() } as unknown as CancelPaymentLinkUseCase,
@@ -46,6 +53,49 @@ describe('PaymentLinkController', () => {
       payUseCase as unknown as PayPaymentLinkUseCase,
       failUseCase as unknown as FailPaymentLinkUseCase,
     );
+  });
+
+  it('forwards amount-only payload on creation with store and environment context', async () => {
+    await controller.create(
+      {
+        amount: 2500,
+        title: 'Avulso',
+      } as any,
+      {
+        store: { id: 'store-1' },
+        environment: Environment.TEST,
+      } as any,
+    );
+
+    expect(createUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      environment: Environment.TEST,
+      amount: 2500,
+      items: undefined,
+      title: 'Avulso',
+      description: undefined,
+      internalReference: undefined,
+      expiresAt: undefined,
+    });
+  });
+
+  it('maps itemized payment link creation to an explicit contract error', async () => {
+    createUseCase.execute.mockRejectedValue(
+      new InvalidLineItemsError('Payment links do not support items; provide amount'),
+    );
+
+    await expect(
+      controller.create(
+        {
+          items: [{ productId: 'product-1', quantity: 1 }],
+          title: 'Catalog order',
+        } as any,
+        {
+          store: { id: 'store-1' },
+          environment: Environment.TEST,
+        } as any,
+      ),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
   it('scopes authenticated pay simulation by store before using the public token flow', async () => {

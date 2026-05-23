@@ -1,4 +1,5 @@
 import { PaymentStatus } from "../enums/payment-status.enum";
+import { Environment } from "../value-objects/environment.vo";
 import { PixChargeObject, PixChargeStatus } from "./pix-charge.entity";
 import { PaymentObject } from "./payment.entity";
 
@@ -16,6 +17,7 @@ export interface PaymentLinkProps {
   publicToken: string;
   amount: number;
   currency?: string;
+  environment?: Environment;
   title?: string;
   description?: string;
   internalReference?: string;
@@ -33,6 +35,7 @@ export interface PaymentLinkObject {
   publicToken: string;
   amount: number;
   currency: string;
+  environment: Environment;
   title: string | null;
   description: string | null;
   internalReference: string | null;
@@ -93,6 +96,7 @@ export class PaymentLink {
       publicToken: props.publicToken,
       amount: props.amount,
       currency: props.currency ?? "BRL",
+      environment: props.environment ?? Environment.TEST,
       title: props.title ?? null,
       description: props.description ?? null,
       internalReference: props.internalReference ?? null,
@@ -118,6 +122,7 @@ export class PaymentLink {
   get publicToken(): string { return this.props.publicToken; }
   get amount(): number { return this.props.amount; }
   get currency(): string { return this.props.currency; }
+  get environment(): Environment { return this.props.environment; }
   get title(): string | null { return this.props.title; }
   get description(): string | null { return this.props.description; }
   get internalReference(): string | null { return this.props.internalReference; }

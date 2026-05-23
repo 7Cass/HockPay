@@ -3,6 +3,7 @@ import {
   PaymentLinkListItem,
 } from "../../domain/entities/payment-link.entity";
 import { PixCharge } from "../../domain/entities/pix-charge.entity";
+import { Environment } from "../../domain/value-objects/environment.vo";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
 import { IPixChargeRepository } from "../../domain/repositories/pix-charge.repository.interface";
 import { IStoreRepository } from "../../domain/repositories/store.repository.interface";
@@ -11,10 +12,13 @@ import { IPixQrCodeGeneratorPort } from "../ports/pix-qr-code-generator.port";
 import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
 import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
 import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
+import { InvalidLineItemsError } from "../../domain/errors/invalid-line-items.error";
 
 export interface ICreatePaymentLinkInput {
   storeId: string;
-  amount: number;
+  environment?: Environment;
+  amount?: number;
+  items?: unknown[];
   title?: string;
   description?: string;
   internalReference?: string;
@@ -52,19 +56,21 @@ export class CreatePaymentLinkUseCase {
 
     const publicToken = this.tokenGenerator.generateBase64(32);
     const linkId = crypto.randomUUID();
+    const environment = input.environment ?? Environment.TEST;
+    const amount = this.validateAmount(input);
 
     const txId = this.generateTxId();
     const expiresAt = this.validateExpiresAt(input.expiresAt);
     const qrCodeResult = await this.pixQrCodeGenerator.generate({
       pixKey: this.pixKey,
-      amountInCents: input.amount,
+      amountInCents: amount,
       merchantName: store.name.substring(0, 25),
       merchantCity: "SAO PAULO",
       txId,
     });
     const pixCharge = PixCharge.create({
       storeId: input.storeId,
-      amount: input.amount,
+      amount,
       currency: "BRL",
       pixQrCode: qrCodeResult.qrCodeBase64,
       pixCopyPaste: qrCodeResult.copyPaste,
@@ -77,7 +83,8 @@ export class CreatePaymentLinkUseCase {
       storeId: input.storeId,
       pixChargeId: pixCharge.id,
       publicToken,
-      amount: input.amount,
+      amount,
+      environment,
       title: input.title,
       description: input.description,
       internalReference: input.internalReference,
@@ -115,5 +122,18 @@ export class CreatePaymentLinkUseCase {
       throw new PaymentLinkInvalidExpirationError();
     }
     return expiresAt;
+  }
+
+  private validateAmount(input: ICreatePaymentLinkInput): number {
+    if (input.items !== undefined) {
+      throw new InvalidLineItemsError("Payment links do not support items; provide amount");
+    }
+    if (!Number.isInteger(input.amount) || (input.amount ?? 0) < 1) {
+      throw new InvalidLineItemsError("Amount must be at least 1 cent");
+    }
+    if ((input.amount ?? 0) > 9999999999) {
+      throw new InvalidLineItemsError("Amount cannot exceed 99,999,999.99 BRL");
+    }
+    return input.amount!;
   }
 }

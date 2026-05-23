@@ -3,6 +3,7 @@ import { PixCharge, PixChargeStatus } from '../../domain/entities/pix-charge.ent
 import { Payment, PaymentMethod } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { Environment } from '../../domain/value-objects/environment.vo';
+import { InvalidLineItemsError } from '../../domain/errors/invalid-line-items.error';
 import {
   CreatePaymentLinkUseCase,
   PaymentLinkInvalidExpirationError,
@@ -66,6 +67,37 @@ describe('PaymentLink use cases', () => {
     expect(paymentLinkRepository.save).toHaveBeenCalledOnce();
     expect(pixChargeRepository.save.mock.calls[0][0].expiresAt).toBeUndefined();
     expect(paymentLinkRepository.save.mock.calls[0][0].expiresAt).toBeNull();
+  });
+
+  it('rejects items in payment link creation', async () => {
+    const pixQrCodeGenerator = {
+      generate: vi.fn(),
+    };
+    const useCase = new CreatePaymentLinkUseCase(
+      { save: vi.fn() } as any,
+      { save: vi.fn() } as any,
+      {
+        findById: vi.fn().mockResolvedValue({
+          id: 'store-1',
+          name: 'Hockpay Store',
+          isActive: true,
+          isApproved: true,
+        }),
+      } as any,
+      { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
+      pixQrCodeGenerator as any,
+      'http://localhost:3333',
+      'test@hockpay.com',
+    );
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        amount: 12990,
+        items: [{ productId: 'prod-1' }],
+      }),
+    ).rejects.toBeInstanceOf(InvalidLineItemsError);
+    expect(pixQrCodeGenerator.generate).not.toHaveBeenCalled();
   });
 
   it('applies a future expiration to both the payment link and Pix charge', async () => {

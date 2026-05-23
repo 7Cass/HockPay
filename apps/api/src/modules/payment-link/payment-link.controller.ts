@@ -27,6 +27,9 @@ import {
   PaymentLinkCannotBeCancelledError,
   PaymentLinkNotFoundError,
   PaymentLinkUnavailableError,
+  InvalidLineItemsError,
+  ProductNotFoundError,
+  ProductUnavailableError,
   StoreInactiveError,
   StoreNotApprovedError,
   StoreNotFoundError,
@@ -60,7 +63,9 @@ export class PaymentLinkController {
 
       return await this.createUseCase.execute({
         storeId,
+        environment: ((req as any)?.environment ?? Environment.TEST) as Environment,
         amount: dto.amount,
+        items: (dto as any).items,
         title: dto.title,
         description: dto.description,
         internalReference: dto.internalReference,
@@ -230,11 +235,16 @@ export class PaymentLinkController {
     if (error instanceof PaymentLinkNotFoundError || error instanceof StoreNotFoundError) {
       throw new NotFoundException({ error: { code: (error as any).code, message: (error as Error).message } });
     }
+    if (error instanceof ProductNotFoundError) {
+      throw new NotFoundException({ error: { code: error.code, message: error.message } });
+    }
     if (
       error instanceof StoreInactiveError ||
       error instanceof StoreNotApprovedError ||
       error instanceof PaymentLinkInvalidExpirationError ||
-      error instanceof PaymentLinkUnavailableError
+      error instanceof PaymentLinkUnavailableError ||
+      error instanceof ProductUnavailableError ||
+      error instanceof InvalidLineItemsError
     ) {
       throw new UnprocessableEntityException({ error: { code: (error as any).code, message: (error as Error).message } });
     }

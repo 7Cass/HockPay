@@ -6,13 +6,11 @@ import {
     FormGroup,
     ReactiveFormsModule,
     ValidationErrors,
-    Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgIconComponent, provideIcons } from '@ng-icons/core';
 import {
     lucideAlertTriangle,
-    lucideBadgeDollarSign,
     lucideCheckCircle2,
     lucideClock,
     lucideCopy,
@@ -110,7 +108,6 @@ function expirationValidator(control: AbstractControl): ValidationErrors | null 
     providers: [
         provideIcons({
             lucideAlertTriangle,
-            lucideBadgeDollarSign,
             lucideCheckCircle2,
             lucideClock,
             lucideCopy,
@@ -137,7 +134,7 @@ export class PaymentLinks implements OnInit {
         {
             amount: new FormControl<string>('', {
                 nonNullable: true,
-                validators: [Validators.required, brlAmountValidator],
+                validators: [brlAmountValidator],
             }),
             title: new FormControl<string>('', { nonNullable: true }),
             description: new FormControl<string>('', { nonNullable: true }),
@@ -195,7 +192,9 @@ export class PaymentLinks implements OnInit {
     }
 
     create() {
-        if (this.form.invalid || this.isCreating()) {
+        const amount = parseBrlToCents(this.form.controls.amount.value);
+
+        if (this.form.invalid || this.isCreating() || amount < 1) {
             this.form.markAllAsTouched();
             return;
         }
@@ -207,7 +206,7 @@ export class PaymentLinks implements OnInit {
 
         this.isCreating.set(true);
         this.service.create({
-            amount: parseBrlToCents(value.amount),
+            amount,
             title: value.title?.trim() || undefined,
             description: value.description?.trim() || undefined,
             internalReference: value.internalReference?.trim() || undefined,
