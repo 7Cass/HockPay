@@ -513,6 +513,391 @@ async function runConcurrentWithdrawalBalance(ctx, available) {
   });
 }
 
+async function runCheckoutRollbackWithTrigger(ctx) {
+  step('Forcing checkout fulfill rollback through a temporary PostgreSQL trigger');
+  const rollbackSmokeRunId = `checkout-rollback-${runId}`;
+  const requestId = `smoke-checkout-rollback-${runId}`;
+  const triggerNames = checkoutRollbackTriggerNames();
+  const created = await createGuestCheckoutSession(ctx, {
+    amount: 2111,
+    label: 'rollback',
+    metadata: {
+      smokeRunId: runId,
+      checkoutRollbackSmokeRunId: rollbackSmokeRunId,
+      checkoutRollbackSmokeRequestId: requestId,
+      source: 'db-concurrency-checkout-rollback',
+    },
+  });
+  const pixChargeCountBefore = await countPixChargesForStore(ctx.storeId);
+  let response;
+
+  try {
+    await installCheckoutRollbackTrigger({
+      ...triggerNames,
+      rollbackSmokeRunId,
+    });
+    response = await fulfillCheckoutSessionHttp(created.checkoutToken, {
+      requestId,
+      customer: {
+        name: 'DB Concurrency Checkout Rollback',
+        email: uniqueEmail('checkout-rollback-customer'),
+      },
+    });
+  } finally {
+    await dropCheckoutRollbackTrigger(triggerNames);
+  }
+
+  assert(response?.status === 422, 'Checkout rollback trigger should make fulfill fail with 422.', {
+    response: response ? summarizeHttpResponse(response) : undefined,
+  });
+  const rollbackMessage = response.body?.error?.message ?? response.text ?? '';
+  assert(
+    rollbackMessage.includes('checkout rollback smoke forced rollback') &&
+      rollbackMessage.includes('payment=1') &&
+      rollbackMessage.includes('pix_charge=1') &&
+      rollbackMessage.includes('outbox=1'),
+    'Checkout rollback trigger should prove payment, Pix charge and outbox rows existed before rollback.',
+    {
+      response: summarizeHttpResponse(response),
+    },
+  );
+
+  const session = await prisma.checkoutSession.findUnique({
+    where: { checkoutToken: created.checkoutToken },
+    select: { id: true, status: true, paymentId: true, metadata: true },
+  });
+  assert(session?.status === 'OPEN', 'Rolled-back checkout session should remain OPEN.', {
+    session,
+  });
+  assert(session?.paymentId === null, 'Rolled-back checkout session should not keep a paymentId.', {
+    session,
+  });
+
+  const paymentCount = await countPaymentsByMetadata(
+    ctx.storeId,
+    'checkoutRollbackSmokeRunId',
+    rollbackSmokeRunId,
+  );
+  assert(paymentCount === 0, 'Rolled-back checkout fulfill should not leave a payment.', {
+    paymentCount,
+    rollbackSmokeRunId,
+  });
+
+  const outboxCount = await prisma.outboxEvent.count({
+    where: {
+      requestId,
+      eventType: 'payment.created',
+    },
+  });
+  assert(outboxCount === 0, 'Rolled-back checkout fulfill should not leave a payment.created outbox event.', {
+    outboxCount,
+    requestId,
+  });
+
+  const pixChargeCountAfter = await countPixChargesForStore(ctx.storeId);
+  assert(
+    pixChargeCountAfter === pixChargeCountBefore,
+    'Rolled-back checkout fulfill should restore the store Pix charge count.',
+    {
+      pixChargeCountBefore,
+      pixChargeCountAfter,
+    },
+  );
+}
+
+async function runConcurrentCheckoutFulfill(ctx) {
+  step('Fulfilling the same guest checkout session concurrently');
+  const fulfillSmokeRunId = `checkout-double-fulfill-${runId}`;
+  const created = await createGuestCheckoutSession(ctx, {
+    amount: 3222,
+    label: 'double-fulfill',
+    metadata: {
+      smokeRunId: runId,
+      checkoutConcurrentFulfillSmokeRunId: fulfillSmokeRunId,
+      source: 'db-concurrency-checkout-double-fulfill',
+    },
+  });
+  const requestIds = [
+    `smoke-checkout-double-fulfill-a-${runId}`,
+    `smoke-checkout-double-fulfill-b-${runId}`,
+  ];
+  const responses = await Promise.all([
+    fulfillCheckoutSessionHttp(created.checkoutToken, {
+      requestId: requestIds[0],
+      customer: {
+        name: 'DB Concurrency Checkout A',
+        email: uniqueEmail('checkout-double-a'),
+      },
+    }),
+    fulfillCheckoutSessionHttp(created.checkoutToken, {
+      requestId: requestIds[1],
+      customer: {
+        name: 'DB Concurrency Checkout B',
+        email: uniqueEmail('checkout-double-b'),
+      },
+    }),
+  ]);
+  const successful = responses.filter((result) => result.status === 200 && result.body?.paymentId);
+  const failed = responses.filter((result) => result.status === 422);
+
+  assert(successful.length === 1, 'Exactly one concurrent checkout fulfill should succeed.', {
+    responses: responses.map(summarizeHttpResponse),
+  });
+  assert(failed.length === 1, 'Exactly one concurrent checkout fulfill should fail with 422.', {
+    responses: responses.map(summarizeHttpResponse),
+  });
+
+  const paymentId = successful[0].body.paymentId;
+  assert(paymentId, 'Successful concurrent checkout fulfill did not return a paymentId.', {
+    response: summarizeHttpResponse(successful[0]),
+  });
+
+  const session = await prisma.checkoutSession.findUnique({
+    where: { checkoutToken: created.checkoutToken },
+    select: { id: true, status: true, paymentId: true },
+  });
+  assert(
+    session?.status === 'COMPLETED' && session.paymentId === paymentId,
+    'Concurrent checkout fulfill should leave one completed session linked to the successful payment.',
+    { session, paymentId },
+  );
+
+  const completedSessionCount = await prisma.checkoutSession.count({
+    where: {
+      checkoutToken: created.checkoutToken,
+      status: 'COMPLETED',
+      paymentId,
+    },
+  });
+  assert(completedSessionCount === 1, 'Concurrent checkout fulfill should complete exactly one session.', {
+    completedSessionCount,
+    checkoutToken: created.checkoutToken,
+  });
+
+  const paymentCount = await countPaymentsByMetadata(
+    ctx.storeId,
+    'checkoutConcurrentFulfillSmokeRunId',
+    fulfillSmokeRunId,
+  );
+  assert(paymentCount === 1, 'Concurrent checkout fulfill should create exactly one payment.', {
+    paymentCount,
+    fulfillSmokeRunId,
+  });
+
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    select: {
+      id: true,
+      storeId: true,
+      pixChargeId: true,
+      metadata: true,
+    },
+  });
+  assert(
+    payment?.storeId === ctx.storeId &&
+      payment.pixChargeId &&
+      payment.metadata?.checkoutConcurrentFulfillSmokeRunId === fulfillSmokeRunId,
+    'Concurrent checkout fulfill payment row mismatch.',
+    { payment, paymentId, fulfillSmokeRunId },
+  );
+
+  const pixChargeCount = await prisma.pixCharge.count({
+    where: {
+      id: payment.pixChargeId,
+      storeId: ctx.storeId,
+    },
+  });
+  assert(pixChargeCount === 1, 'Concurrent checkout fulfill should create one Pix charge linked to the payment.', {
+    pixChargeCount,
+    pixChargeId: payment.pixChargeId,
+  });
+
+  const paymentCreatedOutboxCount = await prisma.outboxEvent.count({
+    where: {
+      aggregateType: 'Payment',
+      aggregateId: paymentId,
+      eventType: 'payment.created',
+    },
+  });
+  assert(
+    paymentCreatedOutboxCount === 1,
+    'Concurrent checkout fulfill should create one payment.created outbox event.',
+    {
+      paymentCreatedOutboxCount,
+      paymentId,
+    },
+  );
+
+  const requestOutboxCount = await prisma.outboxEvent.count({
+    where: {
+      requestId: { in: requestIds },
+      eventType: 'payment.created',
+    },
+  });
+  assert(requestOutboxCount === 1, 'Concurrent checkout fulfill should persist payment.created for one request only.', {
+    requestOutboxCount,
+    requestIds,
+  });
+}
+
+async function createGuestCheckoutSession(ctx, input) {
+  const created = await requestJson('/checkout-sessions', {
+    method: 'POST',
+    cookieJar: ctx.cookieJar,
+    jwtCookie: true,
+    body: jsonBody({
+      amount: input.amount,
+      description: `DB concurrency checkout ${input.label}`,
+      customerCollectionMode: 'GUEST',
+      successUrl: 'http://127.0.0.1/smoke-checkout/success',
+      cancelUrl: 'http://127.0.0.1/smoke-checkout/cancel',
+      expiresInSeconds: 3600,
+      metadata: input.metadata,
+    }),
+  });
+  assert(created?.id && created?.checkoutToken, 'Checkout session creation did not return id and checkoutToken.', {
+    created,
+    label: input.label,
+  });
+
+  return created;
+}
+
+function fulfillCheckoutSessionHttp(checkoutToken, input) {
+  return requestHttp(`/checkout-sessions/${checkoutToken}/fulfill`, {
+    method: 'POST',
+    headers: {
+      'x-request-id': input.requestId,
+    },
+    body: jsonBody({
+      customer: input.customer,
+    }),
+  });
+}
+
+function checkoutRollbackTriggerNames() {
+  const suffix = runId.replace(/[^a-zA-Z0-9_]/g, '_');
+  return {
+    functionName: `smoke_checkout_rollback_fn_${suffix}`,
+    triggerName: `smoke_checkout_rollback_trg_${suffix}`,
+  };
+}
+
+async function installCheckoutRollbackTrigger({
+  functionName,
+  triggerName,
+  rollbackSmokeRunId,
+}) {
+  await dropCheckoutRollbackTrigger({ functionName, triggerName });
+
+  const functionIdentifier = quoteSqlIdentifier(functionName);
+  const triggerIdentifier = quoteSqlIdentifier(triggerName);
+  await prisma.$executeRawUnsafe(`
+    CREATE FUNCTION ${functionIdentifier}()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $smoke_checkout_rollback$
+    DECLARE
+      expected_request_id text;
+      payment_count integer;
+      pix_charge_count integer;
+      outbox_count integer;
+    BEGIN
+      IF TG_OP = 'UPDATE'
+        AND NEW.status::text = 'COMPLETED'
+        AND OLD.status::text <> 'COMPLETED'
+        AND NEW.payment_id IS NOT NULL
+        AND NEW.metadata ->> 'checkoutRollbackSmokeRunId' = ${sqlStringLiteral(rollbackSmokeRunId)}
+      THEN
+        expected_request_id := NEW.metadata ->> 'checkoutRollbackSmokeRequestId';
+
+        SELECT COUNT(*) INTO payment_count
+        FROM payments
+        WHERE id = NEW.payment_id;
+
+        SELECT COUNT(*) INTO pix_charge_count
+        FROM payments p
+        INNER JOIN pix_charges pc ON pc.id = p.pix_charge_id
+        WHERE p.id = NEW.payment_id;
+
+        SELECT COUNT(*) INTO outbox_count
+        FROM outbox_events
+        WHERE aggregate_type = 'Payment'
+          AND aggregate_id = NEW.payment_id
+          AND event_type = 'payment.created'
+          AND request_id = expected_request_id;
+
+        IF payment_count <> 1 OR pix_charge_count <> 1 OR outbox_count <> 1 THEN
+          RAISE EXCEPTION
+            'checkout rollback smoke expected visible writes payment=% pix_charge=% outbox=%',
+            payment_count,
+            pix_charge_count,
+            outbox_count;
+        END IF;
+
+        RAISE EXCEPTION
+          'checkout rollback smoke forced rollback payment=% pix_charge=% outbox=%',
+          payment_count,
+          pix_charge_count,
+          outbox_count;
+      END IF;
+
+      RETURN NEW;
+    END;
+    $smoke_checkout_rollback$;
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TRIGGER ${triggerIdentifier}
+    BEFORE UPDATE ON checkout_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION ${functionIdentifier}();
+  `);
+}
+
+async function dropCheckoutRollbackTrigger({ functionName, triggerName }) {
+  const functionIdentifier = quoteSqlIdentifier(functionName);
+  const triggerIdentifier = quoteSqlIdentifier(triggerName);
+
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS ${triggerIdentifier} ON checkout_sessions;
+  `);
+  await prisma.$executeRawUnsafe(`
+    DROP FUNCTION IF EXISTS ${functionIdentifier}();
+  `);
+}
+
+function quoteSqlIdentifier(identifier) {
+  assert(
+    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier),
+    'Unsafe SQL identifier for checkout rollback trigger.',
+    { identifier },
+  );
+  return `"${identifier}"`;
+}
+
+function sqlStringLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+async function countPaymentsByMetadata(storeId, key, value) {
+  return prisma.payment.count({
+    where: {
+      storeId,
+      metadata: {
+        path: [key],
+        equals: value,
+      },
+    },
+  });
+}
+
+async function countPixChargesForStore(storeId) {
+  return prisma.pixCharge.count({
+    where: { storeId },
+  });
+}
+
 function createWithdrawalHttp(ctx, amount, idempotencyKey) {
   return requestHttp('/withdrawals', {
     method: 'POST',
@@ -555,6 +940,8 @@ async function main() {
   step(`Using API ${API_URL}`);
   await runOutboxClaimConcurrency();
   const ctx = await createContext();
+  await runCheckoutRollbackWithTrigger(ctx);
+  await runConcurrentCheckoutFulfill(ctx);
   await runWithdrawalClaimConcurrency(ctx);
   const funding = await fundAvailableBalance(ctx);
   await runConcurrentWithdrawalBalance(ctx, funding.payment.netAmount);
