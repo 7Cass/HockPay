@@ -28,7 +28,7 @@ import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmTableImports } from '@spartan-ng/helm/table';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import {
-    PaymentLinkItem,
+    PaymentLinkRecord,
     PaymentLinkService,
     PaymentLinkStatus,
 } from '../../../../core/services/payment-link.service';
@@ -223,16 +223,16 @@ export class PaymentLinks implements OnInit {
         });
     }
 
-    cancel(link: PaymentLinkItem) {
+    cancel(link: PaymentLinkRecord) {
         if (!this.canCancel(link)) return;
         this.service.cancel(link.id).subscribe(() => this.loadLinks());
     }
 
-    openDetail(link: PaymentLinkItem) {
+    openDetail(link: PaymentLinkRecord) {
         this.router.navigate(['/dashboard/payment-links', link.id]);
     }
 
-    copy(link: PaymentLinkItem) {
+    copy(link: PaymentLinkRecord) {
         navigator.clipboard?.writeText(link.checkoutUrl);
         this.copiedId.set(link.id);
         window.setTimeout(() => {
@@ -273,7 +273,7 @@ export class PaymentLinks implements OnInit {
         return icons[status] ?? 'lucideClock';
     }
 
-    canCancel(link: PaymentLinkItem): boolean {
+    canCancel(link: PaymentLinkRecord): boolean {
         return link.status !== 'PAID' && link.status !== 'CANCELLED' && link.status !== 'EXPIRED';
     }
 
@@ -300,7 +300,7 @@ export class PaymentLinks implements OnInit {
         this.form.markAsUntouched();
     }
 
-    paymentTitle(link: PaymentLinkItem): string {
+    paymentTitle(link: PaymentLinkRecord): string {
         return link.title || link.description || 'Link avulso';
     }
 

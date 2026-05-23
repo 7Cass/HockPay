@@ -6,7 +6,7 @@ import type { PaymentObject } from './payment.service';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
 
-export interface PaymentLinkItem {
+export interface PaymentLinkRecord {
     id: string;
     storeId: string;
     pixChargeId: string;
@@ -60,7 +60,7 @@ export interface PaymentLinkStats {
 }
 
 export interface ListPaymentLinksResponse {
-    items: PaymentLinkItem[];
+    items: PaymentLinkRecord[];
     total: number;
     page: number;
     limit: number;
@@ -72,7 +72,7 @@ export interface ListPaymentLinksResponse {
 export class PaymentLinkService {
     private readonly apiClient = inject(ApiClientService);
 
-    private readonly linksState = signal<PaymentLinkItem[]>([]);
+    private readonly linksState = signal<PaymentLinkRecord[]>([]);
     private readonly statsState = signal<PaymentLinkStats | null>(null);
     private readonly totalState = signal(0);
     private readonly isLoadingState = signal(false);
@@ -113,15 +113,15 @@ export class PaymentLinkService {
         internalReference?: string;
         expiresAt?: string;
     }) {
-        return this.apiClient.post<{ paymentLink: PaymentLinkItem }>('/payment-links', input);
+        return this.apiClient.post<{ paymentLink: PaymentLinkRecord }>('/payment-links', input);
     }
 
     cancel(id: string) {
-        return this.apiClient.post<{ paymentLink: PaymentLinkItem }>(`/payment-links/${id}/cancel`, {});
+        return this.apiClient.post<{ paymentLink: PaymentLinkRecord }>(`/payment-links/${id}/cancel`, {});
     }
 
     get(id: string) {
-        return this.apiClient.get<{ paymentLink: PaymentLinkItem }>(`/payment-links/${id}`);
+        return this.apiClient.get<{ paymentLink: PaymentLinkRecord }>(`/payment-links/${id}`);
     }
 
     simulatePay(id: string) {

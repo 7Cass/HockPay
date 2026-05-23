@@ -22,7 +22,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import {
-  PaymentLinkItem,
+  PaymentLinkRecord,
   PaymentLinkService,
   PaymentLinkStatus,
 } from '../../../../core/services/payment-link.service';
@@ -344,7 +344,7 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
   private readonly service = inject(PaymentLinkService);
   private routeSub?: Subscription;
 
-  readonly link = signal<PaymentLinkItem | null>(null);
+  readonly link = signal<PaymentLinkRecord | null>(null);
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
@@ -379,43 +379,43 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
       });
   }
 
-  simulatePay(paymentLink: PaymentLinkItem): void {
+  simulatePay(paymentLink: PaymentLinkRecord): void {
     if (!this.canSimulate(paymentLink)) return;
     this.runAction(() => this.service.simulatePay(paymentLink.id));
   }
 
-  simulateFail(paymentLink: PaymentLinkItem): void {
+  simulateFail(paymentLink: PaymentLinkRecord): void {
     if (!this.canSimulate(paymentLink)) return;
     this.runAction(() => this.service.simulateFail(paymentLink.id));
   }
 
-  cancel(paymentLink: PaymentLinkItem): void {
+  cancel(paymentLink: PaymentLinkRecord): void {
     if (!this.canCancel(paymentLink)) return;
     this.runAction(() => this.service.cancel(paymentLink.id));
   }
 
-  copy(paymentLink: PaymentLinkItem): void {
+  copy(paymentLink: PaymentLinkRecord): void {
     navigator.clipboard?.writeText(paymentLink.checkoutUrl);
     this.copied.set(true);
     window.setTimeout(() => this.copied.set(false), 1800);
   }
 
-  canSimulate(paymentLink: PaymentLinkItem): boolean {
+  canSimulate(paymentLink: PaymentLinkRecord): boolean {
     return !this.actionInProgress()
       && !['PAID', 'EXPIRED', 'CANCELLED'].includes(paymentLink.status)
       && paymentLink.pixCharge.status === 'OPEN';
   }
 
-  canCancel(paymentLink: PaymentLinkItem): boolean {
+  canCancel(paymentLink: PaymentLinkRecord): boolean {
     return !this.actionInProgress()
       && !['PAID', 'EXPIRED', 'CANCELLED'].includes(paymentLink.status);
   }
 
-  attempts(paymentLink: PaymentLinkItem): PaymentObject[] {
+  attempts(paymentLink: PaymentLinkRecord): PaymentObject[] {
     return paymentLink.attempts ?? [];
   }
 
-  title(paymentLink: PaymentLinkItem): string {
+  title(paymentLink: PaymentLinkRecord): string {
     return paymentLink.title || paymentLink.description || 'Link avulso';
   }
 
@@ -428,7 +428,7 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
     return `Tentativa #${payment.attemptNumber ?? 1} de ${payment.attemptCount ?? 1}`;
   }
 
-  isPaid(paymentLink: PaymentLinkItem): boolean {
+  isPaid(paymentLink: PaymentLinkRecord): boolean {
     return paymentLink.status === 'PAID';
   }
 
@@ -489,7 +489,7 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
     return 'border-red-200 bg-red-50 text-red-700';
   }
 
-  stateTitle(paymentLink: PaymentLinkItem): string {
+  stateTitle(paymentLink: PaymentLinkRecord): string {
     if (paymentLink.status === 'PAID') return 'Link pago e PixCharge fechada';
     if (paymentLink.status === 'CANCELLED') return 'Link cancelado';
     if (paymentLink.status === 'EXPIRED') return 'Link expirado';
@@ -497,7 +497,7 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
     return 'Link ativo aguardando pagamento';
   }
 
-  stateDescription(paymentLink: PaymentLinkItem): string {
+  stateDescription(paymentLink: PaymentLinkRecord): string {
     if (paymentLink.status === 'PAID') return 'A cobrança comercial foi convertida. A PixCharge está paga e novas tentativas ficam bloqueadas.';
     if (paymentLink.status === 'CANCELLED') return 'A cobrança foi encerrada manualmente e não aceita novas tentativas.';
     if (paymentLink.status === 'EXPIRED') return 'O prazo da cobrança venceu e não deve aceitar novas tentativas.';
@@ -505,7 +505,7 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
     return 'Este Payment Link representa a cobrança principal. As tentativas aparecerão abaixo quando o checkout gerar Payments.';
   }
 
-  devModeHint(paymentLink: PaymentLinkItem): string {
+  devModeHint(paymentLink: PaymentLinkRecord): string {
     if (this.actionInProgress()) return 'Ação em andamento...';
     if (this.canSimulate(paymentLink)) return 'Disponível porque o dashboard opera em ambiente TEST.';
     if (paymentLink.pixCharge.status !== 'OPEN') return 'Indisponível porque a PixCharge não está aberta.';
