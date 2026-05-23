@@ -37,6 +37,7 @@ export interface PaymentObject {
     paymentDetails?: Record<string, any>;
     acquirerId?: string;
     totalRefunded?: number;
+    items?: PaymentLineItem[];
     pixChargeId?: string;
     pixCharge?: {
         id: string;
@@ -54,6 +55,19 @@ export interface PaymentObject {
     metadata?: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface PaymentLineItem {
+    id?: string;
+    productId?: string;
+    productExternalId?: string;
+    name: string;
+    description?: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    imageUrl?: string;
+    metadata?: Record<string, any>;
 }
 
 export interface CheckoutSessionObject {

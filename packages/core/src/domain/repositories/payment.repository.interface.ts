@@ -1,4 +1,5 @@
 import { Payment } from "../entities/payment.entity";
+import { LineItemObject } from "../entities/line-item.entity";
 import { PaymentStatus } from "../enums/payment-status.enum";
 
 /**
@@ -37,6 +38,11 @@ export interface IPaymentRepository {
    * Save a new payment to the repository.
    */
   save(payment: Payment): Promise<void>;
+
+  /**
+   * Persist immutable payment item snapshots for a payment.
+   */
+  saveItems(paymentId: string, items: LineItemObject[]): Promise<void>;
 
   /**
    * Find a payment by ID.

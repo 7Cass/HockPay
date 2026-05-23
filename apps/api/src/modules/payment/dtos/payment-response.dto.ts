@@ -5,6 +5,7 @@ import type {
   ReceiptObject,
   RefundObject,
   TransactionObject,
+  LineItemObject,
 } from '@hockpay/core';
 import type { WebhookLogDto } from '../../webhook/dtos/webhook-response.dto';
 
@@ -35,6 +36,7 @@ export class PaymentResponseDto {
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
   totalRefunded: number;
+  items?: LineItemObject[];
   pixChargeId?: string;
   pixCharge?: {
     id: string;

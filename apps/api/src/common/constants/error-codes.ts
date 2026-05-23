@@ -17,6 +17,8 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   INVALID_ALERT_EVENTS: 400,
   INVALID_ALERT_CONFIG: 400,
   INVALID_WITHDRAWAL_AMOUNT: 400,
+  INVALID_PRODUCT: 400,
+  INVALID_LINE_ITEMS: 400,
 
   // Conflict Errors (409 Conflict)
   MERCHANT_ALREADY_EXISTS: 409,
@@ -25,6 +27,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   PAYMENT_ALREADY_REFUNDED: 409,
   INVALID_WITHDRAWAL_STATUS: 409,
   BANK_ACCOUNT_IN_USE: 409,
+  PRODUCT_EXTERNAL_ID_ALREADY_EXISTS: 409,
 
   // Not Found Errors (404 Not Found)
   MERCHANT_NOT_FOUND: 404,
@@ -36,6 +39,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   ACCOUNT_NOT_FOUND: 404,
   BANK_ACCOUNT_NOT_FOUND: 404,
   WITHDRAWAL_NOT_FOUND: 404,
+  PRODUCT_NOT_FOUND: 404,
 
   // Business rule errors (422 Unprocessable Entity)
   BANK_ACCOUNT_NOT_VERIFIED: 422,
@@ -43,6 +47,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
   STORE_INACTIVE: 422,
   STORE_NOT_APPROVED: 422,
   WITHDRAWAL_LIMIT_EXCEEDED: 422,
+  PRODUCT_UNAVAILABLE: 422,
 
   // Authentication Errors (401 Unauthorized)
   API_KEY_INVALID: 401,
@@ -81,6 +86,8 @@ export const ERROR_CATEGORIES = {
     'INVALID_ALERT_EVENTS',
     'INVALID_ALERT_CONFIG',
     'INVALID_WITHDRAWAL_AMOUNT',
+    'INVALID_PRODUCT',
+    'INVALID_LINE_ITEMS',
   ],
 
   /** Resource already exists or state conflicts */
@@ -91,6 +98,7 @@ export const ERROR_CATEGORIES = {
     'PAYMENT_ALREADY_REFUNDED',
     'INVALID_WITHDRAWAL_STATUS',
     'BANK_ACCOUNT_IN_USE',
+    'PRODUCT_EXTERNAL_ID_ALREADY_EXISTS',
   ],
 
   /** Requested resource does not exist */
@@ -104,6 +112,7 @@ export const ERROR_CATEGORIES = {
     'ACCOUNT_NOT_FOUND',
     'BANK_ACCOUNT_NOT_FOUND',
     'WITHDRAWAL_NOT_FOUND',
+    'PRODUCT_NOT_FOUND',
   ],
 
   /** Authentication and identity verification failures */
@@ -116,6 +125,8 @@ export const ERROR_CATEGORIES = {
 
   /** Permission and access control failures */
   AUTHORIZATION: ['INSUFFICIENT_PERMISSIONS', 'MERCHANT_MISMATCH'],
+
+  BUSINESS: ['PRODUCT_UNAVAILABLE'],
 
   /** Rate limiting and throttling */
   RATE_LIMIT: ['RATE_LIMIT_EXCEEDED'],

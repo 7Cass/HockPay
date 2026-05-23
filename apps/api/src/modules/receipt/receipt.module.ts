@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ReceiptController } from './receipt.controller';
 import {
   GetReceiptUseCase,
+  IPaymentRepository,
   ListReceiptsUseCase,
   IReceiptRepository,
 } from '@hockpay/core';
@@ -11,9 +12,10 @@ import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { JwtService } from 'src/infra/services/jwt.service';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
-  imports: [AuthModule, ApiKeyModule],
+  imports: [AuthModule, ApiKeyModule, PaymentModule],
   controllers: [ReceiptController],
   providers: [
     JwtService,
@@ -25,13 +27,15 @@ import { JwtService } from 'src/infra/services/jwt.service';
     },
     {
       provide: GetReceiptUseCase,
-      useFactory: (repo: IReceiptRepository) => new GetReceiptUseCase(repo),
-      inject: ['IReceiptRepository'],
+      useFactory: (repo: IReceiptRepository, paymentRepo: IPaymentRepository) =>
+        new GetReceiptUseCase(repo, paymentRepo),
+      inject: ['IReceiptRepository', 'IPaymentRepository'],
     },
     {
       provide: ListReceiptsUseCase,
-      useFactory: (repo: IReceiptRepository) => new ListReceiptsUseCase(repo),
-      inject: ['IReceiptRepository'],
+      useFactory: (repo: IReceiptRepository, paymentRepo: IPaymentRepository) =>
+        new ListReceiptsUseCase(repo, paymentRepo),
+      inject: ['IReceiptRepository', 'IPaymentRepository'],
     },
   ],
   exports: [GetReceiptUseCase, ListReceiptsUseCase, 'IReceiptRepository'],

@@ -2,6 +2,7 @@ import { UnprocessableEntityException } from '@nestjs/common';
 import {
   CreateCheckoutSessionUseCase,
   CustomerIdentityConflictError,
+  Environment,
   FulfillCheckoutSessionUseCase,
   GetCheckoutSessionUseCase,
 } from '@hockpay/core';
@@ -64,7 +65,9 @@ describe('CheckoutSessionController', () => {
 
     expect(createUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
+      environment: Environment.TEST,
       amount: 7990,
+      items: undefined,
       description: undefined,
       customerCollectionMode: 'IDENTIFIED',
       prefillCustomer: {
@@ -73,6 +76,53 @@ describe('CheckoutSessionController', () => {
         name: 'Joao',
         email: 'joao@example.com',
       },
+      successUrl: undefined,
+      cancelUrl: undefined,
+      expiresInSeconds: undefined,
+      metadata: undefined,
+    });
+  });
+
+  it('forwards catalog items on checkout-session creation', async () => {
+    createUseCase.execute.mockResolvedValue({
+      id: 'session-1',
+      checkoutToken: 'token',
+      checkoutUrl: 'http://localhost:3333/token',
+      customerCollectionMode: 'IDENTIFIED',
+      prefillCustomer: null,
+    });
+
+    await controller.createSession(
+      {
+        items: [
+          {
+            productId: 'product-1',
+            quantity: 2,
+            metadata: { line: 'catalog' },
+          },
+        ],
+        description: 'Catalog checkout',
+      } as any,
+      {
+        store: { id: 'store-1' },
+        environment: Environment.TEST,
+      } as any,
+    );
+
+    expect(createUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      environment: Environment.TEST,
+      amount: undefined,
+      items: [
+        {
+          productId: 'product-1',
+          quantity: 2,
+          metadata: { line: 'catalog' },
+        },
+      ],
+      description: 'Catalog checkout',
+      customerCollectionMode: undefined,
+      prefillCustomer: undefined,
       successUrl: undefined,
       cancelUrl: undefined,
       expiresInSeconds: undefined,

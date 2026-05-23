@@ -1,29 +1,142 @@
-<div class="px-8 pb-8 pt-4 max-w-7xl mx-auto flex flex-col h-full gap-6">
-    <!-- Header Area -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Produtos</h1>
-            <p class="text-sm text-zinc-500 mt-1">Placeholder futuro: este recurso não está disponível no P3.</p>
-        </div>
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Produtos</h1>
+      <p class="mt-1 text-sm text-zinc-500">Gerencie itens vendáveis para links de pagamento e checkout hospedado.</p>
+    </div>
+    <button hlmBtn type="button" variant="outline" class="gap-2 border-zinc-200" (click)="load()">
+      <ng-icon hlm name="lucideRefreshCw" size="sm"></ng-icon>
+      Atualizar
+    </button>
+  </div>
+
+  <section class="rounded-lg border border-zinc-200 bg-white shadow-sm">
+    <form class="grid gap-4 p-5 lg:grid-cols-12" [formGroup]="form" (ngSubmit)="save()">
+      <div class="lg:col-span-3">
+        <label class="text-sm font-medium text-zinc-900" for="product-name">Nome</label>
+        <input hlmInput id="product-name" formControlName="name" placeholder="Curso Pix na prática" class="mt-2 h-11 border-zinc-200 bg-white" />
+      </div>
+      <div class="lg:col-span-2">
+        <label class="text-sm font-medium text-zinc-900" for="product-price">Preço</label>
+        <input hlmInput id="product-price" formControlName="price" placeholder="129,90" inputmode="decimal" class="mt-2 h-11 border-zinc-200 bg-white" />
+      </div>
+      <div class="lg:col-span-3">
+        <label class="text-sm font-medium text-zinc-900" for="product-external-id">External ID</label>
+        <input hlmInput id="product-external-id" formControlName="externalId" placeholder="prod_123" class="mt-2 h-11 border-zinc-200 bg-white" />
+      </div>
+      <div class="lg:col-span-4">
+        <label class="text-sm font-medium text-zinc-900" for="product-image">Imagem externa</label>
+        <input hlmInput id="product-image" formControlName="imageUrl" placeholder="https://..." class="mt-2 h-11 border-zinc-200 bg-white" />
+      </div>
+      <div class="lg:col-span-6">
+        <label class="text-sm font-medium text-zinc-900" for="product-description">Descrição</label>
+        <textarea
+          id="product-description"
+          formControlName="description"
+          rows="3"
+          placeholder="Resumo curto exibido no checkout."
+          class="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+        ></textarea>
+      </div>
+      <div class="lg:col-span-6">
+        <label class="text-sm font-medium text-zinc-900" for="product-metadata">Metadata</label>
+        <textarea
+          id="product-metadata"
+          formControlName="metadata"
+          rows="3"
+          placeholder='{"platformProductId":"123"}'
+          class="mt-2 min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 font-mono text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+        ></textarea>
+        @if (metadataError()) {
+          <p class="mt-2 text-sm text-red-600">{{ metadataError() }}</p>
+        }
+      </div>
+      <div class="flex items-center justify-end gap-3 lg:col-span-12">
+        @if (editingProduct()) {
+          <button hlmBtn type="button" variant="outline" class="gap-2 border-zinc-200" (click)="resetForm()">
+            <ng-icon hlm name="lucideX" size="sm"></ng-icon>
+            Cancelar edição
+          </button>
+        }
+        <button hlmBtn type="submit" class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" [disabled]="isSaving()">
+          <ng-icon hlm [name]="editingProduct() ? 'lucideSave' : 'lucidePackagePlus'" size="sm"></ng-icon>
+          {{ isSaving() ? 'Salvando...' : (editingProduct() ? 'Salvar produto' : 'Criar produto') }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  @if (service.error()) {
+    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ service.error() }}
+    </div>
+  }
+
+  <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+    <div class="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-4">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-900">Catálogo</h2>
+        <p class="mt-1 text-xs text-zinc-500">{{ service.total() }} produto(s)</p>
+      </div>
+      @if (service.isLoading()) {
+        <span class="text-xs font-medium text-zinc-500">Atualizando...</span>
+      }
     </div>
 
-    <!-- Content -->
-    <div class="bg-white rounded-xl ring-1 ring-zinc-200/80 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-        <div
-            class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center">
-            <div
-                class="w-14 h-14 rounded-full bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-                    class="text-zinc-400">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                    <path d="M3 6h18" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                </svg>
-            </div>
-            <h3 class="text-base font-semibold text-zinc-900 mb-1">Produtos não estão disponíveis no P3</h3>
-            <p class="text-sm text-zinc-500 max-w-md mx-auto">Esta tela permanece visível como placeholder. A criação e gestão de produtos será liberada em uma entrega futura.
-                Para cobranças individuais, continue usando links avulsos em Links de pagamento.</p>
-        </div>
+    <div class="overflow-x-auto">
+      <table hlmTable class="w-full min-w-[860px]">
+        <thead hlmTHead class="bg-zinc-50">
+          <tr hlmTr>
+            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Produto</th>
+            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">External ID</th>
+            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Preço</th>
+            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Status</th>
+            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Criado</th>
+            <th hlmTh class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Ações</th>
+          </tr>
+        </thead>
+        <tbody hlmTBody class="divide-y divide-zinc-100 bg-white">
+          @for (product of service.products(); track product.id) {
+            <tr hlmTr class="hover:bg-zinc-50/70">
+              <td hlmTd class="px-5 py-4">
+                <div class="flex min-w-0 items-center gap-3">
+                  @if (product.imageUrl) {
+                    <img [src]="product.imageUrl" alt="" class="h-10 w-10 rounded-md border border-zinc-200 object-cover" />
+                  } @else {
+                    <div class="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-500">BRL</div>
+                  }
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-zinc-900">{{ product.name }}</p>
+                    <p class="mt-1 truncate text-xs text-zinc-500">{{ product.description || 'Sem descrição' }}</p>
+                  </div>
+                </div>
+              </td>
+              <td hlmTd class="px-5 py-4 font-mono text-xs text-zinc-600">{{ product.externalId || '-' }}</td>
+              <td hlmTd class="px-5 py-4 text-sm font-semibold text-zinc-900">{{ (product.price / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
+              <td hlmTd class="px-5 py-4">
+                <span class="inline-flex rounded-md border px-2 py-1 text-xs font-semibold" [ngClass]="product.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-100 text-zinc-600'">
+                  {{ product.isActive ? 'Ativo' : 'Arquivado' }}
+                </span>
+              </td>
+              <td hlmTd class="px-5 py-4 text-sm text-zinc-600">{{ product.createdAt | date:'dd/MM HH:mm' }}</td>
+              <td hlmTd class="px-5 py-4">
+                <div class="flex justify-end gap-2">
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" title="Editar" (click)="edit(product)">
+                    <ng-icon hlm name="lucidePencil" size="xs"></ng-icon>
+                  </button>
+                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200 text-zinc-700" title="Arquivar" [disabled]="!product.isActive" (click)="archive(product)">
+                    <ng-icon hlm name="lucideArchive" size="xs"></ng-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr hlmTr>
+              <td hlmTd colspan="6" class="px-5 py-14 text-center text-sm text-zinc-500">Nenhum produto cadastrado.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
+  </section>
 </div>

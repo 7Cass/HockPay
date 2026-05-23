@@ -4,6 +4,8 @@ export * from "./domain/entities/refresh-token.entity";
 export * from "./domain/entities/api-key.entity";
 export * from "./domain/entities/store.entity";
 export * from "./domain/entities/customer.entity";
+export * from "./domain/entities/product.entity";
+export * from "./domain/entities/line-item.entity";
 export * from "./domain/entities/payment.entity";
 export * from "./domain/entities/pix-charge.entity";
 export * from "./domain/entities/payment-link.entity";
@@ -87,6 +89,11 @@ export * from "./domain/errors/invalid-withdrawal-amount.error";
 export * from "./domain/errors/invalid-withdrawal-status.error";
 export * from "./domain/errors/withdrawal-limit-exceeded.error";
 export * from "./domain/errors/withdrawal-not-found.error";
+export * from "./domain/errors/product-not-found.error";
+export * from "./domain/errors/product-external-id-already-exists.error";
+export * from "./domain/errors/product-unavailable.error";
+export * from "./domain/errors/invalid-line-items.error";
+export * from "./domain/errors/invalid-product.error";
 
 // Bank Account
 export * from "./domain/entities/bank-account.entity";
@@ -98,6 +105,7 @@ export * from "./domain/repositories/merchant.repository.interface";
 export * from "./domain/repositories/api-key.repository.interface";
 export * from "./domain/repositories/store.repository.interface";
 export * from "./domain/repositories/customer.repository.interface";
+export * from "./domain/repositories/product.repository.interface";
 export * from "./domain/repositories/payment.repository.interface";
 export * from "./domain/repositories/pix-charge.repository.interface";
 export * from "./domain/repositories/payment-link.repository.interface";
@@ -136,6 +144,7 @@ export * from "./application/ports/encryption.port";
 
 // Application - Services
 export * from "./application/services/fee-policy.service";
+export * from "./application/services/line-item-resolver.service";
 export * from "./application/services/payment-attempt-context.service";
 export * from "./application/services/webhook-payload-builder.service";
 export * from "./application/services/webhook-url-policy.service";
@@ -160,6 +169,10 @@ export * from "./application/use-cases/list-customers.use-case";
 export * from "./application/use-cases/get-customer.use-case";
 export * from "./application/use-cases/get-customer-by-id.use-case";
 export * from "./application/use-cases/update-customer.use-case";
+export * from "./application/use-cases/create-product.use-case";
+export * from "./application/use-cases/list-products.use-case";
+export * from "./application/use-cases/get-product.use-case";
+export * from "./application/use-cases/update-product.use-case";
 export * from "./application/use-cases/create-payment.use-case";
 export * from "./application/use-cases/create-payment-link.use-case";
 export * from "./application/use-cases/list-payment-links.use-case";

@@ -8,12 +8,14 @@ import {
   IsObject,
   MaxLength,
   IsEnum,
+  IsArray,
   ValidateNested,
   Matches,
   IsEmail,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomerCollectionMode } from '@hockpay/core';
+import { CreateChargeLineItemDto } from '../../../common/dtos/line-item.dto';
 
 export class CheckoutSessionPrefillCustomerDto {
   @IsOptional()
@@ -40,9 +42,16 @@ export class CheckoutSessionPrefillCustomerDto {
 }
 
 export class CreateCheckoutSessionDto {
+  @IsOptional()
   @IsInt()
   @Min(1, { message: 'amount must be at least 1 cent' })
-  amount: number;
+  amount?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateChargeLineItemDto)
+  items?: CreateChargeLineItemDto[];
 
   @IsOptional()
   @IsString()

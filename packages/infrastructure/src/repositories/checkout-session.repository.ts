@@ -16,6 +16,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
         customerCollectionMode: session.customerCollectionMode as any,
         prefillCustomer: session.prefillCustomer as any,
         metadata: session.metadata as any,
+        environment: session.environment as any,
         updatedAt: session.updatedAt,
       },
       create: {
@@ -23,6 +24,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
         storeId: session.storeId,
         amount: session.amount,
         currency: session.currency,
+        environment: session.environment as any,
         description: session.description,
         customerCollectionMode: session.customerCollectionMode as any,
         prefillCustomer: session.prefillCustomer as any,
@@ -34,6 +36,22 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
         status: session.status as any,
         createdAt: session.createdAt,
         updatedAt: session.updatedAt,
+        items: {
+          create: session.items.map((item) => ({
+            id: item.id ?? crypto.randomUUID(),
+            productId: item.productId ?? null,
+            productExternalId: item.productExternalId ?? null,
+            name: item.name,
+            description: item.description ?? null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            imageUrl: item.imageUrl ?? null,
+            metadata: item.metadata as any,
+            createdAt: item.createdAt ?? new Date(),
+            updatedAt: item.updatedAt ?? new Date(),
+          })),
+        },
       },
     });
   }
@@ -41,6 +59,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
   async findById(id: string): Promise<DomainCheckoutSession | null> {
     const prismaSession = await this.prisma.checkoutSession.findUnique({
       where: { id },
+      include: this.includeItems(),
     });
 
     if (!prismaSession) return null;
@@ -50,6 +69,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
   async findByToken(token: string): Promise<DomainCheckoutSession | null> {
     const prismaSession = await this.prisma.checkoutSession.findUnique({
       where: { checkoutToken: token },
+      include: this.includeItems(),
     });
 
     if (!prismaSession) return null;
@@ -105,18 +125,24 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
   async findByPaymentId(paymentId: string): Promise<DomainCheckoutSession | null> {
     const prismaSession = await this.prisma.checkoutSession.findUnique({
       where: { paymentId },
+      include: this.includeItems(),
     });
 
     if (!prismaSession) return null;
     return this.toDomain(prismaSession);
   }
 
-  private toDomain(prismaSession: CheckoutSession): DomainCheckoutSession {
+  private includeItems() {
+    return { items: { orderBy: { createdAt: 'asc' as const } } };
+  }
+
+  private toDomain(prismaSession: CheckoutSession & { items?: any[] }): DomainCheckoutSession {
     return DomainCheckoutSession.create({
       id: prismaSession.id,
       storeId: prismaSession.storeId,
       amount: prismaSession.amount,
       currency: prismaSession.currency,
+      environment: (prismaSession as any).environment,
       description: prismaSession.description ?? undefined,
       customerCollectionMode: prismaSession.customerCollectionMode as any,
       prefillCustomer:
@@ -128,6 +154,20 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
       successUrl: prismaSession.successUrl ?? undefined,
       cancelUrl: prismaSession.cancelUrl ?? undefined,
       metadata: (prismaSession.metadata as Record<string, unknown>) ?? undefined,
+      items: (prismaSession.items ?? []).map((item) => ({
+        id: item.id,
+        productId: item.productId ?? undefined,
+        productExternalId: item.productExternalId ?? undefined,
+        name: item.name,
+        description: item.description ?? undefined,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        imageUrl: item.imageUrl ?? undefined,
+        metadata: (item.metadata as Record<string, unknown>) ?? undefined,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })),
       createdAt: prismaSession.createdAt,
       updatedAt: prismaSession.updatedAt,
     });

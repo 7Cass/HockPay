@@ -17,12 +17,23 @@ export interface CheckoutPayment {
   amount: number;
   currency: string;
   description?: string;
+  items?: CheckoutLineItem[];
   status: PaymentStatus;
   environment: Environment;
   pixCharge?: PixCharge;
   expiresAt: string;
   paidAt?: string;
   createdAt: string;
+}
+
+export interface CheckoutLineItem {
+  id?: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  imageUrl?: string;
 }
 
 export interface PixCharge {
@@ -39,6 +50,7 @@ export interface CheckoutSession {
   amount: number;
   currency: string;
   description: string | null;
+  items: CheckoutLineItem[];
   customerCollectionMode: CustomerCollectionMode;
   customerInputState: CheckoutSessionCustomerInputState;
   status: SessionStatus;

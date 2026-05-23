@@ -2,6 +2,7 @@ export * from "./repositories/outbox.repository";
 export * from "./repositories/payment.repository";
 export * from "./repositories/pix-charge.repository";
 export * from "./repositories/payment-link.repository";
+export * from "./repositories/product.repository";
 export * from "./repositories/customer.repository";
 export * from "./repositories/merchant.repository";
 export * from "./repositories/refresh-token.repository";

@@ -7,6 +7,7 @@ import {
   PaymentStatus,
   Environment,
   PixChargeStatus,
+  LineItemObject,
 } from "@hockpay/core";
 import {
   PrismaClient,
@@ -59,6 +60,27 @@ export class PaymentRepository implements IPaymentRepository {
         createdAt: payment.createdAt,
         updatedAt: payment.updatedAt,
       },
+    });
+  }
+
+  async saveItems(paymentId: string, items: LineItemObject[]): Promise<void> {
+    if (items.length === 0) return;
+    await this.prisma.paymentItem.createMany({
+      data: items.map((item) => ({
+        id: item.id ?? crypto.randomUUID(),
+        paymentId,
+        productId: item.productId ?? null,
+        productExternalId: item.productExternalId ?? null,
+        name: item.name,
+        description: item.description ?? null,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        imageUrl: item.imageUrl ?? null,
+        metadata: item.metadata as any,
+        createdAt: item.createdAt ?? new Date(),
+        updatedAt: item.updatedAt ?? new Date(),
+      })),
     });
   }
 
@@ -284,11 +306,14 @@ export class PaymentRepository implements IPaymentRepository {
    * Convert a Prisma Payment to a Domain Payment.
    */
   private includePixCharge() {
-    return { pixCharge: true };
+    return {
+      pixCharge: true,
+      items: { orderBy: { createdAt: "asc" as const } },
+    };
   }
 
   private toDomain(
-    prismaPayment: PrismaPayment & { pixCharge?: any },
+    prismaPayment: PrismaPayment & { pixCharge?: any; items?: any[] },
   ): DomainPayment {
     const props: PaymentProps = {
       id: prismaPayment.id,
@@ -329,6 +354,20 @@ export class PaymentRepository implements IPaymentRepository {
             updatedAt: prismaPayment.pixCharge.updatedAt,
           }
         : undefined,
+      items: (prismaPayment.items ?? []).map((item: any) => ({
+        id: item.id,
+        productId: item.productId ?? undefined,
+        productExternalId: item.productExternalId ?? undefined,
+        name: item.name,
+        description: item.description ?? undefined,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        imageUrl: item.imageUrl ?? undefined,
+        metadata: (item.metadata as Record<string, unknown>) ?? undefined,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })),
       expiresAt: prismaPayment.expiresAt,
       paidAt: prismaPayment.paidAt ?? undefined,
       releasedAt: prismaPayment.releasedAt ?? undefined,

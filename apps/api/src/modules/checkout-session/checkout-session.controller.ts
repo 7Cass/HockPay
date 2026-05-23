@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Param, Req, HttpCode, HttpStatus, UseGuards, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { FulfillCheckoutSessionDto } from './dtos/fulfill-checkout-session.dto';
-import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase, StoreNotFoundError, StoreInactiveError, StoreNotApprovedError, CustomerIdentityConflictError, Environment } from '@hockpay/core';
+import { CreateCheckoutSessionUseCase, GetCheckoutSessionUseCase, FulfillCheckoutSessionUseCase, StoreNotFoundError, StoreInactiveError, StoreNotApprovedError, CustomerIdentityConflictError, Environment, InvalidLineItemsError, ProductNotFoundError, ProductUnavailableError } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import type { Request } from 'express';
@@ -26,7 +26,9 @@ export class CheckoutSessionController {
 
       return await this.createUseCase.execute({
         storeId,
+        environment: ((req as any)?.environment ?? Environment.TEST) as Environment,
         amount: dto.amount,
+        items: dto.items as any,
         description: dto.description,
         customerCollectionMode: dto.customerCollectionMode,
         prefillCustomer: dto.prefillCustomer,
@@ -36,8 +38,13 @@ export class CheckoutSessionController {
         metadata: dto.metadata,
       });
     } catch (e: any) {
-      if (e instanceof StoreNotFoundError) throw new NotFoundException(e.message);
-      if (e instanceof StoreInactiveError || e instanceof StoreNotApprovedError) throw new UnprocessableEntityException(e.message);
+      if (e instanceof StoreNotFoundError || e instanceof ProductNotFoundError) throw new NotFoundException(e.message);
+      if (
+        e instanceof StoreInactiveError ||
+        e instanceof StoreNotApprovedError ||
+        e instanceof ProductUnavailableError ||
+        e instanceof InvalidLineItemsError
+      ) throw new UnprocessableEntityException(e.message);
       throw e;
     }
   }

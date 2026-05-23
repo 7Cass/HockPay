@@ -1,5 +1,6 @@
 import { Receipt, ReceiptObject } from "../../domain/entities/receipt.entity";
 import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
+import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
 import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.error";
 
 export interface IGetReceiptInput {
@@ -14,7 +15,10 @@ export interface IGetReceiptOutput {
 }
 
 export class GetReceiptUseCase {
-  constructor(private readonly receiptRepository: IReceiptRepository) {}
+  constructor(
+    private readonly receiptRepository: IReceiptRepository,
+    private readonly paymentRepository?: IPaymentRepository,
+  ) {}
 
   async execute(input: IGetReceiptInput): Promise<IGetReceiptOutput> {
     let receipt: Receipt | null = null;
@@ -41,8 +45,19 @@ export class GetReceiptUseCase {
       );
     }
 
+    return { receipt: await this.toReceiptObject(receipt) };
+  }
+
+  private async toReceiptObject(receipt: Receipt): Promise<ReceiptObject> {
+    const object = receipt.toObject();
+    if (!this.paymentRepository) return object;
+    const payment = await this.paymentRepository.findByIdAndStoreId(
+      receipt.paymentId,
+      receipt.storeId,
+    );
     return {
-      receipt: receipt.toObject(),
+      ...object,
+      items: payment?.items ?? [],
     };
   }
 }

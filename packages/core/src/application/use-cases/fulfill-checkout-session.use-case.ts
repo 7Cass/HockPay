@@ -82,8 +82,9 @@ export class FulfillCheckoutSessionUseCase {
         customer,
         requestId: input.requestId,
         customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
-        environment: input.environment,
+        environment: session.environment ?? input.environment,
         metadata: session.metadata ?? undefined,
+        items: session.items,
         expiresAt: session.expiresAt,
       };
       const paymentResult = await this.createPaymentUseCase.executeInTransaction(

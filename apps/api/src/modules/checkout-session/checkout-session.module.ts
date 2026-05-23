@@ -5,9 +5,11 @@ import {
   GetCheckoutSessionUseCase,
   FulfillCheckoutSessionUseCase,
   IUnitOfWork,
+  LineItemResolverService,
 } from '@hockpay/core';
 import {
   CheckoutSessionRepository,
+  ProductRepository,
   StoreRepository,
   UnitOfWork,
 } from '@hockpay/infrastructure';
@@ -37,24 +39,42 @@ import { JwtService } from 'src/infra/services/jwt.service';
       inject: [PrismaService],
     },
     {
+      provide: ProductRepository,
+      useFactory: (prisma: PrismaService) => new ProductRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: LineItemResolverService,
+      useFactory: (productRepo: ProductRepository) =>
+        new LineItemResolverService(productRepo),
+      inject: [ProductRepository],
+    },
+    {
       provide: 'IUnitOfWork',
       useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
       inject: [PrismaService],
     },
     {
       provide: CreateCheckoutSessionUseCase,
-      useFactory: (sessionRepo: any, storeRepo: any, tokenGenerator: any) => {
+      useFactory: (
+        sessionRepo: any,
+        storeRepo: any,
+        tokenGenerator: any,
+        lineItemResolver: LineItemResolverService,
+      ) => {
         return new CreateCheckoutSessionUseCase(
           sessionRepo,
           storeRepo,
           tokenGenerator,
           process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
+          lineItemResolver,
         );
       },
       inject: [
         'ICheckoutSessionRepository',
         StoreRepository,
         TokenGeneratorService,
+        LineItemResolverService,
       ],
     },
     {

@@ -13,6 +13,7 @@ import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { StoreModule } from './modules/store/store.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ProductModule } from './modules/product/product.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module';
 import { AccountModule } from './modules/account/account.module';
@@ -87,6 +88,7 @@ import { randomUUID } from 'crypto';
     ApiKeyModule,
     StoreModule,
     CustomerModule,
+    ProductModule,
     PaymentModule,
     WebhookModule,
     IdempotencyModule,

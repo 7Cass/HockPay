@@ -3,6 +3,7 @@ import {
   PaymentObject,
   PaymentMethod,
 } from "../../domain/entities/payment.entity";
+import { LineItemObject } from "../../domain/entities/line-item.entity";
 import { PixCharge } from "../../domain/entities/pix-charge.entity";
 import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
 import { Document } from "../../domain/value-objects/document.vo";
@@ -62,6 +63,7 @@ export interface ICreatePaymentInput {
   acquirerId?: string;
   expiresAt?: Date;
   metadata?: Record<string, unknown>;
+  items?: LineItemObject[];
 }
 
 /**
@@ -291,12 +293,16 @@ export class CreatePaymentUseCase {
       paymentDetails: input.paymentDetails,
       acquirerId: input.acquirerId,
       pixCharge: pixCharge.toObject(),
+      items: input.items ?? [],
       expiresAt,
       metadata: input.metadata,
     });
 
     // 8. Persist Payment
     await paymentRepository.save(payment);
+    if (input.items?.length) {
+      await paymentRepository.saveItems(payment.id, input.items);
+    }
 
     // 9. Create outbox event for webhook notification
     const outboxEvent = OutboxEvent.create({

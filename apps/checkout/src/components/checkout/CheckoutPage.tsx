@@ -10,6 +10,7 @@ import { CopyPasteButton } from './CopyPasteButton';
 import { Timer } from './Timer';
 import { AmountDisplay } from './AmountDisplay';
 import { DevSimulateButton } from './DevSimulateButton';
+import { LineItemsSummary } from './LineItemsSummary';
 import { StatusPoller } from './StatusPoller';
 import { fulfillCheckoutSession } from '@/lib/api-client';
 import type { CheckoutSession, PaymentStatus } from '@/types/checkout';
@@ -90,6 +91,8 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
       {session.description && (
         <p className="text-center text-gray-600 mb-4">{session.description}</p>
       )}
+
+      <LineItemsSummary items={session.items} currency={session.currency} />
 
       <div className="flex justify-center mb-4">
         <Timer expiresAt={session.expiresAt} onExpire={() => handleSessionChange({ ...session, status: 'EXPIRED' })} />
@@ -213,6 +216,8 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
             {session.description && (
               <p className="text-center text-gray-600 mb-4">{session.description}</p>
             )}
+
+            <LineItemsSummary items={payment.items ?? session.items} currency={session.currency} />
 
             <div className="flex justify-center mb-4">
               <Timer expiresAt={payment.expiresAt} onExpire={() => handleSessionChange({ ...session, payment: { ...payment, status: 'EXPIRED' } })} />

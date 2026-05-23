@@ -6,6 +6,7 @@ import {
 import { Environment } from "../value-objects/environment.vo";
 import { InvalidPaymentStatusError } from "../errors/invalid-payment-status.error";
 import { PixChargeObject } from "./pix-charge.entity";
+import { LineItemObject } from "./line-item.entity";
 
 export enum PaymentMethod {
   PIX = "PIX",
@@ -41,6 +42,7 @@ export class Payment {
   private readonly _acquirerId?: string;
   private _totalRefunded: number;
   private readonly _pixCharge?: PixChargeObject;
+  private readonly _items: LineItemObject[];
   private readonly _expiresAt: Date;
   private _paidAt?: Date;
   private _releasedAt?: Date;
@@ -70,6 +72,7 @@ export class Payment {
     this._acquirerId = props.acquirerId;
     this._totalRefunded = props.totalRefunded ?? 0;
     this._pixCharge = props.pixCharge;
+    this._items = props.items ?? [];
     this._expiresAt = props.expiresAt;
     this._paidAt = props.paidAt;
     this._releasedAt = props.releasedAt;
@@ -105,6 +108,7 @@ export class Payment {
       acquirerId: props.acquirerId,
       totalRefunded: 0,
       pixCharge: props.pixCharge,
+      items: props.items,
       expiresAt: props.expiresAt,
       metadata: props.metadata,
       createdAt: new Date(),
@@ -200,6 +204,10 @@ export class Payment {
 
   get pixCharge(): PixChargeObject | undefined {
     return this._pixCharge;
+  }
+
+  get items(): LineItemObject[] {
+    return this._items;
   }
 
   get expiresAt(): Date {
@@ -383,6 +391,7 @@ export class Payment {
       acquirerId: this._acquirerId,
       totalRefunded: this._totalRefunded,
       pixCharge: this._pixCharge,
+      items: this._items,
       expiresAt: this._expiresAt,
       paidAt: this._paidAt,
       releasedAt: this._releasedAt,
@@ -415,6 +424,7 @@ export interface CreatePaymentProps {
   paymentDetails?: Record<string, unknown>;
   acquirerId?: string;
   pixCharge?: PixChargeObject;
+  items?: LineItemObject[];
   expiresAt: Date;
   metadata?: Record<string, unknown>;
 }
@@ -443,6 +453,7 @@ export interface PaymentProps {
   acquirerId?: string;
   totalRefunded?: number;
   pixCharge?: PixChargeObject;
+  items?: LineItemObject[];
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;
@@ -481,6 +492,7 @@ export interface PaymentObject {
   acquirerId?: string;
   totalRefunded: number;
   pixCharge?: PixChargeObject;
+  items?: LineItemObject[];
   expiresAt: Date;
   paidAt?: Date;
   releasedAt?: Date;

@@ -1,4 +1,4 @@
-import { ReceiptStatus } from '@hockpay/core';
+import { LineItemObject, ReceiptStatus } from '@hockpay/core';
 
 export class ReceiptResponseDto {
   id: string;
@@ -16,6 +16,7 @@ export class ReceiptResponseDto {
   netAmount: number;
   currency: string;
   description?: string;
+  items?: LineItemObject[];
   status: ReceiptStatus;
   issuedAt: Date;
   createdAt: Date;

@@ -1,3 +1,6 @@
+import { LineItemObject } from './line-item.entity';
+import { Environment } from '../value-objects/environment.vo';
+
 export type SessionStatus = 'OPEN' | 'COMPLETED' | 'EXPIRED';
 export enum CustomerCollectionMode {
   IDENTIFIED = 'IDENTIFIED',
@@ -16,6 +19,7 @@ export interface CheckoutSessionProps {
   storeId: string;
   amount: number;
   currency?: string;
+  environment?: Environment;
   description?: string;
   customerCollectionMode?: CustomerCollectionMode;
   prefillCustomer?: CheckoutSessionPrefillCustomer | null;
@@ -26,6 +30,7 @@ export interface CheckoutSessionProps {
   successUrl?: string;
   cancelUrl?: string;
   metadata?: Record<string, unknown>;
+  items?: LineItemObject[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -35,6 +40,7 @@ export interface CheckoutSessionObject {
   storeId: string;
   amount: number;
   currency: string;
+  environment: Environment;
   description: string | null;
   customerCollectionMode: CustomerCollectionMode;
   prefillCustomer: CheckoutSessionPrefillCustomer | null;
@@ -45,6 +51,7 @@ export interface CheckoutSessionObject {
   successUrl: string | null;
   cancelUrl: string | null;
   metadata: Record<string, unknown> | null;
+  items: LineItemObject[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +64,7 @@ export class CheckoutSession {
       ...props,
       id: props.id ?? crypto.randomUUID(),
       currency: props.currency ?? 'BRL',
+      environment: props.environment ?? Environment.TEST,
       description: props.description ?? null,
       customerCollectionMode:
         props.customerCollectionMode ?? CustomerCollectionMode.IDENTIFIED,
@@ -66,6 +74,7 @@ export class CheckoutSession {
       successUrl: props.successUrl ?? null,
       cancelUrl: props.cancelUrl ?? null,
       metadata: props.metadata ?? null,
+      items: props.items ?? [],
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     } as Required<CheckoutSessionProps>;
@@ -80,6 +89,7 @@ export class CheckoutSession {
   get storeId(): string { return this.props.storeId; }
   get amount(): number { return this.props.amount; }
   get currency(): string { return this.props.currency; }
+  get environment(): Environment { return this.props.environment; }
   get description(): string | null { return this.props.description; }
   get customerCollectionMode(): CustomerCollectionMode { return this.props.customerCollectionMode; }
   get prefillCustomer(): CheckoutSessionPrefillCustomer | null { return this.props.prefillCustomer; }
@@ -90,6 +100,7 @@ export class CheckoutSession {
   get successUrl(): string | null { return this.props.successUrl; }
   get cancelUrl(): string | null { return this.props.cancelUrl; }
   get metadata(): Record<string, unknown> | null { return this.props.metadata; }
+  get items(): LineItemObject[] { return this.props.items; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
 

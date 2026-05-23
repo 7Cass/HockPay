@@ -1,5 +1,6 @@
 import { ReceiptObject } from "../../domain/entities/receipt.entity";
 import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
+import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
 
 export interface IListReceiptsInput {
   storeId: string;
@@ -18,7 +19,10 @@ export interface IListReceiptsOutput {
 }
 
 export class ListReceiptsUseCase {
-  constructor(private readonly receiptRepository: IReceiptRepository) {}
+  constructor(
+    private readonly receiptRepository: IReceiptRepository,
+    private readonly paymentRepository?: IPaymentRepository,
+  ) {}
 
   async execute(input: IListReceiptsInput): Promise<IListReceiptsOutput> {
     const page = input.page ?? 1;
@@ -35,7 +39,20 @@ export class ListReceiptsUseCase {
     );
 
     return {
-      receipts: result.items.map((r) => r.toObject()),
+      receipts: await Promise.all(
+        result.items.map(async (receipt) => {
+          const object = receipt.toObject();
+          if (!this.paymentRepository) return object;
+          const payment = await this.paymentRepository.findByIdAndStoreId(
+            receipt.paymentId,
+            receipt.storeId,
+          );
+          return {
+            ...object,
+            items: payment?.items ?? [],
+          };
+        }),
+      ),
       total: result.total,
       page,
       limit,

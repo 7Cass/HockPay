@@ -7,6 +7,7 @@ import {
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { LineItemObject } from '../../domain/entities/line-item.entity';
 
 export interface CheckoutSessionCustomerInputState {
   hasDocument: boolean;
@@ -22,6 +23,7 @@ export interface IGetCheckoutSessionOutput {
   amount: number;
   currency: string;
   description: string | null;
+  items: PublicLineItem[];
   customerCollectionMode: CustomerCollectionMode;
   customerInputState: CheckoutSessionCustomerInputState;
   status: string;
@@ -64,7 +66,7 @@ export class GetCheckoutSessionUseCase {
     if (session.paymentId) {
       const payment = await this.paymentRepository.findById(session.paymentId);
       if (payment) {
-        paymentObj = payment.toObject();
+        paymentObj = toPublicPaymentObject(payment.toObject());
       }
     }
 
@@ -73,6 +75,7 @@ export class GetCheckoutSessionUseCase {
       amount: session.amount,
       currency: session.currency,
       description: session.description,
+      items: session.items.map(toPublicLineItem),
       customerCollectionMode: session.customerCollectionMode,
       customerInputState: buildCustomerInputState(session.prefillCustomer),
       status: session.status,
@@ -86,6 +89,33 @@ export class GetCheckoutSessionUseCase {
       cancelUrl: session.cancelUrl,
     };
   }
+}
+
+type PublicLineItem = Pick<
+  LineItemObject,
+  "id" | "name" | "description" | "quantity" | "unitPrice" | "totalPrice" | "imageUrl"
+>;
+
+function toPublicLineItem(item: LineItemObject): PublicLineItem {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+    imageUrl: item.imageUrl,
+  };
+}
+
+function toPublicPaymentObject(payment: PaymentObject): PaymentObject {
+  return {
+    ...payment,
+    metadata: undefined,
+    items: (payment.items ?? []).map((item) => ({
+      ...toPublicLineItem(item),
+    })),
+  };
 }
 
 function buildCustomerInputState(

@@ -1,3 +1,5 @@
+import { LineItemObject } from "./line-item.entity";
+
 /**
  * Domain Entity: Receipt
  *
@@ -239,4 +241,5 @@ export interface ReceiptObject {
   issuedAt: Date;
   createdAt: Date;
   updatedAt: Date;
+  items?: LineItemObject[];
 }

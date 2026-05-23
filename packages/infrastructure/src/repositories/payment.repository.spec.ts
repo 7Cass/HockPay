@@ -21,7 +21,7 @@ describe("PaymentRepository", () => {
     );
     expect(prisma.payment.findUnique).toHaveBeenCalledWith({
       where: { id: "payment-1" },
-      include: { pixCharge: true },
+      include: { pixCharge: true, items: { orderBy: { createdAt: "asc" } } },
     });
     expect(payment?.id).toBe("payment-1");
     expect(payment?.totalRefunded).toBe(2_500);
@@ -55,7 +55,7 @@ describe("PaymentRepository", () => {
         id: "payment-1",
         storeId: "store-1",
       },
-      include: { pixCharge: true },
+      include: { pixCharge: true, items: { orderBy: { createdAt: "asc" } } },
     });
     expect(payment?.id).toBe("payment-1");
   });
