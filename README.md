@@ -28,7 +28,7 @@ Para variáveis de ambiente por app e opções de smoke local, use a matriz do [
 
 | Caminho | Papel |
 | --- | --- |
-| `apps/api` | API REST com auth, stores, payments, Payment Links, checkout sessions, webhooks, alerts, receipts, financials, bank accounts e withdrawals. |
+| `apps/api` | API REST com auth, stores, products, payments, Payment Links, checkout sessions, webhooks, alerts, receipts, financials, bank accounts e withdrawals. |
 | `apps/worker` | Jobs assincronos com BullMQ/Redis: outbox, webhooks, alertas, expiracao, settlement, saques simulados e limpeza. |
 | `apps/web` | Landing, auth e dashboard do merchant. |
 | `apps/checkout` | Checkout do comprador para checkout sessions e Payment Links publicos. |
@@ -40,11 +40,13 @@ Para variáveis de ambiente por app e opções de smoke local, use a matriz do [
 ## Capacidades Atuais
 
 - Pagamentos Pix simulados com idempotencia, customer on-the-fly, receipt, timeline e webhooks.
-- Payment Links publicos em `/pay/:token`, com `PixCharge` e tentativas de pagamento.
-- Checkout sessions hospedadas para demos e integracoes.
-- Dashboard para payments, customers, API keys, webhooks, alerts, receipts, financials e withdrawals.
+- Products como catalogo opcional store-scoped para checkout sessions, separado por TEST/LIVE.
+- Payment Links publicos em `/pay/:token`, com `PixCharge` e tentativas de pagamento por valor avulso.
+- Checkout sessions hospedadas para demos e integracoes, com valor direto ou itens de produtos.
+- Dashboard para payments, customers, products, API keys, webhooks, alerts, receipts, financials e withdrawals.
 - Saques simulados com bank accounts, reserva de saldo, ledger, summary, timeline, worker e acoes TEST.
-- Products/catalog e settings ainda sao parciais; marketplace, split e multi-seller estao fora do escopo atual.
+- `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items` neste corte.
+- Settings ainda e parcial; marketplace, split e multi-seller estao fora do escopo atual.
 
 ## Smokes
 

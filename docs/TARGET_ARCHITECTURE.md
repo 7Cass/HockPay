@@ -18,14 +18,14 @@ Este documento descreve direcao futura. Ele nao substitui `docs/CURRENT_STATE.md
 | Dominio financeiro | Manter `Account`, `Transaction`, `Refund`, `Receipt`, `BankAccount` e `Withdrawal` coerentes entre core, Prisma, API e dashboard. |
 | Outbox e webhooks | Tratar outbox como contrato interno estavel para eventos de payments, refunds, withdrawals e alerts. |
 | Infra compartilhada | Reduzir duplicacao entre API/worker movendo adapters reutilizaveis para `packages/infrastructure` quando fizer sentido. |
-| Frontend | Completar ou esconder telas que ainda sao placeholder; evitar prometer backend inexistente. |
+| Frontend | Completar ou esconder telas que ainda sao placeholder; evitar prometer backend inexistente. Products ja deve ser tratado como tela real de catalogo. |
 | Observabilidade | Fortalecer trilhas por `requestId`, `outboxEventId`, `deliveryId`, aggregate id e status de jobs. |
 
 ## Produto Futuro
 
 | Tema | Status alvo |
 | --- | --- |
-| Products/catalog | Decidir entre implementar end-to-end ou remover do escopo visivel. |
+| Products/catalog | Evoluir depois do MVP para estoque, variantes, tags/categorias e storefront se houver PRD dedicado. |
 | Settings | Transformar em configuracao real ou manter como leitura limitada. |
 | Withdrawals | Adicionar politicas administrativas, auditoria e modos de aprovacao quando houver necessidade. |
 | Metodos de pagamento alem de Pix | Exigem desenho de simuladores proprios antes de aparecerem como prontos. |
@@ -45,4 +45,3 @@ Este documento descreve direcao futura. Ele nao substitui `docs/CURRENT_STATE.md
 - Payout bancario real.
 - Gate de CI com smokes Docker enquanto API/worker/checkout ainda rodam como processos Node no host.
 - Marketplace/split/multi-seller sem PRD dedicado.
-

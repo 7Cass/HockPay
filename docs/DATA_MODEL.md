@@ -7,8 +7,8 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 | Grupo | Entidades | Cobertura runtime |
 | --- | --- | --- |
 | Identidade | `Merchant`, `RefreshToken`, `ApiKey`, `IdempotencyKey` | Implementada. |
-| Negocio | `Store`, `Customer`, `CheckoutSession`, `PaymentLink` | Implementada, exceto catalogo. |
-| Pagamento | `Payment`, `PixCharge`, `PaymentItem`, `Product` | `Payment`/`PixCharge` implementados; `Product`/`PaymentItem` parciais. |
+| Negocio | `Store`, `Customer`, `CheckoutSession`, `PaymentLink` | Implementada. |
+| Pagamento | `Payment`, `PixCharge`, `PaymentItem`, `Product` | Implementada para Pix simulado, catalogo opcional e snapshots de itens. |
 | Financeiro | `Account`, `Transaction`, `Refund`, `Receipt`, `ReceiptCounter`, `BankAccount`, `Withdrawal` | Implementada para saldos, ledger, receipts, refunds, bank accounts e withdrawals simulados. |
 | Integracao | `WebhookConfig`, `WebhookLog`, `WebhookInboxEvent`, `OutboxEvent` | Implementada. |
 | Alertas | `AlertConfig`, `AlertDeliveryLog` | Implementada para alerta operacional. |
@@ -33,12 +33,14 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 
 - `PaymentLink` referencia uma `PixCharge` unica.
 - `publicToken` e usado pelo checkout publico em `/pay/:token`.
+- E criado com `amount` direto; nao possui items no contrato atual.
 - Falhas criam tentativas `Payment` sem encerrar a `PixCharge`.
 - Pagamento bem-sucedido fecha a `PixCharge` como `PAID`.
 
 ### CheckoutSession
 
 - `CheckoutSession` guarda token, valor, URLs de retorno, estado e opcionalmente `Payment`.
+- Pode ser criada com `amount` direto ou com `items`; se `items` existir, o valor e derivado dos subtotais.
 - `fulfill` cria/submete pagamento conforme o modo de coleta de customer.
 
 ### BankAccount e Withdrawal
@@ -70,10 +72,15 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 
 ### Product e PaymentItem
 
-- `Product` e `PaymentItem` existem no schema.
-- O dashboard tem rota visual de products.
-- Nao ha slice consolidado de catalogo no backend/core/API.
-- O fluxo atual de pagamento nao depende de itens de carrinho.
+- `Product` pertence a uma store e a um environment (`TEST`/`LIVE`).
+- `externalId` e unico por `storeId + environment` quando informado.
+- `price` e obrigatorio em centavos, com moeda publica fixa `BRL`.
+- `metadata`, `imageUrl`, `description` e `isActive` apoiam catalogo operacional.
+- Produto arquivado usa `isActive=false` e nao pode ser usado em novas cobrancas.
+- `CheckoutSessionItem` guarda snapshots dos itens no momento da criacao da checkout session.
+- `PaymentItem` guarda o snapshot final em cada `Payment`, incluindo `productId`, `productExternalId`, `imageUrl` e metadata propria do item.
+- Metadata do produto nao e copiada automaticamente para o item.
+- `POST /api/v1/payments` continua API direta de baixo nivel e nao aceita `items` neste corte.
 
 ## Regras Financeiras Atuais
 
@@ -91,8 +98,6 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 
 ## Gaps Schema vs Runtime
 
-- `Product`/`PaymentItem` ainda precisam ser implementados de ponta a ponta ou removidos do escopo visivel.
 - `PaymentMethod` aceita metodos alem de Pix, mas nao ha processadores reais para cartao, boleto ou debito.
 - Settings nao possui modelo completo de configuracao mutavel.
 - Marketplace, split e multi-seller nao estao modelados como produto atual.
-

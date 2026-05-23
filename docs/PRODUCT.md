@@ -37,10 +37,17 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 
 ### Payment Link
 
-1. Merchant cria um link de cobranca.
+1. Merchant cria um link de cobranca com valor direto.
 2. Comprador acessa `/pay/:token`.
 3. Cada falha/pagamento vira uma tentativa `Payment` ligada a uma `PixCharge`.
 4. Dashboard permite acompanhar o link, tentativas e conversao.
+
+### Catalogo de Products
+
+1. Merchant cria produtos vendaveis em `/dashboard/products` ou via `/api/v1/products`.
+2. Integrador cria checkout sessions com `items` pela API, referenciando produtos por `productId`.
+3. Checkout publico mostra resumo compacto dos itens sem metadata privada.
+4. Pagamento final recebe snapshots em `PaymentItem`, visiveis em APIs autenticadas, recibos e webhooks.
 
 ### Operacao financeira simulada
 
@@ -60,7 +67,7 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 | Financials read-only | Pronto para consulta de saldo/extrato. |
 | Withdrawals simulados | Pronto para API e dashboard em TEST/local. |
 | Alerts | Pronto para configuracao operacional basica. |
-| Products/catalog | Placeholder/parcial. |
+| Products/catalog | Pronto como catalogo opcional para checkout sessions. |
 | Settings | Parcial/read-only. |
 | Marketplace/split/multi-seller | Fora do produto atual. |
 
@@ -77,4 +84,3 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 - Tempo ate primeiro webhook entregue.
 - Numero de demos/study-cases que rodam com `smoke:docker`.
 - Capacidade de investigar um caso pelo dashboard sem abrir o banco.
-

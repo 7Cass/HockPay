@@ -20,6 +20,7 @@ Aplicação Next.js orientada ao comprador final. Ela cobre o checkout hospedado
 4. O comprador envia dados mínimos do customer.
 5. O app chama `POST /api/v1/checkout-sessions/:token/fulfill`.
 6. Se o checkout estiver em dev mode, a UI pode chamar `POST /api/v1/payments/:id/simulate/:action` com `checkoutToken` no body.
+7. Quando a sessão tiver `items`, a UI mostra resumo compacto com nome, descrição, quantidade, preço, subtotal e imagem opcional.
 
 ## Fluxo de Payment Link
 
@@ -28,6 +29,7 @@ Aplicação Next.js orientada ao comprador final. Ela cobre o checkout hospedado
 3. O app busca `GET /api/v1/payment-links/public/:token`.
 4. Em TEST, a UI pode chamar `POST /api/v1/payment-links/public/:token/pay` ou `/fail`.
 5. O backend registra cada tentativa como `Payment` ligada à `PixCharge` do link.
+6. Payment Link e sempre cobrança por valor; resumo de itens aparece apenas em checkout sessions itemizadas.
 
 ## Contratos Relevantes
 
@@ -63,6 +65,7 @@ Esse endpoint público aceita `confirm`, `fail` e `expire`. Ele não substitui o
 - O README antigo dizia que a tela era montada a partir de `GET /payments/:id`; isso não representa o fluxo atual.
 - A UI foi desenhada para polling/sincronização de status.
 - Payment Link e checkout session sao fluxos separados, ambos simulados.
+- Metadata de items de checkout session nao aparece no checkout publico; ela fica restrita a APIs autenticadas e webhooks.
 
 ## Documentação Canônica
 

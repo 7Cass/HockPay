@@ -8,7 +8,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | --- | --- |
 | `apps/api` | API NestJS em `http://localhost:3000/api/v1`, com cookie JWT para dashboard, API keys para integracoes e `CombinedAuthGuard` nos endpoints que aceitam os dois modos. |
 | `apps/worker` | Worker NestJS separado com BullMQ/Redis, dispatcher de outbox, entrega de webhooks, alertas, expiracao, settlement, saques simulados e limpezas periodicas. |
-| `apps/web` | Angular unico para landing, auth e dashboard do merchant. Inclui overview, payments, Payment Links, receipts, customers, API keys, webhooks, alerts, financials, withdrawals, products placeholder e settings parcial. |
+| `apps/web` | Angular unico para landing, auth e dashboard do merchant. Inclui overview, payments, Payment Links, products, receipts, customers, API keys, webhooks, alerts, financials, withdrawals e settings parcial. |
 | `apps/checkout` | Checkout Next.js para comprador, com fluxo de checkout session e rota publica de Payment Link em `/pay/:token`. |
 | `apps/demo-mediakit` | Study-case de referencia com checkout hospedado e webhook assinado. |
 | `packages/core` | Dominio, entidades, erros, portas, services e use cases compartilhados. |
@@ -25,7 +25,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Metodos card/boleto/debito | Modelado/parcial | O enum/schema aceita `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas nao ha processador, adquirente ou fluxo real para esses metodos. |
 | Dev simulation | Implementado | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos. |
 | Checkout session | Implementado | API cria sessao, checkout coleta pagador, `fulfill` gera/submete pagamento simulado. |
-| Payment Link | Implementado | Modelo `PaymentLink -> PixCharge -> Payment attempts`; falhas criam tentativas sem fechar a cobranca, pagamento fecha como `PAID`. |
+| Payment Link | Implementado | Modelo `PaymentLink -> PixCharge -> Payment attempts`; falhas criam tentativas sem fechar a cobranca, pagamento confirmado fecha o link como `PAID`. |
 | Webhooks | Implementado | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais. |
 | Alerts | Implementado | Configs e entregas para Discord operacional com logs e retry. |
 | Receipts | Implementado | Recibo emitido para pagamento confirmado, consultavel por API e dashboard. |
@@ -34,7 +34,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Bank accounts | Implementado | API e dashboard para cadastro, listagem, default e remocao com regra de titularidade/documento. |
 | Withdrawals | Implementado | API, dashboard list/detail, summary, filtros, timeline, ledger, worker simulado, acoes TEST e smoke dedicado. |
 | Customer history | Implementado | Endpoints de historico por customer external id para pagamentos e receipts. |
-| Products/catalog | Placeholder/parcial | `Product` e `PaymentItem` existem no schema; dashboard tem tela placeholder; backend/end-to-end de catalogo nao esta consolidado. |
+| Products/catalog | Implementado | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`. |
 | Settings | Parcial/read-only | Tela existe, mas nao deve ser tratada como painel completo de configuracao mutavel. |
 | Marketplace/split/multi-seller | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto. |
 
@@ -50,16 +50,25 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 ### Payment Link
 
-1. Merchant cria link autenticado em `POST /api/v1/payment-links`.
+1. Merchant cria link autenticado em `POST /api/v1/payment-links`, sempre com `amount`.
 2. Comprador abre `apps/checkout` em `/pay/:token`, que consulta `GET /api/v1/payment-links/public/:token`.
-3. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment`.
+3. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` sem items.
 4. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
 
 ### Checkout Session
 
-1. Integrador cria `checkout session`.
+1. Integrador cria `checkout session`, com exatamente um de `amount` ou `items`.
 2. Comprador abre o checkout por token, informa dados minimos e chama `fulfill`.
-3. A API cria/submete pagamento simulado e o checkout acompanha status.
+3. Se houver `items`, cada item referencia um produto existente da store/environment e o checkout publico mostra resumo sem metadata.
+4. A API cria/submete pagamento simulado e o checkout acompanha status.
+
+### Products
+
+1. Merchant ou integrador cria produto em `POST /api/v1/products`.
+2. Produtos sao separados por store e environment; `externalId` e unico dentro de `storeId + environment`.
+3. Produtos arquivados usam `isActive=false` e nao entram em novas cobrancas.
+4. Checkout sessions podem referenciar produtos por `productId`; Payment Links seguem como cobranca avulsa por `amount`.
+5. Produto referenciado gera snapshot de nome, descricao, preco, imagem, `productId` e `productExternalId`; metadata do produto nao e copiada automaticamente.
 
 ### Withdrawals
 
@@ -101,6 +110,5 @@ O default real de `smoke:docker` e `p0,payment-link,p3,studycase,system,withdraw
 - Nao ha adquirencia real, payout real, liquidacao bancaria real ou Pix real.
 - Payment Links e withdrawals sao funcionais como produto de simulacao, nao como dinheiro real.
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
-- Products e PaymentItems ainda nao sao uma feature pronta.
 - Settings nao e painel administrativo completo.
 - Marketplace, split e multi-seller continuam fora do escopo atual.

@@ -26,6 +26,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 | `api-key` | emissão, listagem e revogação de API keys |
 | `customer` | CRUD básico de customers |
 | `customer-history` | histórico de pagamentos e receipts por customer external id |
+| `product` | CRUD de catálogo store-scoped para Payment Links e checkout sessions |
 | `payment` | criação, listagem, leitura, timeline e simulação TEST |
 | `payment-link` | criação/listagem/detalhe/cancelamento e fluxo público de link |
 | `checkout-session` | criação, leitura e fulfill do checkout hospedado |
@@ -49,6 +50,9 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
 - A API cria outbox e agenda jobs, mas a entrega efetiva de webhook depende do worker conectado ao mesmo Redis/PostgreSQL.
 - `paymentMethod` aceita valores modelados alem de `PIX`, mas o runtime nao possui processador real para cartao, boleto ou debito.
+- Products sao opcionais e separados por store/environment; `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items`.
+- Payment Links aceitam apenas `amount`. Se `items` for enviado, a API rejeita o contrato.
+- Checkout sessions aceitam exatamente um de `amount` ou `items`; `items` referencia produtos existentes por `productId` e o total e derivado de `quantity * product.price`.
 
 ## Exemplos Atuais
 
@@ -120,6 +124,61 @@ curl -X POST http://localhost:3000/api/v1/checkout-sessions/{checkout_token}/ful
       "email": "joao@email.com",
       "document": "<CPF_DO_CLIENTE>"
     }
+  }'
+```
+
+### Criar produto e usar em checkout session
+
+```bash
+curl -X POST http://localhost:3000/api/v1/products \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "media-kit-premium",
+    "name": "Media kit premium",
+    "description": "Pacote premium para criadores",
+    "price": 2500,
+    "imageUrl": "https://example.com/media-kit.png",
+    "metadata": {
+      "category": "demo"
+    }
+  }'
+```
+
+Produtos arquivados retornam `isActive=false` e não podem ser usados em novas checkout sessions.
+`externalId` é único por `storeId + environment`. Metadata do produto não é copiada automaticamente para os items; use `items[].metadata` quando precisar de contexto por cobrança.
+
+Checkout session com item de produto:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/checkout-sessions \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Pedido com catálogo",
+    "items": [
+      {
+        "productId": "product_id",
+        "quantity": 2,
+        "metadata": { "line": "catalog" }
+      }
+    ],
+    "successUrl": "http://localhost:3005/success",
+    "cancelUrl": "http://localhost:3005/"
+  }'
+```
+
+`items` aceita apenas `{ "productId": "...", "quantity": 1, "metadata": { ... } }`. Produtos inexistentes, inativos ou de outro environment/store rejeitam a criação. APIs autenticadas e webhooks retornam snapshots completos, incluindo metadata do item; endpoints públicos do checkout não expõem metadata.
+
+Payment Link continua sendo cobrança avulsa por valor:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/payment-links \
+  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 2500,
+    "title": "Compra avulsa"
   }'
 ```
 
