@@ -66,7 +66,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     private readonly cacheService: IdempotencyCacheService,
     @Optional()
     @Inject('IIdempotencyKeyRepository')
-    private readonly repository: IIdempotencyKeyRepository | null,
+    private readonly repository?: IIdempotencyKeyRepository | null,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -94,7 +94,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
             new BadRequestException({
               error: {
                 code: 'IDEMPOTENCY_KEY_REQUIRED',
-                message: 'The Idempotency-Key header is required for this endpoint',
+                message:
+                  'The Idempotency-Key header is required for this endpoint',
               },
             }),
         );
@@ -144,7 +145,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }
 
         // 6. Check PostgreSQL if available
-        if (this.repository !== null) {
+        if (this.repository) {
           return from(
             this.repository.findCompleted(idempotencyKey, storeId),
           ).pipe(

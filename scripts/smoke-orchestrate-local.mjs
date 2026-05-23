@@ -20,7 +20,14 @@ const DEFAULT_APP_PORTS = {
   studycase: 3005,
   webhook: 3999,
 };
-const DEFAULT_SUITES = ["p0", "payment-link", "p3", "studycase", "system", "withdrawals"];
+const DEFAULT_SUITES = [
+  "p0",
+  "payment-link",
+  "p3",
+  "studycase",
+  "system",
+  "withdrawals",
+];
 const HEALTH_TIMEOUT_MS = Number(
   process.env.HOCKPAY_SMOKE_HEALTH_TIMEOUT_MS ?? 90000,
 );
@@ -37,6 +44,10 @@ const suiteCommands = new Map([
   ["system", ["pnpm", ["run", "smoke:system"]]],
   ["withdrawals", ["pnpm", ["run", "smoke:withdrawals"]]],
   ["idempotency", ["pnpm", ["run", "smoke:idempotency"]]],
+  [
+    "idempotency-redis-unavailable",
+    ["pnpm", ["run", "smoke:idempotency-redis-unavailable"]],
+  ],
   ["db-concurrency", ["pnpm", ["run", "smoke:db-concurrency"]]],
 ]);
 
@@ -57,7 +68,10 @@ function randomHex(bytes) {
 function smokePorts() {
   return {
     api: readSmokePort("HOCKPAY_SMOKE_API_PORT", DEFAULT_APP_PORTS.api),
-    worker: readSmokePort("HOCKPAY_SMOKE_WORKER_PORT", DEFAULT_APP_PORTS.worker),
+    worker: readSmokePort(
+      "HOCKPAY_SMOKE_WORKER_PORT",
+      DEFAULT_APP_PORTS.worker,
+    ),
     checkout: readSmokePort(
       "HOCKPAY_SMOKE_CHECKOUT_PORT",
       DEFAULT_APP_PORTS.checkout,
@@ -93,8 +107,7 @@ function smokeEnv(ports = smokePorts()) {
     process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD === undefined;
   const postgresPassword =
     process.env.HOCKPAY_SMOKE_POSTGRES_PASSWORD ?? randomSecret(24);
-  const postgresDb =
-    process.env.HOCKPAY_SMOKE_POSTGRES_DB ?? "hockpay_smoke";
+  const postgresDb = process.env.HOCKPAY_SMOKE_POSTGRES_DB ?? "hockpay_smoke";
 
   return {
     ...process.env,
@@ -112,8 +125,7 @@ function smokeEnv(ports = smokePorts()) {
     REDIS_URL: "redis://127.0.0.1:16379",
     REDIS_HOST: "127.0.0.1",
     REDIS_PORT: "16379",
-    JWT_SECRET:
-      process.env.JWT_SECRET ?? `hockpay-smoke-${randomSecret(48)}`,
+    JWT_SECRET: process.env.JWT_SECRET ?? `hockpay-smoke-${randomSecret(48)}`,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? randomHex(32),
     CHECKOUT_BASE_URL: `http://localhost:${ports.checkout}`,
     HOCKPAY_API_URL: `http://localhost:${ports.api}/api/v1`,
@@ -412,7 +424,11 @@ async function main() {
   const ports = smokePorts();
   const env = smokeEnv(ports);
   const suites = selectedSuites();
-  const apiOnlySuites = new Set(["idempotency", "db-concurrency"]);
+  const apiOnlySuites = new Set([
+    "idempotency",
+    "idempotency-redis-unavailable",
+    "db-concurrency",
+  ]);
   const apiOnly = suites.every((suite) => apiOnlySuites.has(suite));
   const requiredPorts = apiOnly
     ? [...INFRA_PORTS, ports.api]
