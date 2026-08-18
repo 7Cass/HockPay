@@ -30,7 +30,7 @@ export * from "./domain/enums/payment-status.enum";
 export * from "./domain/value-objects/email.vo";
 export * from "./domain/value-objects/document.vo";
 export * from "./domain/value-objects/environment.vo";
-export * from "./domain/value-objects/money.vo";
+
 
 // Domain - Constants
 export * from "./domain/constants/webhook-events";
@@ -41,6 +41,7 @@ export * from "./domain/constants/receipt-events";
 export * from "./domain/errors/domain-error";
 export * from "./domain/errors/invalid-email.error";
 export * from "./domain/errors/invalid-document.error";
+export * from "./domain/errors/customer-document-required.error";
 export * from "./domain/errors/merchant-already-exists.error";
 export * from "./domain/errors/merchant-not-found.error";
 export * from "./domain/errors/invalid-credentials.error";
@@ -62,6 +63,7 @@ export * from "./domain/errors/customer-already-exists.error";
 export * from "./domain/errors/document-already-in-use.error";
 export * from "./domain/errors/customer-identity-conflict.error";
 export * from "./domain/errors/invalid-payment-amount.error";
+export * from "./domain/errors/unsupported-payment-method.error";
 export * from "./domain/errors/invalid-payment-status.error";
 export * from "./domain/errors/payment-not-found.error";
 export * from "./domain/errors/payment-expired.error";
@@ -82,6 +84,17 @@ export * from "./domain/errors/invalid-alert-config.error";
 export * from "./domain/errors/live-environment-not-allowed.error";
 export * from "./domain/errors/receipt-not-found.error";
 export * from "./domain/errors/invalid-refund-amount.error";
+export * from "./domain/errors/invalid-refund-status.error";
+export * from "./domain/errors/checkout-session-not-found.error";
+export * from "./domain/errors/checkout-session-expired.error";
+export * from "./domain/errors/checkout-session-invalid-status.error";
+export * from "./domain/errors/bank-account-holder-mismatch.error";
+export * from "./domain/errors/unauthorized-bank-account-access.error";
+export * from "./domain/errors/receipt-already-cancelled.error";
+export * from "./domain/errors/invalid-simulation-action.error";
+export * from "./domain/errors/payment-link-not-found.error";
+export * from "./domain/errors/payment-link-invalid-expiration.error";
+export * from "./domain/errors/payment-link-unavailable.error";
 export * from "./domain/errors/bank-account-not-found.error";
 export * from "./domain/errors/bank-account-in-use.error";
 export * from "./domain/errors/bank-account-not-verified.error";
@@ -145,6 +158,7 @@ export * from "./application/ports/encryption.port";
 
 // Application - Services
 export * from "./application/services/fee-policy.service";
+export * from "./application/services/pix-merchant-city";
 export * from "./application/services/line-item-resolver.service";
 export * from "./application/services/payment-attempt-context.service";
 export * from "./application/services/webhook-payload-builder.service";

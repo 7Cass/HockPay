@@ -108,6 +108,16 @@ export class StoreRepository implements IStoreRepository {
     });
   }
 
+  async listActiveApproved(): Promise<DomainStore[]> {
+    const rows = await this.prisma.store.findMany({
+      where: {
+        isActive: true,
+        isApproved: true,
+      },
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   private toDomain(data: PrismaStore): DomainStore {
     return DomainStore.reconstitute({
       id: data.id,

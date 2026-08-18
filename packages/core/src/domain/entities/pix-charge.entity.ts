@@ -1,3 +1,5 @@
+import { PixChargeNotOpenError } from "../errors/pix-charge-not-open.error";
+
 export enum PixChargeStatus {
   OPEN = "OPEN",
   PAID = "PAID",
@@ -87,7 +89,7 @@ export class PixCharge {
   markPaid(): void {
     if (this.props.status === PixChargeStatus.PAID) return;
     if (this.props.status !== PixChargeStatus.OPEN) {
-      throw new Error(`Pix charge cannot be paid from ${this.props.status}`);
+      throw new PixChargeNotOpenError(this.props.id, this.props.status);
     }
 
     this.props.status = PixChargeStatus.PAID;

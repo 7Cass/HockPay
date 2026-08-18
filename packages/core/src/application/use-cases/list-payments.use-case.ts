@@ -1,5 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   IPaymentRepository,
   ListPaymentsOptions,
@@ -19,6 +20,7 @@ export interface IListPaymentsInput {
   externalId?: string;
   startDate?: Date;
   endDate?: Date;
+  environment?: Environment;
 }
 
 /**
@@ -50,6 +52,7 @@ export class ListPaymentsUseCase {
       externalId: input.externalId,
       startDate: input.startDate,
       endDate: input.endDate,
+      environment: input.environment,
     };
 
     const result: ListPaymentsResult = await this.paymentRepository.list(options);

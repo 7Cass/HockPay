@@ -7,6 +7,8 @@ import {
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { CheckoutSessionNotFoundError } from '../../domain/errors/checkout-session-not-found.error';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { LineItemObject } from '../../domain/entities/line-item.entity';
 
 export interface CheckoutSessionCustomerInputState {
@@ -48,12 +50,12 @@ export class GetCheckoutSessionUseCase {
     const session = await this.sessionRepository.findByToken(token);
 
     if (!session) {
-      throw new Error('Checkout session not found or invalid token');
+      throw new CheckoutSessionNotFoundError(token);
     }
 
     const store = await this.storeRepository.findById(session.storeId);
     if (!store) {
-      throw new Error('Store associated with this session is invalid');
+      throw new StoreNotFoundError(session.storeId);
     }
 
     // Lazy expiration check

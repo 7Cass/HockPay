@@ -3,6 +3,7 @@ import {
   PixKeyType,
 } from "../../domain/entities/bank-account.entity";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { BankAccountHolderMismatchError } from "../../domain/errors/bank-account-holder-mismatch.error";
 
 export interface CreateBankAccountDto {
   storeId: string;
@@ -26,8 +27,9 @@ export class CreateBankAccountUseCase {
     const cleanMerchantDoc = merchantDocument.replace(/\D/g, "");
 
     if (cleanHolderDoc !== cleanMerchantDoc) {
-      throw new Error(
-        `Holder document (${dto.holderDocument}) does not match merchant document (${merchantDocument}). Third-party accounts are not allowed.`,
+      throw new BankAccountHolderMismatchError(
+        dto.holderDocument,
+        merchantDocument,
       );
     }
 

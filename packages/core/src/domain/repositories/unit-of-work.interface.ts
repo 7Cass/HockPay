@@ -13,6 +13,7 @@ import { IIdempotencyKeyRepository } from "./idempotency-key.repository.interfac
 import { IMerchantRepository } from "./merchant.repository.interface";
 import { ICheckoutSessionRepository } from "./checkout-session.repository.interface";
 import { IPaymentLinkRepository } from "./payment-link.repository.interface";
+import { IProductRepository } from "./product.repository.interface";
 import { IRefreshTokenRepositoryPort } from "../../application/ports/refresh-token-repository.port";
 
 /**
@@ -35,6 +36,7 @@ export interface ITransactedRepositories {
   paymentLinkRepository: IPaymentLinkRepository;
   customerRepository: ICustomerRepository;
   idempotencyKeyRepository: IIdempotencyKeyRepository;
+  productRepository: IProductRepository;
 }
 
 /**

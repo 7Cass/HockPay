@@ -6,6 +6,7 @@ import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { ISlugGeneratorPort } from '../ports/slug-generator.port';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
 
 /**
  * Input DTO for CreateStoreUseCase.
@@ -71,7 +72,7 @@ export class CreateStoreUseCase {
       );
 
       if (!merchant) {
-        throw new Error('Merchant not found');
+        throw new MerchantNotFoundError(input.merchantId);
       }
 
       // 3. Create Store entity (active and approved for MVP/dev mode)

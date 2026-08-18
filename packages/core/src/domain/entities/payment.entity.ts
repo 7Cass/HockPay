@@ -5,6 +5,8 @@ import {
 } from "../enums/payment-status.enum";
 import { Environment } from "../value-objects/environment.vo";
 import { InvalidPaymentStatusError } from "../errors/invalid-payment-status.error";
+import { InvalidRefundAmountError } from "../errors/invalid-refund-amount.error";
+import { InvalidPaymentAmountError } from "../errors/invalid-payment-amount.error";
 import { PixChargeObject } from "./pix-charge.entity";
 import { LineItemObject } from "./line-item.entity";
 
@@ -87,6 +89,8 @@ export class Payment {
    * Use this when creating a brand new payment (not from persistence).
    */
   static create(props: CreatePaymentProps): Payment {
+    assertPaymentAmounts(props.amount, props.fee, props.netAmount);
+
     return new Payment({
       id: crypto.randomUUID(),
       storeId: props.storeId,
@@ -341,10 +345,12 @@ export class Payment {
    */
   addRefund(amount: number): void {
     if (amount <= 0) {
-      throw new Error("Refund amount must be positive");
+      throw new InvalidRefundAmountError("Refund amount must be positive");
     }
     if (this._totalRefunded + amount > this._amount) {
-      throw new Error("Refund amount exceeds payment amount");
+      throw new InvalidRefundAmountError(
+        "Refund amount exceeds payment amount",
+      );
     }
 
     this._totalRefunded += amount;
@@ -400,6 +406,37 @@ export class Payment {
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
+  }
+}
+
+function assertPaymentAmounts(
+  amount: number,
+  fee: number,
+  netAmount: number,
+): void {
+  if (!Number.isInteger(amount) || amount <= 0) {
+    throw new InvalidPaymentAmountError(
+      "Amount must be a positive integer in cents",
+      amount,
+    );
+  }
+  if (!Number.isInteger(fee) || fee < 0) {
+    throw new InvalidPaymentAmountError(
+      "Fee must be a non-negative integer in cents",
+      fee,
+    );
+  }
+  if (!Number.isInteger(netAmount) || netAmount <= 0) {
+    throw new InvalidPaymentAmountError(
+      "Net amount must be a positive integer in cents",
+      netAmount,
+    );
+  }
+  if (amount !== fee + netAmount) {
+    throw new InvalidPaymentAmountError(
+      "Amount must equal fee plus net amount",
+      amount,
+    );
   }
 }
 
@@ -471,11 +508,6 @@ export interface PaymentObject {
   storeId: string;
   customerId?: string;
   pixChargeId?: string;
-  paymentLinkId?: string;
-  paymentOrigin?: string;
-  attemptNumber?: number;
-  attemptCount?: number;
-  isLatestAttempt?: boolean;
   externalId?: string;
   amount: number;
   fee: number;

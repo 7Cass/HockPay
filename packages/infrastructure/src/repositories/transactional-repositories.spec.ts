@@ -19,6 +19,7 @@ describe("transactional repository helpers", () => {
 
     await unitOfWork.execute(async (repos) => {
       expect(repos.paymentLinkRepository).toBeInstanceOf(PaymentLinkRepository);
+      expect(repos.productRepository).toBeDefined();
       return undefined;
     });
 

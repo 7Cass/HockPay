@@ -8,6 +8,11 @@ import { Environment } from "../../domain/value-objects/environment.vo";
 import { Document } from "../../domain/value-objects/document.vo";
 import { CustomerCollectionMode } from "../../domain/entities/checkout-session.entity";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { CheckoutSessionNotFoundError } from "../../domain/errors/checkout-session-not-found.error";
+import { CheckoutSessionExpiredError } from "../../domain/errors/checkout-session-expired.error";
+import { CheckoutSessionInvalidStatusError } from "../../domain/errors/checkout-session-invalid-status.error";
+import { InvalidDocumentError } from "../../domain/errors/invalid-document.error";
+import { CustomerDocumentRequiredError } from "../../domain/errors/customer-document-required.error";
 
 export interface IFulfillCheckoutSessionInput {
   token: string;
@@ -43,7 +48,7 @@ export class FulfillCheckoutSessionUseCase {
         );
 
         if (!currentSession) {
-          throw new Error("Checkout session not found or invalid token");
+          throw new CheckoutSessionNotFoundError(input.token);
         }
 
         if (currentSession.status === "OPEN" && now > currentSession.expiresAt) {
@@ -51,12 +56,10 @@ export class FulfillCheckoutSessionUseCase {
             input.token,
             now,
           );
-          throw new Error("Checkout session has expired");
+          throw new CheckoutSessionExpiredError(input.token);
         }
 
-        throw new Error(
-          `Checkout session cannot be fulfilled because its status is ${currentSession.status}`,
-        );
+        throw new CheckoutSessionInvalidStatusError(currentSession.status);
       }
 
       const customer = resolveCheckoutCustomer(
@@ -68,11 +71,11 @@ export class FulfillCheckoutSessionUseCase {
         session.customerCollectionMode === CustomerCollectionMode.IDENTIFIED &&
         !customer.document
       ) {
-        throw new Error("Customer document is required for identified checkout sessions");
+        throw new CustomerDocumentRequiredError();
       }
 
       if (customer.document && !Document.create(customer.document)) {
-        throw new Error("Customer document must be a valid CPF or CNPJ");
+        throw new InvalidDocumentError(customer.document);
       }
 
       const paymentInput: ICreatePaymentInput = {

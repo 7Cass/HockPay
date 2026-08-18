@@ -118,7 +118,12 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const page = options.page ?? 1;
     const limit = options.limit ?? 20;
     const skip = (page - 1) * limit;
-    const where = { storeId: options.storeId };
+    const where: { storeId: string; environment?: string } = {
+      storeId: options.storeId,
+    };
+    if (options.environment) {
+      where.environment = options.environment;
+    }
 
     const [rows, allRows] = await Promise.all([
       (this.prisma as any).paymentLink.findMany({

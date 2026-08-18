@@ -88,6 +88,14 @@ describe('PaymentLink use cases', () => {
         handler({
           paymentLinkRepository: transactionalPaymentLinkRepository,
           pixChargeRepository: transactionalPixChargeRepository,
+          storeRepository: {
+            findById: vi.fn().mockResolvedValue({
+              id: 'store-1',
+              name: 'Hockpay Store',
+              isActive: true,
+              isApproved: true,
+            }),
+          },
         }),
       ),
     };
@@ -602,7 +610,6 @@ describe('PaymentLink use cases', () => {
     let savedPayment: Payment | null = null;
     const pixCharge = makePixChargeFromItem(item);
     const outboxWriter = { save: vi.fn() };
-    const confirmPaymentUseCase = { execute: vi.fn() };
     const account = {
       id: 'account-1',
       totalBalance: 4910,
@@ -640,7 +647,6 @@ describe('PaymentLink use cases', () => {
         ),
       } as any,
       { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
-      confirmPaymentUseCase as any,
     );
 
     const result = await useCase.execute({
@@ -649,7 +655,6 @@ describe('PaymentLink use cases', () => {
       requestId: 'req-1',
     });
 
-    expect(confirmPaymentUseCase.execute).not.toHaveBeenCalled();
     expect(account.addToPending).toHaveBeenCalledWith(4910);
     expect(outboxWriter.save.mock.calls.map((call) => call[0].eventType)).toEqual([
       'payment.created',
@@ -698,7 +703,6 @@ describe('PaymentLink use cases', () => {
         ),
       } as any,
       { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
-      { execute: vi.fn() } as any,
     );
 
     await useCase.execute({
@@ -739,7 +743,6 @@ describe('PaymentLink use cases', () => {
         ),
       } as any,
       { calculate: vi.fn() } as any,
-      { execute: vi.fn() } as any,
     );
 
     await expect(

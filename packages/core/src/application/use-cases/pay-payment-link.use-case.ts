@@ -23,9 +23,9 @@ import { AccountNotFoundError } from "../../domain/errors/account-not-found.erro
 import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 import { FeePolicy } from "../services/fee-policy.service";
 import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
-import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
-import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
-import { PaymentLinkUnavailableError } from "./open-payment-link.use-case";
+import { settleConfirmedPayment } from "./settle-confirmed-payment";
+import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
+import { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
 import { buildReceiptNumber } from "./receipt-number";
 
 export interface IPayPaymentLinkInput {
@@ -43,7 +43,6 @@ export class PayPaymentLinkUseCase {
     private readonly paymentLinkRepository: IPaymentLinkRepository,
     private readonly unitOfWork: IUnitOfWork,
     private readonly feePolicy: FeePolicy,
-    private readonly confirmPaymentUseCase: ConfirmPaymentUseCase,
   ) {}
 
   async execute(input: IPayPaymentLinkInput): Promise<IPayPaymentLinkOutput> {
@@ -97,73 +96,12 @@ export class PayPaymentLinkUseCase {
 
       payment.confirm();
 
-      const account = await repos.accountRepository.findByStoreIdForUpdate(
-        item.storeId,
-      );
-      if (!account) {
-        throw new AccountNotFoundError(item.storeId);
-      }
-
-      account.addToPending(payment.netAmount);
-      await repos.accountRepository.update(account);
-
-      pixCharge.markPaid();
-      await repos.pixChargeRepository.update(pixCharge);
-      await repos.paymentRepository.update(payment);
-
-      const transaction = Transaction.create({
-        accountId: account.id,
-        type: TransactionType.PAYMENT_RECEIVED,
-        amount: payment.amount,
-        fee: payment.fee,
-        netAmount: payment.netAmount,
-        balanceAfter: account.totalBalance,
-        referenceType: "PAYMENT",
-        referenceId: payment.id,
-        description: `Pagamento recebido (#${payment.id.split("-")[0]})`,
-      });
-      await repos.transactionRepository.save(transaction);
-
-      const date = new Date();
-      const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-      const sequence = await repos.receiptRepository.incrementCounter(
-        item.storeId,
-        dateStr,
-      );
-      const receiptNumber = buildReceiptNumber(
-        item.storeId,
-        dateStr,
-        sequence,
-      );
-
-      const receipt = Receipt.create({
-        receiptNumber,
-        paymentId: payment.id,
-        storeId: item.storeId,
-        payeeName: store.name,
-        amount: payment.amount,
-        fee: payment.fee,
-        netAmount: payment.netAmount,
-        currency: payment.currency,
-        description: payment.description,
-      });
-      await repos.receiptRepository.save(receipt);
-
-      const confirmedPayload = await this.buildPaymentPayload(
-        repos,
+      const confirmedPayload = await settleConfirmedPayment(repos, {
         payment,
-        pixCharge.toObject(),
-      );
-
-      const confirmedOutboxEvent = OutboxEvent.create({
-        aggregateType: "Payment",
-        aggregateId: payment.id,
-        eventType: "payment.confirmed",
+        pixCharge,
+        storeId: item.storeId,
         requestId: input.requestId,
-        storeId: payment.storeId,
-        payload: confirmedPayload as unknown as Record<string, unknown>,
       });
-      await repos.outboxWriter.save(confirmedOutboxEvent);
 
       return {
         payment: confirmedPayload,

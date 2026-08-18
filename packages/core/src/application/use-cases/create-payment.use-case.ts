@@ -15,10 +15,12 @@ import {
 import { IPixQrCodeGeneratorPort } from "../ports/pix-qr-code-generator.port";
 import { IExpirationQueuePort } from "../ports/expiration-queue.port";
 import { FeePolicy } from "../services/fee-policy.service";
+import { resolvePixMerchantCity } from "../services/pix-merchant-city";
 import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
 import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
 import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
 import { ExternalIdAlreadyExistsError } from "../../domain/errors/external-id-already-exists.error";
+import { UnsupportedPaymentMethodError } from "../../domain/errors/unsupported-payment-method.error";
 import { Customer } from "../../domain/entities/customer.entity";
 import { CustomerIdentityConflictError } from "../../domain/errors/customer-identity-conflict.error";
 
@@ -120,7 +122,11 @@ export class CreatePaymentUseCase {
       outboxWriter,
     } = repos;
 
-    // 1. Validate store exists, is active, and approved
+    const paymentMethod = input.paymentMethod ?? PaymentMethod.PIX;
+    if (paymentMethod !== PaymentMethod.PIX) {
+      throw new UnsupportedPaymentMethodError(paymentMethod);
+    }
+
     const store = await storeRepository.findById(input.storeId);
 
     if (!store) {
@@ -256,7 +262,7 @@ export class CreatePaymentUseCase {
       pixKey: this.pixKey,
       amountInCents: input.amount,
       merchantName: store.name.substring(0, 25),
-      merchantCity: "SAO PAULO", // Default city, can be configurable
+      merchantCity: resolvePixMerchantCity(),
       txId,
     });
 
@@ -289,7 +295,7 @@ export class CreatePaymentUseCase {
       payerEmail,
       payerDocument,
       environment: input.environment,
-      paymentMethod: input.paymentMethod ?? PaymentMethod.PIX,
+      paymentMethod,
       paymentDetails: input.paymentDetails,
       acquirerId: input.acquirerId,
       pixCharge: pixCharge.toObject(),

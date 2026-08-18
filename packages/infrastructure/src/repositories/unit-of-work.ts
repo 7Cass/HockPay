@@ -16,6 +16,7 @@ import { MerchantRepository } from "./merchant.repository";
 import { RefreshTokenRepository } from "./refresh-token.repository";
 import { CheckoutSessionRepository } from "./checkout-session.repository";
 import { PaymentLinkRepository } from "./payment-link.repository";
+import { ProductRepository } from "./product.repository";
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -56,6 +57,7 @@ export class UnitOfWork implements IUnitOfWork {
           ),
           customerRepository: new CustomerRepository(tx),
           idempotencyKeyRepository: new IdempotencyKeyRepository(tx),
+          productRepository: new ProductRepository(tx),
         };
 
         return work(repos);

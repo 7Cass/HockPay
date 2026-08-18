@@ -1,9 +1,5 @@
-/**
- * Domain Entity: Account
- *
- * Represents the financial account for a store.
- * Tracks available, pending, and blocked balances.
- */
+import { InvalidBalanceError } from "../errors/invalid-balance.error";
+
 export class Account {
   private readonly _id: string;
   private readonly _storeId: string;
@@ -103,7 +99,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._pending) {
-      throw new Error('Insufficient pending balance');
+      throw new InvalidBalanceError('Insufficient pending balance');
     }
 
     this._pending -= amount;
@@ -125,7 +121,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._pending) {
-      throw new Error('Insufficient pending balance');
+      throw new InvalidBalanceError('Insufficient pending balance');
     }
 
     this._pending -= amount;
@@ -139,7 +135,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._available) {
-      throw new Error('Insufficient available balance');
+      throw new InvalidBalanceError('Insufficient available balance');
     }
 
     this._available -= amount;
@@ -153,7 +149,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._available) {
-      throw new Error('Insufficient available balance');
+      throw new InvalidBalanceError('Insufficient available balance');
     }
 
     this._available -= amount;
@@ -168,7 +164,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._blocked) {
-      throw new Error('Insufficient blocked balance');
+      throw new InvalidBalanceError('Insufficient blocked balance');
     }
 
     this._blocked -= amount;
@@ -183,7 +179,7 @@ export class Account {
     this.validateAmount(amount);
 
     if (amount > this._blocked) {
-      throw new Error('Insufficient blocked balance');
+      throw new InvalidBalanceError('Insufficient blocked balance');
     }
 
     this._blocked -= amount;
@@ -195,7 +191,7 @@ export class Account {
    */
   private validateAmount(amount: number): void {
     if (amount < 0) {
-      throw new Error('Amount must be positive');
+      throw new InvalidBalanceError('Amount must be positive');
     }
   }
 

@@ -144,8 +144,14 @@ describe("P0 checkout happy path", () => {
       "test@hockpay.local",
     );
     const createSession = new CreateCheckoutSessionUseCase(
-      sessions,
-      stores,
+      {
+        execute: async (work) =>
+          work({
+            storeRepository: stores,
+            checkoutSessionRepository: sessions,
+            productRepository: {},
+          } as never),
+      },
       tokenGenerator,
       "http://localhost:3333",
     );

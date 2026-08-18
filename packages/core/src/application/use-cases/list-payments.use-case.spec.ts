@@ -43,7 +43,15 @@ describe('ListPaymentsUseCase', () => {
 
     const result = await new ListPaymentsUseCase(repository as any).execute({
       storeId: 'store-1',
+      environment: Environment.TEST,
     });
+
+    expect(repository.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storeId: 'store-1',
+        environment: Environment.TEST,
+      }),
+    );
 
     expect(repository.listByPixChargeIdsAndStoreId).toHaveBeenCalledWith(
       ['charge-1', 'charge-1'],

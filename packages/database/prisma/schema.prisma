@@ -396,6 +396,11 @@ model Payment {
   @@index([storeId, createdAt(sort: Desc)])
   @@index([pixChargeId])
   @@index([expiresAt])
+  // Prisma cannot express the partial unique index created in
+  // 20260523093000_unique_paid_payment_per_pix_charge:
+  // payments_one_paid_per_pix_charge_idx ON pix_charge_id
+  // WHERE status IN (CONFIRMED, RELEASED). Do not db push this model
+  // without re-applying that SQL; failed/pending attempts remain allowed.
   @@map("payments")
 }
 

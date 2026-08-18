@@ -8,7 +8,8 @@ export interface PaymentAttemptContext {
   isLatestAttempt?: boolean;
 }
 
-export type PaymentWithAttemptContext = PaymentObject & PaymentAttemptContext;
+export type PaymentAttemptView = PaymentObject & PaymentAttemptContext;
+export type PaymentWithAttemptContext = PaymentAttemptView;
 
 export function enrichPaymentAttempts(
   payments: PaymentObject[],

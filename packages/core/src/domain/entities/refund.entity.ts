@@ -1,9 +1,5 @@
-/**
- * Domain Entity: Refund
- *
- * Represents a partial or full refund of a payment.
- * Multiple refunds can exist per payment (1:N relationship).
- */
+import { InvalidRefundStatusError } from "../errors/invalid-refund-status.error";
+
 export class Refund {
   private readonly _id: string;
   private readonly _paymentId: string;
@@ -80,7 +76,7 @@ export class Refund {
 
   process(): void {
     if (this._status !== RefundStatus.PENDING) {
-      throw new Error("Can only process pending refunds");
+      throw new InvalidRefundStatusError("Can only process pending refunds");
     }
     this._status = RefundStatus.PROCESSED;
     this._processedAt = new Date();

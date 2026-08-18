@@ -2,7 +2,7 @@ import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.r
 import { IPixChargeRepository } from "../../domain/repositories/pix-charge.repository.interface";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { PixChargeStatus } from "../../domain/entities/pix-charge.entity";
-import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
+import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
 
 export class PaymentLinkCannotBeCancelledError extends Error {
   readonly code = "PAYMENT_LINK_CANNOT_BE_CANCELLED";

@@ -2,6 +2,7 @@ import { PaymentObject } from '../../domain/entities/payment.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
  * Input DTO for GetPaymentUseCase.
@@ -10,6 +11,7 @@ export interface IGetPaymentInput {
   storeId: string;
   paymentId: string;
   requestId?: string;
+  environment?: Environment;
 }
 
 /**
@@ -38,7 +40,7 @@ export class GetPaymentUseCase {
         input.storeId,
       );
 
-      if (!payment) {
+      if (!payment || (input.environment && payment.environment !== input.environment)) {
         throw new PaymentNotFoundError(input.paymentId);
       }
 

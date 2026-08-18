@@ -1,12 +1,10 @@
-/**
- * Error thrown when an account operation attempts to exceed the available 
- * or pending balances, or when trying to process a negative balance operation.
- */
-export class InvalidBalanceError extends Error {
-    code = 'INVALID_BALANCE';
+import { DomainError } from "./domain-error";
 
-    constructor(message: string) {
-        super(message);
-        this.name = 'InvalidBalanceError';
-    }
+/**
+ * Thrown when an account operation exceeds a bucket or receives a negative amount.
+ */
+export class InvalidBalanceError extends DomainError {
+  constructor(message: string) {
+    super(message, "INVALID_BALANCE");
+  }
 }
