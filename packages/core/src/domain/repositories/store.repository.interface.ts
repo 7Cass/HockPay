@@ -45,4 +45,6 @@ export interface IStoreRepository {
    * Delete a store by ID.
    */
   delete(id: string): Promise<void>;
+
+  listActiveApproved(): Promise<Store[]>;
 }

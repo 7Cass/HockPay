@@ -4,6 +4,7 @@ import { IPaymentRepository } from "../../domain/repositories/payment.repository
 import { ICheckoutSessionRepository } from "../../domain/repositories/checkout-session.repository.interface";
 import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.error";
 import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
+import { InvalidSimulationActionError } from "../../domain/errors/invalid-simulation-action.error";
 import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
 import { ExpirePaymentUseCase } from "./expire-payment.use-case";
 import { FailPaymentUseCase } from "./fail-payment.use-case";
@@ -106,7 +107,7 @@ export class SimulateCheckoutPaymentUseCase {
         });
 
       default:
-        throw new Error(`Invalid simulation action: ${input.action}`);
+        throw new InvalidSimulationActionError(input.action);
     }
   }
 }

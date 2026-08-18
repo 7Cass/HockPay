@@ -27,7 +27,8 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 - `Payment` pertence a uma `Store` e opcionalmente a um `Customer`.
 - `PixCharge` representa a cobranca Pix simulada e pode agrupar tentativas.
 - Estados de `Payment`: `PENDING`, `CONFIRMED`, `RELEASED`, `EXPIRED`, `FAILED`, `REFUNDED`.
-- `PaymentMethod` inclui `PIX`, `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas o processamento real atual continua simulado e centrado em Pix.
+- `PaymentMethod` inclui `PIX`, `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas o processamento real atual continua simulado e centrado em Pix. Escrita de novas cobrancas e so PIX.
+- Indice parcial `payments_one_paid_per_pix_charge_idx` garante no maximo um payment `CONFIRMED`/`RELEASED` por `pixChargeId`. Tentativas `FAILED`/`PENDING`/`EXPIRED` na mesma charge continuam permitidas. A migration SQL e a fonte; o schema Prisma documenta o nome porque nao expressa `WHERE`.
 
 ### PaymentLink
 

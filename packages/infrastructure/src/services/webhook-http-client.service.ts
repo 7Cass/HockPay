@@ -140,20 +140,50 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       return validateWebhookResolvedAddress({ address: parsed.hostname });
     }
 
-    const resolvedAddresses = await this.dnsLookup(parsed.hostname);
+    const firstLookup = await this.resolvePublicAddresses(parsed.hostname);
+    if (!firstLookup.valid) {
+      return firstLookup.result;
+    }
+
+    const secondLookup = await this.resolvePublicAddresses(parsed.hostname);
+    if (!secondLookup.valid) {
+      return secondLookup.result;
+    }
+
+    if (!sameResolvedAddresses(firstLookup.addresses, secondLookup.addresses)) {
+      return {
+        valid: false,
+        message: "Webhook URL resolved to a different address before connect.",
+      };
+    }
+
+    return { valid: true };
+  }
+
+  private async resolvePublicAddresses(hostname: string): Promise<
+    | { valid: true; addresses: WebhookResolvedAddress[] }
+    | { valid: false; result: WebhookUrlPolicyResult }
+  > {
+    const resolvedAddresses = await this.dnsLookup(hostname);
     if (resolvedAddresses.length === 0) {
-      return { valid: false, message: "Webhook URL hostname did not resolve." };
+      return {
+        valid: false,
+        result: {
+          valid: false,
+          message: "Webhook URL hostname did not resolve.",
+        },
+      };
     }
 
     for (const resolvedAddress of resolvedAddresses) {
       const resolvedPolicyResult =
         validateWebhookResolvedAddress(resolvedAddress);
       if (!resolvedPolicyResult.valid) {
-        return resolvedPolicyResult;
+        return { valid: false, result: resolvedPolicyResult };
       }
     }
 
-    return { valid: true };
+    return { valid: true, addresses: resolvedAddresses };
   }
 
   private async fetchOnce(
@@ -213,6 +243,25 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       success: false,
     };
   }
+}
+
+function sameResolvedAddresses(
+  first: WebhookResolvedAddress[],
+  second: WebhookResolvedAddress[],
+): boolean {
+  const firstSet = new Set(first.map((entry) => `${entry.family ?? ""}:${entry.address}`));
+  const secondSet = new Set(
+    second.map((entry) => `${entry.family ?? ""}:${entry.address}`),
+  );
+  if (firstSet.size !== secondSet.size) {
+    return false;
+  }
+  for (const value of firstSet) {
+    if (!secondSet.has(value)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function isExplicitLocalHttpTarget(

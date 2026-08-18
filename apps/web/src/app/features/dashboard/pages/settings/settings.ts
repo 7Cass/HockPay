@@ -260,7 +260,7 @@ import { Store, StoreService } from '../../../../core/services/store.service';
               <div>
                 <h2 class="text-lg font-semibold tracking-tight text-zinc-900">Revisão comercial futura</h2>
                 <p class="mt-1 text-sm text-zinc-500">
-                  Este é apenas um aviso informativo. Solicitações de revisão comercial não estão disponíveis no P3.
+                  Este é apenas um aviso informativo. A tela de configurações é somente leitura no produto atual.
                 </p>
               </div>
               <button type="button" (click)="closeReviewDialog()"

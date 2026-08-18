@@ -42,6 +42,31 @@ describe("WebhookHttpClientService", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("blocks when DNS changes between policy check and connect", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok", { status: 200 }));
+    let lookups = 0;
+    const client = new WebhookHttpClientService({
+      dnsLookup: async () => {
+        lookups += 1;
+        return lookups === 1
+          ? [{ address: "93.184.216.34", family: 4 }]
+          : [{ address: "127.0.0.1", family: 4 }];
+      },
+    });
+
+    const response = await client.send(
+      "https://hooks.example.com/webhook",
+      { test: true },
+      { "Content-Type": "application/json" },
+    );
+
+    expect(response.success).toBe(false);
+    expect(response.body).toMatch(/different address|non-public address/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("blocks a public-looking HTTPS hostname that resolves to localhost", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")

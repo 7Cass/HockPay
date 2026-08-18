@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpParams } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { ApiClientService } from './api-client.service';
+import { toHttpParams } from '../http/list-query';
 import type { PaymentObject } from './payment.service';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
@@ -101,11 +101,12 @@ export class PaymentLinkService {
         this.isLoadingState.set(true);
         this.errorState.set(null);
 
-        let params = new HttpParams();
-        if (query.page) params = params.set('page', query.page);
-        if (query.limit) params = params.set('limit', query.limit);
-        if (query.status) params = params.set('status', query.status);
-        if (query.hasFailures !== undefined) params = params.set('hasFailures', String(query.hasFailures));
+        const params = toHttpParams({
+            page: query.page,
+            limit: query.limit,
+            status: query.status,
+            hasFailures: query.hasFailures,
+        });
 
         this.apiClient.get<ListPaymentLinksResponse>('/payment-links', { params })
             .pipe(finalize(() => this.isLoadingState.set(false)))

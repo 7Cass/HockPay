@@ -79,9 +79,8 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
     });
     if (!result.success) {
       setFulfillError(result.error || 'Não foi possível gerar o Pix.');
-      setIsFulfilling(false);
     }
-    // If success, StatusPoller will automatically pull the updated session with Payment object
+    setIsFulfilling(false);
   };
 
   const renderSessionOpen = () => (

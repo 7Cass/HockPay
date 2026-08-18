@@ -1,6 +1,7 @@
 import { IBankAccountRepository } from '../../domain/repositories/bank-account.repository.interface';
 import { BankAccountInUseError } from '../../domain/errors/bank-account-in-use.error';
 import { BankAccountNotFoundError } from '../../domain/errors/bank-account-not-found.error';
+import { UnauthorizedBankAccountAccessError } from '../../domain/errors/unauthorized-bank-account-access.error';
 
 export class DeleteBankAccountUseCase {
     constructor(private readonly bankAccountRepo: IBankAccountRepository) { }
@@ -13,7 +14,7 @@ export class DeleteBankAccountUseCase {
         }
 
         if (bankAccount.storeId !== storeId) {
-            throw new Error('Unauthorized access to bank account');
+            throw new UnauthorizedBankAccountAccessError();
         }
 
         const usageByAccountId = await this.bankAccountRepo.findUsageByStoreId(storeId);

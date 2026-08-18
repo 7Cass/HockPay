@@ -43,13 +43,13 @@ export class AntiFraudJob implements OnModuleInit {
         failureRateThreshold: 0.5,
       });
 
+      if (result.stub) {
+        this.logger.warn('Anti-fraud stub: scan not implemented');
+        return;
+      }
+
       if (result.anomalies.length > 0) {
         this.logger.warn(`Detected ${result.anomalies.length} anomalies`);
-        result.anomalies.forEach((anomaly) => {
-          this.logger.warn(
-            `Anomaly: ${anomaly.type} - Store: ${anomaly.storeId} - Severity: ${anomaly.severity}`,
-          );
-        });
       } else {
         this.logger.log('Anti-fraud scan completed: no anomalies detected');
       }

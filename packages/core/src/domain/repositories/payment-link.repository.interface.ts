@@ -4,6 +4,7 @@ import {
   PaymentLinkStats,
   PaymentLinkStatus,
 } from "../entities/payment-link.entity";
+import { Environment } from "../value-objects/environment.vo";
 
 export interface ListPaymentLinksOptions {
   storeId: string;
@@ -11,6 +12,7 @@ export interface ListPaymentLinksOptions {
   limit?: number;
   status?: PaymentLinkStatus;
   hasFailures?: boolean;
+  environment?: Environment;
 }
 
 export interface ListPaymentLinksResult {

@@ -1,5 +1,6 @@
 import { LineItemObject } from './line-item.entity';
 import { Environment } from '../value-objects/environment.vo';
+import { CheckoutSessionInvalidStatusError } from '../errors/checkout-session-invalid-status.error';
 
 export type SessionStatus = 'OPEN' | 'COMPLETED' | 'EXPIRED';
 export enum CustomerCollectionMode {
@@ -107,7 +108,7 @@ export class CheckoutSession {
   // Actions
   public fulfill(paymentId: string): void {
     if (this.props.status !== 'OPEN') {
-      throw new Error('Cannot fulfill a session that is not OPEN');
+      throw new CheckoutSessionInvalidStatusError(this.props.status);
     }
     this.props.paymentId = paymentId;
     this.props.status = 'COMPLETED';

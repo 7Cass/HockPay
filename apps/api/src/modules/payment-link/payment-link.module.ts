@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import {
   CancelPaymentLinkUseCase,
-  ConfirmPaymentUseCase,
   CreatePaymentLinkUseCase,
   FailPaymentLinkUseCase,
   FeePolicy,
   GetPaymentLinkUseCase,
+  IPaymentLinkRepository,
   IUnitOfWork,
   ListPaymentLinksUseCase,
   OpenPaymentLinkUseCase,
@@ -15,7 +15,6 @@ import {
   PaymentLinkRepository,
   PixChargeRepository,
   StoreRepository,
-  UnitOfWork,
 } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { PixQrCodeGeneratorService } from 'src/infra/services/pix-qr-code-generator.service';
@@ -53,15 +52,7 @@ import { PaymentLinkController } from './payment-link.controller';
       useFactory: (prisma: PrismaService) => new PixChargeRepository(prisma),
       inject: [PrismaService],
     },
-    {
-      provide: 'IUnitOfWorkPaymentLink',
-      useFactory: (prisma: PrismaService) =>
-        new UnitOfWork(
-          prisma,
-          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
-        ),
-      inject: [PrismaService],
-    },
+
     {
       provide: CreatePaymentLinkUseCase,
       useFactory: (
@@ -88,7 +79,7 @@ import { PaymentLinkController } from './payment-link.controller';
         StoreRepository,
         TokenGeneratorService,
         PixQrCodeGeneratorService,
-        'IUnitOfWorkPaymentLink',
+        'IUnitOfWork',
       ],
     },
     {
@@ -113,11 +104,7 @@ import { PaymentLinkController } from './payment-link.controller';
           pixChargeRepo,
           unitOfWork,
         ),
-      inject: [
-        'IPaymentLinkRepository',
-        'IPixChargeRepository',
-        'IUnitOfWorkPaymentLink',
-      ],
+      inject: ['IPaymentLinkRepository', 'IPixChargeRepository', 'IUnitOfWork'],
     },
     {
       provide: OpenPaymentLinkUseCase,
@@ -128,23 +115,11 @@ import { PaymentLinkController } from './payment-link.controller';
     {
       provide: PayPaymentLinkUseCase,
       useFactory: (
-        paymentLinkRepo: any,
+        paymentLinkRepo: IPaymentLinkRepository,
         unitOfWork: IUnitOfWork,
         feePolicy: FeePolicy,
-        confirmUseCase: any,
-      ) =>
-        new PayPaymentLinkUseCase(
-          paymentLinkRepo,
-          unitOfWork,
-          feePolicy,
-          confirmUseCase,
-        ),
-      inject: [
-        'IPaymentLinkRepository',
-        'IUnitOfWorkPaymentLink',
-        FeePolicy,
-        ConfirmPaymentUseCase,
-      ],
+      ) => new PayPaymentLinkUseCase(paymentLinkRepo, unitOfWork, feePolicy),
+      inject: ['IPaymentLinkRepository', 'IUnitOfWork', FeePolicy],
     },
     {
       provide: FailPaymentLinkUseCase,
@@ -153,7 +128,7 @@ import { PaymentLinkController } from './payment-link.controller';
         unitOfWork: IUnitOfWork,
         feePolicy: FeePolicy,
       ) => new FailPaymentLinkUseCase(paymentLinkRepo, unitOfWork, feePolicy),
-      inject: ['IPaymentLinkRepository', 'IUnitOfWorkPaymentLink', FeePolicy],
+      inject: ['IPaymentLinkRepository', 'IUnitOfWork', FeePolicy],
     },
   ],
 })

@@ -55,8 +55,8 @@ describe('RefundController', () => {
         amount: 500,
         reason: 'duplicate',
       },
+      'store-1',
       {
-        store: { id: 'store-1' },
         id: 'req-1',
         method: 'POST',
         path: '/refunds',

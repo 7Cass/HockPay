@@ -1,6 +1,7 @@
 import { Payment } from "../entities/payment.entity";
 import { LineItemObject } from "../entities/line-item.entity";
 import { PaymentStatus } from "../enums/payment-status.enum";
+import { Environment } from "../value-objects/environment.vo";
 
 /**
  * Options for listing payments.
@@ -14,6 +15,7 @@ export interface ListPaymentsOptions {
   externalId?: string;
   startDate?: Date;
   endDate?: Date;
+  environment?: Environment;
 }
 
 /**
@@ -122,4 +124,15 @@ export interface IPaymentRepository {
    * Check if an external ID already exists for a store.
    */
   externalIdExists(externalId: string, storeId: string): Promise<boolean>;
+
+  findConfirmedForSettlement(
+    storeId: string,
+    paidAtOnOrBefore: Date,
+    take: number,
+  ): Promise<Array<{ id: string }>>;
+
+  findPendingExpired(
+    now: Date,
+    take: number,
+  ): Promise<Array<{ id: string; storeId: string }>>;
 }

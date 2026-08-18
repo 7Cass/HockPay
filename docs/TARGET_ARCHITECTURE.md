@@ -37,7 +37,7 @@ Este documento descreve direcao futura. Ele nao substitui `docs/CURRENT_STATE.md
 - Valores monetarios permanecem em centavos.
 - Simulacao TEST deve ser ergonomica, mas separada de qualquer caminho LIVE.
 - Eventos publicos devem ser versionados/documentados antes de virarem contrato externo estavel.
-- CI pode ganhar lint e smokes quando os scripts forem nao-mutantes e o runner local estiver pronto para ambiente automatizado.
+- CI ja roda lint/format nao mutantes na API/worker, testes de backend, testes do dashboard e smoke minimo scheduled.
 
 ## Fora do Alvo Imediato
 

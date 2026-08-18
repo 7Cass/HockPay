@@ -1,50 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
 import {
   IApiKeyRepository,
   ApiKey as DomainApiKey,
   Environment,
-} from '@hockpay/core';
+} from "@hockpay/core";
 import {
+  PrismaClient,
+  Prisma,
   ApiKey as PrismaApiKey,
   Environment as PrismaEnvironment,
-} from '@hockpay/database';
+} from "@hockpay/database";
 
-/**
- * Maps between core Environment enum and Prisma Environment values.
- * Both enums have the same string values, so we can safely convert.
- */
 function toPrismaEnvironment(env: Environment): PrismaEnvironment {
-  const mapping: Record<Environment, PrismaEnvironment> = {
-    [Environment.TEST]: PrismaEnvironment.TEST,
-    [Environment.LIVE]: PrismaEnvironment.LIVE,
-  };
-  return mapping[env];
+  return env === Environment.LIVE
+    ? PrismaEnvironment.LIVE
+    : PrismaEnvironment.TEST;
 }
 
 function toCoreEnvironment(env: string): Environment {
-  const mapping: Record<string, Environment> = {
-    TEST: Environment.TEST,
-    LIVE: Environment.LIVE,
-  };
-  const result = mapping[env];
-  if (!result) {
-    throw new Error(`Invalid environment value: ${env}`);
-  }
-  return result;
+  return env === "LIVE" ? Environment.LIVE : Environment.TEST;
 }
 
-/**
- * Infrastructure implementation of IApiKeyRepository.
- *
- * This repository bridges between the domain layer (which uses domain entities)
- * and the infrastructure layer (which uses Prisma ORM).
- *
- * It converts between Prisma models and Domain entities.
- */
-@Injectable()
 export class ApiKeyRepository implements IApiKeyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(apiKey: DomainApiKey): Promise<void> {
     await this.prisma.apiKey.create({
@@ -56,12 +33,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     const prismaApiKey = await this.prisma.apiKey.findUnique({
       where: { id },
     });
-
-    if (!prismaApiKey) {
-      return null;
-    }
-
-    return this.toDomain(prismaApiKey);
+    return prismaApiKey ? this.toDomain(prismaApiKey) : null;
   }
 
   async findByKeyHash(
@@ -75,28 +47,20 @@ export class ApiKeyRepository implements IApiKeyRepository {
         revokedAt: null,
       },
     });
-
-    if (!prismaApiKey) {
-      return null;
-    }
-
-    return this.toDomain(prismaApiKey);
+    return prismaApiKey ? this.toDomain(prismaApiKey) : null;
   }
 
   async findByStoreId(
     storeId: string,
-    includeRevoked: boolean = false,
+    includeRevoked = false,
   ): Promise<DomainApiKey[]> {
     const prismaApiKeys = await this.prisma.apiKey.findMany({
       where: {
         storeId,
         revokedAt: includeRevoked ? undefined : null,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: "desc" },
     });
-
     return prismaApiKeys.map((key) => this.toDomain(key));
   }
 
@@ -116,10 +80,6 @@ export class ApiKeyRepository implements IApiKeyRepository {
     });
   }
 
-  /**
-   * Convert a Prisma ApiKey to a Domain ApiKey.
-   * This is a private helper method for internal use.
-   */
   private toDomain(prismaApiKey: PrismaApiKey): DomainApiKey {
     return DomainApiKey.reconstitute({
       id: prismaApiKey.id,
@@ -134,10 +94,6 @@ export class ApiKeyRepository implements IApiKeyRepository {
     });
   }
 
-  /**
-   * Convert a Domain ApiKey to a Prisma ApiKey.
-   * This is a private helper method for internal use.
-   */
   private toPrisma(apiKey: DomainApiKey): PrismaApiKey {
     return {
       id: apiKey.id,

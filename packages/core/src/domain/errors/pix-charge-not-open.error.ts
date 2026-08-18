@@ -1,11 +1,7 @@
 import { DomainError } from "./domain-error";
-import { PixChargeStatus } from "../entities/pix-charge.entity";
 
 export class PixChargeNotOpenError extends DomainError {
-  constructor(
-    pixChargeId: string,
-    status?: PixChargeStatus | string,
-  ) {
+  constructor(pixChargeId: string, status?: string) {
     super(
       status
         ? `Pix charge ${pixChargeId} is not open: ${status}`

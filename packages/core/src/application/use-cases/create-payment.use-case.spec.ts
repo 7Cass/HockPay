@@ -358,6 +358,33 @@ describe("CreatePaymentUseCase", () => {
     expect(scheduleExpiration).not.toHaveBeenCalled();
   });
 
+  it("rejects non-PIX payment methods before writing", async () => {
+    const paymentRepository = {
+      externalIdExists: vi.fn(),
+      save: vi.fn(),
+    };
+    const useCase = makeUseCase({
+      paymentRepository,
+      customerRepository: {
+        findByExternalId: vi.fn(),
+        findByDocument: vi.fn(),
+        save: vi.fn(),
+        update: vi.fn(),
+      },
+    });
+
+    await expect(
+      useCase.execute({
+        storeId: "store-1",
+        amount: 7990,
+        customer: { document: "52998224725" },
+        environment: Environment.TEST,
+        paymentMethod: "CREDIT_CARD" as never,
+      }),
+    ).rejects.toMatchObject({ code: "UNSUPPORTED_PAYMENT_METHOD" });
+    expect(paymentRepository.save).not.toHaveBeenCalled();
+  });
+
   it("returns the created payment when scheduling expiration fails after commit", async () => {
     const useCase = makeUseCase({
       paymentRepository: {

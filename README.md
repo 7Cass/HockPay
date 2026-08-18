@@ -65,7 +65,7 @@ Para a suite default completa, siga os defaults e timeout recomendados no [Runbo
 
 ## CI
 
-GitHub Actions roda build, testes focados de core/infrastructure/api/worker e API e2e. Lint e smokes nao rodam no CI atual.
+GitHub Actions roda lint/format (API/worker), build, testes de core/infrastructure/api/worker, testes do dashboard e API e2e em todo PR. Smoke `p0,payment-link` roda no cron diario e em `workflow_dispatch`.
 
 ## Documentacao
 

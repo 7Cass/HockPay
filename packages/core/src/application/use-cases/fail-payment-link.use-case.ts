@@ -11,8 +11,8 @@ import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.r
 import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 import { FeePolicy } from "../services/fee-policy.service";
 import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
-import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
-import { PaymentLinkUnavailableError } from "./open-payment-link.use-case";
+import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
+import { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
 
 export interface IFailPaymentLinkInput {
   publicToken: string;

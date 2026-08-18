@@ -8,7 +8,7 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 - Sem dependência direta de Prisma
 - Exporta:
   - entidades como `Merchant`, `Store`, `Customer`, `Payment`, `PixCharge`, `PaymentLink`, `Product`, `PaymentItem`, `WebhookConfig`, `WebhookLog`, `AlertConfig`, `Account`, `Transaction`, `Refund`, `Receipt`, `BankAccount` e `Withdrawal`
-  - value objects como `Email`, `Document`, `Environment`, `Money`
+  - value objects como `Email`, `Document`, `Environment`
   - interfaces de repositório e portas
   - use cases do fluxo principal
 
@@ -27,7 +27,8 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 ## Observações
 
 - A documentação antiga citava `PixKey` e `Domain Events` como parte consolidada do pacote; isso não corresponde ao conjunto atual exportado.
-- `Money` existe no pacote, mas nem todos os aggregates o usam como tipo central.
+- Valores monetarios sao `number` em centavos. Invariantes ficam em `Payment.create`, `FeePolicy` e policies de saque.
+- A cidade EMV do Pix usa `resolvePixMerchantCity`; sem cidade da store o fallback documentado e `SAO PAULO`.
 
 ## Casos de Uso Relevantes
 

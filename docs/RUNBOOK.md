@@ -287,11 +287,13 @@ curl -X POST http://localhost:3000/api/v1/withdrawals \
 
 O workflow `.github/workflows/ci.yml` roda:
 
-- build: `pnpm db:generate` e `pnpm build`.
+- build: `lint:check` e `format:check` (API/worker), `pnpm db:generate` e `pnpm build`.
 - testes focados: `@hockpay/core test:ci`, `@hockpay/infrastructure test`, `@hockpay/api test`, `@hockpay/worker test`.
+- web-test: `@hockpay/web test --watch=false`.
 - API e2e: `pnpm --filter @hockpay/api test:e2e`.
+- smoke-minimal (`p0,payment-link`) apenas em cron/`workflow_dispatch`.
 
-CI nao roda `pnpm lint` nem smokes locais.
+Settlement do worker processa no maximo 100 payments confirmados por store por ciclo. Expiracao tem fallback dual: fila BullMQ apos create e cron que varre pendentes expirados.
 
 ## Troubleshooting
 

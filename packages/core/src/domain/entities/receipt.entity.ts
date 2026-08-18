@@ -1,4 +1,5 @@
 import { LineItemObject } from "./line-item.entity";
+import { ReceiptAlreadyCancelledError } from "../errors/receipt-already-cancelled.error";
 
 /**
  * Domain Entity: Receipt
@@ -146,7 +147,7 @@ export class Receipt {
 
   cancel(): void {
     if (this._status === ReceiptStatus.CANCELLED) {
-      throw new Error("Receipt is already cancelled");
+      throw new ReceiptAlreadyCancelledError();
     }
     this._status = ReceiptStatus.CANCELLED;
     this._updatedAt = new Date();

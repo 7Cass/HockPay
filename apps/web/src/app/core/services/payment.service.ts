@@ -1,8 +1,10 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
 import { ApiClientService } from './api-client.service';
-import { HttpParams } from '@angular/common/http';
 import { finalize } from 'rxjs';
+import { toHttpParams } from '../http/list-query';
 import type { ReceiptObject } from './receipt.service';
+import type { TransactionObject } from '../models/transaction';
+export type { TransactionObject } from '../models/transaction';
 
 export enum PaymentStatus {
     PENDING = 'PENDING',
@@ -98,21 +100,6 @@ export interface RefundObject {
     status: string;
     processedAt?: Date | string;
     createdAt: Date | string;
-}
-
-export interface TransactionObject {
-    id: string;
-    accountId: string;
-    type: string;
-    amount: number;
-    fee: number;
-    netAmount: number;
-    balanceAfter: number;
-    referenceType?: string;
-    referenceId?: string;
-    description?: string;
-    createdAt: Date | string;
-    updatedAt: Date | string;
 }
 
 export interface WebhookLogDto {
@@ -225,15 +212,15 @@ export class PaymentService {
         this.isLoadingState.set(true);
         this.errorState.set(null);
 
-        let params = new HttpParams();
-
-        if (query.page) params = params.set('page', query.page.toString());
-        if (query.limit) params = params.set('limit', query.limit.toString());
-        if (query.status) params = params.set('status', query.status);
-        if (query.customerId) params = params.set('customerId', query.customerId);
-        if (query.externalId) params = params.set('externalId', query.externalId);
-        if (query.startDate) params = params.set('startDate', query.startDate);
-        if (query.endDate) params = params.set('endDate', query.endDate);
+        const params = toHttpParams({
+            page: query.page,
+            limit: query.limit,
+            status: query.status,
+            customerId: query.customerId,
+            externalId: query.externalId,
+            startDate: query.startDate,
+            endDate: query.endDate,
+        });
 
         this.apiClient.get<ListPaymentsResponseDto>('/payments', { params })
             .pipe(

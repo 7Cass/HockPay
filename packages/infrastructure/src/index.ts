@@ -21,6 +21,7 @@ export * from "./repositories/bank-account.repository";
 export * from "./repositories/receipt.repository";
 export * from "./repositories/refund.repository";
 export * from "./repositories/store.repository";
+export * from "./repositories/api-key.repository";
 export * from "./repositories/withdrawal.repository";
 export * from "./config/redis-env";
 export * from "./queues/expiration.queue";

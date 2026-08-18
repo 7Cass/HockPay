@@ -57,25 +57,16 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: CreateCheckoutSessionUseCase,
       useFactory: (
-        sessionRepo: any,
-        storeRepo: any,
-        tokenGenerator: any,
-        lineItemResolver: LineItemResolverService,
+        unitOfWork: IUnitOfWork,
+        tokenGenerator: TokenGeneratorService,
       ) => {
         return new CreateCheckoutSessionUseCase(
-          sessionRepo,
-          storeRepo,
+          unitOfWork,
           tokenGenerator,
           process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
-          lineItemResolver,
         );
       },
-      inject: [
-        'ICheckoutSessionRepository',
-        StoreRepository,
-        TokenGeneratorService,
-        LineItemResolverService,
-      ],
+      inject: ['IUnitOfWork', TokenGeneratorService],
     },
     {
       provide: GetCheckoutSessionUseCase,

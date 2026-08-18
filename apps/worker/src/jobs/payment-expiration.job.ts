@@ -1,22 +1,16 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
-import { PrismaService } from '../infra/database/prisma.service';
-import { PaymentStatus } from '@hockpay/database';
-import { ExpirePaymentUseCase } from '@hockpay/core';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { ExpirePaymentUseCase, IPaymentRepository } from '@hockpay/core';
 import { createWorkerRequestId } from '../common/request-id';
 import { runExclusiveCronJob } from '../common/cron-guard';
 import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
-/**
- * Job que expira pagamentos pendentes que passaram do prazo
- *
- * Roda a cada minuto
- */
 @Injectable()
 export class PaymentExpirationJob implements OnModuleInit {
   private readonly logger = new Logger(PaymentExpirationJob.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject('IPaymentRepository')
+    private readonly paymentRepository: IPaymentRepository,
     private readonly expirePaymentUseCase: ExpirePaymentUseCase,
     @Optional()
     private readonly cronScheduler?: WorkerCronScheduler,
@@ -31,32 +25,16 @@ export class PaymentExpirationJob implements OnModuleInit {
     });
   }
 
-  /**
-   * Expira pagamentos pendentes que passaram do prazo
-   */
   async handleExpiration(): Promise<void> {
     await runExclusiveCronJob(PaymentExpirationJob.name, this.logger, () =>
       this.expirePendingPayments(),
     );
   }
 
-  /**
-   * Expira pagamentos pendentes que passaram do prazo
-   * Usa ExpirePaymentUseCase para garantir que eventos de outbox sejam criados
-   */
   async expirePendingPayments(): Promise<void> {
     this.logger.debug('Checking for expired payments...');
 
-    const now = new Date();
-
-    // Busca pagamentos PENDING que expiraram
-    const expiredPayments = await this.prisma.payment.findMany({
-      where: {
-        status: PaymentStatus.PENDING,
-        expiresAt: { lt: now },
-      },
-      take: 100,
-    });
+    const expiredPayments = await this.paymentRepository.findPendingExpired(new Date(), 100);
 
     if (expiredPayments.length === 0) {
       return;

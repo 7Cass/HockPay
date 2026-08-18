@@ -102,7 +102,13 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 ## CI e Smokes
 
-CI em GitHub Actions usa Node 22 e pnpm 9.15.0. Ele roda build, testes focados de core/infrastructure/api/worker e API e2e. Nao roda lint nem smokes.
+CI em GitHub Actions usa Node 22 e pnpm 9.15.0.
+
+- Job `build`: `pnpm run lint:check`, `pnpm run format:check` e `pnpm build`. `lint:check`/`format:check` na raiz cobrem API e worker; web, checkout, demo, core, infrastructure e database nao entram nesse gate.
+- Job `test`: testes de `@hockpay/core`, `@hockpay/infrastructure`, `@hockpay/api` e `@hockpay/worker`.
+- Job `api-e2e`: e2e da API.
+- Job `web-test`: testes do dashboard Angular (`pnpm --filter @hockpay/web test -- --watch=false`).
+- Job `smoke-minimal`: suite `p0,payment-link` via `smoke:docker`, apenas em `workflow_dispatch` ou cron diario. Checkout e coberto por esse smoke, nao por um job de unit test no PR.
 
 Smokes locais disponiveis:
 
@@ -115,6 +121,16 @@ Smokes locais disponiveis:
 - `pnpm run smoke:docker`
 
 O default real de `smoke:docker` e `p0,payment-link,p3,studycase,system,withdrawals`.
+
+## Idempotencia
+
+Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments`, `POST /withdrawals`, `POST /refunds`, `POST /payment-links`, `POST /checkout-sessions`.
+
+## Isolamento TEST/LIVE
+
+- Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados filtram pelo environment da request (JWT = TEST; API key = environment da key).
+- Entidades sem coluna de environment (`Customer`, `Account`, `WebhookConfig`, `Receipt`, `Refund`, `Withdrawal`, `BankAccount`) sao escopadas por store, nao por TEST/LIVE. Receipt/refund/withdrawal herdam o ambiente do payment ou da store em operacao.
+- Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
 
 ## Gaps e Limites
 

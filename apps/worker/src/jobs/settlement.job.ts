@@ -1,22 +1,20 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
-import { ReleasePaymentUseCase, PaymentStatus } from '@hockpay/core';
-import { PrismaService } from '../infra/database/prisma.service';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { IPaymentRepository, IStoreRepository, ReleasePaymentUseCase } from '@hockpay/core';
 import { createWorkerRequestId } from '../common/request-id';
 import { runExclusiveCronJob } from '../common/cron-guard';
 import { WorkerCronScheduler } from '../common/worker-cron-scheduler';
 
-/**
- * Settlement Job
- *
- * Releases funds from confirmed payments to available balance.
- * Runs daily at midnight.
- */
+export const SETTLEMENT_BATCH_SIZE = 100;
+
 @Injectable()
 export class SettlementJob implements OnModuleInit {
   private readonly logger = new Logger(SettlementJob.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject('IStoreRepository')
+    private readonly storeRepository: IStoreRepository,
+    @Inject('IPaymentRepository')
+    private readonly paymentRepository: IPaymentRepository,
     private readonly releasePaymentUseCase: ReleasePaymentUseCase,
     @Optional()
     private readonly cronScheduler?: WorkerCronScheduler,
@@ -39,14 +37,7 @@ export class SettlementJob implements OnModuleInit {
   }
 
   async processSettlements(): Promise<void> {
-    // Get all active and approved stores with their settlement days
-    const stores = await this.prisma.store.findMany({
-      where: {
-        isActive: true,
-        isApproved: true,
-      },
-    });
-
+    const stores = await this.storeRepository.listActiveApproved();
     let totalReleased = 0;
     let errors = 0;
 
@@ -67,15 +58,11 @@ export class SettlementJob implements OnModuleInit {
     const releaseDate = new Date();
     releaseDate.setDate(releaseDate.getDate() - settlementDays);
 
-    // Find confirmed payments ready for release
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        storeId,
-        status: PaymentStatus.CONFIRMED,
-        paidAt: { lte: releaseDate },
-      },
-      take: 100,
-    });
+    const payments = await this.paymentRepository.findConfirmedForSettlement(
+      storeId,
+      releaseDate,
+      SETTLEMENT_BATCH_SIZE,
+    );
 
     if (payments.length === 0) {
       return 0;
@@ -87,7 +74,11 @@ export class SettlementJob implements OnModuleInit {
     for (const payment of payments) {
       const requestId = createWorkerRequestId('settlement', payment.id);
       try {
-        await this.releasePaymentUseCase.execute({ storeId, paymentId: payment.id, requestId });
+        await this.releasePaymentUseCase.execute({
+          storeId,
+          paymentId: payment.id,
+          requestId,
+        });
         released++;
       } catch (error) {
         this.logger.error(`Failed to release payment ${payment.id} requestId=${requestId}:`, error);

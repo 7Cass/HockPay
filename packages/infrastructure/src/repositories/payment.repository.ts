@@ -186,6 +186,10 @@ export class PaymentRepository implements IPaymentRepository {
       storeId: options.storeId,
     };
 
+    if (options.environment) {
+      where.environment = options.environment;
+    }
+
     if (options.status) {
       where.status = options.status;
     }
@@ -302,9 +306,36 @@ export class PaymentRepository implements IPaymentRepository {
     return count > 0;
   }
 
-  /**
-   * Convert a Prisma Payment to a Domain Payment.
-   */
+  async findConfirmedForSettlement(
+    storeId: string,
+    paidAtOnOrBefore: Date,
+    take: number,
+  ): Promise<Array<{ id: string }>> {
+    return this.prisma.payment.findMany({
+      where: {
+        storeId,
+        status: PaymentStatus.CONFIRMED,
+        paidAt: { lte: paidAtOnOrBefore },
+      },
+      select: { id: true },
+      take,
+    });
+  }
+
+  async findPendingExpired(
+    now: Date,
+    take: number,
+  ): Promise<Array<{ id: string; storeId: string }>> {
+    return this.prisma.payment.findMany({
+      where: {
+        status: PaymentStatus.PENDING,
+        expiresAt: { lt: now },
+      },
+      select: { id: true, storeId: true },
+      take,
+    });
+  }
+
   private includePixCharge() {
     return {
       pixCharge: true,

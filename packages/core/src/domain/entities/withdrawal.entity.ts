@@ -1,3 +1,5 @@
+import { InvalidWithdrawalStatusError } from "../errors/invalid-withdrawal-status.error";
+
 export enum WithdrawalStatus {
   PENDING = "PENDING",
   PROCESSING = "PROCESSING",
@@ -136,7 +138,9 @@ export class Withdrawal {
 
   markProcessing(): void {
     if (!this.isPending()) {
-      throw new Error("Withdrawal must be pending to start processing");
+      throw new InvalidWithdrawalStatusError(
+        "Withdrawal must be pending to start processing",
+      );
     }
 
     this._status = WithdrawalStatus.PROCESSING;
@@ -148,7 +152,9 @@ export class Withdrawal {
 
   recordRetry(error: string, nextProcessAt: Date): void {
     if (!this.isProcessing()) {
-      throw new Error("Withdrawal must be processing to schedule a retry");
+      throw new InvalidWithdrawalStatusError(
+        "Withdrawal must be processing to schedule a retry",
+      );
     }
 
     this._status = WithdrawalStatus.PENDING;
@@ -159,7 +165,9 @@ export class Withdrawal {
 
   complete(props?: { pixE2eId?: string; paidAt?: Date }): void {
     if (this.isTerminal()) {
-      throw new Error("Withdrawal is already terminal");
+      throw new InvalidWithdrawalStatusError(
+        "Withdrawal is already terminal",
+      );
     }
 
     this._status = WithdrawalStatus.COMPLETED;
@@ -174,7 +182,9 @@ export class Withdrawal {
 
   fail(reason: string): void {
     if (this.isTerminal()) {
-      throw new Error("Withdrawal is already terminal");
+      throw new InvalidWithdrawalStatusError(
+        "Withdrawal is already terminal",
+      );
     }
 
     this._status = WithdrawalStatus.FAILED;

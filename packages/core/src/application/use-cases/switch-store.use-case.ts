@@ -5,6 +5,7 @@ import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.er
 import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
 
 /**
  * Input DTO for SwitchStoreUseCase.
@@ -70,7 +71,7 @@ export class SwitchStoreUseCase {
       );
 
       if (!merchant) {
-        throw new Error('Merchant not found');
+        throw new MerchantNotFoundError(input.merchantId);
       }
 
       merchant.setCurrentStoreId(store.id);

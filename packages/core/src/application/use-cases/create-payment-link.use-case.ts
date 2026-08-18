@@ -14,6 +14,9 @@ import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
 import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
 import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
 import { InvalidLineItemsError } from "../../domain/errors/invalid-line-items.error";
+export { PaymentLinkInvalidExpirationError } from "../../domain/errors/payment-link-invalid-expiration.error";
+import { PaymentLinkInvalidExpirationError } from "../../domain/errors/payment-link-invalid-expiration.error";
+import { resolvePixMerchantCity } from "../services/pix-merchant-city";
 
 export interface ICreatePaymentLinkInput {
   storeId: string;
@@ -30,14 +33,6 @@ export interface ICreatePaymentLinkOutput {
   paymentLink: PaymentLinkListItem;
 }
 
-export class PaymentLinkInvalidExpirationError extends Error {
-  readonly code = "PAYMENT_LINK_INVALID_EXPIRATION";
-
-  constructor() {
-    super("Payment link expiration must be a future date");
-  }
-}
-
 export class CreatePaymentLinkUseCase {
   constructor(
     private readonly paymentLinkRepository: IPaymentLinkRepository,
@@ -51,7 +46,24 @@ export class CreatePaymentLinkUseCase {
   ) {}
 
   async execute(input: ICreatePaymentLinkInput): Promise<ICreatePaymentLinkOutput> {
-    const store = await this.storeRepository.findById(input.storeId);
+    if (this.unitOfWork) {
+      return this.unitOfWork.execute((repos) =>
+        this.executeInTransaction(input, repos),
+      );
+    }
+
+    return this.executeInTransaction(input, {
+      storeRepository: this.storeRepository,
+      pixChargeRepository: this.pixChargeRepository,
+      paymentLinkRepository: this.paymentLinkRepository,
+    } as never);
+  }
+
+  async executeInTransaction(
+    input: ICreatePaymentLinkInput,
+    repos: import("../../domain/repositories/unit-of-work.interface").ITransactedRepositories,
+  ): Promise<ICreatePaymentLinkOutput> {
+    const store = await repos.storeRepository.findById(input.storeId);
     if (!store) throw new StoreNotFoundError(input.storeId);
     if (!store.isActive) throw new StoreInactiveError(store.id);
     if (!store.isApproved) throw new StoreNotApprovedError(store.id);
@@ -67,7 +79,7 @@ export class CreatePaymentLinkUseCase {
       pixKey: this.pixKey,
       amountInCents: amount,
       merchantName: store.name.substring(0, 25),
-      merchantCity: "SAO PAULO",
+      merchantCity: resolvePixMerchantCity(),
       txId,
     });
     const pixCharge = PixCharge.create({
@@ -93,15 +105,8 @@ export class CreatePaymentLinkUseCase {
       expiresAt,
     });
 
-    if (this.unitOfWork) {
-      await this.unitOfWork.execute(async (repos) => {
-        await repos.pixChargeRepository.save(pixCharge);
-        await repos.paymentLinkRepository.save(link);
-      });
-    } else {
-      await this.pixChargeRepository.save(pixCharge);
-      await this.paymentLinkRepository.save(link);
-    }
+    await repos.pixChargeRepository.save(pixCharge);
+    await repos.paymentLinkRepository.save(link);
 
     return {
       paymentLink: {

@@ -6,15 +6,9 @@ import { PixChargeObject } from "../../domain/entities/pix-charge.entity";
 import { PaymentObject } from "../../domain/entities/payment.entity";
 import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
 import { Environment } from "../../domain/value-objects/environment.vo";
-import { PaymentLinkNotFoundError } from "./get-payment-link.use-case";
-
-export class PaymentLinkUnavailableError extends Error {
-  readonly code = "PAYMENT_LINK_UNAVAILABLE";
-
-  constructor(message: string) {
-    super(message);
-  }
-}
+import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
+import { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
+export { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
 
 export interface IOpenPaymentLinkOutput {
   paymentLink: {
