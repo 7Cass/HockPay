@@ -14,7 +14,7 @@ import { PaymentLinkController } from './payment-link.controller';
 
 describe('PaymentLinkController', () => {
   let controller: PaymentLinkController;
-  let createUseCase: { execute: jest.Mock };
+  let createUseCase: { execute: jest.Mock; executeInTransaction: jest.Mock };
   let getUseCase: { execute: jest.Mock };
   let payUseCase: { execute: jest.Mock };
   let failUseCase: { execute: jest.Mock };
@@ -22,6 +22,9 @@ describe('PaymentLinkController', () => {
   beforeEach(() => {
     createUseCase = {
       execute: jest.fn().mockResolvedValue({
+        paymentLink: { id: 'link-1' },
+      }),
+      executeInTransaction: jest.fn().mockResolvedValue({
         paymentLink: { id: 'link-1' },
       }),
     };
@@ -52,6 +55,13 @@ describe('PaymentLinkController', () => {
       { execute: jest.fn() } as unknown as OpenPaymentLinkUseCase,
       payUseCase as unknown as PayPaymentLinkUseCase,
       failUseCase as unknown as FailPaymentLinkUseCase,
+      {
+        execute: jest.fn(async (input) => ({
+          body: await input.operation({}),
+          status: input.responseStatus,
+          replayed: false,
+        })),
+      } as never,
     );
   });
 
@@ -61,26 +71,33 @@ describe('PaymentLinkController', () => {
         amount: 2500,
         title: 'Avulso',
       } as any,
+      'store-1',
+      Environment.TEST,
       {
-        store: { id: 'store-1' },
-        environment: Environment.TEST,
+        method: 'POST',
+        path: '/payment-links',
+        headers: { 'idempotency-key': 'idem-1' },
       } as any,
+      { status: jest.fn(), setHeader: jest.fn() } as any,
     );
 
-    expect(createUseCase.execute).toHaveBeenCalledWith({
-      storeId: 'store-1',
-      environment: Environment.TEST,
-      amount: 2500,
-      items: undefined,
-      title: 'Avulso',
-      description: undefined,
-      internalReference: undefined,
-      expiresAt: undefined,
-    });
+    expect(createUseCase.executeInTransaction).toHaveBeenCalledWith(
+      {
+        storeId: 'store-1',
+        environment: Environment.TEST,
+        amount: 2500,
+        items: undefined,
+        title: 'Avulso',
+        description: undefined,
+        internalReference: undefined,
+        expiresAt: undefined,
+      },
+      expect.anything(),
+    );
   });
 
-  it('maps itemized payment link creation to an explicit contract error', async () => {
-    createUseCase.execute.mockRejectedValue(
+  it('propagates itemized payment link creation as a domain error', async () => {
+    createUseCase.executeInTransaction.mockRejectedValue(
       new InvalidLineItemsError(
         'Payment links do not support items; provide amount',
       ),
@@ -92,12 +109,16 @@ describe('PaymentLinkController', () => {
           items: [{ productId: 'product-1', quantity: 1 }],
           title: 'Catalog order',
         } as any,
+        'store-1',
+        Environment.TEST,
         {
-          store: { id: 'store-1' },
-          environment: Environment.TEST,
+          method: 'POST',
+          path: '/payment-links',
+          headers: { 'idempotency-key': 'idem-1' },
         } as any,
+        { status: jest.fn(), setHeader: jest.fn() } as any,
       ),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    ).rejects.toBeInstanceOf(InvalidLineItemsError);
   });
 
   it('scopes authenticated pay simulation by store before using the public token flow', async () => {

@@ -17,18 +17,21 @@ import {
   CreateCheckoutSessionUseCase,
   GetCheckoutSessionUseCase,
   FulfillCheckoutSessionUseCase,
-  StoreNotFoundError,
-  StoreInactiveError,
-  StoreNotApprovedError,
   CustomerIdentityConflictError,
   Environment,
-  InvalidLineItemsError,
-  ProductNotFoundError,
-  ProductUnavailableError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
-import type { Request } from 'express';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
+import { Idempotent } from '../../common/decorators/idempotent.decorator';
+import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
+import {
+  getIdempotencyRequestContext,
+  readIdempotencyKeyHeader,
+} from '../../common/idempotency/idempotency-request-context';
+import type { Request, Response } from 'express';
+import { Res } from '@nestjs/common';
 import { getRequestId } from '../../common/request-id';
 
 @Controller('checkout-sessions')
@@ -38,45 +41,54 @@ export class CheckoutSessionController {
     private readonly createUseCase: CreateCheckoutSessionUseCase,
     private readonly getUseCase: GetCheckoutSessionUseCase,
     private readonly fulfillUseCase: FulfillCheckoutSessionUseCase,
+    private readonly idempotencyService: TransactionalIdempotencyService,
   ) {}
 
   @Post()
   @UseGuards(CombinedAuthGuard)
+  @Idempotent({ required: true })
   @HttpCode(HttpStatus.CREATED)
   async createSession(
     @Body() dto: CreateCheckoutSessionDto,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
+    @Res({ passthrough: true }) res?: Response,
   ) {
-    try {
-      const storeId = (req as any)?.store?.id;
-      if (!storeId) throw new Error('Store ID not found in request');
+    const input = {
+      storeId,
+      environment,
+      amount: dto.amount,
+      items: dto.items,
+      description: dto.description,
+      customerCollectionMode: dto.customerCollectionMode,
+      prefillCustomer: dto.prefillCustomer,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
+      expiresInSeconds: dto.expiresInSeconds,
+      metadata: dto.metadata,
+    };
+    const idempotencyKey =
+      getIdempotencyRequestContext(req)?.key ??
+      readIdempotencyKeyHeader(req) ??
+      '';
 
-      return await this.createUseCase.execute({
-        storeId,
-        environment: ((req as any)?.environment ??
-          Environment.TEST) as Environment,
-        amount: dto.amount,
-        items: dto.items as any,
-        description: dto.description,
-        customerCollectionMode: dto.customerCollectionMode,
-        prefillCustomer: dto.prefillCustomer,
-        successUrl: dto.successUrl,
-        cancelUrl: dto.cancelUrl,
-        expiresInSeconds: dto.expiresInSeconds,
-        metadata: dto.metadata,
-      });
-    } catch (e: any) {
-      if (e instanceof StoreNotFoundError || e instanceof ProductNotFoundError)
-        throw new NotFoundException(e.message);
-      if (
-        e instanceof StoreInactiveError ||
-        e instanceof StoreNotApprovedError ||
-        e instanceof ProductUnavailableError ||
-        e instanceof InvalidLineItemsError
-      )
-        throw new UnprocessableEntityException(e.message);
-      throw e;
-    }
+    res?.setHeader('x-idempotency-key', idempotencyKey);
+    const result = await this.idempotencyService.execute({
+      idempotencyKey,
+      storeId,
+      method: req?.method ?? 'POST',
+      path: req?.path ?? '/checkout-sessions',
+      body: dto,
+      responseStatus: HttpStatus.CREATED,
+      ttlSeconds: getIdempotencyRequestContext(req)?.ttlSeconds,
+      operation: (repos) =>
+        this.createUseCase.executeInTransaction(input, repos),
+    });
+
+    res?.status(result.status);
+    res?.setHeader('x-idempotency-replayed', String(result.replayed));
+    return result.body;
   }
 
   @Get(':token')

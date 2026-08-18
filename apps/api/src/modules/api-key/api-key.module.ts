@@ -7,9 +7,10 @@ import {
   RevokeApiKeyUseCase,
   ValidateApiKeyUseCase,
 } from '@hockpay/core';
-import { ApiKeyRepository } from 'src/infra/repositories/api-key.repository.impl';
+import { ApiKeyRepository } from '@hockpay/infrastructure';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { AuthModule } from '../auth/auth.module';
+import { PrismaService } from 'src/infra/database/prisma.service';
 
 /**
  * ApiKey Module
@@ -31,8 +32,11 @@ import { AuthModule } from '../auth/auth.module';
     // Guards
     ApiKeyGuard,
 
-    // Infrastructure
-    ApiKeyRepository,
+    {
+      provide: ApiKeyRepository,
+      useFactory: (prisma: PrismaService) => new ApiKeyRepository(prisma),
+      inject: [PrismaService],
+    },
     TokenGeneratorService,
 
     // Use Cases (from core) - CreateApiKeyUseCase

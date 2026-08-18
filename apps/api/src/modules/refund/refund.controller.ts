@@ -16,6 +16,7 @@ import {
   InvalidRefundAmountError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
@@ -44,15 +45,10 @@ export class RefundController {
   @HttpCode(HttpStatus.CREATED)
   async createRefund(
     @Body() dto: CreateRefundDto,
+    @CurrentStore() storeId: string,
     @Req() req: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateRefundResponseDto> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
     try {
       const input = {
         storeId,

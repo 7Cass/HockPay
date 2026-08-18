@@ -8,9 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  ConflictException,
-  NotFoundException,
-  UnprocessableEntityException,
   Req,
   Res,
 } from '@nestjs/common';
@@ -21,15 +18,12 @@ import {
   GetPaymentUseCase,
   ListPaymentsUseCase,
   SimulateCheckoutPaymentUseCase,
-  ExternalIdAlreadyExistsError,
-  PaymentNotFoundError,
-  StoreNotFoundError,
-  StoreInactiveError,
-  StoreNotApprovedError,
   Environment,
 } from '@hockpay/core';
 import type { ICreatePaymentOutput } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
@@ -85,108 +79,67 @@ export class PaymentController {
   @HttpCode(HttpStatus.CREATED)
   async createPayment(
     @Body() dto: CreatePaymentDto,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreatePaymentResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
-      const environment = (req as any)?.environment ?? Environment.TEST;
+    const input = {
+      storeId,
+      requestId: getRequestId(req),
+      externalId: dto.externalId,
+      amount: dto.amount,
+      description: dto.description,
+      customer: dto.customer,
+      environment,
+      paymentMethod: dto.paymentMethod,
+      paymentDetails: dto.paymentDetails,
+      acquirerId: dto.acquirerId,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+      metadata: dto.metadata,
+    };
+    const idempotencyKey = this.getIdempotencyKey(req);
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
+    res?.setHeader('x-idempotency-key', idempotencyKey);
+    res?.setHeader('x-idempotency-replayed', 'false');
 
-      const input = {
+    let createdPaymentOutput: ICreatePaymentOutput | undefined;
+
+    const result =
+      await this.idempotencyService.execute<CreatePaymentResponseDto>({
+        idempotencyKey,
         storeId,
-        requestId: getRequestId(req),
-        externalId: dto.externalId,
-        amount: dto.amount,
-        description: dto.description,
-        customer: dto.customer,
-        environment,
-        paymentMethod: dto.paymentMethod,
-        paymentDetails: dto.paymentDetails,
-        acquirerId: dto.acquirerId,
-        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
-        metadata: dto.metadata,
-      };
-      const idempotencyKey = this.getIdempotencyKey(req);
+        method: req?.method ?? 'POST',
+        path: req?.path ?? '/payments',
+        body: dto,
+        responseStatus: HttpStatus.CREATED,
+        ttlSeconds: this.getIdempotencyTtlSeconds(req),
+        operation: async (repos) => {
+          const output = await this.createPaymentUseCase.executeInTransaction(
+            input,
+            repos,
+          );
+          createdPaymentOutput = output;
 
-      res?.setHeader('x-idempotency-key', idempotencyKey);
-      res?.setHeader('x-idempotency-replayed', 'false');
+          return {
+            payment: output.payment,
+            customerCreated: output.customerCreated,
+          };
+        },
+      });
 
-      let createdPaymentOutput: ICreatePaymentOutput | undefined;
+    res?.status(result.status);
+    res?.setHeader('x-idempotency-replayed', String(result.replayed));
+    res?.setHeader('x-idempotency-key', idempotencyKey);
 
-      const result =
-        await this.idempotencyService.execute<CreatePaymentResponseDto>({
-          idempotencyKey,
-          storeId,
-          method: req?.method ?? 'POST',
-          path: req?.path ?? '/payments',
-          body: dto,
-          responseStatus: HttpStatus.CREATED,
-          ttlSeconds: this.getIdempotencyTtlSeconds(req),
-          operation: async (repos) => {
-            const output = await this.createPaymentUseCase.executeInTransaction(
-              input,
-              repos,
-            );
-            createdPaymentOutput = output;
-
-            return {
-              payment: output.payment,
-              customerCreated: output.customerCreated,
-            };
-          },
-        });
-
-      res?.status(result.status);
-      res?.setHeader('x-idempotency-replayed', String(result.replayed));
-      res?.setHeader('x-idempotency-key', idempotencyKey);
-
-      if (!result.replayed && createdPaymentOutput) {
-        await this.createPaymentUseCase.scheduleExpirationAfterCommit(
-          input,
-          createdPaymentOutput,
-        );
-      }
-
-      return result.body;
-    } catch (error) {
-      if (error instanceof ExternalIdAlreadyExistsError) {
-        throw new ConflictException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof StoreNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof StoreInactiveError) {
-        throw new UnprocessableEntityException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof StoreNotApprovedError) {
-        throw new UnprocessableEntityException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
+    if (!result.replayed && createdPaymentOutput) {
+      await this.createPaymentUseCase.scheduleExpirationAfterCommit(
+        input,
+        createdPaymentOutput,
+      );
     }
+
+    return result.body;
   }
 
   private getIdempotencyKey(req?: Request): string {
@@ -211,35 +164,17 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   async getPaymentTimeline(
     @Param('id') id: string,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetPaymentTimelineResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getPaymentTimelineUseCase.execute({
+      storeId,
+      paymentId: id,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getPaymentTimelineUseCase.execute({
-        storeId,
-        paymentId: id,
-      });
-
-      return {
-        ...result,
-        webhookLogs: result.webhookLogs.map((log) => mapWebhookLogToDto(log)),
-      };
-    } catch (error) {
-      if (error instanceof PaymentNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      ...result,
+      webhookLogs: result.webhookLogs.map((log) => mapWebhookLogToDto(log)),
+    };
   }
 
   /**
@@ -252,35 +187,20 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   async getPayment(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getPaymentUseCase.execute({
+      storeId,
+      paymentId: id,
+      requestId: getRequestId(req),
+      environment,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getPaymentUseCase.execute({
-        storeId,
-        paymentId: id,
-        requestId: getRequestId(req),
-      });
-
-      return {
-        payment: result.payment,
-      };
-    } catch (error) {
-      if (error instanceof PaymentNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      payment: result.payment,
+    };
   }
 
   /**
@@ -293,15 +213,10 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   async listPayments(
     @Query() query: ListPaymentsQueryDto,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<ListPaymentsResponseDto> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    const result = await this.listPaymentsUseCase.execute({
+    return this.listPaymentsUseCase.execute({
       storeId,
       page: query.page,
       limit: query.limit,
@@ -310,9 +225,8 @@ export class PaymentController {
       externalId: query.externalId,
       startDate: query.startDate ? new Date(query.startDate) : undefined,
       endDate: query.endDate ? new Date(query.endDate) : undefined,
+      environment,
     });
-
-    return result;
   }
 
   /**
@@ -330,22 +244,15 @@ export class PaymentController {
     @Body() dto: SimulatePaymentDto,
     @Req() req?: Request,
   ) {
-    try {
-      const result = await this.simulatePaymentUseCase.execute({
-        paymentId: id,
-        checkoutToken: dto.checkoutToken,
-        action,
-        requestId: getRequestId(req),
-      });
+    const result = await this.simulatePaymentUseCase.execute({
+      paymentId: id,
+      checkoutToken: dto.checkoutToken,
+      action,
+      requestId: getRequestId(req),
+    });
 
-      return {
-        payment: result.payment,
-      };
-    } catch (error: any) {
-      // Only test payments can be simulated, LiveEnvironmentNotAllowedError can be thrown
-      if (error.name === 'PaymentNotFoundError')
-        throw new NotFoundException(error.message);
-      throw new UnprocessableEntityException(error.message);
-    }
+    return {
+      payment: result.payment,
+    };
   }
 }

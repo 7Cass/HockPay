@@ -8,24 +8,10 @@ import {
 import { ValidateApiKeyUseCase, JwtPayload, Environment } from '@hockpay/core';
 import { JwtService } from 'src/infra/services/jwt.service';
 
-/**
- * Combined Auth Guard
- *
- * This guard allows authentication via either API Key or JWT Cookie.
- * It tries JWT authentication first (via cookie), then falls back to API Key.
- * Only fails if BOTH authentication methods fail.
- *
- * Use cases:
- * - Public API endpoints that need to work with both M2M (API Key) and Dashboard (JWT) auth
- *
- * Usage:
- * ```typescript
- * @Public()
- * @UseGuards(CombinedAuthGuard)
- * @Controller('customers')
- * export class CustomerController { ... }
- * ```
- */
+const AUTH_REQUIRED_MESSAGE =
+  'Authentication required. Provide either a valid API key (Authorization: Bearer hk_xxx) or JWT cookie (hockpay_at).';
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials';
+
 @Injectable()
 export class CombinedAuthGuard implements CanActivate {
   private readonly logger = new Logger(CombinedAuthGuard.name);
@@ -37,108 +23,112 @@ export class CombinedAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const errors: string[] = [];
+    const apiKey = extractApiKey(request.headers?.authorization);
 
-    // 1. Try JWT authentication via cookie first
+    if (apiKey) {
+      return this.authenticateApiKey(request, apiKey);
+    }
+
     const accessToken = request.cookies?.hockpay_at;
     if (accessToken) {
-      try {
-        const payload: JwtPayload =
-          await this.jwtService.verifyToken(accessToken);
-
-        if (!payload.sub) {
-          errors.push('Invalid JWT payload');
-        } else {
-          // Attach user info to request
-          request.user = {
-            sub: payload.sub,
-            storeId: payload.storeId ?? null,
-            iat: payload.iat,
-            exp: payload.exp,
-          };
-
-          // Mark as JWT auth for later use
-          request.authType = 'jwt';
-
-          // JWT auth defaults to TEST environment (dashboard)
-          request.environment = Environment.TEST;
-
-          // Also set store if available
-          if (payload.storeId) {
-            request.store = {
-              id: payload.storeId,
-            };
-          }
-
-          this.logger.debug(
-            `JWT authenticated for merchant ${payload.sub}, store ${payload.storeId ?? 'none'}`,
-          );
-
-          return true;
-        }
-      } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : 'Unknown error';
-        errors.push(`JWT: ${errorMsg}`);
-        this.logger.debug(`JWT validation failed: ${errorMsg}`);
-        // Continue to try API Key authentication
-      }
+      return this.authenticateJwt(request, accessToken);
     }
 
-    // 2. Try API Key authentication
-    const authorization = request.headers?.authorization;
-    if (authorization?.startsWith('Bearer ')) {
-      const token = authorization.slice(7); // Remove "Bearer "
+    throw new UnauthorizedException(AUTH_REQUIRED_MESSAGE);
+  }
 
-      // Check if it looks like an API Key (starts with hk_)
-      if (token.startsWith('hk_')) {
-        try {
-          const result = await this.validateApiKeyUseCase.execute({
-            plainKey: token,
-          });
+  private async authenticateApiKey(
+    request: AuthenticatedRequest,
+    plainKey: string,
+  ): Promise<true> {
+    try {
+      const result = await this.validateApiKeyUseCase.execute({
+        plainKey,
+      });
 
-          // Inject the store into the request
-          request.store = {
-            id: result.storeId,
-          };
+      request.store = { id: result.storeId };
+      request.environment = result.apiKey.environment;
+      request.authType = 'api_key';
 
-          // Inject the environment from the API key
-          request.environment = result.apiKey.environment;
-
-          // Mark as API Key auth for later use
-          request.authType = 'api_key';
-
-          this.logger.debug(
-            `API Key authenticated for store ${result.storeId}`,
-          );
-
-          return true;
-        } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : 'Unknown error';
-          errors.push(`API Key: ${errorMsg}`);
-          this.logger.debug(`API Key validation failed: ${errorMsg}`);
-        }
-      }
+      this.logger.debug(`API Key authenticated for store ${result.storeId}`);
+      return true;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`API Key validation failed: ${errorMsg}`);
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
+  }
 
-    // 3. No valid authentication found - include all errors for debugging
-    const errorMessage =
-      errors.length > 0
-        ? `Authentication failed: ${errors.join('; ')}`
-        : 'Authentication required. Provide either a valid API key (Authorization: Bearer hk_xxx) or JWT cookie (hockpay_at).';
+  private async authenticateJwt(
+    request: AuthenticatedRequest,
+    accessToken: string,
+  ): Promise<true> {
+    try {
+      const payload: JwtPayload =
+        await this.jwtService.verifyToken(accessToken);
 
-    throw new UnauthorizedException(errorMessage);
+      if (!payload.sub) {
+        throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+      }
+
+      request.user = {
+        sub: payload.sub,
+        storeId: payload.storeId ?? null,
+        iat: payload.iat,
+        exp: payload.exp,
+      };
+      request.authType = 'jwt';
+      request.environment = Environment.TEST;
+
+      if (payload.storeId) {
+        request.store = { id: payload.storeId };
+      }
+
+      this.logger.debug(
+        `JWT authenticated for merchant ${payload.sub}, store ${payload.storeId ?? 'none'}`,
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.debug(`JWT validation failed: ${errorMsg}`);
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+    }
   }
 }
 
-/**
- * Extend the Express Request interface to include auth type.
- */
+export function extractApiKey(authorization?: string): string | null {
+  if (!authorization?.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authorization.slice(7);
+  return token.startsWith('hk_') ? token : null;
+}
+
+type AuthenticatedRequest = {
+  store?: { id: string };
+  environment?: Environment;
+  authType?: 'api_key' | 'jwt';
+  user?: {
+    sub: string;
+    storeId: string | null;
+    iat?: number;
+    exp?: number;
+  };
+  cookies?: { hockpay_at?: string };
+  headers?: { authorization?: string };
+};
+
 declare global {
   namespace Express {
     interface Request {
       authType?: 'api_key' | 'jwt';
+      environment?: Environment;
+      store?: { id: string };
     }
   }
 }

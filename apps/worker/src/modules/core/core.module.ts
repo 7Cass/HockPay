@@ -18,6 +18,7 @@ import {
   TransactionRepository,
   UnitOfWork,
   WithdrawalRepository,
+  StoreRepository,
   WebhookHttpClientService,
 } from '@hockpay/infrastructure';
 
@@ -59,6 +60,11 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     {
       provide: 'IPaymentRepository',
       useFactory: (prisma: PrismaService) => new PaymentRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: 'IStoreRepository',
+      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
       inject: [PrismaService],
     },
     {
@@ -233,6 +239,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
   exports: [
     // Repositories (tokens for shared)
     'IPaymentRepository',
+    'IStoreRepository',
     'IOutboxRepository',
     'IWebhookConfigRepository',
     'IWebhookLogRepository',

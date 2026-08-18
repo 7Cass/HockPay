@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import {
   CreatePaymentUseCase,
   GetPaymentTimelineUseCase,
@@ -76,16 +75,16 @@ describe('PaymentController', () => {
         externalId: 'external-1',
         amount: 1234,
         description: 'Test payment',
-        paymentMethod: PaymentMethod.CREDIT_CARD,
+        paymentMethod: PaymentMethod.PIX,
         paymentDetails: { installments: 2 },
         acquirerId: 'acquirer-1',
         customer: { document: '12345678901' },
         expiresAt: '2026-01-01T10:30:00.000Z',
         metadata: { source: 'spec' },
       },
+      'store-1',
+      'TEST' as never,
       {
-        store: { id: 'store-1' },
-        environment: 'TEST',
         id: 'req-1',
         method: 'POST',
         path: '/payments',
@@ -102,7 +101,7 @@ describe('PaymentController', () => {
       description: 'Test payment',
       customer: { document: '12345678901' },
       environment: 'TEST',
-      paymentMethod: PaymentMethod.CREDIT_CARD,
+      paymentMethod: PaymentMethod.PIX,
       paymentDetails: { installments: 2 },
       acquirerId: 'acquirer-1',
       expiresAt: new Date('2026-01-01T10:30:00.000Z'),
@@ -156,9 +155,9 @@ describe('PaymentController', () => {
         amount: 1234,
         customer: { document: '12345678901' },
       },
+      'store-1',
+      'TEST' as never,
       {
-        store: { id: 'store-1' },
-        environment: 'TEST',
         id: 'req-1',
         method: 'POST',
         path: '/payments',
@@ -206,9 +205,7 @@ describe('PaymentController', () => {
       timeline: [],
     });
 
-    const result = await controller.getPaymentTimeline('payment-1', {
-      store: { id: 'store-1' },
-    } as any);
+    const result = await controller.getPaymentTimeline('payment-1', 'store-1');
 
     expect(getPaymentTimelineUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
@@ -223,15 +220,13 @@ describe('PaymentController', () => {
     });
   });
 
-  it('maps PaymentNotFoundError to NotFoundException on timeline lookups', async () => {
+  it('propagates PaymentNotFoundError from the timeline use case', async () => {
     getPaymentTimelineUseCase.execute.mockRejectedValue(
       new PaymentNotFoundError('payment-404'),
     );
 
     await expect(
-      controller.getPaymentTimeline('payment-404', {
-        store: { id: 'store-1' },
-      } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+      controller.getPaymentTimeline('payment-404', 'store-1'),
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 });
