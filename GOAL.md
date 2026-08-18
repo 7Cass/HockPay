@@ -798,14 +798,23 @@ Done Criteria:
 
 ## Validation Log For This Goal
 
-- [x] `pnpm --filter @hockpay/core test:ci` — 41 files, 180 tests passed (2026-08-18)
+- [x] `pnpm --filter @hockpay/web test -- --watch=false` — 10 files, 26 tests passed (2026-08-18, unchanged this follow-up)
+- [x] `pnpm run lint:check` — passou (API + worker)
+- Smoke `p0,payment-link` via Docker nao executado neste ambiente (depende de Postgres/Redis e processos host). Cobertura equivalente: testes de core/infra/api/worker/web.
+
+Re-run after the last webhook type fix (`FetchInit` / undici 7 vs `@types/node` `RequestInit`), 2026-08-18T23:42:27Z:
+
+- [x] `pnpm --filter @hockpay/core test:ci` — 41 files, 180 tests passed
 - [x] `pnpm --filter @hockpay/infrastructure test` — 14 files, 63 tests passed
 - [x] `pnpm --filter @hockpay/api test` — 25 suites, 120 tests passed
-- [x] `pnpm --filter @hockpay/worker test` — 11 suites, 33 tests passed
-- [x] `pnpm --filter @hockpay/web test -- --watch=false` — 10 files, 26 tests passed
-- [x] `pnpm run lint:check` — passou (API + worker)
-- [x] Follow-up 2026-08-18: customer-history list/get honor request environment; checkout get/fulfill and refund create no longer remap DomainError; webhook fetch is pinned to the validated IP with original Host and SNI.
-- Smoke `p0,payment-link` via Docker nao executado neste ambiente (depende de Postgres/Redis e processos host). Cobertura equivalente: testes de core/infra/api/worker/web acima.
+- [x] `pnpm --filter @hockpay/worker test` — first failed 7/11 suites (`TS2322` on webhook `dispatcher`); after the type fix, 11 suites, 33 tests passed
+
+Four skeptic items closed only after the re-run above:
+
+- [x] Customer-history payment list/get honor request environment (`environment` required; TEST hides LIVE).
+- [x] Checkout get/fulfill no longer remap `DomainError` to Nest 404/422.
+- [x] Refund create no longer remaps `PaymentNotFoundError` / `InvalidRefundAmountError`.
+- [x] Webhook `fetch` is pinned to the validated IP with original `Host` and SNI.
 
 Comandos tipicos:
 

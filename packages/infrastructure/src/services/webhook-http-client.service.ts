@@ -20,10 +20,6 @@ type PreparedWebhookTarget =
       hostHeader: string;
     };
 
-type FetchInit = RequestInit & {
-  dispatcher?: Agent;
-};
-
 type WebhookHttpLogger = {
   debug(message: string): void;
   warn(message: string): void;
@@ -246,20 +242,18 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         ? new Agent({ connect: { servername: target.serverName } })
         : undefined;
 
-    const init: FetchInit = {
-      method: "POST",
-      headers: {
-        ...headers,
-        Host: target.hostHeader,
-      },
-      body: JSON.stringify(payload),
-      redirect: "manual",
-      signal: controller.signal,
-      ...(dispatcher ? { dispatcher } : {}),
-    };
-
     try {
-      return await fetch(target.requestUrl, init);
+      return await fetch(target.requestUrl, {
+        method: "POST",
+        headers: {
+          ...headers,
+          Host: target.hostHeader,
+        },
+        body: JSON.stringify(payload),
+        redirect: "manual",
+        signal: controller.signal,
+        ...(dispatcher ? { dispatcher } : {}),
+      } as RequestInit);
     } finally {
       clearTimeout(timeoutId);
       await dispatcher?.close();
