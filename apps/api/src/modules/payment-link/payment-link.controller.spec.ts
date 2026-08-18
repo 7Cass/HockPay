@@ -1,4 +1,3 @@
-import { UnprocessableEntityException } from '@nestjs/common';
 import {
   CancelPaymentLinkUseCase,
   CreatePaymentLinkUseCase,
@@ -122,15 +121,17 @@ describe('PaymentLinkController', () => {
   });
 
   it('scopes authenticated pay simulation by store before using the public token flow', async () => {
-    const result = await controller.payAuthenticated('link-1', {
-      store: { id: 'store-1' },
-      environment: Environment.TEST,
-      id: 'req-1',
-    } as any);
+    const result = await controller.payAuthenticated(
+      'link-1',
+      'store-1',
+      Environment.TEST,
+      { id: 'req-1' } as any,
+    );
 
     expect(getUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentLinkId: 'link-1',
+      environment: Environment.TEST,
     });
     expect(payUseCase.execute).toHaveBeenCalledWith({
       publicToken: 'public-token',
@@ -143,15 +144,18 @@ describe('PaymentLinkController', () => {
   });
 
   it('scopes authenticated fail simulation by store before using the public token flow', async () => {
-    const result = await controller.failAuthenticated('link-1', 'manual fail', {
-      store: { id: 'store-1' },
-      environment: Environment.TEST,
-      id: 'req-1',
-    } as any);
+    const result = await controller.failAuthenticated(
+      'link-1',
+      'store-1',
+      Environment.TEST,
+      'manual fail',
+      { id: 'req-1' } as any,
+    );
 
     expect(getUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentLinkId: 'link-1',
+      environment: Environment.TEST,
     });
     expect(failUseCase.execute).toHaveBeenCalledWith({
       publicToken: 'public-token',
@@ -166,11 +170,13 @@ describe('PaymentLinkController', () => {
 
   it('rejects authenticated payment link simulation in live environment', async () => {
     await expect(
-      controller.payAuthenticated('link-1', {
-        store: { id: 'store-1' },
-        environment: Environment.LIVE,
-      } as any),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      controller.payAuthenticated(
+        'link-1',
+        'store-1',
+        Environment.LIVE,
+        {} as any,
+      ),
+    ).rejects.toMatchObject({ code: 'LIVE_ENVIRONMENT_NOT_ALLOWED' });
 
     expect(getUseCase.execute).not.toHaveBeenCalled();
     expect(payUseCase.execute).not.toHaveBeenCalled();

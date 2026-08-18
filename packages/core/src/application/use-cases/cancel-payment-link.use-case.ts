@@ -3,14 +3,8 @@ import { IPixChargeRepository } from "../../domain/repositories/pix-charge.repos
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { PixChargeStatus } from "../../domain/entities/pix-charge.entity";
 import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
-
-export class PaymentLinkCannotBeCancelledError extends Error {
-  readonly code = "PAYMENT_LINK_CANNOT_BE_CANCELLED";
-
-  constructor() {
-    super("Payment link cannot be cancelled after payment is paid");
-  }
-}
+export { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
+import { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
 
 export class CancelPaymentLinkUseCase {
   constructor(

@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import {
   CreateProductUseCase,
   Environment,
@@ -52,10 +51,8 @@ describe('ProductController', () => {
         imageUrl: 'http://localhost/image.png',
         metadata: { category: 'demo' },
       },
-      {
-        store: { id: 'store-1' },
-        environment: Environment.TEST,
-      } as any,
+      'store-1',
+      Environment.TEST,
     );
 
     expect(createUseCase.execute).toHaveBeenCalledWith({
@@ -87,10 +84,8 @@ describe('ProductController', () => {
         isActive: true,
         search: 'media',
       },
-      {
-        store: { id: 'store-1' },
-        environment: Environment.LIVE,
-      } as any,
+      'store-1',
+      Environment.LIVE,
     );
 
     expect(listUseCase.execute).toHaveBeenCalledWith({
@@ -116,11 +111,9 @@ describe('ProductController', () => {
           name: 'Media kit',
           price: 2500,
         },
-        {
-          store: { id: 'store-1' },
-          environment: Environment.TEST,
-        } as any,
+        'store-1',
+        Environment.TEST,
       ),
-    ).rejects.toBeInstanceOf(ConflictException);
+    ).rejects.toBeInstanceOf(ProductExternalIdAlreadyExistsError);
   });
 });

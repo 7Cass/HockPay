@@ -95,6 +95,7 @@ export * from "./domain/errors/invalid-simulation-action.error";
 export * from "./domain/errors/payment-link-not-found.error";
 export * from "./domain/errors/payment-link-invalid-expiration.error";
 export * from "./domain/errors/payment-link-unavailable.error";
+export * from "./domain/errors/payment-link-cannot-be-cancelled.error";
 export * from "./domain/errors/bank-account-not-found.error";
 export * from "./domain/errors/bank-account-in-use.error";
 export * from "./domain/errors/bank-account-not-verified.error";
