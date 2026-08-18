@@ -1,6 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
-import { CustomerNotFoundError } from '../../domain/errors/customer-not-found.error';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { resolveCustomerByExternalId } from './customer-history.helpers';
@@ -9,6 +9,7 @@ export interface IGetCustomerHistoryPaymentInput {
   storeId: string;
   customerExternalId: string;
   paymentId: string;
+  environment: Environment;
 }
 
 export interface IGetCustomerHistoryPaymentOutput {
@@ -35,7 +36,11 @@ export class GetCustomerHistoryPaymentUseCase {
       input.storeId,
     );
 
-    if (!payment || payment.customerId !== customer.id) {
+    if (
+      !payment ||
+      payment.customerId !== customer.id ||
+      payment.environment !== input.environment
+    ) {
       throw new PaymentNotFoundError(input.paymentId);
     }
 

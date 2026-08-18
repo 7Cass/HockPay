@@ -8,8 +8,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { FulfillCheckoutSessionDto } from './dtos/fulfill-checkout-session.dto';
@@ -17,7 +15,6 @@ import {
   CreateCheckoutSessionUseCase,
   GetCheckoutSessionUseCase,
   FulfillCheckoutSessionUseCase,
-  CustomerIdentityConflictError,
   Environment,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
@@ -94,11 +91,7 @@ export class CheckoutSessionController {
   @Get(':token')
   @HttpCode(HttpStatus.OK)
   async getSession(@Param('token') token: string) {
-    try {
-      return await this.getUseCase.execute(token);
-    } catch (e: any) {
-      throw new NotFoundException(e.message);
-    }
+    return this.getUseCase.execute(token);
   }
 
   @Post(':token/fulfill')
@@ -108,23 +101,13 @@ export class CheckoutSessionController {
     @Body() dto: FulfillCheckoutSessionDto,
     @Req() req?: Request,
   ) {
-    try {
-      // In a real scenario, you might derive environment from the session or a referer.
-      // But for demo, Environment.TEST is a safe default.
-      // The Core FulfillCheckoutSessionUseCase relies on the environment for the sub-payment.
-      const environment = (req as any)?.environment ?? Environment.TEST;
+    const environment = req?.environment ?? Environment.TEST;
 
-      return await this.fulfillUseCase.execute({
-        token,
-        requestId: getRequestId(req),
-        customer: dto.customer,
-        environment,
-      });
-    } catch (e: any) {
-      if (e instanceof CustomerIdentityConflictError) {
-        throw new UnprocessableEntityException(e.message);
-      }
-      throw new UnprocessableEntityException(e.message);
-    }
+    return this.fulfillUseCase.execute({
+      token,
+      requestId: getRequestId(req),
+      customer: dto.customer,
+      environment,
+    });
   }
 }

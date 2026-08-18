@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
   CustomerNotFoundError,
+  Environment,
   GetCustomerHistoryPaymentUseCase,
   GetCustomerHistoryReceiptUseCase,
   ListCustomerHistoryPaymentsUseCase,
@@ -40,7 +41,7 @@ describe('CustomerHistoryController', () => {
 
   it('rejects dashboard cookie auth because the surface is API-key only', async () => {
     await expect(
-      controller.listPayments('cust_123', {}, {
+      controller.listPayments('cust_123', {}, Environment.TEST, {
         authType: 'jwt',
         store: { id: 'store-1' },
       } as any),
@@ -65,6 +66,7 @@ describe('CustomerHistoryController', () => {
         startDate: '2026-04-01T00:00:00.000Z',
         endDate: '2026-04-30T00:00:00.000Z',
       } as any,
+      Environment.TEST,
       { authType: 'api_key', store: { id: 'store-1' } } as any,
     );
 
@@ -76,6 +78,7 @@ describe('CustomerHistoryController', () => {
       status: 'CONFIRMED',
       startDate: new Date('2026-04-01T00:00:00.000Z'),
       endDate: new Date('2026-04-30T00:00:00.000Z'),
+      environment: Environment.TEST,
     });
   });
 
@@ -98,7 +101,7 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getPayment('cust_123', 'payment-1', {
+      controller.getPayment('cust_123', 'payment-1', Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as any),

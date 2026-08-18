@@ -1,6 +1,6 @@
-import { UnprocessableEntityException } from '@nestjs/common';
 import {
   CreateCheckoutSessionUseCase,
+  CheckoutSessionNotFoundError,
   CustomerIdentityConflictError,
   Environment,
   FulfillCheckoutSessionUseCase,
@@ -157,13 +157,23 @@ describe('CheckoutSessionController', () => {
     );
   });
 
-  it('maps customer identity conflicts to 422 on fulfill', async () => {
+  it('propagates checkout-session-not-found from get for the domain filter', async () => {
+    getUseCase.execute.mockRejectedValue(
+      new CheckoutSessionNotFoundError('missing'),
+    );
+
+    await expect(controller.getSession('missing')).rejects.toBeInstanceOf(
+      CheckoutSessionNotFoundError,
+    );
+  });
+
+  it('propagates customer identity conflicts from fulfill for the domain filter', async () => {
     fulfillUseCase.execute.mockRejectedValue(
       new CustomerIdentityConflictError(),
     );
 
     await expect(
       controller.fulfillSession('token', { customer: {} } as any, {} as any),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    ).rejects.toBeInstanceOf(CustomerIdentityConflictError);
   });
 });

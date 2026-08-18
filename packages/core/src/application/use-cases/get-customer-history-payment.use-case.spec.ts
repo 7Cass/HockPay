@@ -41,6 +41,7 @@ describe('GetCustomerHistoryPaymentUseCase', () => {
       storeId: 'store-1',
       customerExternalId: 'cust_123',
       paymentId: 'payment-1',
+      environment: Environment.TEST,
     });
 
     expect(result.payment.id).toBe(payment.id);
@@ -80,6 +81,45 @@ describe('GetCustomerHistoryPaymentUseCase', () => {
         storeId: 'store-1',
         customerExternalId: 'cust_123',
         paymentId: 'payment-1',
+        environment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
+  });
+
+  it('hides a LIVE payment when the request environment is TEST', async () => {
+    const customer = Customer.create({
+      storeId: 'store-1',
+      externalId: 'cust_123',
+      document: new Document('52998224725'),
+    });
+
+    const payment = Payment.create({
+      storeId: 'store-1',
+      customerId: customer.id,
+      amount: 1000,
+      fee: 10,
+      netAmount: 990,
+      environment: Environment.LIVE,
+      paymentMethod: PaymentMethod.PIX,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const useCase = new GetCustomerHistoryPaymentUseCase(
+      {
+        findByExternalId: vi.fn().mockResolvedValue(customer),
+      } as any,
+      {
+        findByIdAndStoreId: vi.fn().mockResolvedValue(payment),
+        update: vi.fn(),
+      } as any,
+    );
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        customerExternalId: 'cust_123',
+        paymentId: payment.id,
+        environment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });

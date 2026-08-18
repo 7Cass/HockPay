@@ -6,15 +6,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  UnprocessableEntityException,
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import {
-  CreateRefundUseCase,
-  PaymentNotFoundError,
-  InvalidRefundAmountError,
-} from '@hockpay/core';
+import { CreateRefundUseCase } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -49,65 +44,45 @@ export class RefundController {
     @Req() req: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateRefundResponseDto> {
-    try {
-      const input = {
+    const input = {
+      storeId,
+      paymentId: dto.paymentId,
+      requestId: getRequestId(req),
+      amount: dto.amount,
+      reason: dto.reason,
+    };
+    const idempotencyKey = this.getIdempotencyKey(req);
+
+    res?.setHeader('x-idempotency-key', idempotencyKey);
+    res?.setHeader('x-idempotency-replayed', 'false');
+
+    const result =
+      await this.idempotencyService.execute<CreateRefundResponseDto>({
+        idempotencyKey,
         storeId,
-        paymentId: dto.paymentId,
-        requestId: getRequestId(req),
-        amount: dto.amount,
-        reason: dto.reason,
-      };
-      const idempotencyKey = this.getIdempotencyKey(req);
+        method: req.method,
+        path: req.path,
+        body: dto,
+        responseStatus: HttpStatus.CREATED,
+        ttlSeconds: this.getIdempotencyTtlSeconds(req),
+        operation: async (repos) => {
+          const output = await this.createRefundUseCase.executeInTransaction(
+            input,
+            repos,
+          );
 
-      res?.setHeader('x-idempotency-key', idempotencyKey);
-      res?.setHeader('x-idempotency-replayed', 'false');
+          return {
+            refund: this.toRefundResponse(output.refund),
+            payment: output.payment,
+          };
+        },
+      });
 
-      const result =
-        await this.idempotencyService.execute<CreateRefundResponseDto>({
-          idempotencyKey,
-          storeId,
-          method: req.method,
-          path: req.path,
-          body: dto,
-          responseStatus: HttpStatus.CREATED,
-          ttlSeconds: this.getIdempotencyTtlSeconds(req),
-          operation: async (repos) => {
-            const output = await this.createRefundUseCase.executeInTransaction(
-              input,
-              repos,
-            );
+    res?.status(result.status);
+    res?.setHeader('x-idempotency-replayed', String(result.replayed));
+    res?.setHeader('x-idempotency-key', idempotencyKey);
 
-            return {
-              refund: this.toRefundResponse(output.refund),
-              payment: output.payment,
-            };
-          },
-        });
-
-      res?.status(result.status);
-      res?.setHeader('x-idempotency-replayed', String(result.replayed));
-      res?.setHeader('x-idempotency-key', idempotencyKey);
-
-      return result.body;
-    } catch (error) {
-      if (error instanceof PaymentNotFoundError) {
-        throw new UnprocessableEntityException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof InvalidRefundAmountError) {
-        throw new UnprocessableEntityException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return result.body;
   }
 
   private toRefundResponse(refund: any): RefundResponseDto {

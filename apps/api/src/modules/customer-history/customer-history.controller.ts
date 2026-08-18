@@ -13,6 +13,7 @@ import {
 import type { Request } from 'express';
 import {
   CustomerNotFoundError,
+  Environment,
   GetCustomerHistoryPaymentUseCase,
   GetCustomerHistoryReceiptUseCase,
   ListCustomerHistoryPaymentsUseCase,
@@ -22,6 +23,7 @@ import {
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import {
   CustomerHistoryPaymentDto,
   GetCustomerHistoryPaymentResponseDto,
@@ -51,6 +53,7 @@ export class CustomerHistoryController {
   async listPayments(
     @Param('customerExternalId') customerExternalId: string,
     @Query() query: ListCustomerHistoryPaymentsQueryDto,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<ListCustomerHistoryPaymentsResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
@@ -64,6 +67,7 @@ export class CustomerHistoryController {
         status: query.status,
         startDate: query.startDate ? new Date(query.startDate) : undefined,
         endDate: query.endDate ? new Date(query.endDate) : undefined,
+        environment,
       });
 
       return {
@@ -88,6 +92,7 @@ export class CustomerHistoryController {
   async getPayment(
     @Param('customerExternalId') customerExternalId: string,
     @Param('paymentId') paymentId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<GetCustomerHistoryPaymentResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
@@ -97,6 +102,7 @@ export class CustomerHistoryController {
         storeId,
         customerExternalId,
         paymentId,
+        environment,
       });
 
       return {

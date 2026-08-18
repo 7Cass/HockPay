@@ -1,5 +1,9 @@
 import 'reflect-metadata';
-import { CreateRefundUseCase } from '@hockpay/core';
+import {
+  CreateRefundUseCase,
+  InvalidRefundAmountError,
+  PaymentNotFoundError,
+} from '@hockpay/core';
 import { IDEMPOTENCY_KEY } from '../../common/decorators/idempotent.decorator';
 import { RefundController } from './refund.controller';
 
@@ -101,4 +105,72 @@ describe('RefundController', () => {
       payment: { id: 'payment-1' },
     });
   });
+
+  it('propagates PaymentNotFoundError for the domain filter', async () => {
+    await expect(
+      createRefundController({
+        executeInTransaction: jest
+          .fn()
+          .mockRejectedValue(new PaymentNotFoundError('payment-1')),
+      }).createRefund(
+        { paymentId: 'payment-1', amount: 500 },
+        'store-1',
+        refundRequest(),
+        refundResponse(),
+      ),
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
+  });
+
+  it('propagates InvalidRefundAmountError for the domain filter', async () => {
+    await expect(
+      createRefundController({
+        executeInTransaction: jest
+          .fn()
+          .mockRejectedValue(
+            new InvalidRefundAmountError('Refund amount must be positive'),
+          ),
+      }).createRefund(
+        { paymentId: 'payment-1', amount: 0 },
+        'store-1',
+        refundRequest(),
+        refundResponse(),
+      ),
+    ).rejects.toBeInstanceOf(InvalidRefundAmountError);
+  });
 });
+
+function createRefundController(createRefundUseCase: {
+  executeInTransaction: jest.Mock;
+}) {
+  const idempotencyService = {
+    execute: jest.fn(async (input) => {
+      const body = await input.operation({});
+      return {
+        body,
+        status: input.responseStatus,
+        replayed: false,
+      };
+    }),
+  };
+
+  return new RefundController(
+    createRefundUseCase as unknown as CreateRefundUseCase,
+    idempotencyService as never,
+  );
+}
+
+function refundRequest() {
+  return {
+    id: 'req-1',
+    method: 'POST',
+    path: '/refunds',
+    headers: { 'idempotency-key': 'idem-1' },
+  } as any;
+}
+
+function refundResponse() {
+  return {
+    status: jest.fn(),
+    setHeader: jest.fn(),
+  } as any;
+}

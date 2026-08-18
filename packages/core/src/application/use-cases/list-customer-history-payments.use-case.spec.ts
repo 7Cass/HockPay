@@ -26,26 +26,35 @@ describe('ListCustomerHistoryPaymentsUseCase', () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
 
+    const list = vi.fn().mockResolvedValue({
+      payments: [payment],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
     const useCase = new ListCustomerHistoryPaymentsUseCase(
       {
         findByExternalId: vi.fn().mockResolvedValue(customer),
       } as any,
       {
-        list: vi.fn().mockResolvedValue({
-          payments: [payment],
-          total: 1,
-          page: 1,
-          limit: 20,
-          totalPages: 1,
-        }),
+        list,
       } as any,
     );
 
     const result = await useCase.execute({
       storeId: 'store-1',
       customerExternalId: 'cust_123',
+      environment: Environment.TEST,
     });
 
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storeId: 'store-1',
+        customerId: customer.id,
+        environment: Environment.TEST,
+      }),
+    );
     expect(result.payments).toHaveLength(1);
     expect(result.payments[0].customerId).toBe(customer.id);
   });
@@ -64,6 +73,7 @@ describe('ListCustomerHistoryPaymentsUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         customerExternalId: 'missing',
+        environment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(CustomerNotFoundError);
   });

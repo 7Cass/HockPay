@@ -1,5 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { resolveCustomerByExternalId } from './customer-history.helpers';
@@ -12,6 +13,7 @@ export interface IListCustomerHistoryPaymentsInput {
   status?: PaymentStatus;
   startDate?: Date;
   endDate?: Date;
+  environment: Environment;
 }
 
 export interface IListCustomerHistoryPaymentsOutput {
@@ -48,6 +50,7 @@ export class ListCustomerHistoryPaymentsUseCase {
       status: input.status,
       startDate: input.startDate,
       endDate: input.endDate,
+      environment: input.environment,
     });
 
     return {
