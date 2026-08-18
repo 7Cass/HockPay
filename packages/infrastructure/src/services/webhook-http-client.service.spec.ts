@@ -112,7 +112,7 @@ describe("WebhookHttpClientService", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("sends to a public HTTPS endpoint after DNS validation", async () => {
+  it("pins fetch to the validated public IP with original Host and SNI", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response("ok", { status: 200 }));
@@ -128,9 +128,50 @@ describe("WebhookHttpClientService", () => {
 
     expect(response.success).toBe(true);
     expect(response.statusCode).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
+      "https://93.184.216.34/webhook",
+      expect.objectContaining({
+        redirect: "manual",
+        headers: expect.objectContaining({
+          Host: "hooks.example.com",
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        dispatcher: expect.objectContaining({
+          closed: expect.anything(),
+        }),
+      }),
+    );
+  });
+
+  it("pins IPv6 destinations with a bracketed URL and original Host", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("ok", { status: 200 }));
+    const client = new WebhookHttpClientService({
+      dnsLookup: async () => [
+        { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
+      ],
+    });
+
+    const response = await client.send(
       "https://hooks.example.com/webhook",
-      expect.objectContaining({ redirect: "manual" }),
+      { test: true },
+      { "Content-Type": "application/json" },
+    );
+
+    expect(response.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://[2606:2800:220:1:248:1893:25c8:1946]/webhook",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Host: "hooks.example.com",
+        }),
+      }),
     );
   });
 });

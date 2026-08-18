@@ -798,12 +798,13 @@ Done Criteria:
 
 ## Validation Log For This Goal
 
-- [x] `pnpm --filter @hockpay/core test:ci` — 41 files, 179 tests passed (2026-08-18)
-- [x] `pnpm --filter @hockpay/infrastructure test` — 14 files, 62 tests passed
-- [x] `pnpm --filter @hockpay/api test` — 25 suites, 117 tests passed
+- [x] `pnpm --filter @hockpay/core test:ci` — 41 files, 180 tests passed (2026-08-18)
+- [x] `pnpm --filter @hockpay/infrastructure test` — 14 files, 63 tests passed
+- [x] `pnpm --filter @hockpay/api test` — 25 suites, 120 tests passed
 - [x] `pnpm --filter @hockpay/worker test` — 11 suites, 33 tests passed
 - [x] `pnpm --filter @hockpay/web test -- --watch=false` — 10 files, 26 tests passed
 - [x] `pnpm run lint:check` — passou (API + worker)
+- [x] Follow-up 2026-08-18: customer-history list/get honor request environment; checkout get/fulfill and refund create no longer remap DomainError; webhook fetch is pinned to the validated IP with original Host and SNI.
 - Smoke `p0,payment-link` via Docker nao executado neste ambiente (depende de Postgres/Redis e processos host). Cobertura equivalente: testes de core/infra/api/worker/web acima.
 
 Comandos tipicos:

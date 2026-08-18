@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent } from "undici";
 import {
   IWebhookSenderPort,
   WebhookResponse,
@@ -9,6 +10,19 @@ import {
   validateWebhookResolvedAddress,
   validateWebhookUrl,
 } from "@hockpay/core";
+
+type PreparedWebhookTarget =
+  | { valid: false; result: WebhookUrlPolicyResult }
+  | {
+      valid: true;
+      requestUrl: string;
+      serverName: string;
+      hostHeader: string;
+    };
+
+type FetchInit = RequestInit & {
+  dispatcher?: Agent;
+};
 
 type WebhookHttpLogger = {
   debug(message: string): void;
@@ -77,12 +91,12 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     let currentUrl = initialUrl;
 
     for (let redirects = 0; redirects <= this.maxRedirects; redirects += 1) {
-      const policyResult = await this.validateTargetBeforeRequest(currentUrl);
-      if (!policyResult.valid) {
-        return this.blockedResponse(currentUrl, policyResult);
+      const prepared = await this.prepareTarget(currentUrl);
+      if (!prepared.valid) {
+        return this.blockedResponse(currentUrl, prepared.result);
       }
 
-      const response = await this.fetchOnce(currentUrl, payload, headers);
+      const response = await this.fetchOnce(prepared, payload, headers);
 
       if (!REDIRECT_STATUS_CODES.has(response.status)) {
         return this.responseFromFetchResult(currentUrl, response);
@@ -123,41 +137,74 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     };
   }
 
-  private async validateTargetBeforeRequest(
-    url: string,
-  ): Promise<WebhookUrlPolicyResult> {
+  private async prepareTarget(url: string): Promise<PreparedWebhookTarget> {
     const policyResult = validateWebhookUrl(url, this.webhookUrlPolicyOptions);
     if (!policyResult.valid) {
-      return policyResult;
+      return { valid: false, result: policyResult };
     }
 
     const parsed = new URL(url);
     if (isExplicitLocalHttpTarget(parsed, this.webhookUrlPolicyOptions)) {
-      return { valid: true };
+      return this.directTarget(parsed);
     }
 
     if (isIP(parsed.hostname)) {
-      return validateWebhookResolvedAddress({ address: parsed.hostname });
+      const ipPolicy = validateWebhookResolvedAddress({
+        address: parsed.hostname,
+      });
+      if (!ipPolicy.valid) {
+        return { valid: false, result: ipPolicy };
+      }
+
+      return this.directTarget(parsed);
     }
 
     const firstLookup = await this.resolvePublicAddresses(parsed.hostname);
     if (!firstLookup.valid) {
-      return firstLookup.result;
+      return { valid: false, result: firstLookup.result };
     }
 
     const secondLookup = await this.resolvePublicAddresses(parsed.hostname);
     if (!secondLookup.valid) {
-      return secondLookup.result;
+      return { valid: false, result: secondLookup.result };
     }
 
     if (!sameResolvedAddresses(firstLookup.addresses, secondLookup.addresses)) {
       return {
         valid: false,
-        message: "Webhook URL resolved to a different address before connect.",
+        result: {
+          valid: false,
+          message: "Webhook URL resolved to a different address before connect.",
+        },
       };
     }
 
-    return { valid: true };
+    const pinnedAddress = firstLookup.addresses[0];
+    if (!pinnedAddress) {
+      return {
+        valid: false,
+        result: {
+          valid: false,
+          message: "Webhook URL hostname did not resolve.",
+        },
+      };
+    }
+
+    return {
+      valid: true,
+      requestUrl: rewriteUrlHostToIp(parsed, pinnedAddress.address),
+      serverName: parsed.hostname,
+      hostHeader: parsed.host,
+    };
+  }
+
+  private directTarget(parsed: URL): PreparedWebhookTarget {
+    return {
+      valid: true,
+      requestUrl: parsed.toString(),
+      serverName: parsed.hostname,
+      hostHeader: parsed.host,
+    };
   }
 
   private async resolvePublicAddresses(hostname: string): Promise<
@@ -187,23 +234,35 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
   }
 
   private async fetchOnce(
-    url: string,
+    target: Extract<PreparedWebhookTarget, { valid: true }>,
     payload: Record<string, unknown>,
     headers: Record<string, string>,
   ): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    const requestUrl = new URL(target.requestUrl);
+    const dispatcher =
+      requestUrl.protocol === "https:"
+        ? new Agent({ connect: { servername: target.serverName } })
+        : undefined;
+
+    const init: FetchInit = {
+      method: "POST",
+      headers: {
+        ...headers,
+        Host: target.hostHeader,
+      },
+      body: JSON.stringify(payload),
+      redirect: "manual",
+      signal: controller.signal,
+      ...(dispatcher ? { dispatcher } : {}),
+    };
 
     try {
-      return await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        redirect: "manual",
-        signal: controller.signal,
-      });
+      return await fetch(target.requestUrl, init);
     } finally {
       clearTimeout(timeoutId);
+      await dispatcher?.close();
     }
   }
 
@@ -262,6 +321,12 @@ function sameResolvedAddresses(
     }
   }
   return true;
+}
+
+function rewriteUrlHostToIp(parsed: URL, address: string): string {
+  const rewritten = new URL(parsed.toString());
+  rewritten.hostname = isIP(address) === 6 ? `[${address}]` : address;
+  return rewritten.toString();
 }
 
 function isExplicitLocalHttpTarget(
