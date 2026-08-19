@@ -68,7 +68,7 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 | Withdrawals simulados | Pronto para API e dashboard em TEST/local. |
 | Alerts | Pronto para configuracao operacional basica. |
 | Products/catalog | Pronto como catalogo opcional para checkout sessions. |
-| Settings | Parcial/read-only. |
+| Settings | Perfil (`name`, `city`) mutavel; fee/settlement read-only. |
 | Marketplace/split/multi-seller | Fora do produto atual. |
 
 ## Limites Nao Negociaveis

@@ -192,6 +192,8 @@ export class PaymentLinkController {
     @Param('id') id: string,
     @CurrentStore() storeId: string,
     @CurrentEnvironment() environment: Environment,
+    @Body()
+    body: { customer?: { document?: string; name?: string; email?: string } },
     @Req() req?: Request,
   ) {
     this.validateTestEnvironment(environment);
@@ -205,6 +207,7 @@ export class PaymentLinkController {
       publicToken: paymentLink.publicToken,
       requestId: getRequestId(req),
       environment: Environment.TEST,
+      customer: body?.customer,
     });
   }
 

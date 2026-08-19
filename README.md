@@ -46,7 +46,7 @@ Para variáveis de ambiente por app e opções de smoke local, use a matriz do [
 - Dashboard para payments, customers, products, API keys, webhooks, alerts, receipts, financials e withdrawals.
 - Saques simulados com bank accounts, reserva de saldo, ledger, summary, timeline, worker e acoes TEST.
 - `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items` neste corte.
-- Settings ainda e parcial; marketplace, split e multi-seller estao fora do escopo atual.
+- Settings edita nome e cidade da loja; fee/settlement continuam imutaveis. Marketplace, split e multi-seller estao fora do escopo atual.
 
 ## Smokes
 

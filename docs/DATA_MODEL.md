@@ -18,6 +18,7 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ### Store e Account
 
 - `Store` e o escopo principal de merchant.
+- `Store.city` e opcional e alimenta o EMV Pix (`resolvePixMerchantCity`); sem cidade o fallback documentado e `SAO PAULO`.
 - Toda store criada pela API recebe `Account`.
 - `Account` guarda saldos `available`, `pending` e `blocked`.
 - `Transaction` registra o ledger financeiro com `referenceType` e `referenceId`.
@@ -47,7 +48,8 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ### BankAccount e Withdrawal
 
 - `BankAccount` pertence a uma store, pode ser default e precisa estar verificada para receber saque.
-- `Withdrawal` guarda valor bruto, taxa, liquido, status, tentativas de processamento, erro tecnico e referencia Pix simulada.
+- `Withdrawal` guarda valor bruto, taxa, liquido, status, tentativas de processamento, erro tecnico, referencia Pix simulada e `environment` da request de criacao.
+- Listagem de saque continua store-wide; `environment` serve para recusar acao TEST sobre reserva LIVE.
 - Estados de `Withdrawal`: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`.
 - `Withdrawal` usa ledger:
   - `WITHDRAWAL_RESERVED`
@@ -100,5 +102,5 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ## Gaps Schema vs Runtime
 
 - `PaymentMethod` aceita metodos alem de Pix, mas nao ha processadores reais para cartao, boleto ou debito.
-- Settings nao possui modelo completo de configuracao mutavel.
+- Settings mutavel cobre so `Store.name` e `Store.city`; fee/settlement/aprovacao nao tem modelo de edicao pelo merchant.
 - Marketplace, split e multi-seller nao estao modelados como produto atual.

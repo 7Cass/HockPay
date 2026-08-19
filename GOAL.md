@@ -236,7 +236,7 @@ Done Criteria:
 
 ### P1.6 Reconciliar docs canonicos com o runtime pos-duas-goals
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `docs/CURRENT_STATE.md`, `docs/PRODUCT.md`, `docs/DATA_MODEL.md`, `README.md` e `apps/web/README.md` ainda descrevem Settings como 100% read-only, saque via JWT/API key sem scopes, Payment Link sem customer e Store/Withdrawal sem `city` / `environment`.
 
@@ -252,19 +252,19 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.6.1 Atualizar CURRENT_STATE, PRODUCT, DATA_MODEL, README raiz e README do web.
+- [x] P1.6.1 Atualizar CURRENT_STATE, PRODUCT, DATA_MODEL, README raiz e README do web.
   - Problema: as frases apontam para o mundo pre-name/city e pre-JWT-only.
   - Solucao: Settings = perfil (`name`, `city`) mutavel; fee/settlement imutaveis. Saque create = JWT-only. Payment Link publico coleta customer. Store tem `city`. Withdrawal tem `environment` (listagem continua store-wide).
   - Validacao: `rg "settings parcial|Parcial/read-only|scopes granulares|JWT/API key e" docs README.md apps/web/README.md` nao contradiz o runtime.
 
 Done Criteria:
 
-- [ ] Docs canonicos descrevem Settings, saque, Payment Link customer, `Store.city` e `Withdrawal.environment` como o codigo.
-- [ ] Listagem de saque continua documentada como store-wide.
+- [x] Docs canonicos descrevem Settings, saque, Payment Link customer, `Store.city` e `Withdrawal.environment` como o codigo.
+- [x] Listagem de saque continua documentada como store-wide.
 
 ### P1.7 Copy de simulador que ainda promete canal inexistente
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: checkout confirmado diz "Voce recebera uma confirmacao em breve" e nao ha email/notificacao. Timeline de saque no core rotula sucesso como "Pix enviado" / "processamento Pix". O produto nao envia e-mail e nao faz payout Pix.
 
@@ -278,23 +278,23 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.7.1 Trocar o sucesso do checkout para linguagem de simulacao, sem promessa de e-mail.
+- [x] P1.7.1 Trocar o sucesso do checkout para linguagem de simulacao, sem promessa de e-mail.
   - Validacao: `rg "confirmação em breve|confirmacao em breve" apps/checkout` vazio.
-- [ ] P1.7.2 Timeline/copy de saque fala em saque simulado / saldo reservado, nao em Pix enviado de verdade.
+- [x] P1.7.2 Timeline/copy de saque fala em saque simulado / saldo reservado, nao em Pix enviado de verdade.
   - Validacao: `rg "Pix enviado" packages/core apps/web` vazio ou contextualizado como simulacao.
-- [ ] P1.7.3 Landing deixa de vender "comportamento do gateway antes da request", "fluxo real" e "seguro" como se houvesse adquirencia.
+- [x] P1.7.3 Landing deixa de vender "comportamento do gateway antes da request", "fluxo real" e "seguro" como se houvesse adquirencia.
   - Evidencia: `apps/web/src/app/features/landing/pages/home/home.html` (copy de gateway / sandbox / retorno seguro).
   - Validacao: `rg "fluxo real|antes da request|retorno seguro" apps/web/src/app/features/landing` vazio.
 
 Done Criteria:
 
-- [ ] Checkout nao promete confirmacao por e-mail.
-- [ ] Timeline de saque nao afirma payout Pix real.
-- [ ] Landing nao afirma outcome pre-request nem processamento real.
+- [x] Checkout nao promete confirmacao por e-mail.
+- [x] Timeline de saque nao afirma payout Pix real.
+- [x] Landing nao afirma outcome pre-request nem processamento real.
 
 ### P1.8 Dashboard simulate de Payment Link honrar o customer obrigatorio
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: a passagem anterior passou a exigir `customer.document` no pay publico e no use case. O dashboard ainda posta `{}` em `POST /payment-links/:id/pay` e o botao "Pagar" parece acao TEST valida. Fail autenticado continua funcionando; pay autenticado e 422.
 
@@ -309,15 +309,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.8.1 Pay autenticado do dashboard envia um customer TEST ou deixa de se apresentar como Pagar.
+- [x] P1.8.1 Pay autenticado do dashboard envia um customer TEST ou deixa de se apresentar como Pagar.
   - Problema: body vazio depois de P1.10 da goal anterior.
   - Solucao: coletar documento no dialog de simulate **ou** desabilitar o botao com texto honesto ("use o checkout publico"). Nao inventar pagador silencioso sem o operador ver.
   - Validacao: spec/UI — pay autenticado com documento cria payment+customer; sem documento nao parece sucesso.
 
 Done Criteria:
 
-- [ ] CTA de simulate no detalhe do link nao devolve 422 por falta de customer.
-- [ ] Payment gerado pelo dashboard tem `customerId` quando o pay ocorre.
+- [x] CTA de simulate no detalhe do link nao devolve 422 por falta de customer.
+- [x] Payment gerado pelo dashboard tem `customerId` quando o pay ocorre.
 
 ## P2 - Acabamento
 

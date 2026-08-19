@@ -20,6 +20,7 @@ import {
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIconImports } from '@spartan-ng/helm/icon';
+import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
@@ -40,6 +41,7 @@ import type { PaymentObject } from '../../../../core/services/payment.service';
     HlmButtonImports,
     HlmBadgeImports,
     HlmIconImports,
+    HlmInputImports,
     HlmSpinnerImports,
     ...DialogImports,
   ],
@@ -79,6 +81,47 @@ import type { PaymentObject } from '../../../../core/services/payment.service';
             <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="actionInProgress()">Voltar</button>
             <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmCancel()" [disabled]="actionInProgress()">
               {{ actionInProgress() ? 'Cancelando...' : 'Sim, cancelar link' }}
+            </button>
+          </app-dialog-footer>
+        </div>
+      </ng-template>
+    </brn-dialog>
+
+    <brn-dialog [closeDelay]="150" [state]="payDialogState()" (closed)="closePayDialog()">
+      <ng-template brnDialogContent let-ctx>
+        <app-dialog-overlay />
+        <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
+          <app-dialog-close />
+          <app-dialog-header
+            title="Simular pagamento"
+            description="Informe o documento do pagador de teste. Sem documento a API recusa o pay."
+          />
+          <label class="mt-4 block text-xs font-semibold uppercase tracking-wider text-zinc-500" for="simulate-document">
+            CPF / CNPJ
+          </label>
+          <input
+            hlmInput
+            id="simulate-document"
+            class="mt-2"
+            [value]="simulateDocument()"
+            (input)="simulateDocument.set($any($event.target).value)"
+            placeholder="Somente números"
+          />
+          <label class="mt-4 block text-xs font-semibold uppercase tracking-wider text-zinc-500" for="simulate-name">
+            Nome (opcional)
+          </label>
+          <input
+            hlmInput
+            id="simulate-name"
+            class="mt-2"
+            [value]="simulateName()"
+            (input)="simulateName.set($any($event.target).value)"
+            placeholder="Pagador de teste"
+          />
+          <app-dialog-footer>
+            <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="actionInProgress()">Voltar</button>
+            <button hlmBtn type="button" class="bg-emerald-600 font-semibold text-white hover:bg-emerald-700" (click)="confirmSimulatePay()" [disabled]="actionInProgress() || !simulateDocument().trim()">
+              {{ actionInProgress() ? 'Pagando...' : 'Confirmar pagamento' }}
             </button>
           </app-dialog-footer>
         </div>
@@ -379,6 +422,10 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
   readonly copied = signal(false);
   readonly cancelDialogState = signal<'open' | 'closed'>('closed');
   readonly linkToCancel = signal<PaymentLinkRecord | null>(null);
+  readonly payDialogState = signal<'open' | 'closed'>('closed');
+  readonly linkToPay = signal<PaymentLinkRecord | null>(null);
+  readonly simulateDocument = signal('');
+  readonly simulateName = signal('');
   readonly currentId = computed(() => this.link()?.id ?? null);
 
   ngOnInit(): void {
@@ -410,7 +457,34 @@ export class PaymentLinkDetail implements OnInit, OnDestroy {
 
   simulatePay(paymentLink: PaymentLinkRecord): void {
     if (!this.canSimulate(paymentLink)) return;
-    this.runAction(() => this.service.simulatePay(paymentLink.id));
+    this.linkToPay.set(paymentLink);
+    this.simulateDocument.set('');
+    this.simulateName.set('');
+    this.payDialogState.set('open');
+  }
+
+  closePayDialog(): void {
+    if (this.actionInProgress()) return;
+    this.payDialogState.set('closed');
+    this.linkToPay.set(null);
+  }
+
+  confirmSimulatePay(): void {
+    const paymentLink = this.linkToPay();
+    const document = this.simulateDocument().trim();
+    if (!paymentLink || !this.canSimulate(paymentLink) || !document) return;
+    const name = this.simulateName().trim();
+    this.runAction(
+      () =>
+        this.service.simulatePay(paymentLink.id, {
+          document,
+          name: name || undefined,
+        }),
+      () => {
+        this.payDialogState.set('closed');
+        this.linkToPay.set(null);
+      },
+    );
   }
 
   simulateFail(paymentLink: PaymentLinkRecord): void {

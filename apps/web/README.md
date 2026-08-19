@@ -32,7 +32,7 @@ Aplicação Angular principal do Hockpay. Ela reúne landing page, autenticaçã
 | `/dashboard/withdrawals` | `features/dashboard/pages/withdrawals` | Implementada com listagem, summary, filtros, criação e bank accounts |
 | `/dashboard/withdrawals/:id` | `features/dashboard/pages/withdrawal-detail` | Implementada com timeline, transactions e ações TEST |
 | `/dashboard/products` | `features/dashboard/pages/products` | Implementada para CRUD de catálogo TEST/LIVE da store |
-| `/dashboard/settings` | `features/dashboard/pages/settings` | Parcial/read-only |
+| `/dashboard/settings` | `features/dashboard/pages/settings` | Perfil (`name`, `city`); fee/settlement read-only |
 
 ## Padrões Atuais
 
@@ -47,7 +47,7 @@ Aplicação Angular principal do Hockpay. Ela reúne landing page, autenticaçã
 - O app assume integração com a API principal em `http://localhost:3000/api/v1` por meio dos serviços Angular.
 - Payment Links, Products, Financials e Withdrawals sao areas reais do dashboard atual.
 - Products e uma area CRUD real; checkout sessions com items permanecem API-first no MVP.
-- Settings nao deve ser tratado como painel completo de configuracao mutavel.
+- Settings edita nome publico e cidade do EMV; nao e painel de taxa, liquidacao ou aprovacao.
 
 ## Documentação Canônica
 

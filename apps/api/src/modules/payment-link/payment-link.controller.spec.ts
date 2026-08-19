@@ -129,7 +129,8 @@ describe('PaymentLinkController', () => {
       'link-1',
       'store-1',
       Environment.TEST,
-      { id: 'req-1' } as any,
+      { customer: { document: '52998224725', name: 'Ana' } },
+      { id: 'req-1' } as never,
     );
 
     expect(getUseCase.execute).toHaveBeenCalledWith({
@@ -141,6 +142,7 @@ describe('PaymentLinkController', () => {
       publicToken: 'public-token',
       requestId: 'req-1',
       environment: Environment.TEST,
+      customer: { document: '52998224725', name: 'Ana' },
     });
     expect(result).toEqual({
       payment: { id: 'payment-1', status: 'CONFIRMED' },
@@ -204,7 +206,8 @@ describe('PaymentLinkController', () => {
         'link-1',
         'store-1',
         Environment.LIVE,
-        {} as any,
+        {},
+        {} as never,
       ),
     ).rejects.toMatchObject({ code: 'LIVE_ENVIRONMENT_NOT_ALLOWED' });
 

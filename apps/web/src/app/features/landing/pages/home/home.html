@@ -180,7 +180,7 @@
         <p class="text-sm font-black uppercase tracking-[0.28em] text-cyan-300">Cenários controlados</p>
         <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Teste as respostas que quebram checkouts reais.</h2>
         <p class="mt-4 text-lg leading-8 text-zinc-400">
-          Escolha o comportamento do gateway antes da request e valide como sua aplicação reage a cada evento.
+          Crie a cobrança e depois simule confirm, fail ou expire para validar como sua aplicação reage a cada evento.
         </p>
       </div>
 
@@ -235,7 +235,7 @@
             <span class="status-pill bg-amber-300/15 text-amber-100">EXPIRED</span>
           </div>
           <h3>Pix expirado</h3>
-          <p>Teste timer, tela de expiração e retorno seguro para gerar uma nova cobrança.</p>
+          <p>Teste timer, tela de expiração e o retorno ao checkout para gerar uma nova cobrança simulada.</p>
           <dl>
             <div>
               <dt>Ação TEST</dt>
@@ -383,7 +383,7 @@
           <ng-icon hlm name="lucideKey" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
           <div>
             <h3>Crie uma chave sandbox</h3>
-            <p>O dev entra, gera credenciais e isola o ambiente de teste do fluxo real.</p>
+            <p>O dev entra, gera credenciais e isola o ambiente TEST das chaves LIVE — os dois continuam simulados.</p>
           </div>
         </article>
         <article class="step-card">

@@ -8,7 +8,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/api`                | API NestJS em `http://localhost:3000/api/v1`, com cookie JWT para dashboard, API keys para integracoes e `CombinedAuthGuard` nos endpoints que aceitam os dois modos.                                      |
 | `apps/worker`             | Worker NestJS separado com BullMQ/Redis, dispatcher de outbox, entrega de webhooks, alertas, expiracao, settlement, saques simulados e limpezas periodicas.                                                |
-| `apps/web`                | Angular unico para landing, auth e dashboard do merchant. Inclui overview, payments, Payment Links, products, receipts, customers, API keys, webhooks, alerts, financials, withdrawals e settings parcial. |
+| `apps/web`                | Angular unico para landing, auth e dashboard do merchant. Inclui overview, payments, Payment Links, products, receipts, customers, API keys, webhooks, alerts, financials, withdrawals e settings de perfil (`name`, `city`). |
 | `apps/checkout`           | Checkout Next.js para comprador, com fluxo de checkout session e rota publica de Payment Link em `/pay/:token`.                                                                                            |
 | `apps/demo-mediakit`      | Study-case de referencia com checkout hospedado e webhook assinado.                                                                                                                                        |
 | `packages/core`           | Dominio, entidades, erros, portas, services e use cases compartilhados.                                                                                                                                    |
@@ -35,7 +35,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Withdrawals                       | Implementado         | API, dashboard list/detail, summary, filtros, timeline, ledger, worker simulado, acoes TEST e smoke dedicado.                                        |
 | Customer history                  | Implementado         | Endpoints de historico por customer external id para pagamentos e receipts.                                                                          |
 | Products/catalog                  | Implementado         | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`.                           |
-| Settings                          | Parcial/read-only    | Tela existe, mas nao deve ser tratada como painel completo de configuracao mutavel.                                                                  |
+| Settings                          | Perfil mutavel       | Merchant edita `name` e `city` (EMV). Fee, settlement e aprovacao continuam imutaveis.                                                               |
 | Marketplace/split/multi-seller    | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto.                                                                               |
 
 ## Matriz de Superficies
@@ -63,8 +63,9 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 1. Merchant cria link autenticado em `POST /api/v1/payment-links`, sempre com `amount`.
 2. Comprador abre `apps/checkout` em `/pay/:token`, que consulta `GET /api/v1/payment-links/public/:token`.
-3. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` sem items.
-4. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
+3. Checkout publico `/pay/:token` coleta documento do pagador; `pay` associa um `Customer` a tentativa.
+4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` sem items.
+5. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
 
 ### Checkout Session
 
@@ -84,7 +85,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 ### Withdrawals
 
 1. Merchant cadastra conta Pix em `POST /api/v1/bank-accounts`; a titularidade usa o documento do merchant.
-2. `POST /api/v1/withdrawals` exige conta verificada, saldo disponivel, auth via JWT/API key e `Idempotency-Key`; API keys ainda nao possuem scopes granulares.
+2. `POST /api/v1/withdrawals` exige conta verificada, saldo disponivel, sessao JWT do dashboard e `Idempotency-Key`. API keys nao criam saque. Mutacoes de destino Pix (`POST`/`PATCH`/`DELETE` bank-accounts) e `POST /refunds` tambem sao JWT-only.
 3. Criacao reserva saldo `available -> blocked`, registra `WITHDRAWAL_RESERVED` e emite `withdrawal.created`.
 4. Worker processa `PENDING -> PROCESSING -> COMPLETED` por padrao, com retry tecnico.
 5. Sucesso deduz bloqueado, registra `WITHDRAWAL_SENT` e emite `withdrawal.completed`.
@@ -130,15 +131,15 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 
 - Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados (incluindo timeline de payment) filtram pelo environment da request (JWT = TEST; API key = environment da key).
 - `Account` continua unico por store. JWT do dashboard mostra saldo e metricas da loja inteira, nao um ledger TEST separado.
-- Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Receipt`, `Refund`, `BankAccount`) sao escopadas por store. Receipt/refund herdam o ambiente do payment.
+- Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Refund`, `BankAccount`) sao escopadas por store. `Receipt` herda `payment.environment` em list/get e no customer-history.
 - `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE; listagem continua store-wide.
 - Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
-- Sessao/key TEST nao confirma, expira, falha, libera nem estorna payment LIVE.
+- Sessao/key TEST nao confirma, expira, falha, libera, estorna payment LIVE nem cancela Payment Link LIVE.
 
 ## Gaps e Limites
 
 - Nao ha adquirencia real, payout real, liquidacao bancaria real ou Pix real.
 - Payment Links e withdrawals sao funcionais como produto de simulacao, nao como dinheiro real.
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
-- Settings nao e painel administrativo completo.
+- Settings edita so perfil (`name`, `city`); fee, settlement e aprovacao nao sao mutaveis pelo merchant.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
