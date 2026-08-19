@@ -7,10 +7,15 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { GetReceiptUseCase, ListReceiptsUseCase } from '@hockpay/core';
+import {
+  Environment,
+  GetReceiptUseCase,
+  ListReceiptsUseCase,
+} from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { ListReceiptsQueryDto } from './dtos/list-receipts.dto';
 import {
   GetReceiptResponseDto,
@@ -32,9 +37,11 @@ export class ReceiptController {
   async listReceipts(
     @Query() query: ListReceiptsQueryDto,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<ListReceiptsResponseDto> {
     const result = await this.listReceiptsUseCase.execute({
       storeId,
+      environment,
       page: query.page,
       limit: query.limit,
       receiptNumber: query.receiptNumber,
@@ -55,10 +62,12 @@ export class ReceiptController {
   async getReceiptByNumber(
     @Param('receiptNumber') receiptNumber: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<GetReceiptResponseDto> {
     const result = await this.getReceiptUseCase.execute({
       receiptNumber,
       storeId,
+      environment,
     });
 
     return {
@@ -71,10 +80,12 @@ export class ReceiptController {
   async getReceiptByPayment(
     @Param('paymentId') paymentId: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<GetReceiptResponseDto> {
     const result = await this.getReceiptUseCase.execute({
       paymentId,
       storeId,
+      environment,
     });
 
     return {
@@ -87,10 +98,12 @@ export class ReceiptController {
   async getReceipt(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<GetReceiptResponseDto> {
     const result = await this.getReceiptUseCase.execute({
       receiptId: id,
       storeId,
+      environment,
     });
 
     return {

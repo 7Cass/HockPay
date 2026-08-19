@@ -88,7 +88,7 @@ Done Criteria:
 
 ### P1.1 Recibos herdarem o environment do payment
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: list/get de Payment e timeline agora exigem environment. Receipt nao tem coluna propria e `GetReceiptUseCase` / `ListReceiptsUseCase` so recortam por `storeId`. JWT TEST (sempre TEST) le recibo de payment LIVE se souber o id ou se a lista da store vier misturada. O get por `receiptId` / `receiptNumber` / `paymentId` tambem nao recebe environment. Customer-history de payments filtra environment; o de receipts nao.
 
@@ -104,20 +104,20 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.1.1 Passar `environment` obrigatorio em list/get de receipt e filtrar pelo `payment.environment`.
+- [x] P1.1.1 Passar `environment` obrigatorio em list/get de receipt e filtrar pelo `payment.environment`.
   - Problema: o dado ja esta no payment; o use case nao junta.
   - Solucao: join/filter no repositorio; 404 se o ambiente nao bate. Sem coluna nova em Receipt.
   - Validacao: spec JWT TEST + receipt de payment LIVE -> not found; lista TEST nao inclui LIVE.
-- [ ] P1.1.2 Get por `paymentId` / `receiptNumber` e o historico de receipts usam o mesmo recorte.
+- [x] P1.1.2 Get por `paymentId` / `receiptNumber` e o historico de receipts usam o mesmo recorte.
   - Problema: tres entradas autenticadas + customer-history; um furo em qualquer uma basta.
   - Solucao: um input com environment; as rotas passam o decorator.
   - Validacao: as rotas recusam o mesmo caso LIVE.
 
 Done Criteria:
 
-- [ ] JWT TEST / key TEST nao le recibo de payment LIVE (dashboard, get por numero/id/payment e customer-history).
-- [ ] Nao existe caminho de list/get Receipt sem environment.
-- [ ] Schema de Receipt inalterado (sem coluna de environment).
+- [x] JWT TEST / key TEST nao le recibo de payment LIVE (dashboard, get por numero/id/payment e customer-history).
+- [x] Nao existe caminho de list/get Receipt sem environment.
+- [x] Schema de Receipt inalterado (sem coluna de environment).
 
 ### P1.2 Get de Payment Link nao aceitar environment opcional
 

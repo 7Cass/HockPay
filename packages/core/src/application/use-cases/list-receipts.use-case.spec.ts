@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ListReceiptsUseCase } from './list-receipts.use-case';
 import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 describe('ListReceiptsUseCase', () => {
   it('forwards store-scoped pagination and filters to the repository', async () => {
@@ -35,6 +36,7 @@ describe('ListReceiptsUseCase', () => {
 
     const result = await useCase.execute({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 2,
       limit: 10,
       receiptNumber: 'RCP-20260419-STORE1-00001',
@@ -44,6 +46,7 @@ describe('ListReceiptsUseCase', () => {
     expect(repository.findByStoreId).toHaveBeenCalledWith('store-1', 2, 10, {
       receiptNumber: 'RCP-20260419-STORE1-00001',
       customerId: 'customer-1',
+      environment: Environment.TEST,
     });
     expect(result.receipts).toEqual([receiptObject]);
     expect(result.totalPages).toBe(1);

@@ -82,16 +82,42 @@ describe('CustomerHistoryController', () => {
     });
   });
 
+  it('forwards environment on receipt list for api key requests', async () => {
+    listReceiptsUseCase.execute.mockResolvedValue({
+      receipts: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+    });
+
+    await controller.listReceipts(
+      'cust_123',
+      { page: 1, limit: 20 },
+      Environment.TEST,
+      { authType: 'api_key', store: { id: 'store-1' } } as never,
+    );
+
+    expect(listReceiptsUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      customerExternalId: 'cust_123',
+      environment: Environment.TEST,
+      page: 1,
+      limit: 20,
+      receiptNumber: undefined,
+    });
+  });
+
   it('maps customer-not-found to 404 on list endpoints', async () => {
     listReceiptsUseCase.execute.mockRejectedValue(
       new CustomerNotFoundError('missing'),
     );
 
     await expect(
-      controller.listReceipts('missing', {}, {
+      controller.listReceipts('missing', {}, Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
-      } as any),
+      } as never),
     ).rejects.toBeInstanceOf(CustomerNotFoundError);
   });
 
@@ -114,10 +140,10 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getReceipt('cust_123', 'receipt-1', {
+      controller.getReceipt('cust_123', 'receipt-1', Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
-      } as any),
+      } as never),
     ).rejects.toBeInstanceOf(ReceiptNotFoundError);
   });
 });

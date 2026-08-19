@@ -103,6 +103,7 @@ export class CustomerHistoryController {
   async listReceipts(
     @Param('customerExternalId') customerExternalId: string,
     @Query() query: ListCustomerHistoryReceiptsQueryDto,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<ListCustomerHistoryReceiptsResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
@@ -110,6 +111,7 @@ export class CustomerHistoryController {
     const result = await this.listCustomerHistoryReceiptsUseCase.execute({
       storeId,
       customerExternalId,
+      environment,
       page: query.page,
       limit: query.limit,
       receiptNumber: query.receiptNumber,
@@ -131,6 +133,7 @@ export class CustomerHistoryController {
   async getReceipt(
     @Param('customerExternalId') customerExternalId: string,
     @Param('receiptId') receiptId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<GetCustomerHistoryReceiptResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
@@ -139,6 +142,7 @@ export class CustomerHistoryController {
       storeId,
       customerExternalId,
       receiptId,
+      environment,
     });
 
     return {

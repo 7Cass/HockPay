@@ -4,12 +4,14 @@ import { ReceiptNotFoundError } from '../../domain/errors/receipt-not-found.erro
 import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { resolveCustomerByExternalId } from './customer-history.helpers';
 
 export interface IGetCustomerHistoryReceiptInput {
   storeId: string;
   customerExternalId: string;
   receiptId: string;
+  environment: Environment;
 }
 
 export interface IGetCustomerHistoryReceiptOutput {
@@ -47,7 +49,10 @@ export class GetCustomerHistoryReceiptUseCase {
       throw new PaymentNotFoundError(receipt.paymentId);
     }
 
-    if (payment.customerId !== customer.id) {
+    if (
+      payment.customerId !== customer.id ||
+      payment.environment !== input.environment
+    ) {
       throw new ReceiptNotFoundError(input.receiptId);
     }
 

@@ -1,4 +1,9 @@
-import { IReceiptRepository, Receipt, ReceiptStatus } from "@hockpay/core";
+import {
+  Environment,
+  IReceiptRepository,
+  Receipt,
+  ReceiptStatus,
+} from "@hockpay/core";
 import { PrismaClient, Prisma } from "@hockpay/database";
 
 export class ReceiptRepository implements IReceiptRepository {
@@ -43,20 +48,21 @@ export class ReceiptRepository implements IReceiptRepository {
     filters?: {
       receiptNumber?: string;
       customerId?: string;
+      environment?: Environment;
     },
   ): Promise<{ items: Receipt[]; total: number }> {
     const skip = (page - 1) * limit;
+    const paymentFilter = {
+      ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+      ...(filters?.environment ? { environment: filters.environment } : {}),
+    };
     const where: Prisma.ReceiptWhereInput = {
       storeId,
       ...(filters?.receiptNumber
         ? { receiptNumber: filters.receiptNumber }
         : {}),
-      ...(filters?.customerId
-        ? {
-            payment: {
-              customerId: filters.customerId,
-            },
-          }
+      ...(Object.keys(paymentFilter).length > 0
+        ? { payment: paymentFilter }
         : {}),
     };
 

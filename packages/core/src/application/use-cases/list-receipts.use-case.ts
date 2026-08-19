@@ -1,9 +1,11 @@
 import { ReceiptObject } from "../../domain/entities/receipt.entity";
 import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
 import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
+import { Environment } from "../../domain/value-objects/environment.vo";
 
 export interface IListReceiptsInput {
   storeId: string;
+  environment: Environment;
   page?: number;
   limit?: number;
   receiptNumber?: string;
@@ -35,6 +37,7 @@ export class ListReceiptsUseCase {
       {
         receiptNumber: input.receiptNumber,
         customerId: input.customerId,
+        environment: input.environment,
       },
     );
 
