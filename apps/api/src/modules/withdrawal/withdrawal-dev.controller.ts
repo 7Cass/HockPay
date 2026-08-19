@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   HttpCode,
@@ -15,11 +14,13 @@ import {
   CompleteWithdrawalUseCase,
   Environment,
   FailWithdrawalUseCase,
+  LiveEnvironmentNotAllowedError,
 } from '@hockpay/core';
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import {
   GetWithdrawalResponseDto,
   WithdrawalResponseDto,
@@ -46,9 +47,10 @@ export class WithdrawalDevController {
   async complete(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
     const result = await this.completeWithdrawalUseCase.execute({
       withdrawalId: id,
       storeId,
@@ -67,9 +69,10 @@ export class WithdrawalDevController {
     @Param('id') id: string,
     @Body() dto: FailWithdrawalDto,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
     const result = await this.failWithdrawalUseCase.execute({
       withdrawalId: id,
       storeId,
@@ -83,16 +86,9 @@ export class WithdrawalDevController {
     };
   }
 
-  private validateTestEnvironment(req?: Request): void {
-    const environment = (req as any)?.environment as Environment | undefined;
+  private validateTestEnvironment(environment: Environment): void {
     if (environment === Environment.LIVE) {
-      throw new BadRequestException({
-        error: {
-          code: 'LIVE_ENVIRONMENT_NOT_ALLOWED',
-          message:
-            'Dev withdrawal endpoints are not available in LIVE environment',
-        },
-      });
+      throw new LiveEnvironmentNotAllowedError();
     }
   }
 }

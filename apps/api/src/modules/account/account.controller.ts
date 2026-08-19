@@ -1,12 +1,5 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-  NotFoundException,
-} from '@nestjs/common';
-import { GetAccountUseCase, AccountNotFoundError } from '@hockpay/core';
+import { Controller, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { GetAccountUseCase } from '@hockpay/core';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { AccountResponseDto } from './dtos/account-response.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -29,22 +22,10 @@ export class AccountController {
   async getMyAccount(
     @CurrentStore() storeId: string,
   ): Promise<AccountResponseDto> {
-    try {
-      const result = await this.getAccountUseCase.execute({ storeId });
+    const result = await this.getAccountUseCase.execute({ storeId });
 
-      return {
-        account: result.account,
-      };
-    } catch (error) {
-      if (error instanceof AccountNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      account: result.account,
+    };
   }
 }

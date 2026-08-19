@@ -41,10 +41,10 @@ describe('CustomerHistoryController', () => {
 
   it('rejects dashboard cookie auth because the surface is API-key only', async () => {
     await expect(
-      controller.listPayments('cust_123', {}, Environment.TEST, {
+      controller.listPayments('cust_123', {}, 'store-1', Environment.TEST, {
         authType: 'jwt',
         store: { id: 'store-1' },
-      } as any),
+      } as never),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -65,9 +65,10 @@ describe('CustomerHistoryController', () => {
         status: 'CONFIRMED',
         startDate: '2026-04-01T00:00:00.000Z',
         endDate: '2026-04-30T00:00:00.000Z',
-      } as any,
+      } as never,
+      'store-1',
       Environment.TEST,
-      { authType: 'api_key', store: { id: 'store-1' } } as any,
+      { authType: 'api_key', store: { id: 'store-1' } } as never,
     );
 
     expect(listPaymentsUseCase.execute).toHaveBeenCalledWith({
@@ -94,6 +95,7 @@ describe('CustomerHistoryController', () => {
     await controller.listReceipts(
       'cust_123',
       { page: 1, limit: 20 },
+      'store-1',
       Environment.TEST,
       { authType: 'api_key', store: { id: 'store-1' } } as never,
     );
@@ -114,7 +116,7 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.listReceipts('missing', {}, Environment.TEST, {
+      controller.listReceipts('missing', {}, 'store-1', Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as never),
@@ -127,10 +129,10 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getPayment('cust_123', 'payment-1', Environment.TEST, {
+      controller.getPayment('cust_123', 'payment-1', 'store-1', Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
-      } as any),
+      } as never),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 
@@ -140,7 +142,7 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getReceipt('cust_123', 'receipt-1', Environment.TEST, {
+      controller.getReceipt('cust_123', 'receipt-1', 'store-1', Environment.TEST, {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as never),

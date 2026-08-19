@@ -8,16 +8,12 @@ import {
   Patch,
   Post,
   Res,
-  ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
   CreateStoreUseCase,
   ListStoresUseCase,
   UpdateStoreProfileUseCase,
-  SlugAlreadyExistsError,
-  InvalidSlugFormatError,
 } from '@hockpay/core';
 import {
   CreateStoreDto,
@@ -84,50 +80,32 @@ export class StoreController {
     @CurrentUser() user: CurrentUserData,
     @Res({ passthrough: true }) response: Response,
   ): Promise<CreateStoreResponseDto> {
-    try {
-      const cookieOptions = getCookieOptions();
+    const cookieOptions = getCookieOptions();
 
-      const result = await this.createStoreUseCase.execute({
-        merchantId: user.merchantId,
-        name: dto.name,
-        slug: dto.slug,
-      });
+    const result = await this.createStoreUseCase.execute({
+      merchantId: user.merchantId,
+      name: dto.name,
+      slug: dto.slug,
+    });
 
-      // Access token - available on all routes (15 min)
-      response.cookie('hockpay_at', result.accessToken, {
-        ...cookieOptions,
-        maxAge: 15 * 60 * 1000, // 15 minutes
-        path: '/',
-      });
+    response.cookie('hockpay_at', result.accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+      path: '/',
+    });
 
-      // Set new refresh token as HTTP-only cookie
-      response.cookie('hockpay_rt', result.refreshToken, {
-        ...cookieOptions,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/api/v1/auth/refresh',
-      });
+    response.cookie('hockpay_rt', result.refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/v1/auth/refresh',
+    });
 
-      return {
-        store: result.store,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        expiresIn: result.expiresIn,
-      };
-    } catch (error) {
-      if (error instanceof SlugAlreadyExistsError) {
-        throw new ConflictException({
-          code: error.code,
-          message: error.message,
-        });
-      }
-      if (error instanceof InvalidSlugFormatError) {
-        throw new BadRequestException({
-          code: error.code,
-          message: error.message,
-        });
-      }
-      throw error;
-    }
+    return {
+      store: result.store,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresIn: result.expiresIn,
+    };
   }
 
   /**

@@ -38,10 +38,12 @@ describe('DevController', () => {
       alreadyReleased: false,
     });
 
-    const result = await controller.releasePayment('payment-1', 'store-1', {
-      environment: Environment.TEST,
-      id: 'req-1',
-    } as any);
+    const result = await controller.releasePayment(
+      'payment-1',
+      'store-1',
+      Environment.TEST,
+      { id: 'req-1' } as never,
+    );
 
     expect(releasePaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
@@ -55,9 +57,7 @@ describe('DevController', () => {
 
   it('rejects release simulation in live environment', async () => {
     await expect(
-      controller.releasePayment('payment-1', 'store-1', {
-        environment: Environment.LIVE,
-      } as any),
+      controller.releasePayment('payment-1', 'store-1', Environment.LIVE),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
     expect(releasePaymentUseCase.execute).not.toHaveBeenCalled();
   });
@@ -68,9 +68,7 @@ describe('DevController', () => {
     );
 
     await expect(
-      controller.releasePayment('payment-1', 'store-1', {
-        environment: Environment.TEST,
-      } as any),
+      controller.releasePayment('payment-1', 'store-1', Environment.TEST),
     ).rejects.toBeInstanceOf(PaymentNotConfirmedError);
   });
 
@@ -80,9 +78,7 @@ describe('DevController', () => {
     );
 
     await expect(
-      controller.releasePayment('payment-1', 'store-1', {
-        environment: Environment.TEST,
-      } as any),
+      controller.releasePayment('payment-1', 'store-1', Environment.TEST),
     ).rejects.toBeInstanceOf(AccountNotFoundError);
   });
 
@@ -92,10 +88,12 @@ describe('DevController', () => {
       alreadyExpired: false,
     });
 
-    const result = await controller.expirePayment('payment-1', 'store-1', {
-      environment: Environment.TEST,
-      id: 'req-1',
-    } as any);
+    const result = await controller.expirePayment(
+      'payment-1',
+      'store-1',
+      Environment.TEST,
+      { id: 'req-1' } as never,
+    );
 
     expect(expirePaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',

@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  Req,
 } from '@nestjs/common';
 import {
   DashboardMetricsDto,
@@ -15,9 +14,9 @@ import {
   GetDashboardMetricsUseCase,
   GetDashboardOverviewUseCase,
 } from '@hockpay/core';
-import type { Request } from 'express';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 
 import { IsOptional, IsString } from 'class-validator';
 
@@ -58,11 +57,9 @@ export class DashboardController {
   async getOverview(
     @CurrentStore() storeId: string,
     @Query() query: GetMetricsQueryDto,
-    @Req() req: Request,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<DashboardOverviewDto> {
     const { startDate, endDate } = this.parseDateRange(query);
-    const environment = ((req as any)?.environment ??
-      Environment.TEST) as Environment;
 
     return this.getDashboardOverviewUseCase.execute({
       storeId,

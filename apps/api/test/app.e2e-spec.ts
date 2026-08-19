@@ -214,7 +214,7 @@ describe('API HTTP boundary (e2e)', () => {
       .expect(409);
 
     expect(duplicate.body.error).toMatchObject({
-      code: 'CONFLICT',
+      code: 'SLUG_ALREADY_EXISTS',
       statusCode: 409,
     });
 
@@ -229,7 +229,7 @@ describe('API HTTP boundary (e2e)', () => {
       .expect(400);
 
     expect(invalid.body.error).toMatchObject({
-      code: 'BAD_REQUEST',
+      code: 'INVALID_SLUG_FORMAT',
       statusCode: 400,
     });
   });

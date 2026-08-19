@@ -177,7 +177,7 @@ Done Criteria:
 
 ### P1.4 Terminar `@CurrentStore()` / `@CurrentEnvironment()`
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: P0.3 da passagem anterior limpou o caminho financeiro antigo. Alert ainda tem `getStoreId` em `(req as any).user.storeId`. Customer-history remonta 403 na mao. Dashboard overview le `(req as any)?.environment`. Dev de payment/withdrawal ainda extraem environment do request cru. O decorator ja existe e e a regra.
 
@@ -193,23 +193,23 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.4.1 Trocar extracao manual por `@CurrentStore()` / `@CurrentEnvironment()` nos controllers listados.
+- [x] P1.4.1 Trocar extracao manual por `@CurrentStore()` / `@CurrentEnvironment()` nos controllers listados.
   - Problema: cada handler reimplementa o guard.
   - Solucao: os decorators ja existem.
   - Validacao: `rg "req as any" apps/api/src --glob '*.controller.ts'` sem store/environment/user.storeId.
-- [ ] P1.4.2 Customer-history deixa de fabricar `ForbiddenException` de store.
+- [x] P1.4.2 Customer-history deixa de fabricar `ForbiddenException` de store.
   - Problema: payload paralelo ao decorator.
   - Solucao: `@CurrentStore()`; a regra API-key-only pode ficar como guard/check de `authType` se ainda for o contrato.
   - Validacao: store ausente -> 403 `NO_CURRENT_STORE` do decorator.
 
 Done Criteria:
 
-- [ ] Controllers autenticados nao leem `req as any` para store nem environment.
-- [ ] Overview usa o mesmo environment da sessao/key.
+- [x] Controllers autenticados nao leem `req as any` para store nem environment.
+- [x] Overview usa o mesmo environment da sessao/key.
 
 ### P1.5 Um filter so nos remappers que sobraram
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: P1.4 da passagem anterior limpou webhook/customer/receipt/dev. Store (slug), account (`GET /accounts/me`) e webhook-inbox ainda remapam `DomainError` na mao. Os codes ja estao em `ERROR_CODE_MAP`.
 
@@ -224,15 +224,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.5.1 Remover traducao local de dominio nesses controllers.
+- [x] P1.5.1 Remover traducao local de dominio nesses controllers.
   - Problema: dois tradutores.
   - Solucao: deixar o filter. Auth (refresh/logout) so entra se o erro for `DomainError` ja mapeado e o cookie flow nao precisar de status especial.
   - Validacao: specs ainda veem 4xx via filter; sem `instanceof SlugAlreadyExistsError` / `AccountNotFoundError` / `WebhookConfigNotFoundError` no delivery.
 
 Done Criteria:
 
-- [ ] Store, account e webhook-inbox nao tem remapper local para `DomainError`.
-- [ ] Payload de erro e o do filter.
+- [x] Store, account e webhook-inbox nao tem remapper local para `DomainError`.
+- [x] Payload de erro e o do filter.
 
 ### P1.6 Reconciliar docs canonicos com o runtime pos-duas-goals
 
