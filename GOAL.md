@@ -147,7 +147,7 @@ Done Criteria:
 
 ### P1.3 Destinos Pix e merchant sem `req.user`
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `POST /bank-accounts` esta em CombinedAuth, mas resolve o merchant com `req.user?.sub || req.user?.id || req.store?.merchantId`. CombinedAuth de API key so seta `store: { id }`. O caminho de key cai em `GetMerchantUseCase(undefined)` -> `MERCHANT_NOT_FOUND`. Create/delete/default de destino alimentam o saque, que ja e JWT-only.
 
@@ -161,19 +161,19 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.3.1 Mutacoes de bank account ficam JWT-only, no padrao do saque.
+- [x] P1.3.1 Mutacoes de bank account ficam JWT-only, no padrao do saque.
   - Problema: CombinedAuth no destino + saque JWT-only e contrato partido.
   - Solucao: `JwtOnlyGuard` em create/delete/setDefault. List autenticado pode continuar CombinedAuth ou tambem JWT; documentar a escolha.
   - Validacao: spec API key em POST/PATCH/DELETE -> 403; JWT continua.
-- [ ] P1.3.2 Titularidade sai da store, nao de `req.user`.
+- [x] P1.3.2 Titularidade sai da store, nao de `req.user`.
   - Problema: mesmo no JWT, o controller adivinha `sub` / `id` / `merchantId`.
   - Solucao: o use case carrega `store.merchantId` e o merchant correspondente.
   - Validacao: spec do use case sem objeto de request; mismatch de documento continua 422.
 
 Done Criteria:
 
-- [ ] API key nao cria, nao apaga e nao promove destino Pix.
-- [ ] Create de bank account nao le `req.user` / `req as any`.
+- [x] API key nao cria, nao apaga e nao promove destino Pix.
+- [x] Create de bank account nao le `req.user` / `req as any`.
 
 ### P1.4 Terminar `@CurrentStore()` / `@CurrentEnvironment()`
 

@@ -5,16 +5,10 @@ import {
   ListBankAccountsUseCase,
   DeleteBankAccountUseCase,
   SetDefaultBankAccountUseCase,
-  GetMerchantUseCase,
   IBankAccountRepository,
-  IMerchantRepository,
   IUnitOfWork,
 } from '@hockpay/core';
-import {
-  BankAccountRepository,
-  MerchantRepository,
-  UnitOfWork,
-} from '@hockpay/infrastructure';
+import { BankAccountRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { PrismaService } from 'src/infra/database/prisma.service';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
@@ -28,11 +22,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
     {
       provide: 'IBankAccountRepository',
       useFactory: (prisma: PrismaService) => new BankAccountRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IMerchantRepository',
-      useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),
       inject: [PrismaService],
     },
     {
@@ -63,12 +52,6 @@ import { JwtService } from 'src/infra/services/jwt.service';
       useFactory: (unitOfWork: IUnitOfWork) =>
         new SetDefaultBankAccountUseCase(unitOfWork),
       inject: ['IUnitOfWork'],
-    },
-    {
-      provide: GetMerchantUseCase,
-      useFactory: (merchantRepo: IMerchantRepository) =>
-        new GetMerchantUseCase(merchantRepo),
-      inject: ['IMerchantRepository'],
     },
   ],
 })
