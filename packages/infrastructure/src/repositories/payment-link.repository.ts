@@ -234,11 +234,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const derived = this.derivedStatusSql(now);
     return Prisma.sql`
       WHERE pl.store_id = ${options.storeId}
-        ${
-          options.environment
-            ? Prisma.sql`AND pl.environment = ${options.environment}::"Environment"`
-            : Prisma.empty
-        }
+        AND pl.environment = ${options.environment}::"Environment"
         ${
           flags.applyListFilters && options.status
             ? Prisma.sql`AND (${derived}) = ${options.status}`

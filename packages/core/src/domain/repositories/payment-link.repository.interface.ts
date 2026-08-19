@@ -8,11 +8,11 @@ import { Environment } from "../value-objects/environment.vo";
 
 export interface ListPaymentLinksOptions {
   storeId: string;
+  environment: Environment;
   page?: number;
   limit?: number;
   status?: PaymentLinkStatus;
   hasFailures?: boolean;
-  environment?: Environment;
 }
 
 export interface ListPaymentLinksResult {

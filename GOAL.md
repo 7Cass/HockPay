@@ -121,7 +121,7 @@ Done Criteria:
 
 ### P1.2 Get de Payment Link nao aceitar environment opcional
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: o controller autenticado ja passa `@CurrentEnvironment()`. O use case de get ainda trata `environment` como opcional e so filtra `if (input.environment)`. `ListPaymentLinksOptions.environment` tambem e opcional; o SQL so aplica o `AND` quando o campo vem. Caller novo (ou teste) que omite o campo le link LIVE.
 
@@ -136,14 +136,14 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.2.1 Tornar `environment` obrigatorio no get e no list de Payment Link.
+- [x] P1.2.1 Tornar `environment` obrigatorio no get e no list de Payment Link.
   - Problema: omitir o campo desliga o isolamento.
   - Solucao: o tipo exige environment; 404 se nao bate; list sem environment nao compila.
   - Validacao: spec JWT TEST + link LIVE -> not found; list TEST nao inclui LIVE.
 
 Done Criteria:
 
-- [ ] Nao existe overload de get/list Payment Link sem environment.
+- [x] Nao existe overload de get/list Payment Link sem environment.
 
 ### P1.3 Destinos Pix e merchant sem `req.user`
 

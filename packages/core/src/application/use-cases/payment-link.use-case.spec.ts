@@ -298,6 +298,7 @@ describe('PaymentLink use cases', () => {
 
     await useCase.execute({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 1,
       limit: 20,
       hasFailures: true,
@@ -305,6 +306,7 @@ describe('PaymentLink use cases', () => {
 
     expect(repository.list).toHaveBeenCalledWith({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 1,
       limit: 20,
       hasFailures: true,
@@ -441,6 +443,7 @@ describe('PaymentLink use cases', () => {
       findListItemByIdAndStoreId: vi.fn().mockResolvedValue({
         id: 'link-1',
         storeId: 'store-1',
+        environment: Environment.TEST,
         attempts,
       }),
     };
@@ -449,10 +452,30 @@ describe('PaymentLink use cases', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentLinkId: 'link-1',
+      environment: Environment.TEST,
     });
 
     expect(repository.findListItemByIdAndStoreId).toHaveBeenCalledWith('link-1', 'store-1');
     expect(result.paymentLink.attempts).toEqual(attempts);
+  });
+
+  it('does not return a LIVE payment link to a TEST caller', async () => {
+    const repository = {
+      findListItemByIdAndStoreId: vi.fn().mockResolvedValue({
+        id: 'link-1',
+        storeId: 'store-1',
+        environment: Environment.LIVE,
+      }),
+    };
+    const useCase = new GetPaymentLinkUseCase(repository as never);
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentLinkId: 'link-1',
+        environment: Environment.TEST,
+      }),
+    ).rejects.toMatchObject({ code: 'PAYMENT_LINK_NOT_FOUND' });
   });
 
   it('cancels PaymentLink and PixCharge through locked transactional repositories', async () => {
