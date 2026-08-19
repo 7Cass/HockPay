@@ -378,12 +378,12 @@ Done Criteria:
 
 ## Validation Log For This Goal
 
-- [ ] `pnpm --filter @hockpay/core test:ci`
-- [ ] `pnpm --filter @hockpay/infrastructure test`
-- [ ] `pnpm --filter @hockpay/api test`
-- [ ] `pnpm --filter @hockpay/worker test`
-- [ ] `pnpm --filter @hockpay/web test -- --watch=false`
-- [ ] `pnpm run lint:check`
+- [x] `pnpm --filter @hockpay/core test:ci`
+- [x] `pnpm --filter @hockpay/infrastructure test`
+- [x] `pnpm --filter @hockpay/api test`
+- [x] `pnpm --filter @hockpay/worker test`
+- [x] `pnpm --filter @hockpay/web test -- --watch=false`
+- [x] `pnpm run lint:check`
 
 Comandos tipicos:
 
