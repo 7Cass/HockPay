@@ -1,11 +1,13 @@
 import { ReceiptObject } from '../../domain/entities/receipt.entity';
 import { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { resolveCustomerByExternalId } from './customer-history.helpers';
 
 export interface IListCustomerHistoryReceiptsInput {
   storeId: string;
   customerExternalId: string;
+  environment: Environment;
   page?: number;
   limit?: number;
   receiptNumber?: string;
@@ -44,6 +46,7 @@ export class ListCustomerHistoryReceiptsUseCase {
       {
         receiptNumber: input.receiptNumber,
         customerId: customer.id,
+        environment: input.environment,
       },
     );
 

@@ -19,6 +19,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { GetPaymentResponseDto } from './dtos/payment-response.dto';
 import { Environment } from '@hockpay/core';
 import { getRequestId } from '../../common/request-id';
@@ -55,9 +56,10 @@ export class DevController {
   async confirmPayment(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
 
     const result = await this.confirmPaymentUseCase.execute({
       storeId,
@@ -80,9 +82,10 @@ export class DevController {
   async expirePayment(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
 
     const result = await this.expirePaymentUseCase.execute({
       storeId,
@@ -108,9 +111,10 @@ export class DevController {
     @Param('id') id: string,
     @Query('reason') reason?: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
 
     const result = await this.failPaymentUseCase.execute({
       storeId,
@@ -134,9 +138,10 @@ export class DevController {
   async releasePayment(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(req);
+    this.validateTestEnvironment(environment);
 
     const result = await this.releasePaymentUseCase.execute({
       storeId,
@@ -149,13 +154,7 @@ export class DevController {
     };
   }
 
-  /**
-   * Validates that the request is from a TEST environment.
-   * Throws BadRequestException if in LIVE environment.
-   */
-  private validateTestEnvironment(req?: Request): void {
-    const environment = (req as any)?.environment as Environment | undefined;
-
+  private validateTestEnvironment(environment: Environment): void {
     if (environment === Environment.LIVE) {
       throw new LiveEnvironmentNotAllowedError();
     }

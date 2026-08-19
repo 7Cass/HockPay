@@ -65,6 +65,8 @@ export interface IPaymentRepository {
    */
   findByIdAndStoreId(id: string, storeId: string): Promise<Payment | null>;
 
+  findByIdsAndStoreId(ids: string[], storeId: string): Promise<Payment[]>;
+
   /**
    * Find a payment by ID and store ID and lock it for update within the current transaction.
    * Returns null if not found or doesn't belong to the store.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Customer } from '../../domain/entities/customer.entity';
 import { Document } from '../../domain/value-objects/document.vo';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { Receipt } from '../../domain/entities/receipt.entity';
 import { ReceiptStatus } from '../../domain/entities/receipt.entity';
 import { ListCustomerHistoryReceiptsUseCase } from './list-customer-history-receipts.use-case';
@@ -42,6 +43,7 @@ describe('ListCustomerHistoryReceiptsUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       customerExternalId: 'cust_123',
+      environment: Environment.TEST,
     });
 
     expect(receiptRepository.findByStoreId).toHaveBeenCalledWith(
@@ -51,6 +53,7 @@ describe('ListCustomerHistoryReceiptsUseCase', () => {
       {
         receiptNumber: undefined,
         customerId: customer.id,
+        environment: Environment.TEST,
       },
     );
     expect(result.receipts).toHaveLength(1);

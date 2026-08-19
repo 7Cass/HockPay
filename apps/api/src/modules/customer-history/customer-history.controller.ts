@@ -20,6 +20,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import {
   CustomerHistoryPaymentDto,
   GetCustomerHistoryPaymentResponseDto,
@@ -49,10 +50,11 @@ export class CustomerHistoryController {
   async listPayments(
     @Param('customerExternalId') customerExternalId: string,
     @Query() query: ListCustomerHistoryPaymentsQueryDto,
+    @CurrentStore() storeId: string,
     @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<ListCustomerHistoryPaymentsResponseDto> {
-    const storeId = this.ensureApiKeyRequest(req);
+    this.ensureApiKeyRequest(req);
 
     const result = await this.listCustomerHistoryPaymentsUseCase.execute({
       storeId,
@@ -81,10 +83,11 @@ export class CustomerHistoryController {
   async getPayment(
     @Param('customerExternalId') customerExternalId: string,
     @Param('paymentId') paymentId: string,
+    @CurrentStore() storeId: string,
     @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<GetCustomerHistoryPaymentResponseDto> {
-    const storeId = this.ensureApiKeyRequest(req);
+    this.ensureApiKeyRequest(req);
 
     const result = await this.getCustomerHistoryPaymentUseCase.execute({
       storeId,
@@ -103,13 +106,16 @@ export class CustomerHistoryController {
   async listReceipts(
     @Param('customerExternalId') customerExternalId: string,
     @Query() query: ListCustomerHistoryReceiptsQueryDto,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<ListCustomerHistoryReceiptsResponseDto> {
-    const storeId = this.ensureApiKeyRequest(req);
+    this.ensureApiKeyRequest(req);
 
     const result = await this.listCustomerHistoryReceiptsUseCase.execute({
       storeId,
       customerExternalId,
+      environment,
       page: query.page,
       limit: query.limit,
       receiptNumber: query.receiptNumber,
@@ -131,14 +137,17 @@ export class CustomerHistoryController {
   async getReceipt(
     @Param('customerExternalId') customerExternalId: string,
     @Param('receiptId') receiptId: string,
+    @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req: Request,
   ): Promise<GetCustomerHistoryReceiptResponseDto> {
-    const storeId = this.ensureApiKeyRequest(req);
+    this.ensureApiKeyRequest(req);
 
     const result = await this.getCustomerHistoryReceiptUseCase.execute({
       storeId,
       customerExternalId,
       receiptId,
+      environment,
     });
 
     return {
@@ -146,26 +155,12 @@ export class CustomerHistoryController {
     };
   }
 
-  private ensureApiKeyRequest(req: Request): string {
-    if ((req as any).authType !== 'api_key') {
+  private ensureApiKeyRequest(req: Request): void {
+    if (req.authType !== 'api_key') {
       throw new ForbiddenException(
         'Customer history endpoints are only available via API key authentication',
       );
     }
-
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        error: 'Forbidden',
-        message:
-          'No store selected or could not be determined from authentication context.',
-        code: 'NO_CURRENT_STORE',
-      });
-    }
-
-    return storeId;
   }
 
   private toPaymentResponse(payment: any): CustomerHistoryPaymentDto {

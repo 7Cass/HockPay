@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PaymentStatus, PixChargeStatus } from "@hockpay/core";
+import { Environment, PaymentStatus, PixChargeStatus } from "@hockpay/core";
 import { PaymentLinkRepository } from "./payment-link.repository";
 
 describe("PaymentLinkRepository", () => {
@@ -112,6 +112,7 @@ describe("PaymentLinkRepository", () => {
 
     const result = await repository.list({
       storeId: "store-1",
+      environment: Environment.TEST,
       page: 2,
       limit: 20,
       status: "PAID",

@@ -1,4 +1,5 @@
 import {
+  Environment,
   GetReceiptUseCase,
   ListReceiptsUseCase,
   ReceiptNotFoundError,
@@ -47,10 +48,12 @@ describe('ReceiptController', () => {
         customerId: 'customer-1',
       },
       'store-1',
+      Environment.TEST,
     );
 
     expect(listReceiptsUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 1,
       limit: 20,
       receiptNumber: 'RCP-20260419-STORE1-00001',
@@ -85,11 +88,13 @@ describe('ReceiptController', () => {
     const response = await controller.getReceiptByNumber(
       'RCP-20260419-STORE1-00001',
       'store-1',
+      Environment.TEST,
     );
 
     expect(getReceiptUseCase.execute).toHaveBeenCalledWith({
       receiptNumber: 'RCP-20260419-STORE1-00001',
       storeId: 'store-1',
+      environment: Environment.TEST,
     });
     expect(response.receipt).toMatchObject({
       id: 'receipt-1',
@@ -104,7 +109,11 @@ describe('ReceiptController', () => {
     );
 
     await expect(
-      controller.getReceiptByNumber('RCP-20260419-STORE1-99999', 'store-1'),
+      controller.getReceiptByNumber(
+        'RCP-20260419-STORE1-99999',
+        'store-1',
+        Environment.TEST,
+      ),
     ).rejects.toThrow(ReceiptNotFoundError);
   });
 });

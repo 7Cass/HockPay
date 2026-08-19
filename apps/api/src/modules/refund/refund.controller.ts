@@ -14,6 +14,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { JwtOnlyGuard } from '../auth/guards/jwt-only.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
 import {
@@ -37,6 +38,7 @@ export class RefundController {
   ) {}
 
   @Post()
+  @UseGuards(JwtOnlyGuard)
   @Idempotent({ required: true })
   @HttpCode(HttpStatus.CREATED)
   async createRefund(

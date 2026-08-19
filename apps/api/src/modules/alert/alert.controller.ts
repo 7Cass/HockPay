@@ -9,10 +9,8 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   AlertDeliveryStatus,
   CreateAlertConfigUseCase,
@@ -25,6 +23,7 @@ import {
   UpdateAlertConfigUseCase,
 } from '@hockpay/core';
 import { RequireStoreGuard } from '../auth/guards/require-store.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CreateAlertDto } from './dtos/create-alert.dto';
 import { UpdateAlertDto } from './dtos/update-alert.dto';
 import { ListAlertLogsQueryDto } from './dtos/list-alert-logs.dto';
@@ -56,10 +55,10 @@ export class AlertController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateAlertDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetAlertResponseDto> {
     const result = await this.createAlertConfigUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       name: dto.name,
       channel: dto.channel,
       discord: dto.discord,
@@ -74,9 +73,9 @@ export class AlertController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async list(@Req() req: Request): Promise<ListAlertsResponseDto> {
+  async list(@CurrentStore() storeId: string): Promise<ListAlertsResponseDto> {
     const result = await this.listAlertConfigsUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
     });
 
     return {
@@ -90,10 +89,10 @@ export class AlertController {
   @HttpCode(HttpStatus.OK)
   async get(
     @Param('id') id: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetAlertResponseDto> {
     const result = await this.getAlertConfigUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
     });
 
@@ -107,10 +106,10 @@ export class AlertController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateAlertDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetAlertResponseDto> {
     const result = await this.updateAlertConfigUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
       name: dto.name,
       discord: dto.discord,
@@ -125,9 +124,12 @@ export class AlertController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string, @Req() req: Request): Promise<void> {
+  async delete(
+    @Param('id') id: string,
+    @CurrentStore() storeId: string,
+  ): Promise<void> {
     await this.deleteAlertConfigUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
     });
   }
@@ -136,10 +138,10 @@ export class AlertController {
   @HttpCode(HttpStatus.OK)
   async test(
     @Param('id') id: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<TestAlertResponseDto> {
     const result = await this.testAlertConfigUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
     });
 
@@ -158,10 +160,10 @@ export class AlertController {
   async listLogs(
     @Param('id') id: string,
     @Query() query: ListAlertLogsQueryDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListAlertLogsResponseDto> {
     const result = await this.listAlertDeliveryLogsUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
       page: query.page,
       limit: query.limit,
@@ -181,10 +183,10 @@ export class AlertController {
   async retryLog(
     @Param('id') id: string,
     @Param('logId') logId: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<RetryAlertLogResponseDto> {
     const result = await this.retryAlertDeliveryLogUseCase.execute({
-      storeId: this.getStoreId(req),
+      storeId,
       configId: id,
       logId,
     });
@@ -196,9 +198,5 @@ export class AlertController {
       error: result.error,
       log: mapAlertDeliveryLogToDto(result.log.toObject()),
     };
-  }
-
-  private getStoreId(req: Request): string {
-    return (req as any).user.storeId;
   }
 }

@@ -2,8 +2,10 @@ import {
   BankAccount,
   PixKeyType,
 } from "../../domain/entities/bank-account.entity";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 import { BankAccountHolderMismatchError } from "../../domain/errors/bank-account-holder-mismatch.error";
+import { MerchantNotFoundError } from "../../domain/errors/merchant-not-found.error";
+import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
+import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
 
 export interface CreateBankAccountDto {
   storeId: string;
@@ -17,61 +19,65 @@ export interface CreateBankAccountDto {
 export class CreateBankAccountUseCase {
   constructor(private readonly unitOfWork: IUnitOfWork) {}
 
-  async execute(
-    dto: CreateBankAccountDto,
-    merchantDocument: string,
-  ): Promise<BankAccount> {
-    // Business Rule 1: Titularidade Obrigatoria
-    // The holder document MUST match the merchant document
-    const cleanHolderDoc = dto.holderDocument.replace(/\D/g, "");
-    const cleanMerchantDoc = merchantDocument.replace(/\D/g, "");
-
-    if (cleanHolderDoc !== cleanMerchantDoc) {
-      throw new BankAccountHolderMismatchError(
-        dto.holderDocument,
-        merchantDocument,
-      );
-    }
-
-    // Business Rule 2: Validation of PIX Key Types vs holderDocument
-    let isVerified = false;
-    if (
-      dto.pixKeyType === PixKeyType.CPF ||
-      dto.pixKeyType === PixKeyType.CNPJ
-    ) {
-      const cleanPixKey = dto.pixKey.replace(/\D/g, "");
-      if (cleanPixKey === cleanHolderDoc) {
-        // High confidence: The CPF/CNPJ Pix key matches the account holder document
-        isVerified = true;
+  async execute(dto: CreateBankAccountDto): Promise<BankAccount> {
+    return this.unitOfWork.execute(async (repos) => {
+      const store = await repos.storeRepository.findById(dto.storeId);
+      if (!store) {
+        throw new StoreNotFoundError(dto.storeId);
       }
-    }
 
-    const bankAccount = BankAccount.create({
-      storeId: dto.storeId,
-      pixKey: dto.pixKey,
-      pixKeyType: dto.pixKeyType,
-      holderName: dto.holderName,
-      holderDocument: dto.holderDocument,
-      isDefault: dto.isDefault,
-    });
+      const merchant = await repos.merchantRepository.findById(
+        store.merchantId,
+      );
+      if (!merchant) {
+        throw new MerchantNotFoundError(store.merchantId);
+      }
 
-    if (isVerified) {
-      bankAccount.verify();
-    }
+      const merchantDocument = merchant.document.value;
+      const cleanHolderDoc = dto.holderDocument.replace(/\D/g, "");
+      const cleanMerchantDoc = merchantDocument.replace(/\D/g, "");
 
-    // Use Unit of Work to handle potential "isDefault" race conditions safely
-    await this.unitOfWork.execute(async (repos) => {
+      if (cleanHolderDoc !== cleanMerchantDoc) {
+        throw new BankAccountHolderMismatchError(
+          dto.holderDocument,
+          merchantDocument,
+        );
+      }
+
+      let isVerified = false;
+      if (
+        dto.pixKeyType === PixKeyType.CPF ||
+        dto.pixKeyType === PixKeyType.CNPJ
+      ) {
+        const cleanPixKey = dto.pixKey.replace(/\D/g, "");
+        if (cleanPixKey === cleanHolderDoc) {
+          isVerified = true;
+        }
+      }
+
+      const bankAccount = BankAccount.create({
+        storeId: dto.storeId,
+        pixKey: dto.pixKey,
+        pixKeyType: dto.pixKeyType,
+        holderName: dto.holderName,
+        holderDocument: dto.holderDocument,
+        isDefault: dto.isDefault,
+      });
+
+      if (isVerified) {
+        bankAccount.verify();
+      }
+
       await repos.bankAccountRepository.save(bankAccount);
 
-      // If this new account is marked as default, clear the default flag on others
       if (bankAccount.isDefault) {
         await repos.bankAccountRepository.clearDefaultFlagExcept(
           bankAccount.storeId,
           bankAccount.id,
         );
       }
-    });
 
-    return bankAccount;
+      return bankAccount;
+    });
   }
 }

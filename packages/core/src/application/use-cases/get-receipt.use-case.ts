@@ -2,12 +2,14 @@ import { Receipt, ReceiptObject } from "../../domain/entities/receipt.entity";
 import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
 import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
 import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.error";
+import { Environment } from "../../domain/value-objects/environment.vo";
 
 export interface IGetReceiptInput {
   receiptId?: string;
   paymentId?: string;
   receiptNumber?: string;
   storeId: string;
+  environment: Environment;
 }
 
 export interface IGetReceiptOutput {
@@ -45,19 +47,29 @@ export class GetReceiptUseCase {
       );
     }
 
-    return { receipt: await this.toReceiptObject(receipt) };
+    return {
+      receipt: await this.toReceiptObject(receipt, input.environment),
+    };
   }
 
-  private async toReceiptObject(receipt: Receipt): Promise<ReceiptObject> {
+  private async toReceiptObject(
+    receipt: Receipt,
+    environment: Environment,
+  ): Promise<ReceiptObject> {
     const object = receipt.toObject();
-    if (!this.paymentRepository) return object;
+    if (!this.paymentRepository) {
+      throw new ReceiptNotFoundError(receipt.id);
+    }
     const payment = await this.paymentRepository.findByIdAndStoreId(
       receipt.paymentId,
       receipt.storeId,
     );
+    if (!payment || payment.environment !== environment) {
+      throw new ReceiptNotFoundError(receipt.id);
+    }
     return {
       ...object,
-      items: payment?.items ?? [],
+      items: payment.items ?? [],
     };
   }
 }

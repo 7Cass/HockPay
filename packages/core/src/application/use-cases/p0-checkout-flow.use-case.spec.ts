@@ -499,6 +499,16 @@ class InMemoryPaymentRepository {
     return payment?.storeId === storeId ? payment : null;
   }
 
+  async findByIdsAndStoreId(
+    ids: string[],
+    storeId: string,
+  ): Promise<Payment[]> {
+    return ids.flatMap((id) => {
+      const payment = this.items.get(id);
+      return payment?.storeId === storeId ? [payment] : [];
+    });
+  }
+
   async findByIdAndStoreIdForUpdate(
     id: string,
     storeId: string,

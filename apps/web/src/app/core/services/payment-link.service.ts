@@ -141,8 +141,13 @@ export class PaymentLinkService {
         return this.apiClient.get<{ paymentLink: PaymentLinkRecord }>(`/payment-links/${id}`);
     }
 
-    simulatePay(id: string) {
-        return this.apiClient.post<{ payment: PaymentObject }>(`/payment-links/${id}/pay`, {});
+    simulatePay(
+        id: string,
+        customer: { document: string; name?: string; email?: string },
+    ) {
+        return this.apiClient.post<{ payment: PaymentObject }>(`/payment-links/${id}/pay`, {
+            customer,
+        });
     }
 
     simulateFail(id: string) {

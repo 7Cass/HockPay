@@ -109,6 +109,21 @@ export class PaymentRepository implements IPaymentRepository {
     return row ? this.findById(row.id) : null;
   }
 
+  async findByIdsAndStoreId(
+    ids: string[],
+    storeId: string,
+  ): Promise<DomainPayment[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.prisma.payment.findMany({
+      where: {
+        id: { in: ids },
+        storeId,
+      },
+      include: this.includePixCharge(),
+    });
+    return rows.map((row) => this.toDomain(row));
+  }
+
   async findByIdAndStoreId(
     id: string,
     storeId: string,

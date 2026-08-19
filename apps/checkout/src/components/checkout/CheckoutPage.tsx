@@ -180,7 +180,7 @@ export function CheckoutPage({ initialSession, token }: CheckoutPageProps) {
           <div className="flex flex-col items-center py-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Confirmado!</h2>
-            <p className="text-gray-600 mb-4">Obrigado por pagar. Você receberá uma confirmação em breve.</p>
+            <p className="text-gray-600 mb-4">Pagamento simulado registrado. Nenhum e-mail ou Pix real e enviado.</p>
             {isRedirecting && (
               <p className="text-sm text-blue-600 font-medium animate-pulse">Redirecionando de volta à loja...</p>
             )}

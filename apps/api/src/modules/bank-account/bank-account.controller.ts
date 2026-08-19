@@ -9,16 +9,15 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  Req,
 } from '@nestjs/common';
 import {
   CreateBankAccountUseCase,
   ListBankAccountsUseCase,
   DeleteBankAccountUseCase,
-  GetMerchantUseCase,
   SetDefaultBankAccountUseCase,
 } from '@hockpay/core';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { JwtOnlyGuard } from '../auth/guards/jwt-only.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CreateBankAccountDto } from './dtos/create-bank-account.dto';
 import { BankAccountResponseDto } from './dtos/bank-account-response.dto';
@@ -33,29 +32,20 @@ export class BankAccountController {
     private readonly createBankAccountUseCase: CreateBankAccountUseCase,
     private readonly listBankAccountsUseCase: ListBankAccountsUseCase,
     private readonly deleteBankAccountUseCase: DeleteBankAccountUseCase,
-    private readonly getMerchantUseCase: GetMerchantUseCase,
     private readonly setDefaultBankAccountUseCase: SetDefaultBankAccountUseCase,
   ) {}
 
   @Post()
+  @UseGuards(JwtOnlyGuard)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @CurrentStore() storeId: string,
-    @Req() req: any,
     @Body() createDto: CreateBankAccountDto,
   ): Promise<BankAccountResponseDto> {
-    // Retrieve the merchant document to satisfy Business Rule #1 (Titularidade)
-    // JWT auth puts user in req.user, API Keys don't have user but we can fetch Merchant via store.merchantId
-    const merchantId = req.user?.sub || req.user?.id || req.store?.merchantId;
-    const merchant = await this.getMerchantUseCase.execute(merchantId);
-
-    const bankAccount = await this.createBankAccountUseCase.execute(
-      {
-        ...createDto,
-        storeId,
-      },
-      merchant.document,
-    );
+    const bankAccount = await this.createBankAccountUseCase.execute({
+      ...createDto,
+      storeId,
+    });
 
     return BankAccountResponseDto.fromDomain(bankAccount);
   }
@@ -70,6 +60,7 @@ export class BankAccountController {
   }
 
   @Patch(':id/default')
+  @UseGuards(JwtOnlyGuard)
   @HttpCode(HttpStatus.OK)
   async setDefault(
     @Param('id') id: string,
@@ -79,6 +70,7 @@ export class BankAccountController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtOnlyGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(
     @Param('id') id: string,

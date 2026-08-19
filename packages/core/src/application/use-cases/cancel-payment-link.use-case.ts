@@ -5,6 +5,15 @@ import { PixChargeStatus } from "../../domain/entities/pix-charge.entity";
 import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
 export { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
 import { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { assertCallerCanMutateEnvironment } from "../services/live-environment-guard";
+
+export interface ICancelPaymentLinkInput {
+  storeId: string;
+  paymentLinkId: string;
+  environment: Environment;
+  requestId?: string;
+}
 
 export class CancelPaymentLinkUseCase {
   constructor(
@@ -13,11 +22,7 @@ export class CancelPaymentLinkUseCase {
     private readonly unitOfWork?: IUnitOfWork,
   ) {}
 
-  async execute(input: {
-    storeId: string;
-    paymentLinkId: string;
-    requestId?: string;
-  }): Promise<void> {
+  async execute(input: ICancelPaymentLinkInput): Promise<void> {
     if (this.unitOfWork) {
       await this.unitOfWork.execute(async (repos) => {
         await this.cancelWithRepositories(
@@ -37,11 +42,7 @@ export class CancelPaymentLinkUseCase {
   }
 
   private async cancelWithRepositories(
-    input: {
-      storeId: string;
-      paymentLinkId: string;
-      requestId?: string;
-    },
+    input: ICancelPaymentLinkInput,
     paymentLinkRepository: IPaymentLinkRepository,
     pixChargeRepository: IPixChargeRepository,
   ): Promise<void> {
@@ -51,6 +52,8 @@ export class CancelPaymentLinkUseCase {
       input.storeId,
     );
     if (!link) throw new PaymentLinkNotFoundError(input.paymentLinkId);
+
+    assertCallerCanMutateEnvironment(link.environment, input.environment);
 
     const charge = await this.findPixChargeForUpdate(
       pixChargeRepository,

@@ -3,11 +3,11 @@
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-08-18`
 Ordering: criticidade primeiro
-Scope: fechamento da passagem de 2026-08-18 + honestidade do workspace merchant
+Scope: cancel LIVE de Payment Link, estorno via API key, isolamento de recibo, simulate quebrado do dashboard e docs canonicos alinhados ao runtime
 
 Este arquivo e o tracker executavel da goal atual. Cada macro item e uma unidade de planejamento; as checkboxes em `Subtasks` sao as unidades executaveis de implementacao e validacao.
 
-A passagem anterior (arquivada em `docs/goals/2026-08-18-architecture-hardening.md`) fechou DomainError no caminho financeiro antigo, CombinedAuth (store, precedencia, leak de JWT), filtro TEST/LIVE nas listas com coluna, indice parcial de PixCharge, miolo unico de confirm, UoW de checkout, webhook DNS pin, idempotencia de creates, Money morto, fee/net, PIX-only na escrita e higiene de CI/docs. Esta goal cobre o que essa passagem deixou incompleto e o que o workspace ainda promete sem cumprir.
+As duas passagens anteriores (arquivadas em `docs/goals/2026-08-18-architecture-hardening.md` e `docs/goals/2026-08-18-workspace-honesty-and-integrity.md`) fecharam escrita financeira no caminho de payment, catalogo DomainError, CombinedAuth/CurrentStore no caminho principal, replay de fulfill/pay, JWT-only de saque, perfil name+city, Payment Link com customer e paginacao SQL. Esta goal cobre o que ainda fura isolacao/authz (cancel de link, estorno, recibo), o simulate do dashboard que a coleta de customer quebrou, e o que os docs ainda descrevem do mundo anterior.
 
 ## Status Legend
 
@@ -19,546 +19,362 @@ A passagem anterior (arquivada em `docs/goals/2026-08-18-architecture-hardening.
 
 ## Priority Legend
 
-- `P0`: risco de integridade, sessao/key TEST mutando saldo LIVE, isolamento quebrado na escrita, invariante financeira, ou erro de negocio que vira 500.
-- `P1`: confiabilidade operacional, contrato HTTP/erro, authz minima, docs/README que mentem, UX operacional material, chrome que finge produto inexistente.
-- `P2`: acabamento, copy de simulador, dead code e clareza.
+- `P0`: risco de integridade, key TEST mutando saldo da store, invariante financeira, ou isolamento de escrita quebrado.
+- `P1`: isolamento de leitura herdado, contrato HTTP/erro, extração de contexto, docs/README que mentem, copy de simulador que promete canal inexistente.
+- `P2`: acabamento, N+1 e typing que nao muda o contrato.
 
 ## Intake Snapshot
 
-- Branch da review: `main` (5 commits a frente de `origin/main` no momento da abertura).
+- Branch da review: `main` (13 commits a frente de `origin/main` no momento da abertura).
 - Fonte: leitura pos-goal de `packages/core`, `packages/infrastructure`, `apps/api`, `apps/worker`, `apps/web`, `apps/checkout` e docs canonicos.
 - Docs canonicos considerados: `README.md`, `docs/CURRENT_STATE.md`, `docs/PRODUCT.md`, `docs/DATA_MODEL.md`, `docs/RUNBOOK.md`, `docs/TARGET_ARCHITECTURE.md`.
-- Decisao de recorte: nao abrir catalogo em Payment Link, checkout session no dashboard, OAuth, reset de senha por email, antifraude real nem ledger TEST/LIVE separado. Apertar o desenho que ja existe e deixar de mentir na UI.
+- Decisao de recorte: nao reabrir ledger dual, nao filtrar listagem de saque (continua store-wide), nao criar coluna de environment em Receipt/Refund, nao construir RBAC/scopes. Fechar o que as duas passagens deixaram de proposito no fim da fila e parar de documentar o runtime antigo.
 
-## P0 - Integridade e Isolamento na Escrita
+## P0 - Integridade financeira restante
 
-### P0.1 Recusar mutacao LIVE a partir de sessao/key TEST
+### P0.1 Recusar cancel de Payment Link LIVE a partir de sessao/key TEST
 
 Status: `concluido`
 
-Problema: `/dev/simulate` e o withdrawal-dev so bloqueiam quando o **environment da request** e LIVE. JWT e forcado para TEST. `ConfirmPaymentUseCase` / expire / fail / release / `CreateRefundUseCase` travam por `storeId` e nao leem `payment.environment`. Checkout simulate e pay de Payment Link ja recusam agregado LIVE.
+Problema: confirm/expire/fail/release/refund e o pay publico recusam agregado LIVE. `CancelPaymentLinkUseCase` carrega por `id + storeId`, nao le `environment` e nao chama `assertNotLiveEnvironment`. O controller autentica TEST, cancela a linha LIVE (e a `PixCharge` aberta) e so depois faz get filtrado — o caller TEST toma 404 com o link ja cancelado.
 
-Impacto: dashboard (ou API key TEST) que conhece o id confirma, estorna ou conclui saque de dinheiro LIVE. Account e compartilhada por store; o credito/debito cai no mesmo saldo.
+Impacto: a mesma classe TEST→LIVE que a passagem anterior fechou no payment. Nao mexe no ledger compartilhado, mas muta catalogo e charge LIVE.
 
 Evidencia:
 
-- `apps/api/src/modules/payment/dev.controller.ts:191-202`
-- `apps/api/src/modules/withdrawal/withdrawal-dev.controller.ts:81-91`
-- `packages/core/src/application/use-cases/confirm-payment.use-case.ts:45-54`
-- `packages/core/src/application/use-cases/create-refund.use-case.ts:42-49`
-- Contraste: `packages/core/src/application/use-cases/simulate-checkout-payment.use-case.ts:80-83`
+- `packages/core/src/application/use-cases/cancel-payment-link.use-case.ts` (input sem environment; `findLinkForUpdate` por store)
+- `apps/api/src/modules/payment-link/payment-link.controller.ts` (cancel executa e so depois get com environment)
+- Contraste: pay/fail passam por `validateTestEnvironment` / `ensureSimulationAllowed`
 
 Subtasks:
 
-- [x] P0.1.1 Recusar `payment.environment === LIVE` (e withdrawal/refund herdado de funding LIVE) em confirm, expire, fail, release, refund e nos controllers `/dev/*`.
-  - Problema: o check esta no caller TEST, nao no agregado.
-  - Solucao: o use case de mutacao financeira recusa LIVE com `LiveEnvironmentNotAllowedError`; o controller nao e a unica trava.
-  - Validacao: spec JWT/TEST + payment LIVE -> 422, ledger inalterado.
-- [x] P0.1.2 Aplicar a mesma regra no withdrawal-dev (complete/fail).
-  - Problema: saque LIVE processado por sessao TEST mexe no Account compartilhado.
-  - Solucao: o job/use case de acao TEST recusa withdrawal cujo contexto nao e TEST, ou documentar e recusar se a reserva veio de payment LIVE.
-  - Validacao: spec de withdrawal-dev com funding LIVE nao altera saldo.
+- [x] P0.1.1 Recusar `paymentLink.environment === LIVE` no use case de cancel.
+  - Problema: o check esta no get posterior, nao na mutacao.
+  - Solucao: environment obrigatorio; LIVE -> `LiveEnvironmentNotAllowedError` (ou 404 se o recorte for o mesmo de get). Charge so cancela se o link for TEST.
+  - Validacao: spec JWT/TEST + link LIVE -> 422/404, status e PixCharge inalterados.
 
 Done Criteria:
 
-- [x] JWT TEST + id de payment LIVE nao confirma, nao expira, nao falha, nao libera e nao estorna.
-- [x] API key TEST nao muta agregado LIVE.
-- [x] Acao TEST de saque nao processa reserva LIVE.
+- [x] JWT TEST + id de Payment Link LIVE nao cancela o link nem a charge.
+- [x] API key TEST nao cancela link LIVE.
 
-### P0.2 Fechar o catalogo DomainError no filter
+### P0.2 Estorno deixar de aceitar API key
 
 Status: `concluido`
 
-Problema: `getStatusCodeForError` devolve 500 para code desconhecido. P0.1.4 da goal anterior so mapeou o que aquele PR tocou. Varios `DomainError` de producao continuam fora de `ERROR_CODE_MAP`. `POST /payments/:id/simulate/:action` (publico, checkout) nao tem remapper local e depende do filter.
+Problema: a goal anterior fechou `POST /withdrawals` com `JwtOnlyGuard` porque key vazada era god-mode no Account compartilhado. `POST /refunds` ficou em `CombinedAuthGuard`. Qualquer `hk_test_` / `hk_live_` da store ainda estorna e debita o mesmo saldo.
 
-Impacto: pagamento expirado, transicao invalida, customer/receipt/webhook/api-key not found e `NO_CURRENT_STORE` vazam como erro interno. O catalogo so protege o caminho que a passagem anterior reescreveu.
+Impacto: o recorte de P1.6 da passagem anterior ficou pela metade. Uma key de integracao (sem UI, sem sessao) continua podendo reverter pagamento e mexer no ledger.
 
 Evidencia:
 
-- `apps/api/src/common/constants/error-codes.ts:184-186`
-- `packages/core/src/domain/errors/payment-expired.error.ts:10`
-- `packages/core/src/domain/errors/invalid-payment-status.error.ts:14`
-- `packages/core/src/domain/errors/customer-not-found.error.ts:13`
-- `packages/core/src/domain/errors/receipt-not-found.error.ts`
-- `packages/core/src/domain/errors/no-current-store.error.ts:11`
-- `apps/api/src/modules/payment/payment.controller.ts:238-256`
+- `apps/api/src/modules/refund/refund.controller.ts:30-38`
+- Contraste: `apps/api/src/modules/withdrawal/withdrawal.controller.ts:54-56`
+- `docs/CURRENT_STATE.md:87` ainda fala em JWT/API key no saque e "API keys ainda nao possuem scopes granulares"
 
 Subtasks:
 
-- [x] P0.2.1 Mapear todo code de `packages/core/src/domain/errors` usado em producao.
-  - Problema: code sem linha no mapa e 500.
-  - Solucao: completar `ERROR_CODE_MAP` e `ERROR_CATEGORIES`; o spec lista os codes e falha se um arquivo de erro novo ficar de fora.
-  - Validacao: `error-codes.spec.ts` cobre o catalogo inteiro, nao so o subset da goal anterior.
-- [x] P0.2.2 Provar o caminho publico de simulate sem remapper local.
-  - Problema: `/dev/simulate` ainda traduz na mao; o publico nao.
-  - Solucao: o filter e a unica traducao; expired/status vira 4xx nos dois.
-  - Validacao: spec do filter/controller para `PAYMENT_EXPIRED` e `INVALID_PAYMENT_STATUS_TRANSITION`.
+- [x] P0.2.1 Aplicar a mesma trava de saque no create de refund.
+  - Problema: CombinedAuth basta para estornar.
+  - Solucao: `JwtOnlyGuard` em `POST /refunds`. Nao abrir campo `scopes` nem RBAC.
+  - Validacao: spec API key + payment da store -> 403; JWT dashboard continua 201/replay.
 
 Done Criteria:
 
-- [x] Nenhum `DomainError` de producao cai em 500 por falta de mapping.
-- [x] Simulate publico de payment expirado e 4xx com `error.code`.
+- [x] API key recem-criada (default) nao estorna.
+- [x] JWT do dashboard continua estornando em TEST.
 
-### P0.3 Terminar `@CurrentStore()` e acabar com `Error` de store
+## P1 - Isolamento herdado, contexto e honestidade
+
+### P1.1 Recibos herdarem o environment do payment
 
 Status: `concluido`
 
-Problema: P0.2.4 padronizou payment, refund, payment-link e checkout. Webhook, receipt, customer, `/dev/simulate`, withdrawal-dev e create/revoke de API key ainda leem `(req as any)?.store?.id` e jogam `Error('Store ID not found in request')` (500). Api-key create/revoke usam `req.user.storeId` sem o decorator.
+Problema: list/get de Payment e timeline agora exigem environment. Receipt nao tem coluna propria e `GetReceiptUseCase` / `ListReceiptsUseCase` so recortam por `storeId`. JWT TEST (sempre TEST) le recibo de payment LIVE se souber o id ou se a lista da store vier misturada. O get por `receiptId` / `receiptNumber` / `paymentId` tambem nao recebe environment. Customer-history de payments filtra environment; o de receipts nao.
 
-Impacto: o mesmo furo que a goal anterior fechou no caminho financeiro volta em webhook, recibo, customer e simulacao. Store ausente vira 500, nao 403 `NO_CURRENT_STORE`.
+Impacto: o isolamento de leitura da passagem anterior e so do agregado Payment. O comprovante (pagador, documento, valor) fura — inclusive pela rota de historico.
 
 Evidencia:
 
-- `apps/api/src/modules/auth/decorators/current-store.decorator.ts:22-35`
-- `apps/api/src/modules/webhook/webhook.controller.ts:93-96` (e irmaos)
-- `apps/api/src/modules/receipt/receipt.controller.ts:42-45`
-- `apps/api/src/modules/customer/customer.controller.ts:80-83`
-- `apps/api/src/modules/payment/dev.controller.ts:205-209`
-- `apps/api/src/modules/withdrawal/withdrawal-dev.controller.ts:95-97`
+- `packages/core/src/application/use-cases/get-receipt.use-case.ts:6-46`
+- `packages/core/src/application/use-cases/list-receipts.use-case.ts:5-39`
+- `apps/api/src/modules/receipt/receipt.controller.ts:30-98`
+- `apps/api/src/modules/customer-history/customer-history.controller.ts:52-65` vs `103-116`
+- `docs/CURRENT_STATE.md:133` ("Receipt/refund herdam o ambiente do payment")
 
 Subtasks:
 
-- [x] P0.3.1 Trocar extracao manual por `@CurrentStore()` nos controllers listados, inclusive api-key create/revoke.
-  - Problema: cada handler reimplementa o contrato do guard.
-  - Solucao: o decorator ja existe e devolve 403.
-  - Validacao: `rg "Store ID not found in request" apps/api/src` vazio.
-- [x] P0.3.2 Parar de jogar `Error` generico quando store falta.
-  - Problema: o filter nao traduz `Error`.
-  - Solucao: so o decorator / `NoCurrentStoreError`.
-  - Validacao: spec do controller/guard sem store -> 403, nao 500.
+- [x] P1.1.1 Passar `environment` obrigatorio em list/get de receipt e filtrar pelo `payment.environment`.
+  - Problema: o dado ja esta no payment; o use case nao junta.
+  - Solucao: join/filter no repositorio; 404 se o ambiente nao bate. Sem coluna nova em Receipt.
+  - Validacao: spec JWT TEST + receipt de payment LIVE -> not found; lista TEST nao inclui LIVE.
+- [x] P1.1.2 Get por `paymentId` / `receiptNumber` e o historico de receipts usam o mesmo recorte.
+  - Problema: tres entradas autenticadas + customer-history; um furo em qualquer uma basta.
+  - Solucao: um input com environment; as rotas passam o decorator.
+  - Validacao: as rotas recusam o mesmo caso LIVE.
 
 Done Criteria:
 
-- [x] Controllers autenticados de negocio nao leem `req as any` para store.
-- [x] Store ausente e 403 com code, nunca 500.
+- [x] JWT TEST / key TEST nao le recibo de payment LIVE (dashboard, get por numero/id/payment e customer-history).
+- [x] Nao existe caminho de list/get Receipt sem environment.
+- [x] Schema de Receipt inalterado (sem coluna de environment).
 
-## P1 - Contrato, Authz e Honestidade do Workspace
-
-### P1.1 Timeline e leituras irmas honrarem environment
+### P1.2 Get de Payment Link nao aceitar environment opcional
 
 Status: `concluido`
 
-Problema: list/get de Payment passaram a filtrar environment. `GetPaymentTimelineUseCase` nao recebe environment. JWT TEST carrega ledger, refunds, receipt e webhook logs de um payment LIVE se souber o id. `environment` em list/get ainda e opcional; um caller que omite bypassa o filtro.
+Problema: o controller autenticado ja passa `@CurrentEnvironment()`. O use case de get ainda trata `environment` como opcional e so filtra `if (input.environment)`. `ListPaymentLinksOptions.environment` tambem e opcional; o SQL so aplica o `AND` quando o campo vem. Caller novo (ou teste) que omite o campo le link LIVE.
 
-Impacto: o isolamento de P0.3 da goal anterior e so da lista. O detalhe operacional (timeline) fura.
+Impacto: o mesmo bypass que P1.1.2 da goal anterior fechou em Payment.
 
 Evidencia:
 
-- `packages/core/src/application/use-cases/get-payment-timeline.use-case.ts:56-88`
-- `apps/api/src/modules/payment/payment.controller.ts:165-172`
-- `packages/core/src/application/use-cases/list-payments.use-case.ts:23`
-- `packages/core/src/application/use-cases/get-payment.use-case.ts:14,43`
+- `packages/core/src/application/use-cases/get-payment-link.use-case.ts:9-21`
+- `packages/core/src/domain/repositories/payment-link.repository.interface.ts` (`environment?:`)
+- `packages/infrastructure/src/repositories/payment-link.repository.ts` (`options.environment ? AND ... : empty`)
+- Contraste: `packages/core/src/application/use-cases/get-payment.use-case.ts:14,43`
 
 Subtasks:
 
-- [x] P1.1.1 Passar `environment` obrigatorio em timeline e recusar payment de outro ambiente.
-  - Problema: timeline e get por id sem filtro.
-  - Solucao: o mesmo recorte de `GetPaymentUseCase`; 404 se o ambiente nao bate.
-  - Validacao: spec JWT TEST + payment LIVE -> not found, sem ledger.
-- [x] P1.1.2 Tornar `environment` obrigatorio em list/get de Payment (nao opcional).
+- [x] P1.2.1 Tornar `environment` obrigatorio no get e no list de Payment Link.
   - Problema: omitir o campo desliga o isolamento.
-  - Solucao: o tipo exige environment; o compiler pega caller novo.
-  - Validacao: chamada sem environment nao compila / nao existe overload sem filtro.
+  - Solucao: o tipo exige environment; 404 se nao bate; list sem environment nao compila.
+  - Validacao: spec JWT TEST + link LIVE -> not found; list TEST nao inclui LIVE.
 
 Done Criteria:
 
-- [x] JWT TEST nao le timeline nem detalhe operacional de payment LIVE.
-- [x] Nao existe caminho de list/get Payment sem environment.
+- [x] Nao existe overload de get/list Payment Link sem environment.
 
-### P1.2 Registrar a decisao do Account compartilhado
+### P1.3 Destinos Pix e merchant sem `req.user`
 
 Status: `concluido`
 
-Problema: `Account`, `Receipt`, `Refund`, `Withdrawal` e `Transaction` nao tem coluna de environment. Dashboard metrics e extrato sao store-wide. `docs/CURRENT_STATE.md` ja admite o recorte, mas o overview JWT (sempre TEST) ainda pode mostrar numeros LIVE da mesma store.
+Problema: `POST /bank-accounts` esta em CombinedAuth, mas resolve o merchant com `req.user?.sub || req.user?.id || req.store?.merchantId`. CombinedAuth de API key so seta `store: { id }`. O caminho de key cai em `GetMerchantUseCase(undefined)` -> `MERCHANT_NOT_FOUND`. Create/delete/default de destino alimentam o saque, que ja e JWT-only.
 
-Impacto: isolamento de leitura fica pela metade; quem le o overview acha que e so TEST.
+Impacto: o contrato HTTP mente (CombinedAuth) e o codigo depende de shape de request. Key nao cria destino hoje (falha fechada), mas o merchant da titularidade nao vem da store.
 
 Evidencia:
 
-- `packages/database/prisma/schema.prisma` (`Store.account` 1:1, sem environment)
-- `docs/CURRENT_STATE.md` (secao Isolamento TEST/LIVE)
-- `apps/api/src/modules/dashboard/dashboard.controller.ts:48-53`
+- `apps/api/src/modules/bank-account/bank-account.controller.ts:40-58`
+- `apps/api/src/modules/auth/guards/combined-auth.guard.ts:49-51,113`
+- `packages/core/src/application/use-cases/create-bank-account.use-case.ts:20-34`
 
 Subtasks:
 
-- [x] P1.2.1 Decidir e escrever: um Account por store (atual) vs Account por store+environment.
-  - Problema: sem decisao, cada tela inventa um filtro.
-  - Solucao: manter um Account (recorte atual) e filtrar metricas JWT para o que da para atribuir a TEST, ou deixar explicito no dashboard que o saldo e da store inteira.
-  - Validacao: `docs/CURRENT_STATE.md` e o copy do overview/financials dizem a mesma regra.
-- [x] P1.2.2 Nao abrir ledger dual nesta goal.
-  - Problema: split de Account e produto financeiro novo.
-  - Solucao: so documentar + UI honesta.
-  - Validacao: schema de Account inalterado.
+- [x] P1.3.1 Mutacoes de bank account ficam JWT-only, no padrao do saque.
+  - Problema: CombinedAuth no destino + saque JWT-only e contrato partido.
+  - Solucao: `JwtOnlyGuard` em create/delete/setDefault. List autenticado pode continuar CombinedAuth ou tambem JWT; documentar a escolha.
+  - Validacao: spec API key em POST/PATCH/DELETE -> 403; JWT continua.
+- [x] P1.3.2 Titularidade sai da store, nao de `req.user`.
+  - Problema: mesmo no JWT, o controller adivinha `sub` / `id` / `merchantId`.
+  - Solucao: o use case carrega `store.merchantId` e o merchant correspondente.
+  - Validacao: spec do use case sem objeto de request; mismatch de documento continua 422.
 
 Done Criteria:
 
-- [x] Doc e UI concordam se o saldo JWT e da store ou so TEST.
-- [x] Nao nasce segunda Account sem PRD.
+- [x] API key nao cria, nao apaga e nao promove destino Pix.
+- [x] Create de bank account nao le `req.user` / `req as any`.
 
-### P1.3 Idempotencia de fulfill (e replay do pay publico)
+### P1.4 Terminar `@CurrentStore()` / `@CurrentEnvironment()`
 
 Status: `concluido`
 
-Problema: creates financeiros exigem `Idempotency-Key`. `POST /checkout-sessions/:token/fulfill` nao. Retry depois do 200 vira `CheckoutSessionInvalidStatusError` (422), nao o mesmo `paymentId`. Pay publico do Payment Link e a mesma classe: segunda chamada nao devolve a tentativa ja paga.
+Problema: P0.3 da passagem anterior limpou o caminho financeiro antigo. Alert ainda tem `getStoreId` em `(req as any).user.storeId`. Customer-history remonta 403 na mao. Dashboard overview le `(req as any)?.environment`. Dev de payment/withdrawal ainda extraem environment do request cru. O decorator ja existe e e a regra.
 
-Impacto: refresh do comprador / resposta perdida parece falha. O create foi endurecido; o passo que gera o Pix nao.
+Impacto: store ausente ou environment omitido volta a depender do shape do Express. O mapa mental de "so o decorator le contexto" mente.
 
 Evidencia:
 
-- `apps/api/src/modules/checkout-session/checkout-session.controller.ts:97-111`
-- `packages/infrastructure/src/repositories/checkout-session.repository.ts:83-93`
-- `packages/core/src/application/use-cases/pay-payment-link.use-case.ts:48-108`
+- `apps/api/src/modules/alert/alert.controller.ts:201-203`
+- `apps/api/src/modules/customer-history/customer-history.controller.ts:149-168`
+- `apps/api/src/modules/dashboard/dashboard.controller.ts:64-66`
+- `apps/api/src/modules/payment/dev.controller.ts:157`
+- `apps/api/src/modules/withdrawal/withdrawal-dev.controller.ts:87`
 
 Subtasks:
 
-- [x] P1.3.1 Fulfill da session aberta devolve o pagamento ja criado no replay.
-  - Problema: claim so bumpa `updatedAt`; status continua OPEN ate o write final, e retry pos-sucesso e 422.
-  - Solucao: se a session ja tem payment, devolver o mesmo body; se ainda OPEN, fingerprint por token (ou header) para nao criar segundo Pix.
-  - Validacao: dois fulfills seguidos, um `paymentId`.
-- [x] P1.3.2 Pay publico de link pago devolve a tentativa confirmada, nao "nao pagavel".
-  - Problema: o dominio esta seguro; o cliente nao e idempotente.
-  - Solucao: link `PAID` retorna o payment pago da charge.
-  - Validacao: spec de replay do token publico.
+- [x] P1.4.1 Trocar extracao manual por `@CurrentStore()` / `@CurrentEnvironment()` nos controllers listados.
+  - Problema: cada handler reimplementa o guard.
+  - Solucao: os decorators ja existem.
+  - Validacao: `rg "req as any" apps/api/src --glob '*.controller.ts'` sem store/environment/user.storeId.
+- [x] P1.4.2 Customer-history deixa de fabricar `ForbiddenException` de store.
+  - Problema: payload paralelo ao decorator.
+  - Solucao: `@CurrentStore()`; a regra API-key-only pode ficar como guard/check de `authType` se ainda for o contrato.
+  - Validacao: store ausente -> 403 `NO_CURRENT_STORE` do decorator.
 
 Done Criteria:
 
-- [x] Refresh/retry de fulfill nao cria segundo payment e nao parece erro.
-- [x] Replay de pay em link ja pago devolve o payment existente.
+- [x] Controllers autenticados nao leem `req as any` para store nem environment.
+- [x] Overview usa o mesmo environment da sessao/key.
 
-### P1.4 Um filter so nos controllers que sobraram
+### P1.5 Um filter so nos remappers que sobraram
 
 Status: `concluido`
 
-Problema: P1.5 limpou Payment, Payment Link e Product. Webhook, customer, receipt, customer-history e `/dev/simulate` ainda remapam `DomainError` na mao (`try/catch` + `BadRequestException` / `NotFoundException`).
+Problema: P1.4 da passagem anterior limpou webhook/customer/receipt/dev. Store (slug), account (`GET /accounts/me`) e webhook-inbox ainda remapam `DomainError` na mao. Os codes ja estao em `ERROR_CODE_MAP`.
 
-Impacto: status/payload divergem do filter; erro novo precisa de patch em N handlers.
+Impacto: status/payload ainda podem divergir do filter nessas rotas.
 
 Evidencia:
 
-- `apps/api/src/modules/webhook/webhook.controller.ts:116-133`
-- `apps/api/src/modules/customer/customer.controller.ts:108-127`
-- `apps/api/src/modules/payment/dev.controller.ts:218-250`
-- `apps/api/src/common/filters/domain-exception.filter.ts`
+- `apps/api/src/modules/store/store.controller.ts:116-129`
+- `apps/api/src/modules/account/account.controller.ts:32-47`
+- `apps/api/src/modules/webhook/webhook-inbox.controller.ts:52-61`
+- `apps/api/src/common/constants/error-codes.ts` (`SLUG_ALREADY_EXISTS`, `INVALID_SLUG_FORMAT`, `ACCOUNT_NOT_FOUND`, `WEBHOOK_CONFIG_NOT_FOUND`)
 
 Subtasks:
 
-- [x] P1.4.1 Remover traducao local de dominio nesses controllers.
+- [x] P1.5.1 Remover traducao local de dominio nesses controllers.
   - Problema: dois tradutores.
-  - Solucao: deixar o filter; depende de P0.2 para os codes.
-  - Validacao: specs ainda veem 4xx via filter; `rg "instanceof .*Error" apps/api/src/modules --glob '*.controller.ts'` so o que o filter nao cobre (se houver).
-- [x] P1.4.2 Apagar `handleError` do dev controller.
-  - Problema: mapa por tipo no delivery.
-  - Solucao: o mesmo de P1.5.2 da goal anterior.
-  - Validacao: simulate 404/422 nao usa switch de class name.
+  - Solucao: deixar o filter. Auth (refresh/logout) so entra se o erro for `DomainError` ja mapeado e o cookie flow nao precisar de status especial.
+  - Validacao: specs ainda veem 4xx via filter; sem `instanceof SlugAlreadyExistsError` / `AccountNotFoundError` / `WebhookConfigNotFoundError` no delivery.
 
 Done Criteria:
 
-- [x] Webhook, customer, receipt e dev nao tem `mapError` local para `DomainError`.
+- [x] Store, account e webhook-inbox nao tem remapper local para `DomainError`.
 - [x] Payload de erro e o do filter.
 
-### P1.5 Reconciliar README da API com o runtime
+### P1.6 Reconciliar docs canonicos com o runtime pos-duas-goals
 
 Status: `concluido`
 
-Problema: `apps/api/README.md` ainda diz que so payments/withdrawals/refunds sao idempotentes e que `paymentMethod` aceita card/boleto/debito. `docs/CURRENT_STATE.md` ja lista Payment Link + checkout session na idempotencia e escrita so PIX.
+Problema: `docs/CURRENT_STATE.md`, `docs/PRODUCT.md`, `docs/DATA_MODEL.md`, `README.md` e `apps/web/README.md` ainda descrevem Settings como 100% read-only, saque via JWT/API key sem scopes, Payment Link sem customer e Store/Withdrawal sem `city` / `environment`.
 
-Impacto: integrador copia o README da API e erra o contrato.
+Impacto: a fonte canonica mente sobre o que a passagem anterior entregou. Integrador e o proximo agente leem o estado antigo.
 
 Evidencia:
 
-- `apps/api/README.md:45,52`
-- `docs/CURRENT_STATE.md:126-127`
-- `packages/core/src/application/use-cases/create-payment.use-case.ts` (rejeita nao-PIX)
+- `docs/CURRENT_STATE.md:11,38,62-63,87`
+- `docs/PRODUCT.md:71`
+- `docs/DATA_MODEL.md:18-23,47-55,102`
+- `README.md:49`
+- `apps/web/README.md:35,50`
 
 Subtasks:
 
-- [x] P1.5.1 Atualizar a secao de idempotencia e de `paymentMethod` do README da API.
-  - Problema: a frase aponta para o passado.
-  - Solucao: a mesma tabela/regra de CURRENT_STATE.
-  - Validacao: `rg "Nem toda mutação é idempotente|nao possui processador real" apps/api/README.md` nao contradiz o runtime.
+- [x] P1.6.1 Atualizar CURRENT_STATE, PRODUCT, DATA_MODEL, README raiz e README do web.
+  - Problema: as frases apontam para o mundo pre-name/city e pre-JWT-only.
+  - Solucao: Settings = perfil (`name`, `city`) mutavel; fee/settlement imutaveis. Saque create = JWT-only. Payment Link publico coleta customer. Store tem `city`. Withdrawal tem `environment` (listagem continua store-wide).
+  - Validacao: `rg "settings parcial|Parcial/read-only|scopes granulares|JWT/API key e" docs README.md apps/web/README.md` nao contradiz o runtime.
 
 Done Criteria:
 
-- [x] README da API lista as cinco mutacoes com `Idempotency-Key`.
-- [x] README da API diz que escrita de cobranca e so PIX.
+- [x] Docs canonicos descrevem Settings, saque, Payment Link customer, `Store.city` e `Withdrawal.environment` como o codigo.
+- [x] Listagem de saque continua documentada como store-wide.
 
-### P1.6 API keys: authz minima e superficie honesta
+### P1.7 Copy de simulador que ainda promete canal inexistente
 
 Status: `concluido`
 
-Problema: qualquer key da store saca, estorna e cria webhook. Dashboard so lista/cria TEST; key LIVE emitida pela API fica invisivel e irrevogavel na UI. `lastUsedAt` existe e nao aparece. Resposta de revoke inventa prefix/name/TEST. `InvalidApiKeyFormatError` embute a key em claro.
+Problema: checkout confirmado diz "Voce recebera uma confirmacao em breve" e nao ha email/notificacao. Timeline de saque no core rotula sucesso como "Pix enviado" / "processamento Pix". O produto nao envia e-mail e nao faz payout Pix.
 
-Impacto: key vazada e god-mode. Operador do dashboard nao ve nem revoga LIVE. Log de auth pode persistir o segredo.
+Impacto: o comprador de demo e o operador leem um canal que `docs/PRODUCT.md` proibe.
 
 Evidencia:
 
-- `packages/database/prisma/schema.prisma:766-775`
-- `docs/CURRENT_STATE.md:87`
-- `apps/api/README.md:47`
-- `apps/web/src/app/features/dashboard/pages/api-keys/api-keys.ts:121-141`
-- `apps/api/src/modules/api-key/api-key.controller.ts:130-139`
-- `packages/core/src/domain/errors/invalid-api-key-format.error.ts:8`
+- `apps/checkout/src/components/checkout/CheckoutPage.tsx:183`
+- `packages/core/src/application/use-cases/get-withdrawal.use-case.ts:82,100`
+- `apps/web/src/app/features/dashboard/pages/withdrawals/withdrawals.html:113`
 
 Subtasks:
 
-- [x] P1.6.1 Fechar saque (e, se o mesmo seam servir, refund) para API key sem escopo.
-  - Problema: CombinedAuth basta para `POST /withdrawals`.
-  - Solucao: preferir JWT-only em withdrawal/refund **ou** um campo `scopes` minimo (`payments`, `withdrawals`). Nao construir RBAC.
-  - Validacao: key sem escopo de saque toma 403; JWT do dashboard continua.
-- [x] P1.6.2 Dashboard lista, cria (se permitido) e revoga keys LIVE; mostra `lastUsedAt`.
-  - Problema: UI e TEST-only e esconde o campo que o schema ja tem.
-  - Solucao: tirar o filtro hard-coded; revoke devolve o registro real.
-  - Validacao: spec/UI de lista com LIVE; body de revoke nao inventa TEST.
-- [x] P1.6.3 Parar de colocar a key crua no erro/log.
-  - Problema: `Invalid API Key format: ${key}`.
-  - Solucao: mensagem estavel; no log so prefixo/length.
-  - Validacao: spec do use case/guard sem o material da key.
+- [x] P1.7.1 Trocar o sucesso do checkout para linguagem de simulacao, sem promessa de e-mail.
+  - Validacao: `rg "confirmação em breve|confirmacao em breve" apps/checkout` vazio.
+- [x] P1.7.2 Timeline/copy de saque fala em saque simulado / saldo reservado, nao em Pix enviado de verdade.
+  - Validacao: `rg "Pix enviado" packages/core apps/web` vazio ou contextualizado como simulacao.
+- [x] P1.7.3 Landing deixa de vender "comportamento do gateway antes da request", "fluxo real" e "seguro" como se houvesse adquirencia.
+  - Evidencia: `apps/web/src/app/features/landing/pages/home/home.html` (copy de gateway / sandbox / retorno seguro).
+  - Validacao: `rg "fluxo real|antes da request|retorno seguro" apps/web/src/app/features/landing` vazio.
 
 Done Criteria:
 
-- [x] Key recem-criada (default) nao saca.
-- [x] LIVE e visivel e revogavel no dashboard.
-- [x] Erro/log de formato nao ecoa o segredo.
+- [x] Checkout nao promete confirmacao por e-mail.
+- [x] Timeline de saque nao afirma payout Pix real.
+- [x] Landing nao afirma outcome pre-request nem processamento real.
 
-### P1.7 Chrome que finge produto inexistente
+### P1.8 Dashboard simulate de Payment Link honrar o customer obrigatorio
 
 Status: `concluido`
 
-Problema: login/register tem GitHub sem handler. "Esqueceu a senha?" aponta para `#`. Sino do dashboard diz "nao disponiveis no P3". Settings ainda abre "Revisao comercial futura" sem backend.
+Problema: a passagem anterior passou a exigir `customer.document` no pay publico e no use case. O dashboard ainda posta `{}` em `POST /payment-links/:id/pay` e o botao "Pagar" parece acao TEST valida. Fail autenticado continua funcionando; pay autenticado e 422.
 
-Impacto: o workspace mente. `docs/TARGET_ARCHITECTURE.md` pede completar ou esconder placeholder.
-
-Evidencia:
-
-- `apps/web/src/app/features/auth` (login/register GitHub `type="button"` sem handler; forgot `href="#"`)
-- `apps/web/src/app/shared/layouts/dashboard-layout/dashboard-layout.html:60-62`
-- `apps/web/src/app/features/dashboard/pages/settings/settings.ts:246-273`
-
-Subtasks:
-
-- [x] P1.7.1 Remover GitHub e o link de reset, ou desabilitar com texto honesto ("nao disponivel").
-  - Problema: botao que parece OAuth.
-  - Solucao: apagar; nao implementar OAuth/email nesta goal.
-  - Validacao: `rg "GitHub|Esqueceu a senha" apps/web/src` sem CTA morto.
-- [x] P1.7.2 Remover o sino P3 e o dialog de revisao comercial.
-  - Problema: linguagem interna e produto fantasma.
-  - Solucao: Settings continua read-only nas condicoes comerciais (P1.9 cuida do perfil); sem botao de "revisao futura".
-  - Validacao: `rg "P3|revisão futura|revisao futura" apps/web/src` vazio.
-
-Done Criteria:
-
-- [x] Auth e shell do dashboard nao prometem OAuth, reset nem notificacoes.
-- [x] Settings nao vende revisao comercial.
-
-### P1.8 Products e items: copy e investigacao no dashboard
-
-Status: `concluido`
-
-Problema: a tela de Products diz que o catalogo alimenta "links de pagamento e checkout hospedado". Payment Link rejeita `items`. Checkout session com items e API-first (documentado). `PaymentObject.items` existe; payment-detail e receipt-detail nao renderizam.
-
-Impacto: merchant cria produto e nao consegue gerar cobranca no dashboard. Ops nao ve o snapshot do catalogo sem abrir o banco.
+Impacto: o no-code que a goal anterior fechou no checkout quebrou o simulate do merchant. CTA primaria mente.
 
 Evidencia:
 
-- `apps/web/src/app/features/dashboard/pages/products/products.html:29-30`
-- `packages/core/src/application/use-cases/create-payment-link.use-case.ts:142-144`
-- `apps/web/src/app/core/services/payment.service.ts:42,62-73`
-- `apps/checkout/src/components/checkout/LineItemsSummary.tsx`
+- `apps/web/src/app/core/services/payment-link.service.ts` (`simulatePay` com body vazio)
+- `apps/web/src/app/features/dashboard/pages/payment-link-detail/payment-link-detail.ts` (`simulatePay`)
+- `apps/api/src/modules/payment-link/payment-link.controller.ts` (`payAuthenticated` sem customer)
+- `packages/core/src/application/use-cases/pay-payment-link.use-case.ts` (`CustomerDocumentRequiredError`)
 
 Subtasks:
 
-- [x] P1.8.1 Corrigir o copy de Products: catalogo alimenta checkout session via API; Payment Link continua amount-only.
-  - Problema: a tela mente o contrato.
-  - Solucao: texto alinhado a `docs/CURRENT_STATE.md`; CTA so para o que existe.
-  - Validacao: `rg "links de pagamento" apps/web/src/app/features/dashboard/pages/products` vazio ou honesto.
-- [x] P1.8.2 Renderizar `items` em payment-detail e receipt-detail.
-  - Problema: o dado ja chega no cliente.
-  - Solucao: o mesmo resumo do checkout, autenticado.
-  - Validacao: spec do detail com items mostra nome/qty/subtotal.
+- [x] P1.8.1 Pay autenticado do dashboard envia um customer TEST ou deixa de se apresentar como Pagar.
+  - Problema: body vazio depois de P1.10 da goal anterior.
+  - Solucao: coletar documento no dialog de simulate **ou** desabilitar o botao com texto honesto ("use o checkout publico"). Nao inventar pagador silencioso sem o operador ver.
+  - Validacao: spec/UI — pay autenticado com documento cria payment+customer; sem documento nao parece sucesso.
 
 Done Criteria:
 
-- [x] Products nao promete Payment Link com catalogo.
-- [x] Pagamento/recibo com items e investigavel no dashboard.
-- [x] Esta goal **nao** adiciona `items` em Payment Link nem CRUD de checkout session no dashboard.
-
-### P1.9 Settings: perfil da loja e cidade do EMV
-
-Status: `concluido`
-
-Problema: Store nao tem cidade. `resolvePixMerchantCity()` e chamado sem argumento; o QR e sempre `SAO PAULO`. Settings e 100% leitura. Condicoes comerciais (fee, D+) devem continuar imutaveis pelo merchant.
-
-Impacto: study-case fora de SP gera EMV mentiroso. Settings nao configura nem o que o simulador ja precisa.
-
-Evidencia:
-
-- `packages/database/prisma/schema.prisma:159-170`
-- `packages/core/src/application/services/pix-merchant-city.ts:1-9`
-- `packages/core/src/application/use-cases/create-payment.use-case.ts:265`
-- `packages/core/src/application/use-cases/create-payment-link.use-case.ts:82`
-- `apps/web/src/app/features/dashboard/pages/settings/settings.ts`
-
-Subtasks:
-
-- [x] P1.9.1 Adicionar `city` em Store (opcional) e PATCH autenticado de `name` + `city`.
-  - Problema: nao ha campo nem mutacao.
-  - Solucao: migration + use case; slug/fee/settlement/aprovacao continuam protegidos.
-  - Validacao: spec de PATCH; fee no body e ignorado ou 422.
-- [x] P1.9.2 Create payment / Payment Link usam `resolvePixMerchantCity(store.city)`.
-  - Problema: fallback escondido no meio do metodo.
-  - Solucao: cidade da store; sem cidade, `SAO PAULO` documentado.
-  - Validacao: spec com store em outra cidade.
-- [x] P1.9.3 Settings edita nome e cidade; continua read-only em taxa e liquidacao.
-  - Problema: a tela so da refresh.
-  - Solucao: form minimo; sem dialog de revisao (P1.7).
-  - Validacao: fluxo dashboard grava e o QR seguinte usa a cidade.
-
-Done Criteria:
-
-- [x] EMV deixa de estar hardcoded nos dois creates.
-- [x] Merchant consegue nome publico e cidade; nao edita fee.
-
-### P1.10 Payment Link publico coleta pagador
-
-Status: `concluido`
-
-Problema: checkout session pede nome/email/documento. `/pay/:token` so confirma/falha o Pix. `PayPaymentLinkUseCase.createAttempt` grava `Payment` sem `customerId`.
-
-Impacto: o caminho no-code nao alimenta Clientes nem historico. O dashboard de customers fica vazio para quem so usa link.
-
-Evidencia:
-
-- `packages/core/src/application/use-cases/pay-payment-link.use-case.ts:126-143`
-- `apps/checkout/src/components/...` (`PaymentLinkPage` vs `CheckoutPage`)
-
-Subtasks:
-
-- [x] P1.10.1 Public pay aceita customer (mesmo contrato minimo do fulfill) e associa ao Payment.
-  - Problema: tentativa sem titular.
-  - Solucao: resolver/criar customer na mesma transacao do attempt, no padrao do checkout.
-  - Validacao: spec de pay com documento cria customer da store; payment.customerId preenchido.
-- [x] P1.10.2 Checkout `/pay/:token` coleta os campos antes de simular.
-  - Problema: a UI nao pede dados.
-  - Solucao: o mesmo bloco de identificacao do hosted checkout.
-  - Validacao: pay sem documento falha; com documento, customer aparece no dashboard.
-
-Done Criteria:
-
-- [x] Link pago tem customer.
-- [x] Clientes/historico veem o caminho de Payment Link.
+- [x] CTA de simulate no detalhe do link nao devolve 422 por falta de customer.
+- [x] Payment gerado pelo dashboard tem `customerId` quando o pay ocorre.
 
 ## P2 - Acabamento
 
-### P2.1 Copy do checkout como simulador
+### P2.1 Hidratar items do recibo sem N+1
 
 Status: `concluido`
 
-Problema: `apps/checkout` metadata diz "Pagamento Pix seguro". O produto nao processa Pix real.
+Problema: `ListReceiptsUseCase` chama `paymentRepository.findByIdAndStoreId` por linha so para copiar `items`. A lista ja pagina no SQL; o detalhe do catalogo volta a ser N queries.
 
-Impacto: comprador de demo le uma promessa que `docs/PRODUCT.md` proibe.
+Impacto: store com muitos recibos fica lenta na tela de comprovantes.
 
 Evidencia:
 
-- `apps/checkout/src/app/layout.tsx:7-9`
-- `docs/PRODUCT.md` (limites nao negociaveis)
+- `packages/core/src/application/use-cases/list-receipts.use-case.ts:42-54`
+- `packages/infrastructure/src/repositories/receipt.repository.ts:63-72`
 
 Subtasks:
 
-- [x] P2.1.1 Trocar title/description para linguagem de checkout/simulacao, sem "seguro" / adquirencia.
-  - Validacao: `rg "Pix seguro" apps/checkout` vazio.
+- [x] P2.1.1 Carregar items da pagina em lote (join ou `IN` dos paymentIds).
+  - Validacao: spec/repo com N recibos nao faz N `findById` de payment.
 
 Done Criteria:
 
-- [x] Checkout nao afirma pagamento real nem "seguro".
+- [x] Listagem autenticada de receipts nao hidrata items com uma query por linha.
 
-### P2.2 Dead code e `as never` que a passagem anterior nao varreu
+### P2.2 Parar de castear `prisma as any` no Payment Link
 
 Status: `concluido`
 
-Problema: `apps/api/src/infra/queues/` vazio. `ApiKeyGeneratorService` e `ICreateMerchant` sem caller. `CreatePaymentLinkUseCase` casta repos `as never` porque cria fora do UoW. `DetectAnomaliesUseCase` ainda injeta `IPaymentRepository` e ignora.
+Problema: o list SQL da passagem anterior ainda hidrata a pagina com `(this.prisma as any).paymentLink.findMany`. O modelo existe no schema.
 
-Impacto: o mapa mental do monorepo mente; o create de link foge do padrao transacional sem motivo novo.
-
-Evidencia:
-
-- `apps/api/src/infra/queues/`
-- `apps/api/src/infra/services/api-key-generator.service.ts`
-- `apps/api/src/infra/interfaces/merchant.interface.ts`
-- `packages/core/src/application/use-cases/create-payment-link.use-case.ts:55-59`
-- `packages/core/src/application/use-cases/detect-anomalies.use-case.ts:31-40`
-
-Subtasks:
-
-- [x] P2.2.1 Apagar adapters/pastas mortas da API.
-  - Validacao: arquivos sem import somem.
-- [x] P2.2.2 Create de Payment Link usa UoW (ja tem product no bag) ou deixa de castear `as never`.
-  - Validacao: spec de create link continua; sem `as never` no use case.
-- [x] P2.2.3 Stub de antifraude nao injeta repositorio que nao usa.
-  - Validacao: construtor so o que o `execute` le.
-
-Done Criteria:
-
-- [x] API nao tem infra oca nova.
-- [x] Create de link nao mente o tipo do repo.
-
-### P2.3 Paginar Payment Link no SQL
-
-Status: `concluido`
-
-Problema: o repositorio de link carrega todas as linhas da store para calcular stats e pagina em memoria.
-
-Impacto: store com muitos links fica lenta sem o operador ver.
+Impacto: o compiler nao pega include/where quebrado nesse caminho.
 
 Evidencia:
 
-- `packages/infrastructure/src/repositories/payment-link.repository.ts` (listagem sem `skip/take` SQL)
+- `packages/infrastructure/src/repositories/payment-link.repository.ts:121,144`
 
 Subtasks:
 
-- [x] P2.3.1 Paginar no Prisma; agregar stats sem materializar a lista inteira.
-  - Validacao: spec/repo com N > page size nao le tudo para devolver uma pagina.
+- [x] P2.2.1 Usar o client tipado (ou o bag do UoW) para `paymentLink`.
+  - Validacao: `rg "prisma as any" packages/infrastructure/src/repositories/payment-link.repository.ts` vazio.
 
 Done Criteria:
 
-- [x] Listagem autenticada de links nao faz full scan da store.
-
-### P2.4 Um `requestId` e trilha de alert
-
-Status: `concluido`
-
-Problema: pino `genReqId` e `getOrCreateRequestId` sao duas fabricas. Alert processor nao carrega `requestId`. Linhas de sucesso/fail do webhook processor omitem `deliveryId`.
-
-Impacto: cruzar HTTP -> outbox -> alert/DLQ exige adivinhar.
-
-Evidencia:
-
-- `apps/api/src/app.module.ts` (`genReqId`)
-- `apps/api/src/common/request-id.ts`
-- `apps/worker/src/modules` (alert/webhook processors)
-
-Subtasks:
-
-- [x] P2.4.1 Uma funcao so gera/valida `X-Request-ID` para pino, interceptor e outbox.
-  - Validacao: spec do request-id; header e `req.id` iguais.
-- [x] P2.4.2 Alert e webhook processor logam `requestId` / `outboxEventId` / `deliveryId` quando existirem.
-  - Validacao: assert nos logs de processor/DLQ.
-
-Done Criteria:
-
-- [x] Uma regra de request id na API.
-- [x] Alert deixa de nascer sem trilha.
+- [x] Repositorio de Payment Link nao acessa o modelo via `as any`.
 
 ## Public APIs / Interfaces Mentioned By This Goal
 
-- Mutacoes financeiras (confirm/expire/fail/release/refund/dev) recusam agregado LIVE mesmo com request TEST.
-- `ERROR_CODE_MAP` passa a ser o catalogo fechado de `DomainError`.
-- `@CurrentStore()` vira o unico jeito de ler store em controller autenticado.
-- `GET /payments/:id/timeline` honra environment.
-- Fulfill e pay publico passam a ser replay-safe.
-- `POST /withdrawals` (e refund, se o mesmo recorte) deixa de aceitar API key sem escopo.
-- `PATCH` de store aceita `name` e `city`; fee/settlement continuam imutaveis.
-- Public pay de Payment Link passa a exigir customer.
-- README da API deixa de contradizer `docs/CURRENT_STATE.md`.
+- Cancel de Payment Link recusa agregado LIVE mesmo com request TEST.
+- `POST /refunds` deixa de aceitar API key.
+- `GET /receipts` (e customer-history de receipts) passam a exigir e honrar environment (via payment).
+- Get/list de Payment Link deixam de ter environment opcional.
+- Pay autenticado de Payment Link no dashboard exige customer visivel ou some como CTA.
+- Mutacoes de `bank-accounts` ficam JWT-only; titularidade vem da store.
+- `@CurrentStore()` / `@CurrentEnvironment()` cobrem alert, customer-history, dashboard e `/dev/*`.
+- Store, account e webhook-inbox deixam o filter traduzir DomainError.
+- Docs canonicos deixam de contradizer Settings, saque JWT-only e Payment Link com customer.
 
 ## Validation Log For This Goal
 
@@ -584,20 +400,26 @@ pnpm run lint:check
 
 - Processamento real de Pix, cartao, boleto, debito ou payout bancario.
 - Ledger TEST/LIVE separado (`Account` por environment).
+- Filtrar listagem de saque por environment (decisao da goal anterior: store-wide).
+- Coluna de environment em Receipt, Refund, Customer, BankAccount ou WebhookConfig.
 - Payment Link com `items` / catalogo.
 - CRUD de checkout session no dashboard.
 - Settings mutavel de fee, settlement, aprovacao ou "revisao comercial".
 - OAuth GitHub, reset de senha por email, notificacoes in-app, antifraude real.
+- RBAC / scopes granulares de API key alem do JWT-only ja adotado.
+- Unicidade de `Payment.externalId` por environment (hoje e `storeId + externalId`).
+- Canais de alerta email/WhatsApp; so Discord continua.
 - Marketplace, split, multi-seller.
 - Estoque, variantes, tags, storefront.
-- Domain events in-process; reescrita DDD das entidades anêmicas.
-- Smoke Docker no PR (decisao da goal anterior / `TARGET_ARCHITECTURE`).
+- Domain events in-process; reescrita DDD das entidades anemicas.
+- Smoke Docker no PR (decisao da goal de hardening / `TARGET_ARCHITECTURE`).
 
 ## Assumptions
 
-- Caminho escolhido: `/GOAL.md` como unico tracker desta goal; a anterior vive em `docs/goals/2026-08-18-architecture-hardening.md`.
+- Caminho escolhido: `/GOAL.md` como unico tracker desta goal; as duas anteriores vivem em `docs/goals/`.
 - Ordenacao: criticidade (P0 → P1 → P2); dentro da faixa, risco primeiro.
-- Recorte: fechar o que a passagem de 2026-08-18 deixou pela metade e parar de mentir no workspace; nao abrir produto novo.
-- P1.6 assume authz minima (JWT-only ou um scope `withdrawals`), nao um sistema de permissoes.
-- P1.2 assume Account unico por store ate haver PRD de ledger dual.
-- P1.8 assume que Payment Link amount-only continua correto; o bug e o copy, nao a ausencia de items.
+- Recorte: fechar authz/isolamento/docs que as duas passagens deixaram; nao abrir produto novo.
+- P0.1 assume o mesmo recorte de saque (JWT-only), nao um sistema de permissoes.
+- P1.1 assume join em `payment.environment`, nao dual ledger e nao coluna nova em Receipt.
+- P1.3 assume destinos Pix como operacao de merchant (JWT), porque saque ja e JWT-only.
+- Listagem de Withdrawal permanece store-wide; so o create grava environment para recusar acao TEST sobre reserva LIVE.

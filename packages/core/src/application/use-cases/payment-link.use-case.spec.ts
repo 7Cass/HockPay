@@ -4,6 +4,7 @@ import { Payment, PaymentMethod } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { InvalidLineItemsError } from '../../domain/errors/invalid-line-items.error';
+import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { CancelPaymentLinkUseCase } from './cancel-payment-link.use-case';
 import {
   CreatePaymentLinkUseCase,
@@ -297,6 +298,7 @@ describe('PaymentLink use cases', () => {
 
     await useCase.execute({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 1,
       limit: 20,
       hasFailures: true,
@@ -304,6 +306,7 @@ describe('PaymentLink use cases', () => {
 
     expect(repository.list).toHaveBeenCalledWith({
       storeId: 'store-1',
+      environment: Environment.TEST,
       page: 1,
       limit: 20,
       hasFailures: true,
@@ -440,6 +443,7 @@ describe('PaymentLink use cases', () => {
       findListItemByIdAndStoreId: vi.fn().mockResolvedValue({
         id: 'link-1',
         storeId: 'store-1',
+        environment: Environment.TEST,
         attempts,
       }),
     };
@@ -448,45 +452,42 @@ describe('PaymentLink use cases', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentLinkId: 'link-1',
+      environment: Environment.TEST,
     });
 
     expect(repository.findListItemByIdAndStoreId).toHaveBeenCalledWith('link-1', 'store-1');
     expect(result.paymentLink.attempts).toEqual(attempts);
   });
 
+  it('does not return a LIVE payment link to a TEST caller', async () => {
+    const repository = {
+      findListItemByIdAndStoreId: vi.fn().mockResolvedValue({
+        id: 'link-1',
+        storeId: 'store-1',
+        environment: Environment.LIVE,
+      }),
+    };
+    const useCase = new GetPaymentLinkUseCase(repository as never);
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentLinkId: 'link-1',
+        environment: Environment.TEST,
+      }),
+    ).rejects.toMatchObject({ code: 'PAYMENT_LINK_NOT_FOUND' });
+  });
+
   it('cancels PaymentLink and PixCharge through locked transactional repositories', async () => {
-    const link = {
-      pixChargeId: 'charge-1',
-      cancel: vi.fn(),
-    };
-    const charge = makePixChargeFromItem(makePaymentLinkListItem());
-    const paymentLinkRepository = {
-      findByIdAndStoreId: vi.fn(),
-      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(link),
-      update: vi.fn(),
-    };
-    const pixChargeRepository = {
-      findByIdAndStoreId: vi.fn(),
-      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(charge),
-      update: vi.fn(),
-    };
-    const unitOfWork = {
-      execute: vi.fn((handler) =>
-        handler({
-          paymentLinkRepository,
-          pixChargeRepository,
-        }),
-      ),
-    };
-    const useCase = new CancelPaymentLinkUseCase(
-      {} as any,
-      {} as any,
-      unitOfWork as any,
-    );
+    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository } =
+      makeCancelPaymentLinkSut({
+        linkEnvironment: Environment.TEST,
+      });
 
     await useCase.execute({
       storeId: 'store-1',
       paymentLinkId: 'link-1',
+      environment: Environment.TEST,
     });
 
     expect(paymentLinkRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
@@ -500,6 +501,43 @@ describe('PaymentLink use cases', () => {
     expect(link.cancel).toHaveBeenCalledOnce();
     expect(paymentLinkRepository.update).toHaveBeenCalledWith(link);
     expect(pixChargeRepository.update).toHaveBeenCalledWith(charge);
+    expect(charge.status).toBe(PixChargeStatus.CANCELLED);
+  });
+
+  it('refuses a TEST caller cancelling a LIVE payment link without touching the charge', async () => {
+    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository } =
+      makeCancelPaymentLinkSut({
+        linkEnvironment: Environment.LIVE,
+      });
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentLinkId: 'link-1',
+        environment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(link.cancel).not.toHaveBeenCalled();
+    expect(paymentLinkRepository.update).not.toHaveBeenCalled();
+    expect(pixChargeRepository.findByIdAndStoreIdForUpdate).not.toHaveBeenCalled();
+    expect(pixChargeRepository.update).not.toHaveBeenCalled();
+    expect(charge.status).toBe(PixChargeStatus.OPEN);
+  });
+
+  it('allows a LIVE caller to cancel a LIVE payment link', async () => {
+    const { useCase, link, paymentLinkRepository } = makeCancelPaymentLinkSut({
+      linkEnvironment: Environment.LIVE,
+    });
+
+    await useCase.execute({
+      storeId: 'store-1',
+      paymentLinkId: 'link-1',
+      environment: Environment.LIVE,
+    });
+
+    expect(link.cancel).toHaveBeenCalledOnce();
+    expect(paymentLinkRepository.update).toHaveBeenCalledWith(link);
   });
 
   it('creates a failed payment link attempt and keeps the PixCharge open', async () => {
@@ -813,6 +851,46 @@ describe('PaymentLink use cases', () => {
     expect(paymentRepository.save).not.toHaveBeenCalled();
   });
 });
+
+function makeCancelPaymentLinkSut(options: { linkEnvironment: Environment }) {
+  const link = {
+    pixChargeId: 'charge-1',
+    environment: options.linkEnvironment,
+    cancel: vi.fn(),
+  };
+  const charge = makePixChargeFromItem(makePaymentLinkListItem());
+  const paymentLinkRepository = {
+    findByIdAndStoreId: vi.fn(),
+    findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(link),
+    update: vi.fn(),
+  };
+  const pixChargeRepository = {
+    findByIdAndStoreId: vi.fn(),
+    findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(charge),
+    update: vi.fn(),
+  };
+  const unitOfWork = {
+    execute: vi.fn((handler) =>
+      handler({
+        paymentLinkRepository,
+        pixChargeRepository,
+      }),
+    ),
+  };
+  const useCase = new CancelPaymentLinkUseCase(
+    {} as never,
+    {} as never,
+    unitOfWork as never,
+  );
+
+  return {
+    useCase,
+    link,
+    charge,
+    paymentLinkRepository,
+    pixChargeRepository,
+  };
+}
 
 function makeStore() {
   return {

@@ -79,7 +79,7 @@ export class GetWithdrawalUseCase {
         label: "Saque solicitado",
         occurredAt: withdrawal.createdAt,
         amount: withdrawal.amount,
-        description: "Solicitação registrada para processamento Pix.",
+        description: "Solicitacao registrada para saque simulado.",
       },
     ];
 
@@ -97,7 +97,7 @@ export class GetWithdrawalUseCase {
       if (transaction.type === TransactionType.WITHDRAWAL_SENT) {
         events.push({
           type: "SENT",
-          label: "Pix enviado",
+          label: "Saque simulado concluido",
           occurredAt: transaction.createdAt,
           amount: transaction.netAmount,
           transactionId: transaction.id,
