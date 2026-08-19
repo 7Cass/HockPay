@@ -16,6 +16,17 @@ type PaymentLinkLockRow = {
   id: string;
 };
 
+type PaymentLinkStatsRow = {
+  total: number | bigint;
+  active: number | bigint;
+  opened: number | bigint;
+  pending: number | bigint;
+  paid: number | bigint;
+  expired: number | bigint;
+  cancelled: number | bigint;
+  paidAmount: number | bigint;
+};
+
 export class PaymentLinkRepository implements IPaymentLinkRepository {
   constructor(
     private readonly prisma: PrismaClient | Prisma.TransactionClient,
@@ -118,91 +129,193 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const page = options.page ?? 1;
     const limit = options.limit ?? 20;
     const skip = (page - 1) * limit;
-    const where: { storeId: string; environment?: string } = {
-      storeId: options.storeId,
-    };
-    if (options.environment) {
-      where.environment = options.environment;
-    }
+    const now = new Date();
 
-    const [rows, total, statRows] = await Promise.all([
-      (this.prisma as any).paymentLink.findMany({
-        where,
-        include: this.includePayment(),
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      (this.prisma as any).paymentLink.count({ where }),
-      (this.prisma as any).paymentLink.findMany({
-        where,
-        select: this.statsSelect(),
-        orderBy: { createdAt: "desc" },
-      }),
+    const [pageRows, totalRows, statsRows] = await Promise.all([
+      this.queryListPageIds(options, skip, limit, now),
+      this.queryListTotal(options, now),
+      this.queryListStats(options, now),
     ]);
 
-    const statItems = statRows.map((row: any) => this.toListItem(row));
-    const filtered = statItems.filter((item: PaymentLinkListItem) => {
-      if (options.status && item.status !== options.status) return false;
-      if (options.hasFailures && item.failedPaymentCount <= 0) return false;
-      return true;
+    const pageIds = pageRows.map((row) => row.id);
+    const hydrated =
+      pageIds.length === 0
+        ? []
+        : await (this.prisma as any).paymentLink.findMany({
+            where: { id: { in: pageIds } },
+            include: this.includePayment(),
+          });
+    const byId = new Map<string, any>(
+      hydrated.map((row: any) => [row.id, row]),
+    );
+    const items = pageIds.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [this.toListItem(row)] : [];
     });
-    const shouldFilterBeforePagination = Boolean(options.status || options.hasFailures);
-    const pageItems = shouldFilterBeforePagination
-      ? filtered.slice(skip, skip + limit)
-      : rows.map((row: any) => this.toListItem(row));
-    const totalFiltered = shouldFilterBeforePagination ? filtered.length : total;
+
+    const total = Number(totalRows[0]?.total ?? 0);
+    const stats = this.statsFromAggregate(statsRows[0]);
 
     return {
-      items: pageItems,
-      total: totalFiltered,
+      items,
+      total,
       page,
       limit,
-      totalPages: Math.ceil(totalFiltered / limit),
-      stats: this.buildStats(statItems),
+      totalPages: Math.ceil(total / Math.max(limit, 1)),
+      stats,
     };
   }
 
-  private statsSelect() {
+  private queryListPageIds(
+    options: ListPaymentLinksOptions,
+    skip: number,
+    limit: number,
+    now: Date,
+  ): Promise<Array<{ id: string }>> {
+    return (this.prisma as any).$queryRaw(
+      Prisma.sql`
+        SELECT pl.id
+        ${this.listFromSql()}
+        ${this.listWhereSql(options, now, { applyListFilters: true })}
+        ORDER BY pl.created_at DESC, pl.id DESC
+        OFFSET ${skip}
+        LIMIT ${limit}
+      `,
+    );
+  }
+
+  private queryListTotal(
+    options: ListPaymentLinksOptions,
+    now: Date,
+  ): Promise<Array<{ total: number | bigint }>> {
+    return (this.prisma as any).$queryRaw(
+      Prisma.sql`
+        SELECT COUNT(*)::int AS total
+        ${this.listFromSql()}
+        ${this.listWhereSql(options, now, { applyListFilters: true })}
+      `,
+    );
+  }
+
+  private queryListStats(
+    options: ListPaymentLinksOptions,
+    now: Date,
+  ): Promise<Array<PaymentLinkStatsRow>> {
+    const derived = this.derivedStatusSql(now);
+    return (this.prisma as any).$queryRaw(
+      Prisma.sql`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE ${derived} = 'ACTIVE')::int AS active,
+          COUNT(*) FILTER (WHERE pl.opened_at IS NOT NULL)::int AS opened,
+          COUNT(*) FILTER (WHERE ${derived} = 'OPENED')::int AS pending,
+          COUNT(*) FILTER (WHERE ${derived} = 'PAID')::int AS paid,
+          COUNT(*) FILTER (WHERE ${derived} = 'EXPIRED')::int AS expired,
+          COUNT(*) FILTER (WHERE ${derived} = 'CANCELLED')::int AS cancelled,
+          COALESCE(SUM(pl.amount) FILTER (WHERE ${derived} = 'PAID'), 0)::int AS "paidAmount"
+        ${this.listFromSql()}
+        ${this.listWhereSql(options, now, { applyListFilters: false })}
+      `,
+    );
+  }
+
+  private listFromSql(): Prisma.Sql {
+    return Prisma.sql`
+      FROM payment_links pl
+      JOIN pix_charges pc ON pc.id = pl.pix_charge_id
+    `;
+  }
+
+  private listWhereSql(
+    options: ListPaymentLinksOptions,
+    now: Date,
+    flags: { applyListFilters: boolean },
+  ): Prisma.Sql {
+    const derived = this.derivedStatusSql(now);
+    return Prisma.sql`
+      WHERE pl.store_id = ${options.storeId}
+        ${
+          options.environment
+            ? Prisma.sql`AND pl.environment = ${options.environment}::"Environment"`
+            : Prisma.empty
+        }
+        ${
+          flags.applyListFilters && options.status
+            ? Prisma.sql`AND (${derived}) = ${options.status}`
+            : Prisma.empty
+        }
+        ${
+          flags.applyListFilters && options.hasFailures
+            ? Prisma.sql`AND EXISTS (
+                SELECT 1
+                FROM payments p
+                WHERE p.pix_charge_id = pl.pix_charge_id
+                  AND p.status = ${PaymentStatus.FAILED}::"PaymentStatus"
+              )`
+            : Prisma.empty
+        }
+    `;
+  }
+
+  private derivedStatusSql(now: Date): Prisma.Sql {
+    return Prisma.sql`
+      CASE
+        WHEN pl.cancelled_at IS NOT NULL THEN 'CANCELLED'
+        WHEN pc.status = ${PixChargeStatus.PAID}::"PixChargeStatus"
+          OR EXISTS (
+            SELECT 1
+            FROM payments p
+            WHERE p.pix_charge_id = pl.pix_charge_id
+              AND p.status IN (
+                ${PaymentStatus.CONFIRMED}::"PaymentStatus",
+                ${PaymentStatus.RELEASED}::"PaymentStatus"
+              )
+          )
+        THEN 'PAID'
+        WHEN pc.status IN (
+            ${PixChargeStatus.EXPIRED}::"PixChargeStatus",
+            ${PixChargeStatus.CANCELLED}::"PixChargeStatus"
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM payments p
+            WHERE p.pix_charge_id = pl.pix_charge_id
+              AND p.status = ${PaymentStatus.EXPIRED}::"PaymentStatus"
+          )
+          OR (pl.expires_at IS NOT NULL AND pl.expires_at < ${now})
+        THEN CASE
+          WHEN pc.status = ${PixChargeStatus.CANCELLED}::"PixChargeStatus"
+          THEN 'CANCELLED'
+          ELSE 'EXPIRED'
+        END
+        WHEN pl.opened_at IS NOT NULL
+          OR EXISTS (
+            SELECT 1
+            FROM payments p
+            WHERE p.pix_charge_id = pl.pix_charge_id
+              AND p.status = ${PaymentStatus.PENDING}::"PaymentStatus"
+          )
+        THEN 'OPENED'
+        ELSE 'ACTIVE'
+      END
+    `;
+  }
+
+  private statsFromAggregate(
+    row: PaymentLinkStatsRow | undefined,
+  ): PaymentLinkStats {
+    const total = Number(row?.total ?? 0);
+    const paid = Number(row?.paid ?? 0);
     return {
-      id: true,
-      storeId: true,
-      pixChargeId: true,
-      publicToken: true,
-      amount: true,
-      currency: true,
-      environment: true,
-      title: true,
-      description: true,
-      internalReference: true,
-      expiresAt: true,
-      openedAt: true,
-      cancelledAt: true,
-      createdAt: true,
-      updatedAt: true,
-      pixCharge: {
-        select: {
-          id: true,
-          storeId: true,
-          amount: true,
-          currency: true,
-          status: true,
-          pixQrCode: true,
-          pixCopyPaste: true,
-          pixTxId: true,
-          expiresAt: true,
-          createdAt: true,
-          updatedAt: true,
-          payments: {
-            select: {
-              id: true,
-              status: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-        },
-      },
+      total,
+      active: Number(row?.active ?? 0),
+      opened: Number(row?.opened ?? 0),
+      pending: Number(row?.pending ?? 0),
+      paid,
+      expired: Number(row?.expired ?? 0),
+      cancelled: Number(row?.cancelled ?? 0),
+      conversionRate: total > 0 ? paid / total : 0,
+      paidAmount: Number(row?.paidAmount ?? 0),
     };
   }
 
