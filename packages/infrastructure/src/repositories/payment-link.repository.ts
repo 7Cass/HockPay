@@ -320,8 +320,8 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       pixCharge: {
         include: {
           payments: {
-            include: { items: { orderBy: { createdAt: "asc" } } },
-            orderBy: { createdAt: "desc" },
+            include: { items: { orderBy: { createdAt: "asc" as const } } },
+            orderBy: { createdAt: "desc" as const },
           },
         },
       },

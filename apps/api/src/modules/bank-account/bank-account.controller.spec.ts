@@ -6,7 +6,10 @@ import { BankAccountController } from './bank-account.controller';
 describe('BankAccountController', () => {
   it('keeps bank account mutations JWT-only', () => {
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, BankAccountController.prototype.create),
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        BankAccountController.prototype.create,
+      ),
     ).toContain(JwtOnlyGuard);
     expect(
       Reflect.getMetadata(
@@ -15,7 +18,10 @@ describe('BankAccountController', () => {
       ),
     ).toContain(JwtOnlyGuard);
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, BankAccountController.prototype.delete),
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        BankAccountController.prototype.delete,
+      ),
     ).toContain(JwtOnlyGuard);
   });
 });

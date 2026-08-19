@@ -129,10 +129,16 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getPayment('cust_123', 'payment-1', 'store-1', Environment.TEST, {
-        authType: 'api_key',
-        store: { id: 'store-1' },
-      } as never),
+      controller.getPayment(
+        'cust_123',
+        'payment-1',
+        'store-1',
+        Environment.TEST,
+        {
+          authType: 'api_key',
+          store: { id: 'store-1' },
+        } as never,
+      ),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 
@@ -142,10 +148,16 @@ describe('CustomerHistoryController', () => {
     );
 
     await expect(
-      controller.getReceipt('cust_123', 'receipt-1', 'store-1', Environment.TEST, {
-        authType: 'api_key',
-        store: { id: 'store-1' },
-      } as never),
+      controller.getReceipt(
+        'cust_123',
+        'receipt-1',
+        'store-1',
+        Environment.TEST,
+        {
+          authType: 'api_key',
+          store: { id: 'store-1' },
+        } as never,
+      ),
     ).rejects.toBeInstanceOf(ReceiptNotFoundError);
   });
 });

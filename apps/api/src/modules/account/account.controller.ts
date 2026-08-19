@@ -1,4 +1,10 @@
-import { Controller, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { GetAccountUseCase } from '@hockpay/core';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { AccountResponseDto } from './dtos/account-response.dto';
