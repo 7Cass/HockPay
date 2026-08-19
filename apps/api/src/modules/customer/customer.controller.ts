@@ -9,24 +9,17 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  ConflictException,
-  NotFoundException,
-  UnprocessableEntityException,
-  Req,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   CreateCustomerUseCase,
   GetCustomerByIdUseCase,
   ListCustomersUseCase,
   GetCustomerUseCase,
   UpdateCustomerUseCase,
-  CustomerAlreadyExistsError,
-  CustomerNotFoundError,
-  DocumentAlreadyInUseError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import {
   CreateCustomerDto,
   CreateCustomerResponseDto,
@@ -73,59 +66,30 @@ export class CustomerController {
   async createCustomer(
     @Body() dto: CreateCustomerDto,
     @Query('update_existing') updateExisting?: string,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<CreateCustomerResponseDto> {
-    try {
-      // Get storeId from request (set by CombinedAuthGuard)
-      const storeId = (req as any)?.store?.id;
+    const result = await this.createCustomerUseCase.execute({
+      storeId,
+      externalId: dto.externalId,
+      name: dto.name,
+      email: dto.email,
+      document: dto.document,
+      phone: dto.phone,
+      street: dto.street,
+      number: dto.number,
+      complement: dto.complement,
+      city: dto.city,
+      state: dto.state,
+      zipCode: dto.zipCode,
+      country: dto.country,
+      metadata: dto.metadata,
+      updateExisting: updateExisting === 'true',
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.createCustomerUseCase.execute({
-        storeId,
-        externalId: dto.externalId,
-        name: dto.name,
-        email: dto.email,
-        document: dto.document,
-        phone: dto.phone,
-        street: dto.street,
-        number: dto.number,
-        complement: dto.complement,
-        city: dto.city,
-        state: dto.state,
-        zipCode: dto.zipCode,
-        country: dto.country,
-        metadata: dto.metadata,
-        updateExisting: updateExisting === 'true',
-      });
-
-      return {
-        customer: result.customer,
-        created: result.created,
-      };
-    } catch (error) {
-      if (error instanceof CustomerAlreadyExistsError) {
-        throw new ConflictException({
-          error: {
-            code: error.code,
-            message: error.message,
-            internalId: error.internalId,
-          },
-        });
-      }
-      if (error instanceof DocumentAlreadyInUseError) {
-        throw new UnprocessableEntityException({
-          error: {
-            code: error.code,
-            message: error.message,
-            conflictingExternalId: error.conflictingExternalId,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      customer: result.customer,
+      created: result.created,
+    };
   }
 
   /**
@@ -137,14 +101,8 @@ export class CustomerController {
   @HttpCode(HttpStatus.OK)
   async listCustomers(
     @Query() query: ListCustomersQueryDto,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListCustomersResponseDto> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
     const result = await this.listCustomersUseCase.execute({
       storeId,
       page: query.page,
@@ -164,34 +122,16 @@ export class CustomerController {
   @HttpCode(HttpStatus.OK)
   async getCustomerById(
     @Param('id') id: string,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetCustomerResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getCustomerByIdUseCase.execute({
+      storeId,
+      customerId: id,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getCustomerByIdUseCase.execute({
-        storeId,
-        customerId: id,
-      });
-
-      return {
-        customer: result.customer,
-      };
-    } catch (error) {
-      if (error instanceof CustomerNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      customer: result.customer,
+    };
   }
 
   /**
@@ -203,34 +143,16 @@ export class CustomerController {
   @HttpCode(HttpStatus.OK)
   async getCustomer(
     @Param('externalId') externalId: string,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetCustomerResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getCustomerUseCase.execute({
+      storeId,
+      externalId,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getCustomerUseCase.execute({
-        storeId,
-        externalId,
-      });
-
-      return {
-        customer: result.customer,
-      };
-    } catch (error) {
-      if (error instanceof CustomerNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      customer: result.customer,
+    };
   }
 
   /**
@@ -243,43 +165,25 @@ export class CustomerController {
   async updateCustomer(
     @Param('externalId') externalId: string,
     @Body() dto: UpdateCustomerDto,
-    @Req() req?: Request,
+    @CurrentStore() storeId: string,
   ): Promise<UpdateCustomerResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.updateCustomerUseCase.execute({
+      storeId,
+      externalId,
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone,
+      street: dto.street,
+      number: dto.number,
+      complement: dto.complement,
+      city: dto.city,
+      state: dto.state,
+      zipCode: dto.zipCode,
+      country: dto.country,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.updateCustomerUseCase.execute({
-        storeId,
-        externalId,
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone,
-        street: dto.street,
-        number: dto.number,
-        complement: dto.complement,
-        city: dto.city,
-        state: dto.state,
-        zipCode: dto.zipCode,
-        country: dto.country,
-      });
-
-      return {
-        customer: result.customer,
-      };
-    } catch (error) {
-      if (error instanceof CustomerNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      customer: result.customer,
+    };
   }
 }

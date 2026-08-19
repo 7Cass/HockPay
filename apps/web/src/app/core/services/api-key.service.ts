@@ -17,6 +17,7 @@ export interface ApiKey {
     prefix: string;
     environment: Environment | string;
     createdAt: Date | string;
+    lastUsedAt?: Date | string;
 }
 
 export interface ListApiKeysResponse {

@@ -42,14 +42,14 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ## Observações Importantes
 
-- Nem toda mutação é idempotente hoje. Os fluxos obrigatórios são `POST /api/v1/payments`, `POST /api/v1/withdrawals` e `POST /api/v1/refunds`.
+- Mutações com `Idempotency-Key` obrigatória: `POST /api/v1/payments`, `POST /api/v1/withdrawals`, `POST /api/v1/refunds`, `POST /api/v1/payment-links` e `POST /api/v1/checkout-sessions`.
 - A API usa `CombinedAuthGuard` em vários endpoints públicos para aceitar API key ou cookie JWT.
 - API keys ainda nao possuem scopes granulares; trate `POST /withdrawals` como operacao financeira sensivel.
 - O checkout hospedado usa `checkout-sessions/:token` para sessões e `payment-links/public/:token` para links públicos.
 - A API aceita `X-Request-ID` em qualquer chamada. Se o header não vier, a API gera um ID e sempre devolve `X-Request-ID` na resposta.
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
 - A API cria outbox e agenda jobs, mas a entrega efetiva de webhook depende do worker conectado ao mesmo Redis/PostgreSQL.
-- `paymentMethod` aceita valores modelados alem de `PIX`, mas o runtime nao possui processador real para cartao, boleto ou debito.
+- Escrita de cobranca e so `PIX`. O schema ainda modela cartao, boleto e debito como legado; `POST /payments` rejeita qualquer outro metodo.
 - Products sao opcionais e separados por store/environment; hoje alimentam checkout sessions com `items`. `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items`.
 - Payment Links aceitam apenas `amount`. Se `items` for enviado, a API rejeita o contrato.
 - Checkout sessions aceitam exatamente um de `amount` ou `items`; `items` referencia produtos existentes por `productId` e o total e derivado de `quantity * product.price`.

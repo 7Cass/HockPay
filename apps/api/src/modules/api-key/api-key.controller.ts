@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   Body,
-  Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -12,7 +11,6 @@ import {
   CreateApiKeyUseCase,
   ListApiKeysUseCase,
   RevokeApiKeyUseCase,
-  Environment,
   type ICreateApiKeyInput,
   type IListApiKeysInput,
 } from '@hockpay/core';
@@ -56,13 +54,9 @@ export class ApiKeyController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Request() req: any,
+    @CurrentStore() storeId: string,
     @Body() dto: CreateApiKeyDto,
   ): Promise<CreatedApiKeyResponseDto> {
-    // Get the store ID from the request (set by JwtAuthGuard)
-    const storeId = req.user.storeId;
-
-    // Create the API key
     const input: ICreateApiKeyInput = {
       storeId,
       name: dto.name,
@@ -115,28 +109,17 @@ export class ApiKeyController {
   @Post(':id/revoke')
   @HttpCode(HttpStatus.OK)
   async revoke(
-    @Request() req: any,
+    @CurrentStore() storeId: string,
     @Param('id') id: string,
   ): Promise<RevokeApiKeyResponseDto> {
-    // Get the store ID from the request (set by JwtAuthGuard)
-    const storeId = req.user.storeId;
-
-    // Revoke the API key
-    await this.revokeApiKeyUseCase.execute({
+    const result = await this.revokeApiKeyUseCase.execute({
       storeId,
       apiKeyId: id,
     });
 
     return {
       message: 'API key revoked successfully',
-      apiKey: {
-        id,
-        storeId,
-        prefix: '',
-        name: '',
-        environment: Environment.TEST,
-        createdAt: new Date(),
-      },
+      apiKey: result.apiKey,
     };
   }
 }

@@ -165,10 +165,12 @@ export class PaymentController {
   async getPaymentTimeline(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<GetPaymentTimelineResponseDto> {
     const result = await this.getPaymentTimelineUseCase.execute({
       storeId,
       paymentId: id,
+      environment,
     });
 
     return {

@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Hockpay - Checkout',
-  description: 'Pagamento Pix seguro',
+  description: 'Checkout simulado Hockpay',
 };
 
 export default function RootLayout({

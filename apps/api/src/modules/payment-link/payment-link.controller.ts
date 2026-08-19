@@ -126,11 +126,17 @@ export class PaymentLinkController {
   @Post('public/:token/pay')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
-  async payPublic(@Param('token') token: string, @Req() req?: Request) {
+  async payPublic(
+    @Param('token') token: string,
+    @Body()
+    body: { customer?: { document?: string; name?: string; email?: string } },
+    @Req() req?: Request,
+  ) {
     return this.payUseCase.execute({
       publicToken: token,
       requestId: getRequestId(req),
       environment: req?.environment ?? Environment.TEST,
+      customer: body?.customer,
     });
   }
 

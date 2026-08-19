@@ -4,6 +4,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   Res,
   ConflictException,
@@ -13,6 +15,7 @@ import type { Response } from 'express';
 import {
   CreateStoreUseCase,
   ListStoresUseCase,
+  UpdateStoreProfileUseCase,
   SlugAlreadyExistsError,
   InvalidSlugFormatError,
 } from '@hockpay/core';
@@ -21,6 +24,7 @@ import {
   CreateStoreResponseDto,
 } from './dtos/create-store.dto';
 import { ListStoresResponseDto } from './dtos/list-stores.dto';
+import { UpdateStoreProfileDto } from './dtos/update-store-profile.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator';
 
@@ -48,7 +52,24 @@ export class StoreController {
   constructor(
     private readonly createStoreUseCase: CreateStoreUseCase,
     private readonly listStoresUseCase: ListStoresUseCase,
+    private readonly updateStoreProfileUseCase: UpdateStoreProfileUseCase,
   ) {}
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  async updateStore(
+    @Param('id') id: string,
+    @Body() dto: UpdateStoreProfileDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    const result = await this.updateStoreProfileUseCase.execute({
+      storeId: id,
+      merchantId: user.merchantId,
+      name: dto.name,
+      city: dto.city,
+    });
+    return { store: result.store };
+  }
 
   /**
    * POST /stores

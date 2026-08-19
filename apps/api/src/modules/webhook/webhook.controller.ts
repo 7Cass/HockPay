@@ -10,7 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  NotFoundException,
   BadRequestException,
   Req,
 } from '@nestjs/common';
@@ -26,13 +25,10 @@ import {
   ListWebhookLogsUseCase,
   ListWebhookInboxEventsUseCase,
   RetryWebhookLogUseCase,
-  WebhookConfigNotFoundError,
-  WebhookLogNotFoundError,
-  InvalidWebhookEventsError,
-  InvalidWebhookUrlError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CreateWebhookDto } from './dtos/create-webhook.dto';
 import { UpdateWebhookDto } from './dtos/update-webhook.dto';
 import {
@@ -88,50 +84,24 @@ export class WebhookController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateWebhookDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<WebhookConfigCreatedDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.createWebhookConfigUseCase.execute({
+      storeId,
+      url: this.validateWebhookTargetUrl(dto.url),
+      events: dto.events,
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.createWebhookConfigUseCase.execute({
-        storeId,
-        url: this.validateWebhookTargetUrl(dto.url),
-        events: dto.events,
-      });
-
-      return {
-        id: result.webhookConfig.id,
-        url: result.webhookConfig.url,
-        secret: result.plainSecret, // Only shown once!
-        prefix: result.webhookConfig.prefix,
-        events: result.webhookConfig.events,
-        isActive: result.webhookConfig.isActive,
-        createdAt: result.webhookConfig.createdAt,
-        updatedAt: result.webhookConfig.updatedAt,
-      };
-    } catch (error) {
-      if (error instanceof InvalidWebhookEventsError) {
-        throw new BadRequestException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof InvalidWebhookUrlError) {
-        throw new BadRequestException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      id: result.webhookConfig.id,
+      url: result.webhookConfig.url,
+      secret: result.plainSecret, // Only shown once!
+      prefix: result.webhookConfig.prefix,
+      events: result.webhookConfig.events,
+      isActive: result.webhookConfig.isActive,
+      createdAt: result.webhookConfig.createdAt,
+      updatedAt: result.webhookConfig.updatedAt,
+    };
   }
 
   /**
@@ -143,50 +113,25 @@ export class WebhookController {
   @HttpCode(HttpStatus.CREATED)
   async createInbox(
     @Body() dto: CreateWebhookInboxDto,
+    @CurrentStore() storeId: string,
     @Req() req: Request,
   ): Promise<WebhookConfigCreatedDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.createWebhookInboxUseCase.execute({
+      storeId,
+      events: dto.events,
+      baseUrl: this.resolvePublicApiBaseUrl(req),
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.createWebhookInboxUseCase.execute({
-        storeId,
-        events: dto.events,
-        baseUrl: this.resolvePublicApiBaseUrl(req),
-      });
-
-      return {
-        id: result.webhookConfig.id,
-        url: result.webhookConfig.url,
-        secret: result.plainSecret,
-        prefix: result.webhookConfig.prefix,
-        events: result.webhookConfig.events,
-        isActive: result.webhookConfig.isActive,
-        createdAt: result.webhookConfig.createdAt,
-        updatedAt: result.webhookConfig.updatedAt,
-      };
-    } catch (error) {
-      if (error instanceof InvalidWebhookEventsError) {
-        throw new BadRequestException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof InvalidWebhookUrlError) {
-        throw new BadRequestException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      id: result.webhookConfig.id,
+      url: result.webhookConfig.url,
+      secret: result.plainSecret,
+      prefix: result.webhookConfig.prefix,
+      events: result.webhookConfig.events,
+      isActive: result.webhookConfig.isActive,
+      createdAt: result.webhookConfig.createdAt,
+      updatedAt: result.webhookConfig.updatedAt,
+    };
   }
 
   /**
@@ -196,13 +141,9 @@ export class WebhookController {
    */
   @Get()
   @HttpCode(HttpStatus.OK)
-  async list(@Req() req: Request): Promise<ListWebhooksResponseDto> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
+  async list(
+    @CurrentStore() storeId: string,
+  ): Promise<ListWebhooksResponseDto> {
     const result = await this.listWebhookConfigsUseCase.execute({ storeId });
 
     return {
@@ -221,34 +162,16 @@ export class WebhookController {
   @HttpCode(HttpStatus.OK)
   async get(
     @Param('id') id: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetWebhookResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.getWebhookConfigUseCase.execute({
+      configId: id,
+      storeId,
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.getWebhookConfigUseCase.execute({
-        configId: id,
-        storeId,
-      });
-
-      return {
-        webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
+    };
   }
 
   /**
@@ -261,45 +184,19 @@ export class WebhookController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateWebhookDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetWebhookResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.updateWebhookConfigUseCase.execute({
+      configId: id,
+      storeId,
+      url: dto.url ? this.validateWebhookTargetUrl(dto.url) : undefined,
+      events: dto.events,
+      isActive: dto.isActive,
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.updateWebhookConfigUseCase.execute({
-        configId: id,
-        storeId,
-        url: dto.url ? this.validateWebhookTargetUrl(dto.url) : undefined,
-        events: dto.events,
-        isActive: dto.isActive,
-      });
-
-      return {
-        webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof InvalidWebhookEventsError) {
-        throw new BadRequestException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
+    };
   }
 
   /**
@@ -309,29 +206,14 @@ export class WebhookController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string, @Req() req: Request): Promise<void> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      await this.deleteWebhookConfigUseCase.execute({
-        configId: id,
-        storeId,
-      });
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+  async delete(
+    @Param('id') id: string,
+    @CurrentStore() storeId: string,
+  ): Promise<void> {
+    await this.deleteWebhookConfigUseCase.execute({
+      configId: id,
+      storeId,
+    });
   }
 
   /**
@@ -343,39 +225,22 @@ export class WebhookController {
   @HttpCode(HttpStatus.OK)
   async test(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
     @Req() req: Request,
   ): Promise<TestWebhookResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.testWebhookConfigUseCase.execute({
+      configId: id,
+      storeId,
+      requestId: getRequestId(req),
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.testWebhookConfigUseCase.execute({
-        configId: id,
-        storeId,
-        requestId: getRequestId(req),
-      });
-
-      return {
-        success: result.success,
-        statusCode: result.statusCode,
-        responseBody: result.responseBody,
-        error: result.error,
-        webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      success: result.success,
+      statusCode: result.statusCode,
+      responseBody: result.responseBody,
+      error: result.error,
+      webhook: mapWebhookConfigToDto(result.webhookConfig.toPublicObject()),
+    };
   }
 
   /**
@@ -388,40 +253,22 @@ export class WebhookController {
   async listLogs(
     @Param('id') id: string,
     @Query() query: ListWebhookLogsQueryDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListWebhookLogsResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.listWebhookLogsUseCase.execute({
+      storeId,
+      configId: id,
+      page: query.page,
+      limit: query.limit,
+      status: query.status,
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.listWebhookLogsUseCase.execute({
-        storeId,
-        configId: id,
-        page: query.page,
-        limit: query.limit,
-        status: query.status,
-      });
-
-      return {
-        logs: result.logs.map((log) => mapWebhookLogToDto(log.toObject())),
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      logs: result.logs.map((log) => mapWebhookLogToDto(log.toObject())),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+    };
   }
 
   /**
@@ -434,41 +281,23 @@ export class WebhookController {
   async listInboxEvents(
     @Param('id') id: string,
     @Query() query: ListWebhookInboxEventsQueryDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListWebhookInboxEventsResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.listWebhookInboxEventsUseCase.execute({
+      storeId,
+      configId: id,
+      page: query.page,
+      limit: query.limit,
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.listWebhookInboxEventsUseCase.execute({
-        storeId,
-        configId: id,
-        page: query.page,
-        limit: query.limit,
-      });
-
-      return {
-        events: result.events.map((event) =>
-          mapWebhookInboxEventToDto(event.toObject()),
-        ),
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      events: result.events.map((event) =>
+        mapWebhookInboxEventToDto(event.toObject()),
+      ),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+    };
   }
 
   /**
@@ -481,48 +310,23 @@ export class WebhookController {
   async retryLog(
     @Param('id') id: string,
     @Param('logId') logId: string,
+    @CurrentStore() storeId: string,
     @Req() req: Request,
   ): Promise<RetryWebhookResponseDto> {
-    const storeId = (req as any)?.store?.id;
+    const result = await this.retryWebhookLogUseCase.execute({
+      configId: id,
+      logId,
+      storeId,
+      requestId: getRequestId(req),
+    });
 
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    try {
-      const result = await this.retryWebhookLogUseCase.execute({
-        configId: id,
-        logId,
-        storeId,
-        requestId: getRequestId(req),
-      });
-
-      return {
-        success: result.success,
-        statusCode: result.statusCode,
-        responseBody: result.responseBody,
-        error: result.error,
-        log: mapWebhookLogToDto(result.log.toObject()),
-      };
-    } catch (error) {
-      if (error instanceof WebhookConfigNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      if (error instanceof WebhookLogNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      success: result.success,
+      statusCode: result.statusCode,
+      responseBody: result.responseBody,
+      error: result.error,
+      log: mapWebhookLogToDto(result.log.toObject()),
+    };
   }
 
   private validateWebhookTargetUrl(url: string): string {

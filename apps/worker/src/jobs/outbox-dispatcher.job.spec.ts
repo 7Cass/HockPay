@@ -111,7 +111,7 @@ describe('OutboxDispatcherJob', () => {
     await job.handleDispatch();
 
     expect(webhookQueue.enqueue).toHaveBeenCalledWith(event.id, undefined, expect.any(String));
-    expect(alertQueue.enqueue).toHaveBeenCalledWith(event.id);
+    expect(alertQueue.enqueue).toHaveBeenCalledWith(event.id, undefined, expect.any(String));
     expect(outboxRepository.update).not.toHaveBeenCalled();
     expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
   });

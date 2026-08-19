@@ -20,7 +20,7 @@ export interface IListPaymentsInput {
   externalId?: string;
   startDate?: Date;
   endDate?: Date;
-  environment?: Environment;
+  environment: Environment;
 }
 
 /**

@@ -1,14 +1,10 @@
 import {
-  BadRequestException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
-import {
   AccountNotFoundError,
   ConfirmPaymentUseCase,
   Environment,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
+  LiveEnvironmentNotAllowedError,
   PaymentNotConfirmedError,
   ReleasePaymentUseCase,
 } from '@hockpay/core';
@@ -42,9 +38,8 @@ describe('DevController', () => {
       alreadyReleased: false,
     });
 
-    const result = await controller.releasePayment('payment-1', {
+    const result = await controller.releasePayment('payment-1', 'store-1', {
       environment: Environment.TEST,
-      store: { id: 'store-1' },
       id: 'req-1',
     } as any);
 
@@ -60,10 +55,10 @@ describe('DevController', () => {
 
   it('rejects release simulation in live environment', async () => {
     await expect(
-      controller.releasePayment('payment-1', {
+      controller.releasePayment('payment-1', 'store-1', {
         environment: Environment.LIVE,
       } as any),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
     expect(releasePaymentUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -73,11 +68,10 @@ describe('DevController', () => {
     );
 
     await expect(
-      controller.releasePayment('payment-1', {
+      controller.releasePayment('payment-1', 'store-1', {
         environment: Environment.TEST,
-        store: { id: 'store-1' },
       } as any),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    ).rejects.toBeInstanceOf(PaymentNotConfirmedError);
   });
 
   it('maps missing account errors on release', async () => {
@@ -86,11 +80,10 @@ describe('DevController', () => {
     );
 
     await expect(
-      controller.releasePayment('payment-1', {
+      controller.releasePayment('payment-1', 'store-1', {
         environment: Environment.TEST,
-        store: { id: 'store-1' },
       } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(AccountNotFoundError);
   });
 
   it('forwards authenticated storeId to the expire use case', async () => {
@@ -99,9 +92,8 @@ describe('DevController', () => {
       alreadyExpired: false,
     });
 
-    const result = await controller.expirePayment('payment-1', {
+    const result = await controller.expirePayment('payment-1', 'store-1', {
       environment: Environment.TEST,
-      store: { id: 'store-1' },
       id: 'req-1',
     } as any);
 

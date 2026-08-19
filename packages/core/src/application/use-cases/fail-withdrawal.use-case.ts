@@ -9,6 +9,7 @@ import { AccountNotFoundError } from "../../domain/errors/account-not-found.erro
 import { InvalidWithdrawalStatusError } from "../../domain/errors/invalid-withdrawal-status.error";
 import { WithdrawalNotFoundError } from "../../domain/errors/withdrawal-not-found.error";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { assertNotLiveEnvironment } from "../services/live-environment-guard";
 import { sanitizeWithdrawal } from "./create-withdrawal.use-case";
 
 export interface IFailWithdrawalInput {
@@ -16,6 +17,7 @@ export interface IFailWithdrawalInput {
   storeId?: string;
   requestId?: string;
   reason: string;
+  simulation?: boolean;
 }
 
 export interface IFailWithdrawalOutput {
@@ -39,6 +41,10 @@ export class FailWithdrawalUseCase {
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);
       if (input.storeId && account.storeId !== input.storeId) {
         throw new WithdrawalNotFoundError(input.withdrawalId);
+      }
+
+      if (input.simulation) {
+        assertNotLiveEnvironment(withdrawal.environment);
       }
 
       if (withdrawal.isTerminal()) {

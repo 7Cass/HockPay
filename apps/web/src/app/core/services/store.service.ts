@@ -12,6 +12,7 @@ export interface Store {
     settlementDays: number;
     feePercent: number;
     feeFixed: number;
+    city?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -115,6 +116,18 @@ export class StoreService {
                 this.authService.hydrateCurrentUser().pipe(map(() => response))
             ),
             tap(() => this.redirectToDashboard())
+        );
+    }
+
+    updateProfile(storeId: string, input: { name: string; city?: string }): Observable<Store> {
+        return this.api.patch<{ store: Store }>(`/stores/${storeId}`, input).pipe(
+            tap((response) => {
+                this.stores.update((stores) =>
+                    stores.map((store) => (store.id === response.store.id ? response.store : store)),
+                );
+                this.currentStore.set(response.store);
+            }),
+            map((response) => response.store),
         );
     }
 

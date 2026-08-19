@@ -158,15 +158,20 @@ describe('FulfillCheckoutSessionUseCase', () => {
       findByToken: vi.fn().mockResolvedValue(completedSession),
     });
 
-    await expect(
-      useCase.execute({
-        token: 'token',
-        customer: { document: '52998224725' },
-        environment: Environment.TEST,
-      }),
-    ).rejects.toThrow('Checkout session cannot be fulfilled');
+    const result = await useCase.execute({
+      token: 'token',
+      customer: { document: '52998224725' },
+      environment: Environment.TEST,
+    });
 
+    expect(result).toEqual({
+      sessionId: completedSession.id,
+      paymentId: 'payment-existing',
+    });
     expect(createPaymentUseCase.executeInTransaction).not.toHaveBeenCalled();
+    expect(
+      createPaymentUseCase.scheduleExpirationAfterCommit,
+    ).not.toHaveBeenCalled();
   });
 
   it('does not schedule payment expiration when saving the fulfilled session fails', async () => {
@@ -213,20 +218,19 @@ describe('FulfillCheckoutSessionUseCase', () => {
       findByToken,
     });
 
-    await useCase.execute({
+    const first = await useCase.execute({
+      token: 'token',
+      customer: { name: 'Visitante' },
+      environment: Environment.TEST,
+    });
+    const second = await useCase.execute({
       token: 'token',
       customer: { name: 'Visitante' },
       environment: Environment.TEST,
     });
 
-    await expect(
-      useCase.execute({
-        token: 'token',
-        customer: { name: 'Visitante' },
-        environment: Environment.TEST,
-      }),
-    ).rejects.toThrow('Checkout session cannot be fulfilled');
-
+    expect(first.paymentId).toBe('payment-1');
+    expect(second.paymentId).toBe(first.paymentId);
     expect(createPaymentUseCase.executeInTransaction).toHaveBeenCalledTimes(1);
   });
 });

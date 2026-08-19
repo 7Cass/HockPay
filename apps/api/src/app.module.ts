@@ -31,8 +31,8 @@ import { WithdrawalModule } from './modules/withdrawal/withdrawal.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { randomUUID } from 'crypto';
 import { parseRedisEnv } from '@hockpay/infrastructure';
+import { getOrCreateRequestId } from './common/request-id';
 
 @Module({
   imports: [
@@ -49,7 +49,7 @@ import { parseRedisEnv } from '@hockpay/infrastructure';
           pinoHttp: {
             level: isProd ? 'info' : 'debug',
             // Gerar ID de requisição se não vier no header
-            genReqId: (req) => req.headers['x-request-id'] || randomUUID(),
+            genReqId: (req) => getOrCreateRequestId(req as never),
             transport: isProd ? undefined : { target: 'pino-pretty' },
             customProps: () => ({
               context: 'HTTP',

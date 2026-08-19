@@ -125,7 +125,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       where.environment = options.environment;
     }
 
-    const [rows, allRows] = await Promise.all([
+    const [rows, total, statRows] = await Promise.all([
       (this.prisma as any).paymentLink.findMany({
         where,
         include: this.includePayment(),
@@ -133,15 +133,16 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
+      (this.prisma as any).paymentLink.count({ where }),
       (this.prisma as any).paymentLink.findMany({
         where,
-        include: this.includePayment(),
+        select: this.statsSelect(),
         orderBy: { createdAt: "desc" },
       }),
     ]);
 
-    const allItems = allRows.map((row: any) => this.toListItem(row));
-    const filtered = allItems.filter((item: PaymentLinkListItem) => {
+    const statItems = statRows.map((row: any) => this.toListItem(row));
+    const filtered = statItems.filter((item: PaymentLinkListItem) => {
       if (options.status && item.status !== options.status) return false;
       if (options.hasFailures && item.failedPaymentCount <= 0) return false;
       return true;
@@ -150,14 +151,58 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const pageItems = shouldFilterBeforePagination
       ? filtered.slice(skip, skip + limit)
       : rows.map((row: any) => this.toListItem(row));
+    const totalFiltered = shouldFilterBeforePagination ? filtered.length : total;
 
     return {
       items: pageItems,
-      total: filtered.length,
+      total: totalFiltered,
       page,
       limit,
-      totalPages: Math.ceil(filtered.length / limit),
-      stats: this.buildStats(allItems),
+      totalPages: Math.ceil(totalFiltered / limit),
+      stats: this.buildStats(statItems),
+    };
+  }
+
+  private statsSelect() {
+    return {
+      id: true,
+      storeId: true,
+      pixChargeId: true,
+      publicToken: true,
+      amount: true,
+      currency: true,
+      environment: true,
+      title: true,
+      description: true,
+      internalReference: true,
+      expiresAt: true,
+      openedAt: true,
+      cancelledAt: true,
+      createdAt: true,
+      updatedAt: true,
+      pixCharge: {
+        select: {
+          id: true,
+          storeId: true,
+          amount: true,
+          currency: true,
+          status: true,
+          pixQrCode: true,
+          pixCopyPaste: true,
+          pixTxId: true,
+          expiresAt: true,
+          createdAt: true,
+          updatedAt: true,
+          payments: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
     };
   }
 

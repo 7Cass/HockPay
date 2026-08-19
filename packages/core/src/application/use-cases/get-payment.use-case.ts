@@ -11,7 +11,7 @@ export interface IGetPaymentInput {
   storeId: string;
   paymentId: string;
   requestId?: string;
-  environment?: Environment;
+  environment: Environment;
 }
 
 /**
@@ -40,7 +40,7 @@ export class GetPaymentUseCase {
         input.storeId,
       );
 
-      if (!payment || (input.environment && payment.environment !== input.environment)) {
+      if (!payment || payment.environment !== input.environment) {
         throw new PaymentNotFoundError(input.paymentId);
       }
 

@@ -4,6 +4,7 @@ import { PaymentExpiredError } from "../../domain/errors/payment-expired.error";
 import { InvalidPaymentStatusError } from "../../domain/errors/invalid-payment-status.error";
 import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { assertNotLiveEnvironment } from "../services/live-environment-guard";
 import { settleConfirmedPayment } from "./settle-confirmed-payment";
 
 /**
@@ -52,6 +53,8 @@ export class ConfirmPaymentUseCase {
       if (!payment) {
         throw new PaymentNotFoundError(input.paymentId);
       }
+
+      assertNotLiveEnvironment(payment.environment);
 
       // Check if expired (lazy check)
       if (payment.isPending() && payment.hasExpired()) {

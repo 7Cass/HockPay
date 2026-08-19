@@ -8,10 +8,12 @@ import {
   WithdrawalStatus,
 } from "@hockpay/core";
 import {
+  Environment,
   Prisma,
   PrismaClient,
   Withdrawal as PrismaWithdrawal,
 } from "@hockpay/database";
+import { Environment as CoreEnvironment } from "@hockpay/core";
 
 export class WithdrawalRepository implements IWithdrawalRepository {
   private static readonly PROCESSING_STALE_MS = 5 * 60 * 1000;
@@ -59,6 +61,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
           amount,
           fee,
           net_amount AS "netAmount",
+          environment,
           status,
           pix_e2e_id AS "pixE2eId",
           paid_at AS "paidAt",
@@ -217,6 +220,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
           w.amount,
           w.fee,
           w.net_amount AS "netAmount",
+          w.environment,
           w.status,
           w.pix_e2e_id AS "pixE2eId",
           w.paid_at AS "paidAt",
@@ -333,6 +337,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       amount: withdrawal.amount,
       fee: withdrawal.fee,
       netAmount: withdrawal.netAmount,
+      environment: withdrawal.environment as Environment,
       status: withdrawal.status as any,
       pixE2eId: withdrawal.pixE2eId,
       paidAt: withdrawal.paidAt,
@@ -355,6 +360,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       amount: prismaWithdrawal.amount,
       fee: prismaWithdrawal.fee,
       netAmount: prismaWithdrawal.netAmount,
+      environment: (prismaWithdrawal.environment ?? "TEST") as CoreEnvironment,
       status: prismaWithdrawal.status as WithdrawalStatus,
       pixE2eId: prismaWithdrawal.pixE2eId ?? undefined,
       paidAt: prismaWithdrawal.paidAt ?? undefined,

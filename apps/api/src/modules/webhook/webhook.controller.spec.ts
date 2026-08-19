@@ -52,8 +52,7 @@ describe('WebhookController', () => {
   });
 
   it('forwards the route webhook config id when retrying a log', async () => {
-    await controller.retryLog('config-route', 'log-1', {
-      store: { id: 'store-1' },
+    await controller.retryLog('config-route', 'log-1', 'store-1', {
       id: 'req-1',
     } as any);
 

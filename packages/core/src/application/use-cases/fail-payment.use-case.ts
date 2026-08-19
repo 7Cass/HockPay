@@ -4,6 +4,7 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
 
 /**
  * Input DTO for FailPaymentUseCase.
@@ -52,6 +53,8 @@ export class FailPaymentUseCase {
       if (!payment) {
         throw new PaymentNotFoundError(input.paymentId);
       }
+
+      assertNotLiveEnvironment(payment.environment);
 
       if (payment.status === PaymentStatus.FAILED) {
         return {

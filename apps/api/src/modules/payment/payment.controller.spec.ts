@@ -5,6 +5,7 @@ import {
   ListPaymentsUseCase,
   PaymentNotFoundError,
   PaymentMethod,
+  Environment,
   SimulateCheckoutPaymentUseCase,
 } from '@hockpay/core';
 import { PaymentController } from './payment.controller';
@@ -205,11 +206,16 @@ describe('PaymentController', () => {
       timeline: [],
     });
 
-    const result = await controller.getPaymentTimeline('payment-1', 'store-1');
+    const result = await controller.getPaymentTimeline(
+      'payment-1',
+      'store-1',
+      Environment.TEST,
+    );
 
     expect(getPaymentTimelineUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentId: 'payment-1',
+      environment: Environment.TEST,
     });
     expect(result.webhookLogs[0]).toMatchObject({
       id: 'log-1',
@@ -226,7 +232,7 @@ describe('PaymentController', () => {
     );
 
     await expect(
-      controller.getPaymentTimeline('payment-404', 'store-1'),
+      controller.getPaymentTimeline('payment-404', 'store-1', Environment.TEST),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 });

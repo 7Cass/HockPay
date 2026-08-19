@@ -51,6 +51,16 @@ export class FulfillCheckoutSessionUseCase {
           throw new CheckoutSessionNotFoundError(input.token);
         }
 
+        if (currentSession.paymentId) {
+          return {
+            output: {
+              sessionId: currentSession.id,
+              paymentId: currentSession.paymentId,
+            },
+            replayed: true as const,
+          };
+        }
+
         if (currentSession.status === "OPEN" && now > currentSession.expiresAt) {
           await repos.checkoutSessionRepository.expireOpenByToken(
             input.token,
@@ -110,10 +120,12 @@ export class FulfillCheckoutSessionUseCase {
       };
     });
 
-    await this.createPaymentUseCase.scheduleExpirationAfterCommit(
-      result.paymentInput,
-      result.paymentResult,
-    );
+    if (!("replayed" in result) || !result.replayed) {
+      await this.createPaymentUseCase.scheduleExpirationAfterCommit(
+        result.paymentInput,
+        result.paymentResult,
+      );
+    }
 
     return result.output;
   }

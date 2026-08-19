@@ -1,4 +1,5 @@
 import { InvalidWithdrawalStatusError } from "../errors/invalid-withdrawal-status.error";
+import { Environment } from "../value-objects/environment.vo";
 
 export enum WithdrawalStatus {
   PENDING = "PENDING",
@@ -14,6 +15,7 @@ export class Withdrawal {
   private readonly _amount: number;
   private readonly _fee: number;
   private readonly _netAmount: number;
+  private readonly _environment: Environment;
   private _status: WithdrawalStatus;
   private _pixE2eId?: string;
   private _paidAt?: Date;
@@ -31,6 +33,7 @@ export class Withdrawal {
     this._amount = props.amount;
     this._fee = props.fee;
     this._netAmount = props.netAmount;
+    this._environment = props.environment ?? Environment.TEST;
     this._status = props.status;
     this._pixE2eId = props.pixE2eId;
     this._paidAt = props.paidAt;
@@ -50,6 +53,7 @@ export class Withdrawal {
       amount: props.amount,
       fee: props.fee,
       netAmount: props.amount - props.fee,
+      environment: props.environment ?? Environment.TEST,
       status: WithdrawalStatus.PENDING,
       processingAttempts: 0,
       createdAt: new Date(),
@@ -83,6 +87,10 @@ export class Withdrawal {
 
   get netAmount(): number {
     return this._netAmount;
+  }
+
+  get environment(): Environment {
+    return this._environment;
   }
 
   get status(): WithdrawalStatus {
@@ -202,6 +210,7 @@ export class Withdrawal {
       amount: this._amount,
       fee: this._fee,
       netAmount: this._netAmount,
+      environment: this._environment,
       status: this._status,
       pixE2eId: this._pixE2eId,
       paidAt: this._paidAt,
@@ -224,6 +233,7 @@ export interface CreateWithdrawalProps {
   bankAccountId: string;
   amount: number;
   fee: number;
+  environment?: Environment;
 }
 
 export interface WithdrawalProps {
@@ -233,6 +243,7 @@ export interface WithdrawalProps {
   amount: number;
   fee: number;
   netAmount: number;
+  environment?: Environment;
   status: WithdrawalStatus;
   pixE2eId?: string;
   paidAt?: Date;

@@ -262,7 +262,7 @@ export class CreatePaymentUseCase {
       pixKey: this.pixKey,
       amountInCents: input.amount,
       merchantName: store.name.substring(0, 25),
-      merchantCity: resolvePixMerchantCity(),
+      merchantCity: resolvePixMerchantCity(store.city),
       txId,
     });
 

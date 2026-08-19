@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import {
   CustomerNotFoundError,
   Environment,
@@ -92,7 +92,7 @@ describe('CustomerHistoryController', () => {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(CustomerNotFoundError);
   });
 
   it('maps payment-not-found to 404 on payment detail', async () => {
@@ -105,7 +105,7 @@ describe('CustomerHistoryController', () => {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 
   it('maps receipt-not-found to 404 on receipt detail', async () => {
@@ -118,6 +118,6 @@ describe('CustomerHistoryController', () => {
         authType: 'api_key',
         store: { id: 'store-1' },
       } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ReceiptNotFoundError);
   });
 });

@@ -56,13 +56,17 @@ import {
   templateUrl: './api-keys.html',
 })
 export class ApiKeys implements OnInit {
+  readonly Environment = Environment;
   private readonly apiKeyService = inject(ApiKeyService);
   readonly embedded = input(false);
   readonly headerVariant = input<'default' | 'compact'>('default');
   readonly statsChange = output<{ total: number; isLoading: boolean; hasError: boolean }>();
 
   // State Signals
-  testKeys = signal<ApiKey[]>([]);
+  keys = signal<ApiKey[]>([]);
+  newKeyEnvironment = new FormControl<Environment>(Environment.TEST, {
+    nonNullable: true,
+  });
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
 
@@ -112,14 +116,12 @@ export class ApiKeys implements OnInit {
   loadKeys() {
     this.isLoading.set(true);
     this.error.set(null);
-    this.testKeys.set([]);
+    this.keys.set([]);
     this.emitStats();
 
     this.apiKeyService.list().subscribe({
       next: (response) => {
-        // We simulate applying the DEV MODE toggle by filtering locally for TEST keys
-        const testKeysOnly = response.apiKeys.filter((k) => k.environment === Environment.TEST);
-        this.testKeys.set(testKeysOnly);
+        this.keys.set(response.apiKeys);
         this.isLoading.set(false);
         this.emitStats();
       },
@@ -138,15 +140,18 @@ export class ApiKeys implements OnInit {
     this.isCreating.set(true);
     const keyName = this.newKeyName.value!;
 
-    this.apiKeyService.create({ name: keyName, environment: Environment.TEST }).subscribe({
+    this.apiKeyService.create({
+      name: keyName,
+      environment: this.newKeyEnvironment.value,
+    }).subscribe({
       next: (response) => {
         // Reset creating state
         this.isCreating.set(false);
         this.newKeyName.reset();
+        this.newKeyEnvironment.setValue(Environment.TEST);
 
-        // Add the new key to the local list (stripping the plainKey)
         const newKeyEntity: ApiKey = { ...response, plainKey: undefined } as any;
-        this.testKeys.update((keys) => [newKeyEntity, ...keys]);
+        this.keys.update((keys) => [newKeyEntity, ...keys]);
 
         // Show the one-time plain key in the modal explicitly
         this.newSecretKey.set(response.plainKey);
@@ -197,7 +202,7 @@ export class ApiKeys implements OnInit {
 
   private emitStats() {
     this.statsChange.emit({
-      total: this.testKeys().length,
+      total: this.keys().length,
       isLoading: this.isLoading(),
       hasError: !!this.error(),
     });

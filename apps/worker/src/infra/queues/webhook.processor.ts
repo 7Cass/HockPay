@@ -53,14 +53,14 @@ export class WebhookProcessor extends WorkerHost {
 
     if (!result.delivered) {
       this.logger.warn(
-        `Webhook delivery failed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} aggregateType=${result.event.aggregateType} aggregateId=${result.event.aggregateId}: ${result.error}`,
+        `Webhook delivery failed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} deliveryId=${result.event.id} aggregateType=${result.event.aggregateType} aggregateId=${result.event.aggregateId}: ${result.error}`,
       );
 
       throw new Error(result.error ?? 'Webhook delivery failed');
     }
 
     this.logger.debug(
-      `Webhook job completed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} aggregateType=${result.event.aggregateType} aggregateId=${result.event.aggregateId}`,
+      `Webhook job completed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} deliveryId=${result.event.id} aggregateType=${result.event.aggregateType} aggregateId=${result.event.aggregateId}`,
     );
   }
 

@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import {
   CreateCustomerUseCase,
   CustomerNotFoundError,
@@ -48,7 +47,7 @@ describe('CustomerController', () => {
         limit: 20,
         search: 'cliente',
       },
-      { store: { id: 'store-1' } } as any,
+      'store-1',
     );
 
     expect(listCustomersUseCase.execute).toHaveBeenCalledWith({
@@ -72,9 +71,7 @@ describe('CustomerController', () => {
       },
     });
 
-    const result = await controller.getCustomerById('customer-1', {
-      store: { id: 'store-1' },
-    } as any);
+    const result = await controller.getCustomerById('customer-1', 'store-1');
 
     expect(getCustomerByIdUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
@@ -89,9 +86,7 @@ describe('CustomerController', () => {
     );
 
     await expect(
-      controller.getCustomerById('customer-404', {
-        store: { id: 'store-1' },
-      } as any),
-    ).rejects.toBeInstanceOf(NotFoundException);
+      controller.getCustomerById('customer-404', 'store-1'),
+    ).rejects.toBeInstanceOf(CustomerNotFoundError);
   });
 });

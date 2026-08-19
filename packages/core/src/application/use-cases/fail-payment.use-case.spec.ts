@@ -4,6 +4,7 @@ import { Payment } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { InvalidPaymentStatusError } from '../../domain/errors/invalid-payment-status.error';
+import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { PixCharge, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
 
@@ -195,5 +196,28 @@ describe('FailPaymentUseCase', () => {
         status: PaymentStatus.FAILED,
       },
     });
+  });
+
+  it('refuses to fail a LIVE payment', async () => {
+    const payment = Payment.create({
+      storeId: 'store-1',
+      amount: 7990,
+      fee: 135,
+      netAmount: 7855,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    const { useCase, repos, expirationQueue } = makeUseCase(payment);
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentId: payment.id,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(payment.status).toBe(PaymentStatus.PENDING);
+    expect(repos.paymentRepository.update).not.toHaveBeenCalled();
+    expect(expirationQueue.cancelExpiration).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import { Environment } from "../../domain/value-objects/environment.vo";
 import { Customer } from "../../domain/entities/customer.entity";
 import { Document } from "../../domain/value-objects/document.vo";
 import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
+import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 
 describe("ConfirmPaymentUseCase", () => {
   const account = {
@@ -197,6 +198,43 @@ describe("ConfirmPaymentUseCase", () => {
 
     expect(payment.status).toBe("PENDING");
     expect(pixCharge.status).toBe(PixChargeStatus.CANCELLED);
+    expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
+    expect(paymentRepository.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses to confirm a LIVE payment", async () => {
+    const payment = Payment.create({
+      storeId: "store-1",
+      amount: 7990,
+      fee: 135,
+      netAmount: 7855,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    const accountRepository = {
+      findByStoreIdForUpdate: vi.fn(),
+      update: vi.fn(),
+    };
+    const paymentRepository = {
+      findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
+      update: vi.fn(),
+    };
+    const unitOfWork = {
+      execute: async (work: any) =>
+        work({
+          paymentRepository,
+          accountRepository,
+        }),
+    };
+
+    await expect(
+      new ConfirmPaymentUseCase(unitOfWork as any).execute({
+        storeId: "store-1",
+        paymentId: payment.id,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(payment.status).toBe("PENDING");
     expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
     expect(paymentRepository.update).not.toHaveBeenCalled();
   });

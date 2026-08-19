@@ -19,6 +19,7 @@ import {
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import {
   GetWithdrawalResponseDto,
   WithdrawalResponseDto,
@@ -44,13 +45,15 @@ export class WithdrawalDevController {
   @HttpCode(HttpStatus.OK)
   async complete(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
     this.validateTestEnvironment(req);
     const result = await this.completeWithdrawalUseCase.execute({
       withdrawalId: id,
-      storeId: this.getStoreId(req),
+      storeId,
       requestId: getRequestId(req),
+      simulation: true,
     });
 
     return {
@@ -63,14 +66,16 @@ export class WithdrawalDevController {
   async fail(
     @Param('id') id: string,
     @Body() dto: FailWithdrawalDto,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
     this.validateTestEnvironment(req);
     const result = await this.failWithdrawalUseCase.execute({
       withdrawalId: id,
-      storeId: this.getStoreId(req),
+      storeId,
       requestId: getRequestId(req),
       reason: dto?.reason ?? 'Withdrawal failed (simulated)',
+      simulation: true,
     });
 
     return {
@@ -89,13 +94,5 @@ export class WithdrawalDevController {
         },
       });
     }
-  }
-
-  private getStoreId(req?: Request): string {
-    const storeId = (req as any)?.store?.id ?? (req as any)?.user?.storeId;
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-    return storeId;
   }
 }

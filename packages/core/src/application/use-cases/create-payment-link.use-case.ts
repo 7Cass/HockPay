@@ -56,12 +56,15 @@ export class CreatePaymentLinkUseCase {
       storeRepository: this.storeRepository,
       pixChargeRepository: this.pixChargeRepository,
       paymentLinkRepository: this.paymentLinkRepository,
-    } as never);
+    });
   }
 
   async executeInTransaction(
     input: ICreatePaymentLinkInput,
-    repos: import("../../domain/repositories/unit-of-work.interface").ITransactedRepositories,
+    repos: Pick<
+      import("../../domain/repositories/unit-of-work.interface").ITransactedRepositories,
+      "storeRepository" | "pixChargeRepository" | "paymentLinkRepository"
+    >,
   ): Promise<ICreatePaymentLinkOutput> {
     const store = await repos.storeRepository.findById(input.storeId);
     if (!store) throw new StoreNotFoundError(input.storeId);
@@ -79,7 +82,7 @@ export class CreatePaymentLinkUseCase {
       pixKey: this.pixKey,
       amountInCents: amount,
       merchantName: store.name.substring(0, 25),
-      merchantCity: resolvePixMerchantCity(),
+      merchantCity: resolvePixMerchantCity(store.city),
       txId,
     });
     const pixCharge = PixCharge.create({

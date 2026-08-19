@@ -7,15 +7,16 @@
 export class Store {
   private readonly _id: string;
   private readonly _merchantId: string;
-  private readonly _name: string;
+  private _name: string;
   private readonly _slug: string;
   private readonly _isActive: boolean;
   private readonly _isApproved: boolean;
   private readonly _settlementDays: number;
   private readonly _feePercent: number;
   private readonly _feeFixed: number;
+  private _city?: string;
   private readonly _createdAt: Date;
-  private readonly _updatedAt: Date;
+  private _updatedAt: Date;
 
   private constructor(props: StoreProps) {
     this._id = props.id;
@@ -27,6 +28,7 @@ export class Store {
     this._settlementDays = props.settlementDays ?? 30;
     this._feePercent = props.feePercent ?? 1.5;
     this._feeFixed = props.feeFixed ?? 15;
+    this._city = props.city;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
   }
@@ -45,6 +47,7 @@ export class Store {
       settlementDays: props.settlementDays ?? 30,
       feePercent: props.feePercent ?? 1.5,
       feeFixed: props.feeFixed ?? 15,
+      city: props.city,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -95,6 +98,21 @@ export class Store {
     return this._feeFixed;
   }
 
+  get city(): string | undefined {
+    return this._city;
+  }
+
+  updateProfile(input: { name: string; city?: string | null }): void {
+    const name = input.name.trim();
+    if (name) {
+      this._name = name;
+    }
+    if (input.city !== undefined) {
+      this._city = input.city?.trim() || undefined;
+    }
+    this._updatedAt = new Date();
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -132,6 +150,7 @@ export class Store {
       settlementDays: this._settlementDays,
       feePercent: this._feePercent,
       feeFixed: this._feeFixed,
+      city: this._city,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -149,6 +168,7 @@ export interface CreateStoreProps {
   feePercent?: number;
   feeFixed?: number;
   isApproved?: boolean;
+  city?: string;
 }
 
 /**
@@ -164,6 +184,7 @@ export interface StoreProps {
   settlementDays: number;
   feePercent: number;
   feeFixed: number;
+  city?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -181,6 +202,7 @@ export interface StoreObject {
   settlementDays: number;
   feePercent: number;
   feeFixed: number;
+  city?: string;
   createdAt: Date;
   updatedAt: Date;
 }

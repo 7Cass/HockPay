@@ -72,6 +72,53 @@ describe("PaymentLinkRepository", () => {
     expect(stats.paidAmount).toBe(10000);
   });
 
+  it("pages authenticated lists in SQL without loading payment items for every store row", async () => {
+    const prisma = {
+      paymentLink: {
+        findMany: vi.fn()
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([]),
+        count: vi.fn().mockResolvedValue(40),
+      },
+    };
+    const repository = new PaymentLinkRepository(prisma as any, "http://localhost:3333");
+
+    await repository.list({
+      storeId: "store-1",
+      page: 2,
+      limit: 20,
+    });
+
+    expect(prisma.paymentLink.findMany).toHaveBeenNthCalledWith(1, {
+      where: { storeId: "store-1" },
+      include: expect.any(Object),
+      skip: 20,
+      take: 20,
+      orderBy: { createdAt: "desc" },
+    });
+    expect(prisma.paymentLink.findMany).toHaveBeenNthCalledWith(2, {
+      where: { storeId: "store-1" },
+      select: expect.objectContaining({
+        pixCharge: expect.objectContaining({
+          select: expect.objectContaining({
+            payments: {
+              select: {
+                id: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          }),
+        }),
+      }),
+      orderBy: { createdAt: "desc" },
+    });
+    expect(prisma.paymentLink.count).toHaveBeenCalledWith({
+      where: { storeId: "store-1" },
+    });
+  });
+
   it("returns zero conversion when there are no links", () => {
     const repository = new PaymentLinkRepository({} as any, "http://localhost:3333");
 

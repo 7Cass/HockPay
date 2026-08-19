@@ -19,6 +19,8 @@ import { BankAccountNotVerifiedError } from "../../domain/errors/bank-account-no
 import { InsufficientWithdrawalBalanceError } from "../../domain/errors/insufficient-withdrawal-balance.error";
 import { InvalidWithdrawalAmountError } from "../../domain/errors/invalid-withdrawal-amount.error";
 import { WithdrawalLimitExceededError } from "../../domain/errors/withdrawal-limit-exceeded.error";
+import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
+import { Environment } from "../../domain/value-objects/environment.vo";
 import {
   IUnitOfWork,
   ITransactedRepositories,
@@ -254,6 +256,38 @@ describe("withdrawal use cases", () => {
       }),
     );
     expect(result.summary.pendingOrProcessingAmount).toBe(10_000);
+  });
+
+  it("refuses TEST simulation complete/fail of a LIVE withdrawal", async () => {
+    const fixture = makeFixture({ available: 20_000 });
+    const created = await new CreateWithdrawalUseCase(
+      fixture.unitOfWork,
+    ).execute({
+      storeId: fixture.store.id,
+      bankAccountId: fixture.bankAccount.id,
+      amount: 10_000,
+      environment: Environment.LIVE,
+    });
+
+    await expect(
+      new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
+        withdrawalId: created.withdrawal.id,
+        storeId: fixture.store.id,
+        simulation: true,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    await expect(
+      new FailWithdrawalUseCase(fixture.unitOfWork).execute({
+        withdrawalId: created.withdrawal.id,
+        storeId: fixture.store.id,
+        reason: "simulated fail",
+        simulation: true,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(fixture.account.blocked).toBe(10_000);
+    expect(fixture.account.available).toBe(10_000);
   });
 });
 

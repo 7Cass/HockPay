@@ -58,6 +58,7 @@ describe('GetPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: 'payment-1',
+        environment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
 
@@ -71,6 +72,7 @@ describe('GetPaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(result.payment.status).toBe(PaymentStatus.PENDING);
@@ -85,6 +87,7 @@ describe('GetPaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1);
@@ -110,10 +113,31 @@ describe('GetPaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(result.payment.status).toBe(PaymentStatus.EXPIRED);
     expect(repos.paymentRepository.update).not.toHaveBeenCalled();
     expect(repos.outboxWriter.save).not.toHaveBeenCalled();
+  });
+
+  it('hides a LIVE payment from a TEST caller', async () => {
+    const payment = Payment.create({
+      storeId: 'store-1',
+      amount: 7990,
+      fee: 135,
+      netAmount: 7855,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    const { useCase } = makeUseCase(payment);
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentId: payment.id,
+        environment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 });
