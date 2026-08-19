@@ -4,6 +4,8 @@ import { Payment } from "../../domain/entities/payment.entity";
 import { Account } from "../../domain/entities/account.entity";
 import { Refund } from "../../domain/entities/refund.entity";
 import { TransactionType } from "../../domain/entities/transaction.entity";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 
 describe("ReleasePaymentUseCase", () => {
   function makeRepos(
@@ -170,5 +172,49 @@ describe("ReleasePaymentUseCase", () => {
     ).toHaveBeenCalledWith(payment.id, "store-1");
     expect(repos.paymentRepository.findById).not.toHaveBeenCalled();
     expect(repos.paymentRepository.findByIdForUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses to release a LIVE payment unless the settlement job opts in", async () => {
+    const payment = Payment.create({
+      storeId: "store-1",
+      amount: 10_000,
+      fee: 1_000,
+      netAmount: 9_000,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    payment.confirm();
+    const account = Account.reconstitute({
+      id: "account-1",
+      storeId: "store-1",
+      available: 0,
+      pending: 9_000,
+      blocked: 0,
+      currency: "BRL",
+      updatedAt: new Date(),
+    });
+    const repos = makeRepos(payment, account);
+    const useCase = new ReleasePaymentUseCase({
+      execute: async (work: any) => work(repos),
+    } as any);
+
+    await expect(
+      useCase.execute({
+        storeId: "store-1",
+        paymentId: payment.id,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(account.pending).toBe(9_000);
+    expect(repos.paymentRepository.update).not.toHaveBeenCalled();
+
+    await useCase.execute({
+      storeId: "store-1",
+      paymentId: payment.id,
+      allowLiveEnvironment: true,
+    });
+
+    expect(payment.isReleased()).toBe(true);
+    expect(account.available).toBe(9_000);
   });
 });

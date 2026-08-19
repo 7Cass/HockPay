@@ -667,10 +667,15 @@ describe('PaymentLink use cases', () => {
   it('does not create a second confirmed payment when the locked PixCharge is already paid', async () => {
     const item = makePaymentLinkListItem();
     const pixCharge = makePixChargeFromItem(item);
+    let savedPayment: Payment | null = null;
     const paymentRepository = {
-      save: vi.fn(),
+      save: vi.fn(async (payment: Payment) => {
+        savedPayment = payment;
+      }),
       update: vi.fn(),
-      findByPixChargeIdAndStoreId: vi.fn(async () => []),
+      findByPixChargeIdAndStoreId: vi.fn(async () =>
+        savedPayment ? [savedPayment] : [],
+      ),
     };
     const account = {
       id: 'account-1',
@@ -705,17 +710,16 @@ describe('PaymentLink use cases', () => {
       { calculate: vi.fn().mockReturnValue({ feeInCents: 90, netAmountInCents: 4910 }) } as any,
     );
 
-    await useCase.execute({
+    const first = await useCase.execute({
       publicToken: 'public-token',
       environment: Environment.TEST,
     });
-    await expect(
-      useCase.execute({
-        publicToken: 'public-token',
-        environment: Environment.TEST,
-      }),
-    ).rejects.toMatchObject({ code: 'PAYMENT_LINK_UNAVAILABLE' });
+    const second = await useCase.execute({
+      publicToken: 'public-token',
+      environment: Environment.TEST,
+    });
 
+    expect(second.payment.id).toBe(first.payment.id);
     expect(paymentRepository.save).toHaveBeenCalledOnce();
     expect(account.addToPending).toHaveBeenCalledOnce();
   });

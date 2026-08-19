@@ -8,7 +8,7 @@ import { DomainError } from './domain-error';
 export class LiveEnvironmentNotAllowedError extends DomainError {
   constructor() {
     super(
-      'Simulation is not allowed for payments in LIVE environment',
+      'TEST callers cannot mutate LIVE financial aggregates',
       'LIVE_ENVIRONMENT_NOT_ALLOWED',
     );
   }

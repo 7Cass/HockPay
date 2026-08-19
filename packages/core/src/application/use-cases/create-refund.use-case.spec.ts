@@ -5,6 +5,8 @@ import { Account } from "../../domain/entities/account.entity";
 import { PaymentStatus } from "../../domain/enums/payment-status.enum";
 import { RefundStatus } from "../../domain/entities/refund.entity";
 import { TransactionType } from "../../domain/entities/transaction.entity";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
 
 describe("CreateRefundUseCase", () => {
   function createConfirmedPayment(): Payment {
@@ -185,5 +187,32 @@ describe("CreateRefundUseCase", () => {
     expect(repos.refundRepository.save).not.toHaveBeenCalled();
     expect(repos.paymentRepository.update).not.toHaveBeenCalled();
     expect(repos.transactionRepository.save).not.toHaveBeenCalled();
+  });
+
+  it("refuses a TEST caller refunding a LIVE payment without touching the ledger", async () => {
+    const payment = Payment.create({
+      storeId: "store-1",
+      amount: 10_000,
+      fee: 1_000,
+      netAmount: 9_000,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    payment.confirm();
+    const { useCase, repos, account } = createUseCase(payment);
+
+    await expect(
+      useCase.execute({
+        storeId: "store-1",
+        paymentId: payment.id,
+        amount: 2_500,
+        callerEnvironment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+
+    expect(account?.pending).toBe(9_000);
+    expect(repos.refundRepository.save).not.toHaveBeenCalled();
+    expect(repos.paymentRepository.update).not.toHaveBeenCalled();
+    expect(repos.accountRepository.update).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,8 @@ import {
   ITransactedRepositories,
   IUnitOfWork,
 } from "../../domain/repositories/unit-of-work.interface";
+import { Environment } from "../../domain/value-objects/environment.vo";
+import { assertCallerCanMutateEnvironment } from "../services/live-environment-guard";
 
 export interface ICreateRefundInput {
   storeId: string;
@@ -19,6 +21,7 @@ export interface ICreateRefundInput {
   requestId?: string;
   amount: number;
   reason?: string;
+  callerEnvironment?: Environment;
 }
 
 export interface ICreateRefundOutput {
@@ -47,6 +50,11 @@ export class CreateRefundUseCase {
     if (!payment) {
       throw new PaymentNotFoundError(input.paymentId);
     }
+
+    assertCallerCanMutateEnvironment(
+      payment.environment,
+      input.callerEnvironment ?? Environment.TEST,
+    );
 
     if (!payment.isConfirmed() && !payment.isReleased()) {
       throw new InvalidRefundAmountError(

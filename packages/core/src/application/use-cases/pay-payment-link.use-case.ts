@@ -53,7 +53,6 @@ export class PayPaymentLinkUseCase {
       if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
 
       this.ensureSimulationAllowed(input.environment, item.environment);
-      this.ensurePayable(item.status, item.pixCharge.status);
 
       const pixCharge =
         await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
@@ -63,6 +62,29 @@ export class PayPaymentLinkUseCase {
       if (!pixCharge) {
         throw new PaymentLinkUnavailableError("Payment link Pix charge is invalid");
       }
+
+      if (
+        this.isAlreadyPaid(item.status, pixCharge.status) ||
+        pixCharge.status === PixChargeStatus.PAID
+      ) {
+        const paidPayment = await this.findPaidPayment(
+          repos,
+          item.storeId,
+          pixCharge.id,
+        );
+        if (paidPayment) {
+          return {
+            payment: await this.buildPaymentPayload(
+              repos,
+              paidPayment,
+              pixCharge.toObject(),
+            ),
+          };
+        }
+      }
+
+      this.ensurePayable(item.status, item.pixCharge.status);
+
       if (pixCharge.hasExpired()) {
         pixCharge.expire();
         await repos.pixChargeRepository.update(pixCharge);
@@ -177,6 +199,29 @@ export class PayPaymentLinkUseCase {
     ) {
       throw new LiveEnvironmentNotAllowedError();
     }
+  }
+
+  private isAlreadyPaid(
+    linkStatus: PaymentLinkStatus,
+    pixChargeStatus: PixChargeStatus,
+  ): boolean {
+    return linkStatus === "PAID" || pixChargeStatus === PixChargeStatus.PAID;
+  }
+
+  private async findPaidPayment(
+    repos: ITransactedRepositories,
+    storeId: string,
+    pixChargeId: string,
+  ): Promise<Payment | null> {
+    const attempts = await repos.paymentRepository.findByPixChargeIdAndStoreId(
+      pixChargeId,
+      storeId,
+    );
+    return (
+      attempts.find(
+        (attempt) => attempt.isConfirmed() || attempt.isReleased(),
+      ) ?? null
+    );
   }
 
   private ensurePayable(

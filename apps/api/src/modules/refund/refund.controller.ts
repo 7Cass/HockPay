@@ -9,9 +9,10 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { CreateRefundUseCase } from '@hockpay/core';
+import { CreateRefundUseCase, Environment } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { TransactionalIdempotencyService } from '../../common/idempotency/transactional-idempotency.service';
@@ -41,6 +42,7 @@ export class RefundController {
   async createRefund(
     @Body() dto: CreateRefundDto,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() callerEnvironment: Environment,
     @Req() req: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateRefundResponseDto> {
@@ -50,6 +52,7 @@ export class RefundController {
       requestId: getRequestId(req),
       amount: dto.amount,
       reason: dto.reason,
+      callerEnvironment,
     };
     const idempotencyKey = this.getIdempotencyKey(req);
 

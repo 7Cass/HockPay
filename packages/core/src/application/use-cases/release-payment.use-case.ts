@@ -9,6 +9,7 @@ import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.erro
 import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
 import { PaymentNotConfirmedError } from "../../domain/errors/payment-not-confirmed.error";
 import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { assertNotLiveEnvironment } from "../services/live-environment-guard";
 
 /**
  * Input DTO for ReleasePaymentUseCase.
@@ -17,6 +18,7 @@ export interface IReleasePaymentInput {
   storeId?: string;
   paymentId: string;
   requestId?: string;
+  allowLiveEnvironment?: boolean;
 }
 
 /**
@@ -58,6 +60,10 @@ export class ReleasePaymentUseCase {
 
       if (!payment) {
         throw new PaymentNotFoundError(input.paymentId);
+      }
+
+      if (!input.allowLiveEnvironment) {
+        assertNotLiveEnvironment(payment.environment);
       }
 
       if (payment.isReleased()) {

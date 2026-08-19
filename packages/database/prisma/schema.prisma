@@ -249,6 +249,7 @@ model Withdrawal {
   amount          Int
   fee             Int                 @default(0)
   netAmount       Int                 @map("net_amount")
+  environment     Environment         @default(TEST)
   status          WithdrawalStatus
   pixE2eId        String?             @map("pix_e2e_id")
   paidAt          DateTime?           @map("paid_at")

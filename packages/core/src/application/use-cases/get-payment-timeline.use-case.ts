@@ -11,6 +11,7 @@ import {
 } from '../../domain/entities/webhook-log.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
@@ -56,6 +57,7 @@ export interface PaymentTimelineEvent {
 export interface IGetPaymentTimelineInput {
   storeId: string;
   paymentId: string;
+  environment: Environment;
 }
 
 export interface IGetPaymentTimelineOutput {
@@ -87,7 +89,7 @@ export class GetPaymentTimelineUseCase {
       input.storeId,
     );
 
-    if (!payment) {
+    if (!payment || payment.environment !== input.environment) {
       throw new PaymentNotFoundError(input.paymentId);
     }
 

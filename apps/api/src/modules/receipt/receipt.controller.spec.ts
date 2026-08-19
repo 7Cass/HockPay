@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import {
   GetReceiptUseCase,
   ListReceiptsUseCase,
@@ -47,9 +46,7 @@ describe('ReceiptController', () => {
         receiptNumber: 'RCP-20260419-STORE1-00001',
         customerId: 'customer-1',
       },
-      {
-        store: { id: 'store-1' },
-      } as any,
+      'store-1',
     );
 
     expect(listReceiptsUseCase.execute).toHaveBeenCalledWith({
@@ -87,9 +84,7 @@ describe('ReceiptController', () => {
 
     const response = await controller.getReceiptByNumber(
       'RCP-20260419-STORE1-00001',
-      {
-        store: { id: 'store-1' },
-      } as any,
+      'store-1',
     );
 
     expect(getReceiptUseCase.execute).toHaveBeenCalledWith({
@@ -109,9 +104,7 @@ describe('ReceiptController', () => {
     );
 
     await expect(
-      controller.getReceiptByNumber('RCP-20260419-STORE1-99999', {
-        store: { id: 'store-1' },
-      } as any),
-    ).rejects.toThrow(NotFoundException);
+      controller.getReceiptByNumber('RCP-20260419-STORE1-99999', 'store-1'),
+    ).rejects.toThrow(ReceiptNotFoundError);
   });
 });

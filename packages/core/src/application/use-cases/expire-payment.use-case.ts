@@ -4,6 +4,7 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
 
 /**
  * Input DTO for ExpirePaymentUseCase.
@@ -13,6 +14,7 @@ export interface IExpirePaymentInput {
   paymentId: string;
   requestId?: string;
   strictPending?: boolean;
+  allowLiveEnvironment?: boolean;
 }
 
 /**
@@ -54,6 +56,10 @@ export class ExpirePaymentUseCase {
 
       if (!payment) {
         throw new PaymentNotFoundError(input.paymentId);
+      }
+
+      if (!input.allowLiveEnvironment) {
+        assertNotLiveEnvironment(payment.environment);
       }
 
       // Exact repeated expirations remain idempotent for queue retries.

@@ -64,6 +64,7 @@ describe('GetPaymentTimelineUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
@@ -98,6 +99,7 @@ describe('GetPaymentTimelineUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(result.checkoutSession).toBeNull();
@@ -144,6 +146,7 @@ describe('GetPaymentTimelineUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: confirmedAttempt.id,
+      environment: Environment.TEST,
     });
 
     expect(result.payment.attemptNumber).toBe(2);
@@ -159,6 +162,20 @@ describe('GetPaymentTimelineUseCase', () => {
     ]);
   });
 
+  it('hides LIVE payment operational detail from a TEST caller', async () => {
+    const payment = makePayment({ environment: Environment.LIVE });
+    const { useCase, repos } = makeUseCase({ payment });
+
+    await expect(
+      useCase.execute({
+        storeId: 'store-1',
+        paymentId: payment.id,
+        environment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(PaymentNotFoundError);
+    expect(repos.receiptRepository.findByPaymentId).not.toHaveBeenCalled();
+  });
+
   it('throws PaymentNotFoundError when payment does not belong to the store', async () => {
     const { useCase } = makeUseCase({ payment: null });
 
@@ -166,6 +183,7 @@ describe('GetPaymentTimelineUseCase', () => {
       useCase.execute({
         storeId: 'store-other',
         paymentId: 'payment-1',
+        environment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
@@ -196,6 +214,7 @@ describe('GetPaymentTimelineUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      environment: Environment.TEST,
     });
 
     expect(result.timeline.map((event) => event.type)).toEqual([

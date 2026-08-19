@@ -20,12 +20,14 @@ import {
   IUnitOfWork,
 } from "../../domain/repositories/unit-of-work.interface";
 import { WithdrawalPolicy } from "../services/withdrawal-policy.service";
+import { Environment } from "../../domain/value-objects/environment.vo";
 
 export interface ICreateWithdrawalInput {
   storeId: string;
   bankAccountId: string;
   amount: number;
   requestId?: string;
+  environment?: Environment;
 }
 
 export interface ICreateWithdrawalOutput {
@@ -99,6 +101,7 @@ export class CreateWithdrawalUseCase {
       bankAccountId: bankAccount.id,
       amount: input.amount,
       fee: feeResult.feeInCents,
+      environment: input.environment ?? Environment.TEST,
     });
 
     account.block(withdrawal.amount);

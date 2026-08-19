@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Query,
   Req,
@@ -12,14 +11,11 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import {
-  CustomerNotFoundError,
   Environment,
   GetCustomerHistoryPaymentUseCase,
   GetCustomerHistoryReceiptUseCase,
   ListCustomerHistoryPaymentsUseCase,
   ListCustomerHistoryReceiptsUseCase,
-  PaymentNotFoundError,
-  ReceiptNotFoundError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
@@ -58,33 +54,26 @@ export class CustomerHistoryController {
   ): Promise<ListCustomerHistoryPaymentsResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
 
-    try {
-      const result = await this.listCustomerHistoryPaymentsUseCase.execute({
-        storeId,
-        customerExternalId,
-        page: query.page,
-        limit: query.limit,
-        status: query.status,
-        startDate: query.startDate ? new Date(query.startDate) : undefined,
-        endDate: query.endDate ? new Date(query.endDate) : undefined,
-        environment,
-      });
+    const result = await this.listCustomerHistoryPaymentsUseCase.execute({
+      storeId,
+      customerExternalId,
+      page: query.page,
+      limit: query.limit,
+      status: query.status,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      environment,
+    });
 
-      return {
-        payments: result.payments.map((payment) =>
-          this.toPaymentResponse(payment),
-        ),
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages,
-      };
-    } catch (error) {
-      if (error instanceof CustomerNotFoundError) {
-        throw this.toNotFoundException(error);
-      }
-      throw error;
-    }
+    return {
+      payments: result.payments.map((payment) =>
+        this.toPaymentResponse(payment),
+      ),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+    };
   }
 
   @Get('payments/:paymentId')
@@ -97,26 +86,16 @@ export class CustomerHistoryController {
   ): Promise<GetCustomerHistoryPaymentResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
 
-    try {
-      const result = await this.getCustomerHistoryPaymentUseCase.execute({
-        storeId,
-        customerExternalId,
-        paymentId,
-        environment,
-      });
+    const result = await this.getCustomerHistoryPaymentUseCase.execute({
+      storeId,
+      customerExternalId,
+      paymentId,
+      environment,
+    });
 
-      return {
-        payment: this.toPaymentResponse(result.payment),
-      };
-    } catch (error) {
-      if (
-        error instanceof CustomerNotFoundError ||
-        error instanceof PaymentNotFoundError
-      ) {
-        throw this.toNotFoundException(error);
-      }
-      throw error;
-    }
+    return {
+      payment: this.toPaymentResponse(result.payment),
+    };
   }
 
   @Get('receipts')
@@ -128,30 +107,23 @@ export class CustomerHistoryController {
   ): Promise<ListCustomerHistoryReceiptsResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
 
-    try {
-      const result = await this.listCustomerHistoryReceiptsUseCase.execute({
-        storeId,
-        customerExternalId,
-        page: query.page,
-        limit: query.limit,
-        receiptNumber: query.receiptNumber,
-      });
+    const result = await this.listCustomerHistoryReceiptsUseCase.execute({
+      storeId,
+      customerExternalId,
+      page: query.page,
+      limit: query.limit,
+      receiptNumber: query.receiptNumber,
+    });
 
-      return {
-        receipts: result.receipts.map((receipt) =>
-          this.toReceiptResponse(receipt),
-        ),
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages,
-      };
-    } catch (error) {
-      if (error instanceof CustomerNotFoundError) {
-        throw this.toNotFoundException(error);
-      }
-      throw error;
-    }
+    return {
+      receipts: result.receipts.map((receipt) =>
+        this.toReceiptResponse(receipt),
+      ),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+    };
   }
 
   @Get('receipts/:receiptId')
@@ -163,26 +135,15 @@ export class CustomerHistoryController {
   ): Promise<GetCustomerHistoryReceiptResponseDto> {
     const storeId = this.ensureApiKeyRequest(req);
 
-    try {
-      const result = await this.getCustomerHistoryReceiptUseCase.execute({
-        storeId,
-        customerExternalId,
-        receiptId,
-      });
+    const result = await this.getCustomerHistoryReceiptUseCase.execute({
+      storeId,
+      customerExternalId,
+      receiptId,
+    });
 
-      return {
-        receipt: this.toReceiptResponse(result.receipt),
-      };
-    } catch (error) {
-      if (
-        error instanceof CustomerNotFoundError ||
-        error instanceof ReceiptNotFoundError ||
-        error instanceof PaymentNotFoundError
-      ) {
-        throw this.toNotFoundException(error);
-      }
-      throw error;
-    }
+    return {
+      receipt: this.toReceiptResponse(result.receipt),
+    };
   }
 
   private ensureApiKeyRequest(req: Request): string {
@@ -195,19 +156,16 @@ export class CustomerHistoryController {
     const storeId = (req as any)?.store?.id;
 
     if (!storeId) {
-      throw new ForbiddenException('Store ID not found in request');
+      throw new ForbiddenException({
+        statusCode: 403,
+        error: 'Forbidden',
+        message:
+          'No store selected or could not be determined from authentication context.',
+        code: 'NO_CURRENT_STORE',
+      });
     }
 
     return storeId;
-  }
-
-  private toNotFoundException(error: { code: string; message: string }) {
-    return new NotFoundException({
-      error: {
-        code: error.code,
-        message: error.message,
-      },
-    });
   }
 
   private toPaymentResponse(payment: any): CustomerHistoryPaymentDto {

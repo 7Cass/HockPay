@@ -128,9 +128,12 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 
 ## Isolamento TEST/LIVE
 
-- Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados filtram pelo environment da request (JWT = TEST; API key = environment da key).
-- Entidades sem coluna de environment (`Customer`, `Account`, `WebhookConfig`, `Receipt`, `Refund`, `Withdrawal`, `BankAccount`) sao escopadas por store, nao por TEST/LIVE. Receipt/refund/withdrawal herdam o ambiente do payment ou da store em operacao.
+- Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados (incluindo timeline de payment) filtram pelo environment da request (JWT = TEST; API key = environment da key).
+- `Account` continua unico por store. JWT do dashboard mostra saldo e metricas da loja inteira, nao um ledger TEST separado.
+- Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Receipt`, `Refund`, `BankAccount`) sao escopadas por store. Receipt/refund herdam o ambiente do payment.
+- `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE; listagem continua store-wide.
 - Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
+- Sessao/key TEST nao confirma, expira, falha, libera nem estorna payment LIVE.
 
 ## Gaps e Limites
 

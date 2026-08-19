@@ -14,6 +14,7 @@ import {
 import type { Request, Response } from 'express';
 import {
   CreateWithdrawalUseCase,
+  Environment,
   GetWithdrawalUseCase,
   ListWithdrawalsUseCase,
 } from '@hockpay/core';
@@ -26,6 +27,7 @@ import {
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { BankAccountResponseDto } from '../bank-account/dtos/bank-account-response.dto';
 import { CreateWithdrawalDto } from './dtos/create-withdrawal.dto';
@@ -54,6 +56,7 @@ export class WithdrawalController {
   async create(
     @Body() dto: CreateWithdrawalDto,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<CreateWithdrawalResponseDto> {
@@ -62,6 +65,7 @@ export class WithdrawalController {
       bankAccountId: dto.bankAccountId,
       amount: dto.amount,
       requestId: getRequestId(req),
+      environment,
     };
     const idempotencyKey = this.getIdempotencyKey(req);
 

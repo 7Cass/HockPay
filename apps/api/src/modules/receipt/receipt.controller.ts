@@ -3,13 +3,11 @@ import {
   Get,
   Param,
   Query,
-  Req,
   UseGuards,
   HttpCode,
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import {
   GetReceiptUseCase,
   ListReceiptsUseCase,
@@ -17,6 +15,7 @@ import {
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { ListReceiptsQueryDto } from './dtos/list-receipts.dto';
 import {
   GetReceiptResponseDto,
@@ -37,14 +36,8 @@ export class ReceiptController {
   @HttpCode(HttpStatus.OK)
   async listReceipts(
     @Query() query: ListReceiptsQueryDto,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<ListReceiptsResponseDto> {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
     const result = await this.listReceiptsUseCase.execute({
       storeId,
       page: query.page,
@@ -66,102 +59,48 @@ export class ReceiptController {
   @HttpCode(HttpStatus.OK)
   async getReceiptByNumber(
     @Param('receiptNumber') receiptNumber: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetReceiptResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getReceiptUseCase.execute({
+      receiptNumber,
+      storeId,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getReceiptUseCase.execute({
-        receiptNumber,
-        storeId,
-      });
-
-      return {
-        receipt: this.toResponse(result.receipt),
-      };
-    } catch (error) {
-      if (error instanceof ReceiptNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      receipt: this.toResponse(result.receipt),
+    };
   }
 
   @Get('payment/:paymentId')
   @HttpCode(HttpStatus.OK)
   async getReceiptByPayment(
     @Param('paymentId') paymentId: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetReceiptResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getReceiptUseCase.execute({
+      paymentId,
+      storeId,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getReceiptUseCase.execute({
-        paymentId,
-        storeId,
-      });
-
-      return {
-        receipt: this.toResponse(result.receipt),
-      };
-    } catch (error) {
-      if (error instanceof ReceiptNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      receipt: this.toResponse(result.receipt),
+    };
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getReceipt(
     @Param('id') id: string,
-    @Req() req: Request,
+    @CurrentStore() storeId: string,
   ): Promise<GetReceiptResponseDto> {
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.getReceiptUseCase.execute({
+      receiptId: id,
+      storeId,
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.getReceiptUseCase.execute({
-        receiptId: id,
-        storeId,
-      });
-
-      return {
-        receipt: this.toResponse(result.receipt),
-      };
-    } catch (error) {
-      if (error instanceof ReceiptNotFoundError) {
-        throw new NotFoundException({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
-      }
-      throw error;
-    }
+    return {
+      receipt: this.toResponse(result.receipt),
+    };
   }
 
   private toResponse(receipt: any): ReceiptResponseDto {

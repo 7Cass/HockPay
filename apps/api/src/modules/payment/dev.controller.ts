@@ -6,26 +6,19 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  NotFoundException,
-  UnprocessableEntityException,
-  BadRequestException,
   Req,
-  Body,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
+  LiveEnvironmentNotAllowedError,
   ReleasePaymentUseCase,
-  PaymentNotFoundError,
-  PaymentExpiredError,
-  InvalidPaymentStatusError,
-  PaymentNotConfirmedError,
-  AccountNotFoundError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { GetPaymentResponseDto } from './dtos/payment-response.dto';
 import { Environment } from '@hockpay/core';
 import { getRequestId } from '../../common/request-id';
@@ -61,29 +54,20 @@ export class DevController {
   @HttpCode(HttpStatus.OK)
   async confirmPayment(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
     this.validateTestEnvironment(req);
 
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.confirmPaymentUseCase.execute({
+      storeId,
+      paymentId: id,
+      requestId: getRequestId(req),
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.confirmPaymentUseCase.execute({
-        storeId,
-        paymentId: id,
-        requestId: getRequestId(req),
-      });
-
-      return {
-        payment: result.payment,
-      };
-    } catch (error) {
-      return this.handleError(error);
-    }
+    return {
+      payment: result.payment,
+    };
   }
 
   /**
@@ -95,26 +79,21 @@ export class DevController {
   @HttpCode(HttpStatus.OK)
   async expirePayment(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
     this.validateTestEnvironment(req);
 
-    try {
-      const storeId = this.getStoreId(req);
+    const result = await this.expirePaymentUseCase.execute({
+      storeId,
+      paymentId: id,
+      requestId: getRequestId(req),
+      strictPending: true,
+    });
 
-      const result = await this.expirePaymentUseCase.execute({
-        storeId,
-        paymentId: id,
-        requestId: getRequestId(req),
-        strictPending: true,
-      });
-
-      return {
-        payment: result.payment,
-      };
-    } catch (error) {
-      return this.handleError(error);
-    }
+    return {
+      payment: result.payment,
+    };
   }
 
   /**
@@ -128,30 +107,21 @@ export class DevController {
   async failPayment(
     @Param('id') id: string,
     @Query('reason') reason?: string,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
     this.validateTestEnvironment(req);
 
-    try {
-      const storeId = (req as any)?.store?.id;
+    const result = await this.failPaymentUseCase.execute({
+      storeId,
+      paymentId: id,
+      requestId: getRequestId(req),
+      reason: reason ?? 'Payment failed (simulated)',
+    });
 
-      if (!storeId) {
-        throw new Error('Store ID not found in request');
-      }
-
-      const result = await this.failPaymentUseCase.execute({
-        storeId,
-        paymentId: id,
-        requestId: getRequestId(req),
-        reason: reason ?? 'Payment failed (simulated)',
-      });
-
-      return {
-        payment: result.payment,
-      };
-    } catch (error) {
-      return this.handleError(error);
-    }
+    return {
+      payment: result.payment,
+    };
   }
 
   /**
@@ -163,25 +133,20 @@ export class DevController {
   @HttpCode(HttpStatus.OK)
   async releasePayment(
     @Param('id') id: string,
+    @CurrentStore() storeId: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
     this.validateTestEnvironment(req);
 
-    try {
-      const storeId = this.getStoreId(req);
+    const result = await this.releasePaymentUseCase.execute({
+      storeId,
+      paymentId: id,
+      requestId: getRequestId(req),
+    });
 
-      const result = await this.releasePaymentUseCase.execute({
-        storeId,
-        paymentId: id,
-        requestId: getRequestId(req),
-      });
-
-      return {
-        payment: result.payment,
-      };
-    } catch (error) {
-      return this.handleError(error);
-    }
+    return {
+      payment: result.payment,
+    };
   }
 
   /**
@@ -192,70 +157,7 @@ export class DevController {
     const environment = (req as any)?.environment as Environment | undefined;
 
     if (environment === Environment.LIVE) {
-      throw new BadRequestException({
-        error: {
-          code: 'LIVE_ENVIRONMENT_NOT_ALLOWED',
-          message:
-            'Dev simulation endpoints are not available in LIVE environment',
-        },
-      });
+      throw new LiveEnvironmentNotAllowedError();
     }
-  }
-
-  private getStoreId(req?: Request): string {
-    const storeId = (req as any)?.store?.id;
-
-    if (!storeId) {
-      throw new Error('Store ID not found in request');
-    }
-
-    return storeId;
-  }
-
-  /**
-   * Handle common errors from use cases.
-   */
-  private handleError(error: unknown): never {
-    if (error instanceof PaymentNotFoundError) {
-      throw new NotFoundException({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
-    }
-    if (error instanceof PaymentExpiredError) {
-      throw new UnprocessableEntityException({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
-    }
-    if (error instanceof InvalidPaymentStatusError) {
-      throw new UnprocessableEntityException({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
-    }
-    if (error instanceof PaymentNotConfirmedError) {
-      throw new UnprocessableEntityException({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
-    }
-    if (error instanceof AccountNotFoundError) {
-      throw new NotFoundException({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
-    }
-    throw error;
   }
 }
