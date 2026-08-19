@@ -179,6 +179,7 @@ export class PaymentLinkController {
     await this.cancelUseCase.execute({
       storeId,
       paymentLinkId: id,
+      environment,
       requestId: getRequestId(req),
     });
     return this.getUseCase.execute({ storeId, paymentLinkId: id, environment });

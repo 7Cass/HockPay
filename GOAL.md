@@ -34,7 +34,7 @@ As duas passagens anteriores (arquivadas em `docs/goals/2026-08-18-architecture-
 
 ### P0.1 Recusar cancel de Payment Link LIVE a partir de sessao/key TEST
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: confirm/expire/fail/release/refund e o pay publico recusam agregado LIVE. `CancelPaymentLinkUseCase` carrega por `id + storeId`, nao le `environment` e nao chama `assertNotLiveEnvironment`. O controller autentica TEST, cancela a linha LIVE (e a `PixCharge` aberta) e so depois faz get filtrado — o caller TEST toma 404 com o link ja cancelado.
 
@@ -48,15 +48,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P0.1.1 Recusar `paymentLink.environment === LIVE` no use case de cancel.
+- [x] P0.1.1 Recusar `paymentLink.environment === LIVE` no use case de cancel.
   - Problema: o check esta no get posterior, nao na mutacao.
   - Solucao: environment obrigatorio; LIVE -> `LiveEnvironmentNotAllowedError` (ou 404 se o recorte for o mesmo de get). Charge so cancela se o link for TEST.
   - Validacao: spec JWT/TEST + link LIVE -> 422/404, status e PixCharge inalterados.
 
 Done Criteria:
 
-- [ ] JWT TEST + id de Payment Link LIVE nao cancela o link nem a charge.
-- [ ] API key TEST nao cancela link LIVE.
+- [x] JWT TEST + id de Payment Link LIVE nao cancela o link nem a charge.
+- [x] API key TEST nao cancela link LIVE.
 
 ### P0.2 Estorno deixar de aceitar API key
 

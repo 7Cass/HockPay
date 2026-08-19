@@ -15,6 +15,7 @@ describe('PaymentLinkController', () => {
   let controller: PaymentLinkController;
   let createUseCase: { execute: jest.Mock; executeInTransaction: jest.Mock };
   let getUseCase: { execute: jest.Mock };
+  let cancelUseCase: { execute: jest.Mock };
   let payUseCase: { execute: jest.Mock };
   let failUseCase: { execute: jest.Mock };
 
@@ -45,12 +46,15 @@ describe('PaymentLinkController', () => {
         payment: { id: 'payment-1', status: 'FAILED' },
       }),
     };
+    cancelUseCase = {
+      execute: jest.fn().mockResolvedValue(undefined),
+    };
 
     controller = new PaymentLinkController(
       createUseCase as unknown as CreatePaymentLinkUseCase,
       { execute: jest.fn() } as unknown as ListPaymentLinksUseCase,
       getUseCase as unknown as GetPaymentLinkUseCase,
-      { execute: jest.fn() } as unknown as CancelPaymentLinkUseCase,
+      cancelUseCase as unknown as CancelPaymentLinkUseCase,
       { execute: jest.fn() } as unknown as OpenPaymentLinkUseCase,
       payUseCase as unknown as PayPaymentLinkUseCase,
       failUseCase as unknown as FailPaymentLinkUseCase,
@@ -165,6 +169,32 @@ describe('PaymentLinkController', () => {
     });
     expect(result).toEqual({
       payment: { id: 'payment-1', status: 'FAILED' },
+    });
+  });
+
+  it('forwards JWT TEST environment so cancel cannot drop the caller context', async () => {
+    await controller.cancel('link-1', 'store-1', Environment.TEST, {
+      id: 'req-cancel-jwt',
+    } as never);
+
+    expect(cancelUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentLinkId: 'link-1',
+      environment: Environment.TEST,
+      requestId: 'req-cancel-jwt',
+    });
+  });
+
+  it('forwards API key LIVE environment so cancel can mutate a LIVE link', async () => {
+    await controller.cancel('link-1', 'store-1', Environment.LIVE, {
+      id: 'req-cancel-key',
+    } as never);
+
+    expect(cancelUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentLinkId: 'link-1',
+      environment: Environment.LIVE,
+      requestId: 'req-cancel-key',
     });
   });
 
