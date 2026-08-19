@@ -60,7 +60,7 @@ Done Criteria:
 
 ### P0.2 Estorno deixar de aceitar API key
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: a goal anterior fechou `POST /withdrawals` com `JwtOnlyGuard` porque key vazada era god-mode no Account compartilhado. `POST /refunds` ficou em `CombinedAuthGuard`. Qualquer `hk_test_` / `hk_live_` da store ainda estorna e debita o mesmo saldo.
 
@@ -74,15 +74,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P0.2.1 Aplicar a mesma trava de saque no create de refund.
+- [x] P0.2.1 Aplicar a mesma trava de saque no create de refund.
   - Problema: CombinedAuth basta para estornar.
   - Solucao: `JwtOnlyGuard` em `POST /refunds`. Nao abrir campo `scopes` nem RBAC.
   - Validacao: spec API key + payment da store -> 403; JWT dashboard continua 201/replay.
 
 Done Criteria:
 
-- [ ] API key recem-criada (default) nao estorna.
-- [ ] JWT do dashboard continua estornando em TEST.
+- [x] API key recem-criada (default) nao estorna.
+- [x] JWT do dashboard continua estornando em TEST.
 
 ## P1 - Isolamento herdado, contexto e honestidade
 

@@ -5,7 +5,9 @@ import {
   InvalidRefundAmountError,
   PaymentNotFoundError,
 } from '@hockpay/core';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { IDEMPOTENCY_KEY } from '../../common/decorators/idempotent.decorator';
+import { JwtOnlyGuard } from '../auth/guards/jwt-only.guard';
 import { RefundController } from './refund.controller';
 
 describe('RefundController', () => {
@@ -16,6 +18,15 @@ describe('RefundController', () => {
     );
 
     expect(metadata).toEqual({ required: true });
+  });
+
+  it('rejects API keys on refund creation via JwtOnlyGuard', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      RefundController.prototype.createRefund,
+    ) as Array<unknown>;
+
+    expect(guards).toContain(JwtOnlyGuard);
   });
 
   it('creates refunds through the transactional idempotency service', async () => {
