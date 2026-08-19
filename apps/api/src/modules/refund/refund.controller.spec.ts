@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import {
   CreateRefundUseCase,
+  Environment,
   InvalidRefundAmountError,
   PaymentNotFoundError,
 } from '@hockpay/core';
@@ -60,6 +61,7 @@ describe('RefundController', () => {
         reason: 'duplicate',
       },
       'store-1',
+      Environment.TEST,
       {
         id: 'req-1',
         method: 'POST',
@@ -85,6 +87,7 @@ describe('RefundController', () => {
         requestId: 'req-1',
         amount: 500,
         reason: 'duplicate',
+        callerEnvironment: Environment.TEST,
       },
       repos,
     );
@@ -115,6 +118,7 @@ describe('RefundController', () => {
       }).createRefund(
         { paymentId: 'payment-1', amount: 500 },
         'store-1',
+        Environment.TEST,
         refundRequest(),
         refundResponse(),
       ),
@@ -132,6 +136,7 @@ describe('RefundController', () => {
       }).createRefund(
         { paymentId: 'payment-1', amount: 0 },
         'store-1',
+        Environment.TEST,
         refundRequest(),
         refundResponse(),
       ),

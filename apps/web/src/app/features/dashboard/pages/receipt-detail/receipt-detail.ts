@@ -121,6 +121,20 @@ import { ReceiptService, ReceiptStatus } from '../../../../core/services/receipt
                   <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Descrição</p>
                   <p class="mt-2 text-sm text-zinc-700">{{ receipt.description || 'Sem descrição registrada.' }}</p>
                 </div>
+
+                @if (receipt.items?.length) {
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Itens</p>
+                    <ul class="mt-2 divide-y divide-zinc-100">
+                      @for (item of receipt.items; track item.name + item.quantity) {
+                        <li class="flex items-start justify-between gap-4 py-2">
+                          <span class="text-sm text-zinc-700">{{ item.quantity }} × {{ item.name }}</span>
+                          <span class="text-sm font-semibold text-zinc-900">{{ item.totalPrice / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
               </section>
 
               <section class="space-y-4">

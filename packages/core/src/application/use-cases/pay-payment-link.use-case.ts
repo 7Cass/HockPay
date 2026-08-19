@@ -26,12 +26,17 @@ import { enrichPaymentAttempt } from "../services/payment-attempt-context.servic
 import { settleConfirmedPayment } from "./settle-confirmed-payment";
 import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
 import { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
+import { CustomerDocumentRequiredError } from "../../domain/errors/customer-document-required.error";
+import { Customer } from "../../domain/entities/customer.entity";
+import { Document } from "../../domain/value-objects/document.vo";
+import { PaymentCustomerInput } from "./create-payment.use-case";
 import { buildReceiptNumber } from "./receipt-number";
 
 export interface IPayPaymentLinkInput {
   publicToken: string;
   requestId?: string;
   environment: Environment;
+  customer?: PaymentCustomerInput;
 }
 
 export interface IPayPaymentLinkOutput {
@@ -97,7 +102,15 @@ export class PayPaymentLinkUseCase {
       const store = await repos.storeRepository.findById(item.storeId);
       if (!store) throw new PaymentLinkUnavailableError("Payment link store is invalid");
 
-      const payment = this.createAttempt(input, item, pixCharge.toObject(), store);
+      const customer = await this.resolveCustomer(repos, item.storeId, input.customer);
+
+      const payment = this.createAttempt(
+        input,
+        item,
+        pixCharge.toObject(),
+        store,
+        customer,
+      );
 
       await repos.paymentRepository.save(payment);
       const createdPayload = await this.buildPaymentPayload(
@@ -131,11 +144,40 @@ export class PayPaymentLinkUseCase {
     });
   }
 
+  private async resolveCustomer(
+    repos: ITransactedRepositories,
+    storeId: string,
+    customerInput?: PaymentCustomerInput,
+  ): Promise<Customer> {
+    if (!customerInput?.document) {
+      throw new CustomerDocumentRequiredError();
+    }
+    const document = new Document(customerInput.document);
+
+    const existing = await repos.customerRepository.findByDocument(
+      storeId,
+      document.value,
+    );
+    if (existing) {
+      return existing;
+    }
+
+    const customer = Customer.create({
+      storeId,
+      name: customerInput.name,
+      email: customerInput.email,
+      document,
+    });
+    await repos.customerRepository.save(customer);
+    return customer;
+  }
+
   private createAttempt(
     input: IPayPaymentLinkInput,
     item: PaymentLinkListItem,
     pixCharge: PixChargeObject,
     store: { feePercent: number; feeFixed: number },
+    customer: Customer,
   ): Payment {
     const feeResult = this.feePolicy.calculate({
       amountInCents: item.amount,
@@ -147,6 +189,10 @@ export class PayPaymentLinkUseCase {
 
     return Payment.create({
       storeId: item.storeId,
+      customerId: customer.id,
+      payerName: customer.name,
+      payerEmail: customer.email,
+      payerDocument: customer.document.value,
       pixChargeId: pixCharge.id,
       amount: item.amount,
       fee: feeResult.feeInCents,

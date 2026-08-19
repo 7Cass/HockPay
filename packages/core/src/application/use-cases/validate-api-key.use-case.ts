@@ -42,15 +42,18 @@ export class ValidateApiKeyUseCase {
   async execute(input: IValidateApiKeyInput): Promise<IValidateApiKeyOutput> {
     // 1. Validate format
     if (!input.plainKey.startsWith('hk_')) {
-      throw new InvalidApiKeyFormatError(input.plainKey);
+      throw new InvalidApiKeyFormatError();
     }
 
     const parts = input.plainKey.split('_');
     if (parts.length < 3) {
-      throw new InvalidApiKeyFormatError(input.plainKey);
+      throw new InvalidApiKeyFormatError();
     }
 
     const env = parts[1];
+    if (env !== 'test' && env !== 'live') {
+      throw new InvalidApiKeyFormatError();
+    }
     const environment = env === 'test' ? 'TEST' : 'LIVE';
 
     // 2. Hash the key
@@ -63,7 +66,7 @@ export class ValidateApiKeyUseCase {
     );
 
     if (!apiKey) {
-      throw new InvalidApiKeyFormatError(input.plainKey);
+      throw new InvalidApiKeyFormatError();
     }
 
     // 4. Check if revoked

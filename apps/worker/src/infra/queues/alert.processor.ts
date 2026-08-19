@@ -7,6 +7,7 @@ import {
   isFinalBullMqFailure,
   WorkerDeadLetterJobData,
 } from '../../common/dead-letter-job';
+import { createWorkerRequestId } from '../../common/request-id';
 
 const ALERT_DELIVERY_QUEUE = 'alert-delivery';
 const ALERT_DEAD_LETTER_QUEUE = 'alert-dead-letter';
@@ -25,10 +26,14 @@ export class AlertProcessor extends WorkerHost {
   }
 
   async process(job: Job<AlertJobData>): Promise<void> {
-    this.logger.debug(`Processing alert job ${job.id} for event ${job.data.eventId}`);
+    const requestId = job.data.requestId ?? createWorkerRequestId('alert-delivery', job.id);
+    this.logger.debug(
+      `Processing alert job requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId}`,
+    );
 
     const result = await this.processAlertDeliveryUseCase.execute({
       eventId: job.data.eventId,
+      requestId,
     });
 
     if (result.failed > 0) {
@@ -36,7 +41,7 @@ export class AlertProcessor extends WorkerHost {
     }
 
     this.logger.debug(
-      `Alert job ${job.id} completed: ${result.delivered} delivered, ${result.skipped} skipped`,
+      `Alert job completed requestId=${requestId} jobId=${job.id} outboxEventId=${job.data.eventId} delivered=${result.delivered} skipped=${result.skipped}`,
     );
   }
 
@@ -53,7 +58,7 @@ export class AlertProcessor extends WorkerHost {
     });
 
     this.logger.error(
-      `Alert job moved to DLQ jobId=${job.id} outboxEventId=${deadLetterJob.outboxEventId ?? 'unknown'} attemptsMade=${job.attemptsMade}: ${deadLetterJob.failedReason}`,
+      `Alert job moved to DLQ requestId=${job.data.requestId ?? 'unknown'} jobId=${job.id} outboxEventId=${deadLetterJob.outboxEventId ?? 'unknown'} attemptsMade=${job.attemptsMade}: ${deadLetterJob.failedReason}`,
     );
   }
 }

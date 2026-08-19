@@ -43,7 +43,8 @@ export async function fetchPaymentLinkSession(token: string): Promise<PaymentLin
 
 export async function simulatePaymentLink(
   token: string,
-  action: 'pay' | 'fail'
+  action: 'pay' | 'fail',
+  customer?: { document?: string; name?: string; email?: string },
 ): Promise<{ success: boolean; payment?: CheckoutPayment; error?: string }> {
   try {
     const response = await fetch(`${env.apiUrl}/payment-links/public/${token}/${action}`, {
@@ -51,6 +52,7 @@ export async function simulatePaymentLink(
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(action === 'pay' ? { customer } : {}),
     });
 
     if (!response.ok) {

@@ -6,13 +6,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  NotFoundException,
 } from '@nestjs/common';
-import {
-  GetReceiptUseCase,
-  ListReceiptsUseCase,
-  ReceiptNotFoundError,
-} from '@hockpay/core';
+import { GetReceiptUseCase, ListReceiptsUseCase } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';

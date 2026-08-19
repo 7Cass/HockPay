@@ -14,8 +14,12 @@ function productionDomainErrorCodes(): string[] {
     .flatMap((file) => {
       const source = readFileSync(join(DOMAIN_ERRORS_DIR, file), 'utf8');
       const matches = [
-        ...source.matchAll(/super\(\s*(?:`[^`]*`|'[^']*'|"[^"]*")\s*,\s*'([A-Z0-9_]+)'/g),
-        ...source.matchAll(/super\(\s*(?:`[^`]*`|'[^']*'|"[^"]*")\s*,\s*"([A-Z0-9_]+)"/g),
+        ...source.matchAll(
+          /super\(\s*(?:`[^`]*`|'[^']*'|"[^"]*")\s*,\s*'([A-Z0-9_]+)'/g,
+        ),
+        ...source.matchAll(
+          /super\(\s*(?:`[^`]*`|'[^']*'|"[^"]*")\s*,\s*"([A-Z0-9_]+)"/g,
+        ),
       ];
       return matches.map((match) => match[1]);
     })

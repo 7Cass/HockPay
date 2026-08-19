@@ -284,7 +284,7 @@ Done Criteria:
 
 ### P1.6 API keys: authz minima e superficie honesta
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: qualquer key da store saca, estorna e cria webhook. Dashboard so lista/cria TEST; key LIVE emitida pela API fica invisivel e irrevogavel na UI. `lastUsedAt` existe e nao aparece. Resposta de revoke inventa prefix/name/TEST. `InvalidApiKeyFormatError` embute a key em claro.
 
@@ -301,28 +301,28 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.6.1 Fechar saque (e, se o mesmo seam servir, refund) para API key sem escopo.
+- [x] P1.6.1 Fechar saque (e, se o mesmo seam servir, refund) para API key sem escopo.
   - Problema: CombinedAuth basta para `POST /withdrawals`.
   - Solucao: preferir JWT-only em withdrawal/refund **ou** um campo `scopes` minimo (`payments`, `withdrawals`). Nao construir RBAC.
   - Validacao: key sem escopo de saque toma 403; JWT do dashboard continua.
-- [ ] P1.6.2 Dashboard lista, cria (se permitido) e revoga keys LIVE; mostra `lastUsedAt`.
+- [x] P1.6.2 Dashboard lista, cria (se permitido) e revoga keys LIVE; mostra `lastUsedAt`.
   - Problema: UI e TEST-only e esconde o campo que o schema ja tem.
   - Solucao: tirar o filtro hard-coded; revoke devolve o registro real.
   - Validacao: spec/UI de lista com LIVE; body de revoke nao inventa TEST.
-- [ ] P1.6.3 Parar de colocar a key crua no erro/log.
+- [x] P1.6.3 Parar de colocar a key crua no erro/log.
   - Problema: `Invalid API Key format: ${key}`.
   - Solucao: mensagem estavel; no log so prefixo/length.
   - Validacao: spec do use case/guard sem o material da key.
 
 Done Criteria:
 
-- [ ] Key recem-criada (default) nao saca.
-- [ ] LIVE e visivel e revogavel no dashboard.
-- [ ] Erro/log de formato nao ecoa o segredo.
+- [x] Key recem-criada (default) nao saca.
+- [x] LIVE e visivel e revogavel no dashboard.
+- [x] Erro/log de formato nao ecoa o segredo.
 
 ### P1.7 Chrome que finge produto inexistente
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: login/register tem GitHub sem handler. "Esqueceu a senha?" aponta para `#`. Sino do dashboard diz "nao disponiveis no P3". Settings ainda abre "Revisao comercial futura" sem backend.
 
@@ -336,23 +336,23 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.7.1 Remover GitHub e o link de reset, ou desabilitar com texto honesto ("nao disponivel").
+- [x] P1.7.1 Remover GitHub e o link de reset, ou desabilitar com texto honesto ("nao disponivel").
   - Problema: botao que parece OAuth.
   - Solucao: apagar; nao implementar OAuth/email nesta goal.
   - Validacao: `rg "GitHub|Esqueceu a senha" apps/web/src` sem CTA morto.
-- [ ] P1.7.2 Remover o sino P3 e o dialog de revisao comercial.
+- [x] P1.7.2 Remover o sino P3 e o dialog de revisao comercial.
   - Problema: linguagem interna e produto fantasma.
   - Solucao: Settings continua read-only nas condicoes comerciais (P1.9 cuida do perfil); sem botao de "revisao futura".
   - Validacao: `rg "P3|revisão futura|revisao futura" apps/web/src` vazio.
 
 Done Criteria:
 
-- [ ] Auth e shell do dashboard nao prometem OAuth, reset nem notificacoes.
-- [ ] Settings nao vende revisao comercial.
+- [x] Auth e shell do dashboard nao prometem OAuth, reset nem notificacoes.
+- [x] Settings nao vende revisao comercial.
 
 ### P1.8 Products e items: copy e investigacao no dashboard
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: a tela de Products diz que o catalogo alimenta "links de pagamento e checkout hospedado". Payment Link rejeita `items`. Checkout session com items e API-first (documentado). `PaymentObject.items` existe; payment-detail e receipt-detail nao renderizam.
 
@@ -367,24 +367,24 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.8.1 Corrigir o copy de Products: catalogo alimenta checkout session via API; Payment Link continua amount-only.
+- [x] P1.8.1 Corrigir o copy de Products: catalogo alimenta checkout session via API; Payment Link continua amount-only.
   - Problema: a tela mente o contrato.
   - Solucao: texto alinhado a `docs/CURRENT_STATE.md`; CTA so para o que existe.
   - Validacao: `rg "links de pagamento" apps/web/src/app/features/dashboard/pages/products` vazio ou honesto.
-- [ ] P1.8.2 Renderizar `items` em payment-detail e receipt-detail.
+- [x] P1.8.2 Renderizar `items` em payment-detail e receipt-detail.
   - Problema: o dado ja chega no cliente.
   - Solucao: o mesmo resumo do checkout, autenticado.
   - Validacao: spec do detail com items mostra nome/qty/subtotal.
 
 Done Criteria:
 
-- [ ] Products nao promete Payment Link com catalogo.
-- [ ] Pagamento/recibo com items e investigavel no dashboard.
-- [ ] Esta goal **nao** adiciona `items` em Payment Link nem CRUD de checkout session no dashboard.
+- [x] Products nao promete Payment Link com catalogo.
+- [x] Pagamento/recibo com items e investigavel no dashboard.
+- [x] Esta goal **nao** adiciona `items` em Payment Link nem CRUD de checkout session no dashboard.
 
 ### P1.9 Settings: perfil da loja e cidade do EMV
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: Store nao tem cidade. `resolvePixMerchantCity()` e chamado sem argumento; o QR e sempre `SAO PAULO`. Settings e 100% leitura. Condicoes comerciais (fee, D+) devem continuar imutaveis pelo merchant.
 
@@ -400,27 +400,27 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.9.1 Adicionar `city` em Store (opcional) e PATCH autenticado de `name` + `city`.
+- [x] P1.9.1 Adicionar `city` em Store (opcional) e PATCH autenticado de `name` + `city`.
   - Problema: nao ha campo nem mutacao.
   - Solucao: migration + use case; slug/fee/settlement/aprovacao continuam protegidos.
   - Validacao: spec de PATCH; fee no body e ignorado ou 422.
-- [ ] P1.9.2 Create payment / Payment Link usam `resolvePixMerchantCity(store.city)`.
+- [x] P1.9.2 Create payment / Payment Link usam `resolvePixMerchantCity(store.city)`.
   - Problema: fallback escondido no meio do metodo.
   - Solucao: cidade da store; sem cidade, `SAO PAULO` documentado.
   - Validacao: spec com store em outra cidade.
-- [ ] P1.9.3 Settings edita nome e cidade; continua read-only em taxa e liquidacao.
+- [x] P1.9.3 Settings edita nome e cidade; continua read-only em taxa e liquidacao.
   - Problema: a tela so da refresh.
   - Solucao: form minimo; sem dialog de revisao (P1.7).
   - Validacao: fluxo dashboard grava e o QR seguinte usa a cidade.
 
 Done Criteria:
 
-- [ ] EMV deixa de estar hardcoded nos dois creates.
-- [ ] Merchant consegue nome publico e cidade; nao edita fee.
+- [x] EMV deixa de estar hardcoded nos dois creates.
+- [x] Merchant consegue nome publico e cidade; nao edita fee.
 
 ### P1.10 Payment Link publico coleta pagador
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: checkout session pede nome/email/documento. `/pay/:token` so confirma/falha o Pix. `PayPaymentLinkUseCase.createAttempt` grava `Payment` sem `customerId`.
 
@@ -433,25 +433,25 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.10.1 Public pay aceita customer (mesmo contrato minimo do fulfill) e associa ao Payment.
+- [x] P1.10.1 Public pay aceita customer (mesmo contrato minimo do fulfill) e associa ao Payment.
   - Problema: tentativa sem titular.
   - Solucao: resolver/criar customer na mesma transacao do attempt, no padrao do checkout.
   - Validacao: spec de pay com documento cria customer da store; payment.customerId preenchido.
-- [ ] P1.10.2 Checkout `/pay/:token` coleta os campos antes de simular.
+- [x] P1.10.2 Checkout `/pay/:token` coleta os campos antes de simular.
   - Problema: a UI nao pede dados.
   - Solucao: o mesmo bloco de identificacao do hosted checkout.
   - Validacao: pay sem documento falha; com documento, customer aparece no dashboard.
 
 Done Criteria:
 
-- [ ] Link pago tem customer.
-- [ ] Clientes/historico veem o caminho de Payment Link.
+- [x] Link pago tem customer.
+- [x] Clientes/historico veem o caminho de Payment Link.
 
 ## P2 - Acabamento
 
 ### P2.1 Copy do checkout como simulador
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `apps/checkout` metadata diz "Pagamento Pix seguro". O produto nao processa Pix real.
 
@@ -464,16 +464,16 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.1.1 Trocar title/description para linguagem de checkout/simulacao, sem "seguro" / adquirencia.
+- [x] P2.1.1 Trocar title/description para linguagem de checkout/simulacao, sem "seguro" / adquirencia.
   - Validacao: `rg "Pix seguro" apps/checkout` vazio.
 
 Done Criteria:
 
-- [ ] Checkout nao afirma pagamento real nem "seguro".
+- [x] Checkout nao afirma pagamento real nem "seguro".
 
 ### P2.2 Dead code e `as never` que a passagem anterior nao varreu
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `apps/api/src/infra/queues/` vazio. `ApiKeyGeneratorService` e `ICreateMerchant` sem caller. `CreatePaymentLinkUseCase` casta repos `as never` porque cria fora do UoW. `DetectAnomaliesUseCase` ainda injeta `IPaymentRepository` e ignora.
 
@@ -489,21 +489,21 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.2.1 Apagar adapters/pastas mortas da API.
+- [x] P2.2.1 Apagar adapters/pastas mortas da API.
   - Validacao: arquivos sem import somem.
-- [ ] P2.2.2 Create de Payment Link usa UoW (ja tem product no bag) ou deixa de castear `as never`.
+- [x] P2.2.2 Create de Payment Link usa UoW (ja tem product no bag) ou deixa de castear `as never`.
   - Validacao: spec de create link continua; sem `as never` no use case.
-- [ ] P2.2.3 Stub de antifraude nao injeta repositorio que nao usa.
+- [x] P2.2.3 Stub de antifraude nao injeta repositorio que nao usa.
   - Validacao: construtor so o que o `execute` le.
 
 Done Criteria:
 
-- [ ] API nao tem infra oca nova.
-- [ ] Create de link nao mente o tipo do repo.
+- [x] API nao tem infra oca nova.
+- [x] Create de link nao mente o tipo do repo.
 
 ### P2.3 Paginar Payment Link no SQL
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: o repositorio de link carrega todas as linhas da store para calcular stats e pagina em memoria.
 
@@ -515,16 +515,16 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.3.1 Paginar no Prisma; agregar stats sem materializar a lista inteira.
+- [x] P2.3.1 Paginar no Prisma; agregar stats sem materializar a lista inteira.
   - Validacao: spec/repo com N > page size nao le tudo para devolver uma pagina.
 
 Done Criteria:
 
-- [ ] Listagem autenticada de links nao faz full scan da store.
+- [x] Listagem autenticada de links nao faz full scan da store.
 
 ### P2.4 Um `requestId` e trilha de alert
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: pino `genReqId` e `getOrCreateRequestId` sao duas fabricas. Alert processor nao carrega `requestId`. Linhas de sucesso/fail do webhook processor omitem `deliveryId`.
 
@@ -538,15 +538,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.4.1 Uma funcao so gera/valida `X-Request-ID` para pino, interceptor e outbox.
+- [x] P2.4.1 Uma funcao so gera/valida `X-Request-ID` para pino, interceptor e outbox.
   - Validacao: spec do request-id; header e `req.id` iguais.
-- [ ] P2.4.2 Alert e webhook processor logam `requestId` / `outboxEventId` / `deliveryId` quando existirem.
+- [x] P2.4.2 Alert e webhook processor logam `requestId` / `outboxEventId` / `deliveryId` quando existirem.
   - Validacao: assert nos logs de processor/DLQ.
 
 Done Criteria:
 
-- [ ] Uma regra de request id na API.
-- [ ] Alert deixa de nascer sem trilha.
+- [x] Uma regra de request id na API.
+- [x] Alert deixa de nascer sem trilha.
 
 ## Public APIs / Interfaces Mentioned By This Goal
 
@@ -562,12 +562,12 @@ Done Criteria:
 
 ## Validation Log For This Goal
 
-- [ ] `pnpm --filter @hockpay/core test:ci`
-- [ ] `pnpm --filter @hockpay/infrastructure test`
-- [ ] `pnpm --filter @hockpay/api test`
-- [ ] `pnpm --filter @hockpay/worker test`
-- [ ] `pnpm --filter @hockpay/web test -- --watch=false`
-- [ ] `pnpm run lint:check`
+- [x] `pnpm --filter @hockpay/core test:ci`
+- [x] `pnpm --filter @hockpay/infrastructure test`
+- [x] `pnpm --filter @hockpay/api test`
+- [x] `pnpm --filter @hockpay/worker test`
+- [x] `pnpm --filter @hockpay/web test -- --watch=false`
+- [x] `pnpm run lint:check`
 
 Comandos tipicos:
 

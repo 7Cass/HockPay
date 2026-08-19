@@ -9,9 +9,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  ConflictException,
-  NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   CreateCustomerUseCase,
@@ -19,9 +16,6 @@ import {
   ListCustomersUseCase,
   GetCustomerUseCase,
   UpdateCustomerUseCase,
-  CustomerAlreadyExistsError,
-  CustomerNotFoundError,
-  DocumentAlreadyInUseError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';

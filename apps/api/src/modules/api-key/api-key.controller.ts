@@ -11,7 +11,6 @@ import {
   CreateApiKeyUseCase,
   ListApiKeysUseCase,
   RevokeApiKeyUseCase,
-  Environment,
   type ICreateApiKeyInput,
   type IListApiKeysInput,
 } from '@hockpay/core';
@@ -113,21 +112,14 @@ export class ApiKeyController {
     @CurrentStore() storeId: string,
     @Param('id') id: string,
   ): Promise<RevokeApiKeyResponseDto> {
-    await this.revokeApiKeyUseCase.execute({
+    const result = await this.revokeApiKeyUseCase.execute({
       storeId,
       apiKeyId: id,
     });
 
     return {
       message: 'API key revoked successfully',
-      apiKey: {
-        id,
-        storeId,
-        prefix: '',
-        name: '',
-        environment: Environment.TEST,
-        createdAt: new Date(),
-      },
+      apiKey: result.apiKey,
     };
   }
 }

@@ -68,7 +68,7 @@ export class OutboxDispatcherJob implements OnModuleInit {
           await this.webhookQueue.enqueue(event.id, undefined, requestId);
 
           try {
-            await this.alertQueue.enqueue(event.id);
+            await this.alertQueue.enqueue(event.id, undefined, requestId);
           } catch (error) {
             this.logger.warn(
               `Failed to enqueue alert delivery requestId=${requestId} outboxEventId=${event.id} paymentId=${paymentId}`,

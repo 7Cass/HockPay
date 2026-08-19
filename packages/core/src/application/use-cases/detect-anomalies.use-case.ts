@@ -1,5 +1,3 @@
-import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
-
 export enum AnomalyType {
   HIGH_VOLUME = 'HIGH_VOLUME',
   RAPID_TRANSACTIONS = 'RAPID_TRANSACTIONS',
@@ -28,8 +26,6 @@ export interface IDetectAnomaliesOutput {
 }
 
 export class DetectAnomaliesUseCase {
-  constructor(private readonly paymentRepository: IPaymentRepository) {}
-
   async execute(
     _input: IDetectAnomaliesInput = {},
   ): Promise<IDetectAnomaliesOutput> {

@@ -31,7 +31,6 @@ import {
   CleanupLogsUseCase,
   DetectAnomaliesUseCase,
   FailWithdrawalUseCase,
-  IPaymentRepository,
   IOutboxRepository,
   IWebhookConfigRepository,
   IWebhookLogRepository,
@@ -231,9 +230,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     },
     {
       provide: DetectAnomaliesUseCase,
-      useFactory: (paymentRepository: IPaymentRepository) =>
-        new DetectAnomaliesUseCase(paymentRepository),
-      inject: ['IPaymentRepository'],
+      useFactory: () => new DetectAnomaliesUseCase(),
     },
   ],
   exports: [

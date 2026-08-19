@@ -24,6 +24,12 @@ export interface ReceiptObject {
     netAmount: number;
     currency: string;
     description?: string;
+    items?: Array<{
+        name: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+    }>;
     status: ReceiptStatus;
     issuedAt: Date | string;
     createdAt: Date | string;

@@ -10,7 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  NotFoundException,
   BadRequestException,
   Req,
 } from '@nestjs/common';
@@ -26,10 +25,6 @@ import {
   ListWebhookLogsUseCase,
   ListWebhookInboxEventsUseCase,
   RetryWebhookLogUseCase,
-  WebhookConfigNotFoundError,
-  WebhookLogNotFoundError,
-  InvalidWebhookEventsError,
-  InvalidWebhookUrlError,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';

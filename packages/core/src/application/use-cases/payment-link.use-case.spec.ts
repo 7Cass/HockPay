@@ -626,6 +626,15 @@ describe('PaymentLink use cases', () => {
               update: vi.fn(),
             },
             storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+            customerRepository: {
+              findByDocument: vi.fn().mockResolvedValue(null),
+              save: vi.fn(),
+              findById: vi.fn().mockResolvedValue({
+                name: 'Ana',
+                email: undefined,
+                document: { value: '52998224725' },
+              }),
+            },
             paymentRepository: {
               save: vi.fn(async (payment: Payment) => {
                 savedPayment = payment;
@@ -653,6 +662,7 @@ describe('PaymentLink use cases', () => {
       publicToken: 'public-token',
       environment: Environment.TEST,
       requestId: 'req-1',
+      customer: { document: '52998224725', name: 'Ana' },
     });
 
     expect(account.addToPending).toHaveBeenCalledWith(4910);
@@ -662,6 +672,39 @@ describe('PaymentLink use cases', () => {
     ]);
     expect(result.payment.status).toBe(PaymentStatus.CONFIRMED);
     expect(result.payment.pixCharge?.status).toBe(PixChargeStatus.PAID);
+    expect(result.payment.customerId).toBeDefined();
+  });
+
+  it('rejects public pay without a customer document', async () => {
+    const item = makePaymentLinkListItem();
+    const useCase = new PayPaymentLinkUseCase(
+      { findPublicByToken: vi.fn().mockResolvedValue(item) } as any,
+      {
+        execute: vi.fn((handler) =>
+          handler({
+            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            pixChargeRepository: {
+              findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(makePixChargeFromItem(item)),
+              update: vi.fn(),
+            },
+            storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+            customerRepository: {
+              findByDocument: vi.fn(),
+              save: vi.fn(),
+            },
+            paymentRepository: { save: vi.fn() },
+          }),
+        ),
+      } as any,
+      { calculate: vi.fn() } as any,
+    );
+
+    await expect(
+      useCase.execute({
+        publicToken: 'public-token',
+        environment: Environment.TEST,
+      }),
+    ).rejects.toMatchObject({ code: 'CUSTOMER_DOCUMENT_REQUIRED' });
   });
 
   it('does not create a second confirmed payment when the locked PixCharge is already paid', async () => {
@@ -693,6 +736,15 @@ describe('PaymentLink use cases', () => {
               update: vi.fn(),
             },
             storeRepository: { findById: vi.fn().mockResolvedValue(makeStore()) },
+            customerRepository: {
+              findByDocument: vi.fn().mockResolvedValue(null),
+              save: vi.fn(),
+              findById: vi.fn().mockResolvedValue({
+                name: 'Ana',
+                email: undefined,
+                document: { value: '52998224725' },
+              }),
+            },
             paymentRepository,
             accountRepository: {
               findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
@@ -713,10 +765,12 @@ describe('PaymentLink use cases', () => {
     const first = await useCase.execute({
       publicToken: 'public-token',
       environment: Environment.TEST,
+      customer: { document: '52998224725', name: 'Ana' },
     });
     const second = await useCase.execute({
       publicToken: 'public-token',
       environment: Environment.TEST,
+      customer: { document: '52998224725', name: 'Ana' },
     });
 
     expect(second.payment.id).toBe(first.payment.id);

@@ -183,7 +183,15 @@ import { Store, StoreService } from '../../../../core/services/store.service';
               <dl class="mt-5 grid gap-3 sm:grid-cols-2">
                 <div class="rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2">
                   <dt class="text-xs font-medium text-zinc-500">Nome público</dt>
-                  <dd class="mt-1 text-sm font-semibold text-zinc-900">{{ store.name }}</dd>
+                  <dd class="mt-1">
+                    <input class="h-9 w-full rounded-md border border-zinc-200 bg-white px-2 text-sm" [value]="profileName()" (input)="profileName.set($any($event.target).value)" />
+                  </dd>
+                </div>
+                <div class="rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2">
+                  <dt class="text-xs font-medium text-zinc-500">Cidade do EMV</dt>
+                  <dd class="mt-1">
+                    <input class="h-9 w-full rounded-md border border-zinc-200 bg-white px-2 text-sm" [value]="profileCity()" (input)="profileCity.set($any($event.target).value)" placeholder="SAO PAULO" />
+                  </dd>
                 </div>
                 <div class="rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3 py-2">
                   <dt class="text-xs font-medium text-zinc-500">Slug</dt>
@@ -199,12 +207,9 @@ import { Store, StoreService } from '../../../../core/services/store.service';
                 </div>
               </dl>
 
-              <div class="mt-5 flex items-start gap-3 rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-3 text-sm text-amber-900">
-                <ng-icon hlm name="lucideInfo" size="sm" class="mt-0.5 flex-shrink-0 text-amber-600"></ng-icon>
-                <p>
-                  Dados cadastrais da loja são protegidos no HockPay. Alterações serão tratadas por revisão operacional.
-                </p>
-              </div>
+              <button hlmBtn type="button" class="mt-5" [disabled]="isSavingProfile()" (click)="saveProfile()">
+                {{ isSavingProfile() ? 'Salvando...' : 'Salvar nome e cidade' }}
+              </button>
             </section>
 
             <section class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
@@ -242,44 +247,9 @@ import { Store, StoreService } from '../../../../core/services/store.service';
               <p class="mt-4 text-sm text-zinc-600">
                 Essas condições impactam novos pagamentos e repasses futuros. A edição direta fica restrita ao time HockPay.
               </p>
-
-              <button hlmBtn type="button" variant="outline" class="mt-5 w-full border-dashed border-zinc-300 bg-zinc-50 text-zinc-600 shadow-none hover:bg-zinc-100"
-                (click)="openReviewDialog()">
-                <ng-icon hlm name="lucideCircleDollarSign" size="sm" class="mr-2"></ng-icon>
-                Ver revisão futura
-              </button>
             </section>
           </div>
         }
-      }
-
-      @if (isReviewDialogOpen()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div class="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <h2 class="text-lg font-semibold tracking-tight text-zinc-900">Revisão comercial futura</h2>
-                <p class="mt-1 text-sm text-zinc-500">
-                  Este é apenas um aviso informativo. A tela de configurações é somente leitura no produto atual.
-                </p>
-              </div>
-              <button type="button" (click)="closeReviewDialog()"
-                class="rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700">
-                <ng-icon hlm name="lucideX" size="sm"></ng-icon>
-              </button>
-            </div>
-
-            <div class="mt-5 rounded-lg border border-zinc-200/80 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-              Em uma entrega futura, a avaliação deve seguir regras padronizadas de risco, volume, histórico e elegibilidade, semelhante a uma revisão de limite em produtos financeiros.
-            </div>
-
-            <div class="mt-6 flex justify-end">
-              <button hlmBtn type="button" class="bg-zinc-900 text-white hover:bg-zinc-800" (click)="closeReviewDialog()">
-                Entendi
-              </button>
-            </div>
-          </div>
-        </div>
       }
     </div>
   `,
@@ -290,7 +260,9 @@ export class Settings implements OnInit {
 
     readonly isLoading = signal(true);
     readonly error = signal<string | null>(null);
-    readonly isReviewDialogOpen = signal(false);
+    readonly isSavingProfile = signal(false);
+    readonly profileName = signal('');
+    readonly profileCity = signal('');
 
     readonly currentUser = computed(() => this.authService.currentUser());
     readonly currentStore = computed(() => this.storeService.currentStore());
@@ -305,7 +277,12 @@ export class Settings implements OnInit {
         this.error.set(null);
 
         this.storeService.loadStores().subscribe({
-            next: () => this.isLoading.set(false),
+            next: () => {
+                const store = this.storeService.currentStore();
+                this.profileName.set(store?.name ?? '');
+                this.profileCity.set(store?.city ?? '');
+                this.isLoading.set(false);
+            },
             error: (err) => {
                 console.error('Failed to load settings stores:', err);
                 this.error.set(err?.error?.message || err?.message || 'Erro ao carregar lojas.');
@@ -314,12 +291,23 @@ export class Settings implements OnInit {
         });
     }
 
-    openReviewDialog(): void {
-        this.isReviewDialogOpen.set(true);
-    }
-
-    closeReviewDialog(): void {
-        this.isReviewDialogOpen.set(false);
+    saveProfile(): void {
+        const store = this.currentStore();
+        if (!store) return;
+        this.isSavingProfile.set(true);
+        this.storeService.updateProfile(store.id, {
+            name: this.profileName().trim() || store.name,
+            city: this.profileCity().trim() || undefined,
+        }).subscribe({
+            next: () => {
+                this.isSavingProfile.set(false);
+                this.reload();
+            },
+            error: (err) => {
+                this.isSavingProfile.set(false);
+                this.error.set(err?.error?.message || err?.message || 'Erro ao salvar perfil.');
+            },
+        });
     }
 
     formatPercent(value: number): string {

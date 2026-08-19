@@ -5,6 +5,7 @@ import {
   CreateStoreUseCase,
   IUnitOfWork,
   ListStoresUseCase,
+  UpdateStoreProfileUseCase,
 } from '@hockpay/core';
 import { StoreRepository, UnitOfWork } from '@hockpay/infrastructure';
 import { JwtService } from 'src/infra/services/jwt.service';
@@ -68,7 +69,14 @@ import { AuthModule } from '../auth/auth.module';
       },
       inject: [StoreRepository],
     },
+    {
+      provide: UpdateStoreProfileUseCase,
+      useFactory: (storeRepo: StoreRepository) => {
+        return new UpdateStoreProfileUseCase(storeRepo);
+      },
+      inject: [StoreRepository],
+    },
   ],
-  exports: [CreateStoreUseCase, ListStoresUseCase],
+  exports: [CreateStoreUseCase, ListStoresUseCase, UpdateStoreProfileUseCase],
 })
 export class StoreModule {}

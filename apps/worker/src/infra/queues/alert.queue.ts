@@ -18,10 +18,10 @@ export class AlertQueue implements IAlertQueuePort, OnModuleDestroy {
     }
   }
 
-  async enqueue(eventId: string, delay?: number): Promise<void> {
+  async enqueue(eventId: string, delay?: number, requestId?: string): Promise<void> {
     await this.queue.add(
       'deliver',
-      { eventId },
+      { eventId, requestId },
       {
         delay: delay ?? 0,
         jobId: `alert-${eventId}`,

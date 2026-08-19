@@ -220,6 +220,23 @@ function parseBrlToCents(value: string | number | null | undefined): number {
           </div>
         </div>
 
+        @if (data.payment.items?.length) {
+          <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+            <h2 class="text-base font-semibold text-zinc-900">Itens</h2>
+            <ul class="mt-4 divide-y divide-zinc-100">
+              @for (item of data.payment.items; track item.name + item.quantity) {
+                <li class="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                  <div>
+                    <p class="text-sm font-semibold text-zinc-900">{{ item.name }}</p>
+                    <p class="mt-1 text-xs text-zinc-500">{{ item.quantity }} × {{ item.unitPrice / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+                  </div>
+                  <p class="text-sm font-semibold text-zinc-900">{{ item.totalPrice / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
         <section class="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm">
           <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>

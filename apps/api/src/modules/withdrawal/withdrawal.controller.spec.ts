@@ -1,5 +1,6 @@
 import {
   CreateWithdrawalUseCase,
+  Environment,
   GetWithdrawalUseCase,
   ListWithdrawalsUseCase,
 } from '@hockpay/core';
@@ -86,6 +87,7 @@ describe('WithdrawalController', () => {
         amount: 1000,
       },
       'store-1',
+      Environment.TEST,
       {
         id: 'req-1',
         method: 'POST',
@@ -110,6 +112,7 @@ describe('WithdrawalController', () => {
         bankAccountId: 'bank-account-1',
         amount: 1000,
         requestId: 'req-1',
+        environment: Environment.TEST,
       },
       repos,
     );

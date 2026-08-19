@@ -23,6 +23,7 @@ export class StoreRepository implements IStoreRepository {
           settlementDays: store.settlementDays,
           feePercent: store.feePercent,
           feeFixed: store.feeFixed,
+          city: store.city,
           createdAt: store.createdAt,
           updatedAt: store.updatedAt,
         },
@@ -97,6 +98,7 @@ export class StoreRepository implements IStoreRepository {
         settlementDays: store.settlementDays,
         feePercent: store.feePercent,
         feeFixed: store.feeFixed,
+        city: store.city,
         updatedAt: store.updatedAt,
       },
     });
@@ -129,6 +131,7 @@ export class StoreRepository implements IStoreRepository {
       settlementDays: data.settlementDays,
       feePercent: Number(data.feePercent),
       feeFixed: data.feeFixed,
+      city: data.city ?? undefined,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     });

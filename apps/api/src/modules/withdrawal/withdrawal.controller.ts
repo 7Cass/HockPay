@@ -29,6 +29,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
 import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
+import { JwtOnlyGuard } from '../auth/guards/jwt-only.guard';
 import { BankAccountResponseDto } from '../bank-account/dtos/bank-account-response.dto';
 import { CreateWithdrawalDto } from './dtos/create-withdrawal.dto';
 import { ListWithdrawalsQueryDto } from './dtos/list-withdrawals.dto';
@@ -51,6 +52,7 @@ export class WithdrawalController {
   ) {}
 
   @Post()
+  @UseGuards(JwtOnlyGuard)
   @Idempotent({ required: true })
   @HttpCode(HttpStatus.CREATED)
   async create(

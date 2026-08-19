@@ -22,6 +22,9 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
   const [session, setSession] = useState(initialSession);
   const [loadingAction, setLoadingAction] = useState<'pay' | 'fail' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [document, setDocument] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const payment = session.lastPayment;
   const isPaid = session.paymentLink.status === 'PAID' || payment?.status === 'CONFIRMED' || payment?.status === 'RELEASED';
   const isUnavailable =
@@ -44,11 +47,21 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
   const handleSimulate = async (action: 'pay' | 'fail') => {
     if (action === 'pay' && !session.actions.canPay) return;
     if (action === 'fail' && !session.actions.canFail) return;
+    if (action === 'pay' && !document.trim()) {
+      setActionError('Informe o CPF ou CNPJ do pagador.');
+      return;
+    }
 
     setActionError(null);
     setLoadingAction(action);
     try {
-      const result = await simulatePaymentLink(token, action);
+      const result = await simulatePaymentLink(
+        token,
+        action,
+        action === 'pay'
+          ? { document: document.trim(), name: name.trim() || undefined, email: email.trim() || undefined }
+          : undefined,
+      );
       if (!result.success) {
         setActionError(result.error || 'Erro ao simular pagamento.');
         return;
@@ -111,8 +124,26 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
             <div className="flex justify-center mb-6">
               <QRCodeDisplay qrCodeBase64={session.pixCharge.pixQrCode} />
             </div>
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto space-y-3">
               <CopyPasteButton pixCopyPaste={session.pixCharge.pixCopyPaste} />
+              <input
+                className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm"
+                placeholder="CPF / CNPJ"
+                value={document}
+                onChange={(event) => setDocument(event.target.value)}
+              />
+              <input
+                className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm"
+                placeholder="Nome (opcional)"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+              <input
+                className="w-full h-10 px-3 border border-gray-300 rounded-md text-sm"
+                placeholder="E-mail (opcional)"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </div>
 
             {payment?.status === 'FAILED' && (

@@ -8,13 +8,7 @@
         } @else {
           <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Chaves de API</h1>
           <p class="text-sm text-zinc-500 mt-1">
-            Crie e gerencie chaves para integração com a API da HockPay.
-            <span
-              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold tracking-widest uppercase ml-2 border border-indigo-100"
-            >
-              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-              Modo sandbox
-            </span>
+            Crie e gerencie chaves TEST e LIVE. Saques exigem o dashboard, não a API key.
           </p>
         }
       </div>
@@ -37,7 +31,7 @@
           (click)="openCreateDialog()"
         >
           <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-          {{ headerVariant() === 'compact' ? 'Nova chave sandbox' : 'Nova chave' }}
+          Nova chave
         </button>
       </div>
     </div>
@@ -53,7 +47,7 @@
 
         <app-dialog-header
           title="Criar chave de API"
-          description="Crie uma nova chave para o ambiente sandbox."
+          description="Escolha o nome e o ambiente da chave. LIVE fica visível e pode ser revogada aqui."
         />
 
         <div class="py-4">
@@ -68,6 +62,14 @@
             @if (newKeyName.invalid && newKeyName.touched) {
               <span class="text-xs text-red-500">Nome é obrigatório (mín. 3 caracteres).</span>
             }
+            <label class="text-sm font-medium text-zinc-900 mt-3">Ambiente</label>
+            <select
+              class="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+              [formControl]="newKeyEnvironment"
+            >
+              <option [ngValue]="Environment.TEST">TEST</option>
+              <option [ngValue]="Environment.LIVE">LIVE</option>
+            </select>
           </div>
         </div>
 
@@ -126,7 +128,7 @@
     }
 
     <!-- Empty State -->
-    @if (!isLoading() && !error() && testKeys().length === 0) {
+    @if (!isLoading() && !error() && keys().length === 0) {
       <div
         class="flex-1 flex flex-col items-center justify-center py-20 px-6 m-4 border-2 border-dashed border-zinc-200/60 rounded-xl bg-zinc-50/30 text-center"
       >
@@ -151,7 +153,7 @@
     }
 
     <!-- Table View -->
-    @if (!isLoading() && !error() && testKeys().length > 0) {
+    @if (!isLoading() && !error() && keys().length > 0) {
       <div class="flex-1 overflow-x-auto">
         <table hlmTable class="w-full">
           <thead hlmTHead class="bg-zinc-50 border-b border-zinc-200">
@@ -182,6 +184,12 @@
               </th>
               <th
                 hlmTh
+                class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-4 h-auto"
+              >
+                Último uso
+              </th>
+              <th
+                hlmTh
                 class="font-bold text-[11px] text-zinc-500 uppercase tracking-widest py-3 px-6 text-right h-auto"
               >
                 Ações
@@ -189,7 +197,7 @@
             </tr>
           </thead>
           <tbody hlmTBody class="divide-y divide-zinc-100">
-            @for (key of testKeys(); track key.id) {
+            @for (key of keys(); track key.id) {
               <tr hlmTr class="hover:bg-zinc-50/50 transition-colors border-none group">
                 <td hlmTd class="py-3.5 px-6">
                   <span class="font-medium text-zinc-900 text-sm">{{ key.name }}</span>
@@ -201,7 +209,7 @@
                     <span
                       class="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_4px_rgba(99,102,241,0.5)]"
                     ></span>
-                    TEST
+                    {{ key.environment }}
                   </div>
                 </td>
                 <td hlmTd class="py-3.5 px-4">
@@ -219,6 +227,11 @@
                       key.createdAt | date: 'HH:mm'
                     }}</span>
                   </div>
+                </td>
+                <td hlmTd class="py-3.5 px-4">
+                  <span class="text-sm text-zinc-600">{{
+                    key.lastUsedAt ? (key.lastUsedAt | date: 'dd/MM/yyyy HH:mm') : 'Nunca'
+                  }}</span>
                 </td>
                 <td hlmTd class="py-3.5 px-6 text-right">
                   <div class="flex justify-end relative">
@@ -249,7 +262,7 @@
           Exibindo
           <span
             class="font-semibold text-zinc-700 bg-white border border-zinc-200 px-1.5 py-0.5 rounded shadow-sm"
-            >{{ testKeys().length }}</span
+            >{{ keys().length }}</span
           >
           registros
         </span>

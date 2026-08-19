@@ -19,5 +19,6 @@ describe('request id helpers', () => {
 
     expect(requestId).toEqual(expect.any(String));
     expect(getRequestId(request)).toBe(requestId);
+    expect(request.id).toBe(requestId);
   });
 });

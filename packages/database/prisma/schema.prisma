@@ -166,6 +166,7 @@ model Store {
   settlementDays  Int               @default(30) @map("settlement_days")
   feePercent      Decimal           @default(1.5) @map("fee_percent") @db.Decimal(5, 2)
   feeFixed        Int               @default(15) @map("fee_fixed")
+  city            String?
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 

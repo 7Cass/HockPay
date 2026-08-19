@@ -8,6 +8,7 @@ import { decryptAlertConfig } from './alert-config.helpers';
 
 export interface IProcessAlertDeliveryInput {
   eventId: string;
+  requestId?: string;
 }
 
 export interface IProcessAlertDeliveryOutput {
