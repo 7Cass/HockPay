@@ -323,7 +323,7 @@ Done Criteria:
 
 ### P2.1 Hidratar items do recibo sem N+1
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `ListReceiptsUseCase` chama `paymentRepository.findByIdAndStoreId` por linha so para copiar `items`. A lista ja pagina no SQL; o detalhe do catalogo volta a ser N queries.
 
@@ -336,16 +336,16 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.1.1 Carregar items da pagina em lote (join ou `IN` dos paymentIds).
+- [x] P2.1.1 Carregar items da pagina em lote (join ou `IN` dos paymentIds).
   - Validacao: spec/repo com N recibos nao faz N `findById` de payment.
 
 Done Criteria:
 
-- [ ] Listagem autenticada de receipts nao hidrata items com uma query por linha.
+- [x] Listagem autenticada de receipts nao hidrata items com uma query por linha.
 
 ### P2.2 Parar de castear `prisma as any` no Payment Link
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: o list SQL da passagem anterior ainda hidrata a pagina com `(this.prisma as any).paymentLink.findMany`. O modelo existe no schema.
 
@@ -357,12 +357,12 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P2.2.1 Usar o client tipado (ou o bag do UoW) para `paymentLink`.
+- [x] P2.2.1 Usar o client tipado (ou o bag do UoW) para `paymentLink`.
   - Validacao: `rg "prisma as any" packages/infrastructure/src/repositories/payment-link.repository.ts` vazio.
 
 Done Criteria:
 
-- [ ] Repositorio de Payment Link nao acessa o modelo via `as any`.
+- [x] Repositorio de Payment Link nao acessa o modelo via `as any`.
 
 ## Public APIs / Interfaces Mentioned By This Goal
 

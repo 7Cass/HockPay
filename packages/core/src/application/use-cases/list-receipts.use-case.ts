@@ -41,21 +41,22 @@ export class ListReceiptsUseCase {
       },
     );
 
+    const payments =
+      this.paymentRepository && result.items.length > 0
+        ? await this.paymentRepository.findByIdsAndStoreId(
+            result.items.map((receipt) => receipt.paymentId),
+            input.storeId,
+          )
+        : [];
+    const itemsByPaymentId = new Map(
+      payments.map((payment) => [payment.id, payment.items ?? []]),
+    );
+
     return {
-      receipts: await Promise.all(
-        result.items.map(async (receipt) => {
-          const object = receipt.toObject();
-          if (!this.paymentRepository) return object;
-          const payment = await this.paymentRepository.findByIdAndStoreId(
-            receipt.paymentId,
-            receipt.storeId,
-          );
-          return {
-            ...object,
-            items: payment?.items ?? [],
-          };
-        }),
-      ),
+      receipts: result.items.map((receipt) => ({
+        ...receipt.toObject(),
+        items: itemsByPaymentId.get(receipt.paymentId) ?? [],
+      })),
       total: result.total,
       page,
       limit,

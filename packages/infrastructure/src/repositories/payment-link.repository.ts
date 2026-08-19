@@ -34,13 +34,13 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   ) {}
 
   async save(link: PaymentLink): Promise<void> {
-    await (this.prisma as any).paymentLink.create({
+    await this.prisma.paymentLink.create({
       data: this.toCreateData(link),
     });
   }
 
   async update(link: PaymentLink): Promise<void> {
-    await (this.prisma as any).paymentLink.update({
+    await this.prisma.paymentLink.update({
       where: { id: link.id },
       data: {
         openedAt: link.openedAt,
@@ -51,14 +51,14 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   }
 
   async findById(id: string): Promise<PaymentLink | null> {
-    const row = await (this.prisma as any).paymentLink.findUnique({
+    const row = await this.prisma.paymentLink.findUnique({
       where: { id },
     });
     return row ? this.toDomain(row) : null;
   }
 
   async findByIdAndStoreId(id: string, storeId: string): Promise<PaymentLink | null> {
-    const row = await (this.prisma as any).paymentLink.findFirst({
+    const row = await this.prisma.paymentLink.findFirst({
       where: { id, storeId },
     });
     return row ? this.toDomain(row) : null;
@@ -68,7 +68,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     id: string,
     storeId: string,
   ): Promise<PaymentLink | null> {
-    const rows = await (this.prisma as any).$queryRaw<PaymentLinkLockRow[]>`
+    const rows = await this.prisma.$queryRaw<PaymentLinkLockRow[]>`
       SELECT id
       FROM payment_links
       WHERE id = ${id}
@@ -83,7 +83,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     id: string,
     storeId: string,
   ): Promise<PaymentLinkListItem | null> {
-    const row = await (this.prisma as any).paymentLink.findFirst({
+    const row = await this.prisma.paymentLink.findFirst({
       where: { id, storeId },
       include: this.includePayment(),
     });
@@ -91,14 +91,14 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   }
 
   async findByToken(token: string): Promise<PaymentLink | null> {
-    const row = await (this.prisma as any).paymentLink.findUnique({
+    const row = await this.prisma.paymentLink.findUnique({
       where: { publicToken: token },
     });
     return row ? this.toDomain(row) : null;
   }
 
   async findPublicByToken(token: string): Promise<PaymentLinkListItem | null> {
-    const row = await (this.prisma as any).paymentLink.findUnique({
+    const row = await this.prisma.paymentLink.findUnique({
       where: { publicToken: token },
       include: this.includePayment(),
     });
@@ -108,7 +108,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   async findPublicByTokenForUpdate(
     token: string,
   ): Promise<PaymentLinkListItem | null> {
-    const rows = await (this.prisma as any).$queryRaw<PaymentLinkLockRow[]>`
+    const rows = await this.prisma.$queryRaw<PaymentLinkLockRow[]>`
       SELECT id
       FROM payment_links
       WHERE public_token = ${token}
@@ -118,7 +118,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const lock = rows[0];
     if (!lock) return null;
 
-    const row = await (this.prisma as any).paymentLink.findUnique({
+    const row = await this.prisma.paymentLink.findUnique({
       where: { id: lock.id },
       include: this.includePayment(),
     });
@@ -141,7 +141,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const hydrated =
       pageIds.length === 0
         ? []
-        : await (this.prisma as any).paymentLink.findMany({
+        : await this.prisma.paymentLink.findMany({
             where: { id: { in: pageIds } },
             include: this.includePayment(),
           });
@@ -172,7 +172,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     limit: number,
     now: Date,
   ): Promise<Array<{ id: string }>> {
-    return (this.prisma as any).$queryRaw(
+    return this.prisma.$queryRaw(
       Prisma.sql`
         SELECT pl.id
         ${this.listFromSql()}
@@ -188,7 +188,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     options: ListPaymentLinksOptions,
     now: Date,
   ): Promise<Array<{ total: number | bigint }>> {
-    return (this.prisma as any).$queryRaw(
+    return this.prisma.$queryRaw(
       Prisma.sql`
         SELECT COUNT(*)::int AS total
         ${this.listFromSql()}
@@ -202,7 +202,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     now: Date,
   ): Promise<Array<PaymentLinkStatsRow>> {
     const derived = this.derivedStatusSql(now);
-    return (this.prisma as any).$queryRaw(
+    return this.prisma.$queryRaw(
       Prisma.sql`
         SELECT
           COUNT(*)::int AS total,
