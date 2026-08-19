@@ -72,51 +72,86 @@ describe("PaymentLinkRepository", () => {
     expect(stats.paidAmount).toBe(10000);
   });
 
-  it("pages authenticated lists in SQL without loading payment items for every store row", async () => {
+  it("pages and aggregates authenticated lists in SQL without a store full-scan", async () => {
+    const pageRow = {
+      ...makePaymentLinkRow(),
+      pixCharge: makePixChargeRow([]),
+    };
     const prisma = {
+      $queryRaw: vi
+        .fn()
+        .mockResolvedValueOnce([{ id: pageRow.id }])
+        .mockResolvedValueOnce([{ total: 40 }])
+        .mockResolvedValueOnce([
+          {
+            total: 40,
+            active: 10,
+            opened: 5,
+            pending: 8,
+            paid: 12,
+            expired: 6,
+            cancelled: 4,
+            paidAmount: 120_000,
+          },
+        ]),
       paymentLink: {
-        findMany: vi.fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([]),
-        count: vi.fn().mockResolvedValue(40),
+        findMany: vi.fn().mockImplementation(async (args: {
+          where?: { storeId?: string; id?: { in?: string[] } };
+          skip?: number;
+          take?: number;
+        }) => {
+          assertBoundedPaymentLinkListQuery(args);
+          return [pageRow];
+        }),
       },
     };
-    const repository = new PaymentLinkRepository(prisma as any, "http://localhost:3333");
+    const repository = new PaymentLinkRepository(
+      prisma as any,
+      "http://localhost:3333",
+    );
 
-    await repository.list({
+    const result = await repository.list({
       storeId: "store-1",
       page: 2,
       limit: 20,
+      status: "PAID",
+      hasFailures: true,
     });
 
-    expect(prisma.paymentLink.findMany).toHaveBeenNthCalledWith(1, {
-      where: { storeId: "store-1" },
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe(pageRow.id);
+    expect(result.total).toBe(40);
+    expect(result.stats).toEqual({
+      total: 40,
+      active: 10,
+      opened: 5,
+      pending: 8,
+      paid: 12,
+      expired: 6,
+      cancelled: 4,
+      conversionRate: 0.3,
+      paidAmount: 120_000,
+    });
+    expect(prisma.paymentLink.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.paymentLink.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [pageRow.id] } },
       include: expect.any(Object),
-      skip: 20,
-      take: 20,
-      orderBy: { createdAt: "desc" },
     });
-    expect(prisma.paymentLink.findMany).toHaveBeenNthCalledWith(2, {
-      where: { storeId: "store-1" },
-      select: expect.objectContaining({
-        pixCharge: expect.objectContaining({
-          select: expect.objectContaining({
-            payments: {
-              select: {
-                id: true,
-                status: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
-          }),
-        }),
-      }),
-      orderBy: { createdAt: "desc" },
-    });
-    expect(prisma.paymentLink.count).toHaveBeenCalledWith({
-      where: { storeId: "store-1" },
-    });
+
+    const sql = prisma.$queryRaw.mock.calls
+      .map((call) => normalizeQuery(call[0]))
+      .join("\n");
+    const values = prisma.$queryRaw.mock.calls.flatMap((call) =>
+      queryValues(call[0]),
+    );
+    expect(sql).toMatch(/OFFSET/i);
+    expect(sql).toMatch(/LIMIT/i);
+    expect(sql).toMatch(/COUNT\(\*\)/i);
+    expect(sql).toMatch(/SUM\(pl\.amount\)/i);
+    expect(sql).toMatch(/EXISTS/i);
+    expect(values).toContain(PaymentStatus.FAILED);
+    expect(values).toContain("PAID");
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
   });
 
   it("returns zero conversion when there are no links", () => {
@@ -164,6 +199,33 @@ describe("PaymentLinkRepository", () => {
     expect(item.attempts[0].pixCharge.pixTxId).toBe("pix-tx-id");
   });
 });
+
+function assertBoundedPaymentLinkListQuery(args: {
+  where?: { storeId?: string; id?: { in?: string[] } | string };
+  skip?: number;
+  take?: number;
+}): void {
+  const hasSkipTake =
+    Number.isInteger(args.skip) && Number.isInteger(args.take);
+  const idFilter = args.where?.id;
+  const pageIds = typeof idFilter === "object" ? idFilter.in : undefined;
+  const boundedByIds = Array.isArray(pageIds) && pageIds.length > 0;
+  if (hasSkipTake || boundedByIds) {
+    return;
+  }
+  throw new Error("Payment link list must not full-scan the store");
+}
+
+function normalizeQuery(query: { strings?: string[] } | string[]): string {
+  if (Array.isArray(query)) {
+    return query.join(" ");
+  }
+  return query.strings?.join(" ") ?? "";
+}
+
+function queryValues(query: { values?: unknown[] }): unknown[] {
+  return query.values ?? [];
+}
 
 function makePaymentLinkRow() {
   return {
