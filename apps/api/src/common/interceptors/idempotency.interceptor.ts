@@ -15,9 +15,10 @@ import { Observable, from, of, throwError } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import type { Request, Response } from 'express';
 import {
+  CachedIdempotencyResponse,
+  Environment,
   IIdempotencyKeyRepository,
   IdempotencyKey,
-  CachedIdempotencyResponse,
 } from '@hockpay/core';
 import {
   IDEMPOTENCY_KEY,
@@ -109,6 +110,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const authenticatedRequest = request as any;
     const storeId =
       authenticatedRequest.store?.id ?? authenticatedRequest.user?.storeId;
+    const environment =
+      (authenticatedRequest.environment as Environment | undefined) ??
+      Environment.TEST;
 
     if (!storeId) {
       this.logger.warn('Idempotency key provided but no storeId in request');
@@ -140,7 +144,11 @@ export class IdempotencyInterceptor implements NestInterceptor {
     }
 
     // 4. Generate cache key
-    const cacheKey = generateIdempotencyCacheKey(idempotencyKey, storeId);
+    const cacheKey = generateIdempotencyCacheKey(
+      idempotencyKey,
+      storeId,
+      environment,
+    );
     const fingerprint = createIdempotencyFingerprint({
       method: request.method,
       path: request.path,
@@ -166,7 +174,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         // 6. Check PostgreSQL if available
         if (this.repository) {
           return from(
-            this.repository.findCompleted(idempotencyKey, storeId),
+            this.repository.findCompleted(idempotencyKey, storeId, environment),
           ).pipe(
             switchMap((dbRecord) => {
               if (dbRecord) {
@@ -262,6 +270,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const cacheKey = generateIdempotencyCacheKey(
       idempotencyKey,
       record.storeId,
+      record.environment,
     );
     const cachedResponse: CachedIdempotencyResponse = {
       requestMethod: record.requestMethod,

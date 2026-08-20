@@ -109,6 +109,7 @@ export class PaymentController {
       await this.idempotencyService.execute<CreatePaymentResponseDto>({
         idempotencyKey,
         storeId,
+        environment,
         method: req?.method ?? 'POST',
         path: req?.path ?? '/payments',
         body: dto,

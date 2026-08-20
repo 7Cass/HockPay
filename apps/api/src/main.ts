@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import {
   DomainExceptionFilter,
   HttpExceptionFilter,
+  PrismaExceptionFilter,
   TimeoutInterceptor,
 } from './common';
 import cookieParser from 'cookie-parser';
@@ -52,7 +53,11 @@ async function bootstrap() {
   );
 
   // Exception filters
-  app.useGlobalFilters(new DomainExceptionFilter(), new HttpExceptionFilter());
+  app.useGlobalFilters(
+    new PrismaExceptionFilter(),
+    new DomainExceptionFilter(),
+    new HttpExceptionFilter(),
+  );
 
   // Interceptors
   app.useGlobalInterceptors(

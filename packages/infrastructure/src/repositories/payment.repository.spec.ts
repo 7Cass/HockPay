@@ -27,6 +27,26 @@ describe("PaymentRepository", () => {
     expect(payment?.totalRefunded).toBe(2_500);
   });
 
+  it("checks payment externalId uniqueness inside a store environment", async () => {
+    const prisma = {
+      payment: {
+        count: vi.fn().mockResolvedValue(1),
+      },
+    };
+    const repository = new PaymentRepository(prisma as never);
+
+    await expect(
+      repository.externalIdExists("order-1", "store-1", Environment.LIVE),
+    ).resolves.toBe(true);
+    expect(prisma.payment.count).toHaveBeenCalledWith({
+      where: {
+        externalId: "order-1",
+        storeId: "store-1",
+        environment: Environment.LIVE,
+      },
+    });
+  });
+
   it("locks and rehydrates a store-scoped payment by id", async () => {
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValue([{ id: "payment-1" }]),

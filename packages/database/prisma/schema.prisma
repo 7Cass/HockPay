@@ -393,7 +393,7 @@ model Payment {
   webhookLogs   WebhookLog[]
   webhookInboxEvents WebhookInboxEvent[]
 
-  @@unique([storeId, externalId])
+  @@unique([storeId, environment, externalId])
   @@index([storeId, status])
   @@index([storeId, createdAt(sort: Desc)])
   @@index([pixChargeId])
@@ -745,6 +745,7 @@ model IdempotencyKey {
   id             String                @id @default(uuid())
   key            String
   storeId        String                @map("store_id")
+  environment    Environment           @default(TEST)
   requestMethod  String                @default("POST") @map("request_method")
   requestPath    String                @map("request_path")
   requestHash    String                @map("request_hash")
@@ -757,7 +758,7 @@ model IdempotencyKey {
 
   store          Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
-  @@unique([key, storeId])
+  @@unique([key, storeId, environment])
   @@map("idempotency_keys")
 }
 

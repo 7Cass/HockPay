@@ -146,6 +146,7 @@ export class CreatePaymentUseCase {
       const externalIdExists = await paymentRepository.externalIdExists(
         input.externalId,
         input.storeId,
+        input.environment,
       );
 
       if (externalIdExists) {

@@ -42,9 +42,9 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 
 ## Observações Importantes
 
-- Mutações com `Idempotency-Key` obrigatória: `POST /api/v1/payments`, `POST /api/v1/withdrawals`, `POST /api/v1/refunds`, `POST /api/v1/payment-links` e `POST /api/v1/checkout-sessions`.
+- Mutações com `Idempotency-Key` obrigatória: `POST /api/v1/payments`, `POST /api/v1/withdrawals`, `POST /api/v1/refunds`, `POST /api/v1/payment-links` e `POST /api/v1/checkout-sessions`. A chave é isolada por store e environment (TEST/LIVE).
 - A API usa `CombinedAuthGuard` em vários endpoints públicos para aceitar API key ou cookie JWT.
-- API keys ainda nao possuem scopes granulares; trate `POST /withdrawals` como operacao financeira sensivel.
+- `POST /withdrawals`, `POST /refunds` e mutações de `bank-accounts` exigem sessão JWT do dashboard. API key recebe 403. Key TEST ainda pode simular (`/dev/simulate`, pay autenticado de Payment Link, `/dev/withdrawals/:id/complete|fail`) no saldo compartilhado da store; key LIVE não.
 - O checkout hospedado usa `checkout-sessions/:token` para sessões e `payment-links/public/:token` para links públicos.
 - A API aceita `X-Request-ID` em qualquer chamada. Se o header não vier, a API gera um ID e sempre devolve `X-Request-ID` na resposta.
 - Eventos assíncronos persistem esse request id no outbox e nos logs de webhook; webhooks enviados ao integrador também recebem `X-Request-ID`.
@@ -105,6 +105,7 @@ Nesse fluxo público as ações suportadas são `confirm`, `fail` e `expire`.
 curl -X POST http://localhost:3000/api/v1/checkout-sessions \
   -H "Authorization: Bearer hk_test_xxx" \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: checkout-pedido-123" \
   -d '{
     "amount": 2500,
     "description": "Media kit premium",
@@ -252,7 +253,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/withdrawals \
-  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Cookie: hockpay_at=<jwt_do_dashboard>" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: saque-123" \
   -d '{
@@ -261,11 +262,13 @@ curl -X POST http://localhost:3000/api/v1/withdrawals \
   }'
 ```
 
+API key neste endpoint responde 403. Use a sessão do dashboard.
+
 ### Criar refund
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/refunds \
-  -H "Authorization: Bearer hk_test_xxx" \
+  -H "Cookie: hockpay_at=<jwt_do_dashboard>" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: refund-pedido-123" \
   -d '{
@@ -274,6 +277,8 @@ curl -X POST http://localhost:3000/api/v1/refunds \
     "reason": "Ajuste solicitado pelo cliente"
   }'
 ```
+
+API key neste endpoint responde 403. Use a sessão do dashboard.
 
 Payments, withdrawals e refunds retornam `x-idempotency-key` e um indicador booleano de replay. Repita a mesma chave apenas para o mesmo metodo, path e body.
 

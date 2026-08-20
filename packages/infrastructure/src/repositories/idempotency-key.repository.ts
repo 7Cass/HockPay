@@ -1,4 +1,5 @@
 import {
+  Environment,
   IIdempotencyKeyRepository,
   IdempotencyKey,
   IdempotencyKeyProps,
@@ -8,6 +9,7 @@ import {
   ReserveIdempotencyKeyProps,
 } from '@hockpay/core';
 import {
+  Environment as PrismaEnvironment,
   IdempotencyKeyStatus as PrismaIdempotencyKeyStatus,
   Prisma,
   PrismaClient,
@@ -25,12 +27,14 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
   async findByKeyAndStore(
     key: string,
     storeId: string,
+    environment: Environment,
   ): Promise<IdempotencyKey | null> {
     const record = await this.prisma.idempotencyKey.findUnique({
       where: {
-        key_storeId: {
+        key_storeId_environment: {
           key,
           storeId,
+          environment,
         },
       },
     });
@@ -45,8 +49,9 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
   async findCompleted(
     key: string,
     storeId: string,
+    environment: Environment,
   ): Promise<IdempotencyKey | null> {
-    const record = await this.findByKeyAndStore(key, storeId);
+    const record = await this.findByKeyAndStore(key, storeId, environment);
 
     if (!record || record.isExpired() || !record.isCompleted()) {
       return null;
@@ -63,6 +68,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
         id: props.id,
         key: props.key,
         storeId: props.storeId,
+        environment: props.environment as PrismaEnvironment,
         requestMethod: props.requestMethod,
         requestPath: props.requestPath,
         requestHash: props.requestHash,
@@ -79,7 +85,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
   async reserve(
     input: ReserveIdempotencyKeyProps,
   ): Promise<IdempotencyReservation> {
-    await this.deleteExpiredForKey(input.key, input.storeId);
+    await this.deleteExpiredForKey(input.key, input.storeId, input.environment);
 
     const idempotencyKey = IdempotencyKey.reserve(input);
     const props = idempotencyKey.toObject();
@@ -87,6 +93,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
       id: props.id,
       key: props.key,
       storeId: props.storeId,
+      environment: props.environment as PrismaEnvironment,
       requestMethod: props.requestMethod,
       requestPath: props.requestPath,
       requestHash: props.requestHash,
@@ -117,7 +124,11 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
       };
     }
 
-    const existing = await this.findByKeyAndStore(input.key, input.storeId);
+    const existing = await this.findByKeyAndStore(
+      input.key,
+      input.storeId,
+      input.environment,
+    );
     if (!existing) {
       return this.reserve(input);
     }
@@ -130,11 +141,16 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
     return this.toReservation(existing, input);
   }
 
-  async deleteExpiredForKey(key: string, storeId: string): Promise<number> {
+  async deleteExpiredForKey(
+    key: string,
+    storeId: string,
+    environment: Environment,
+  ): Promise<number> {
     const result = await this.prisma.idempotencyKey.deleteMany({
       where: {
         key,
         storeId,
+        environment,
         expiresAt: {
           lt: new Date(),
         },
@@ -187,6 +203,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
     id: string;
     key: string;
     storeId: string;
+    environment: PrismaEnvironment;
     requestMethod: string;
     requestPath: string;
     requestHash: string;
@@ -201,6 +218,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
       id: record.id,
       key: record.key,
       storeId: record.storeId,
+      environment: record.environment as Environment,
       requestMethod: record.requestMethod,
       requestPath: record.requestPath,
       requestHash: record.requestHash,

@@ -125,7 +125,11 @@ export interface IPaymentRepository {
   /**
    * Check if an external ID already exists for a store.
    */
-  externalIdExists(externalId: string, storeId: string): Promise<boolean>;
+  externalIdExists(
+    externalId: string,
+    storeId: string,
+    environment: Environment,
+  ): Promise<boolean>;
 
   findConfirmedForSettlement(
     storeId: string,

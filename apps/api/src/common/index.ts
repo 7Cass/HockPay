@@ -2,7 +2,11 @@
 export type { ErrorResponseDto, ErrorDetail } from './dto/error-response.dto';
 
 // Filters
-export { DomainExceptionFilter, HttpExceptionFilter } from './filters';
+export {
+  DomainExceptionFilter,
+  HttpExceptionFilter,
+  PrismaExceptionFilter,
+} from './filters';
 
 // Interceptors
 export { LoggingInterceptor, TimeoutInterceptor } from './interceptors';

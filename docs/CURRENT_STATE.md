@@ -125,16 +125,18 @@ O default real de `smoke:docker` e `p0,payment-link,p3,studycase,system,withdraw
 
 ## Idempotencia
 
-Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments`, `POST /withdrawals`, `POST /refunds`, `POST /payment-links`, `POST /checkout-sessions`.
+Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments`, `POST /withdrawals`, `POST /refunds`, `POST /payment-links`, `POST /checkout-sessions`. A reserva e unica por `key + storeId + environment` (JWT = TEST; API key = environment da key). Replay so ocorre quando a mesma chave, store, ambiente e fingerprint HTTP batem.
 
 ## Isolamento TEST/LIVE
 
 - Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados (incluindo timeline de payment) filtram pelo environment da request (JWT = TEST; API key = environment da key).
+- `Payment.externalId` e `Idempotency-Key` sao unicos por `storeId + environment`. Customer continua store-wide (sem coluna de environment).
 - `Account` continua unico por store. JWT do dashboard mostra saldo e metricas da loja inteira, nao um ledger TEST separado.
 - Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Refund`, `BankAccount`) sao escopadas por store. `Receipt` herda `payment.environment` em list/get e no customer-history.
 - `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE; listagem continua store-wide.
 - Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
 - Sessao/key TEST nao confirma, expira, falha, libera, estorna payment LIVE nem cancela Payment Link LIVE.
+- Key TEST ainda pode simular no saldo da store (`POST /dev/simulate/:id/*`, pay autenticado de Payment Link, `POST /dev/withdrawals/:id/complete|fail`). LIVE key nao. Create de saque, refund e destino Pix continua JWT-only.
 
 ## Gaps e Limites
 

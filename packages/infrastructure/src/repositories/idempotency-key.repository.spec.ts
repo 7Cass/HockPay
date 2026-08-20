@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  Environment,
   IdempotencyKeyStatus,
   IdempotencyReservationStatus,
 } from "@hockpay/core";
@@ -12,6 +13,7 @@ describe("IdempotencyKeyRepository", () => {
   const input = {
     key: "idem-1",
     storeId: "store-1",
+    environment: Environment.TEST,
     requestMethod: "POST",
     requestPath: "/api/v1/payments",
     requestHash: "hash-1",
@@ -22,6 +24,7 @@ describe("IdempotencyKeyRepository", () => {
       id: "db-idem-1",
       key: "idem-1",
       storeId: "store-1",
+      environment: Environment.TEST,
       requestMethod: "POST",
       requestPath: "/api/v1/payments",
       requestHash: "hash-1",
@@ -74,6 +77,7 @@ describe("IdempotencyKeyRepository", () => {
       data: expect.objectContaining({
         key: "idem-1",
         storeId: "store-1",
+        environment: Environment.TEST,
         requestMethod: "POST",
         requestPath: "/api/v1/payments",
         requestHash: "hash-1",
@@ -93,6 +97,26 @@ describe("IdempotencyKeyRepository", () => {
     expect(result.key.isCompleted()).toBe(false);
   });
 
+  it("looks up existing keys by store and environment", async () => {
+    const prisma = makePrisma(makeRecord());
+    const repository = new IdempotencyKeyRepository(prisma as never);
+
+    await repository.reserve({
+      ...input,
+      environment: Environment.LIVE,
+    });
+
+    expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledWith({
+      where: {
+        key_storeId_environment: {
+          key: "idem-1",
+          storeId: "store-1",
+          environment: Environment.LIVE,
+        },
+      },
+    });
+  });
+
   it("replays a completed matching key", async () => {
     const prisma = makePrisma(makeRecord());
     const repository = new IdempotencyKeyRepository(prisma as any);
@@ -108,7 +132,11 @@ describe("IdempotencyKeyRepository", () => {
     const prisma = makePrisma(makeRecord());
     const repository = new IdempotencyKeyRepository(prisma as any);
 
-    const completed = await repository.findCompleted("idem-1", "store-1");
+    const completed = await repository.findCompleted(
+      "idem-1",
+      "store-1",
+      Environment.TEST,
+    );
 
     expect(completed?.id).toBe("db-idem-1");
     expect(completed?.responseStatus).toBe(201);
@@ -122,9 +150,9 @@ describe("IdempotencyKeyRepository", () => {
       }),
     );
 
-    await expect(repository.findCompleted("idem-1", "store-1")).resolves.toBe(
-      null,
-    );
+    await expect(
+      repository.findCompleted("idem-1", "store-1", Environment.TEST),
+    ).resolves.toBe(null);
   });
 
   it("returns conflict when the same key was used with a different request", async () => {
@@ -147,6 +175,7 @@ describe("IdempotencyKeyRepository", () => {
       where: {
         key: "idem-1",
         storeId: "store-1",
+        environment: Environment.TEST,
         expiresAt: {
           lt: expect.any(Date),
         },

@@ -1,3 +1,5 @@
+import { Environment } from "../value-objects/environment.vo";
+
 export enum IdempotencyKeyStatus {
   PENDING = "PENDING",
   COMPLETED = "COMPLETED",
@@ -7,6 +9,7 @@ export class IdempotencyKey {
   private readonly _id: string;
   private readonly _key: string;
   private readonly _storeId: string;
+  private readonly _environment: Environment;
   private readonly _requestMethod: string;
   private readonly _requestPath: string;
   private readonly _requestHash: string;
@@ -21,6 +24,7 @@ export class IdempotencyKey {
     this._id = props.id;
     this._key = props.key;
     this._storeId = props.storeId;
+    this._environment = props.environment ?? Environment.TEST;
     this._requestMethod = props.requestMethod.toUpperCase();
     this._requestPath = props.requestPath;
     this._requestHash = props.requestHash;
@@ -45,6 +49,7 @@ export class IdempotencyKey {
       id: crypto.randomUUID(),
       key: props.key,
       storeId: props.storeId,
+      environment: props.environment ?? Environment.TEST,
       requestMethod: props.requestMethod,
       requestPath: props.requestPath,
       requestHash: props.requestHash,
@@ -66,6 +71,7 @@ export class IdempotencyKey {
       id: crypto.randomUUID(),
       key: props.key,
       storeId: props.storeId,
+      environment: props.environment ?? Environment.TEST,
       requestMethod: props.requestMethod,
       requestPath: props.requestPath,
       requestHash: props.requestHash,
@@ -95,6 +101,10 @@ export class IdempotencyKey {
 
   get storeId(): string {
     return this._storeId;
+  }
+
+  get environment(): Environment {
+    return this._environment;
   }
 
   get requestMethod(): string {
@@ -182,6 +192,7 @@ export class IdempotencyKey {
       id: this._id,
       key: this._key,
       storeId: this._storeId,
+      environment: this._environment,
       requestMethod: this._requestMethod,
       requestPath: this._requestPath,
       requestHash: this._requestHash,
@@ -201,6 +212,7 @@ export class IdempotencyKey {
 export interface CreateIdempotencyKeyProps {
   key: string;
   storeId: string;
+  environment: Environment;
   requestMethod: string;
   requestPath: string;
   requestHash: string;
@@ -212,6 +224,7 @@ export interface CreateIdempotencyKeyProps {
 export interface ReserveIdempotencyKeyProps {
   key: string;
   storeId: string;
+  environment: Environment;
   requestMethod: string;
   requestPath: string;
   requestHash: string;
@@ -225,6 +238,7 @@ export interface IdempotencyKeyProps {
   id: string;
   key: string;
   storeId: string;
+  environment?: Environment;
   requestMethod: string;
   requestPath: string;
   requestHash: string;
@@ -243,6 +257,7 @@ export interface IdempotencyKeyObject {
   id: string;
   key: string;
   storeId: string;
+  environment: Environment;
   requestMethod: string;
   requestPath: string;
   requestHash: string;
