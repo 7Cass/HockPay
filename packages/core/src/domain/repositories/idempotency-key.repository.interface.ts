@@ -2,6 +2,7 @@ import {
   IdempotencyKey,
   ReserveIdempotencyKeyProps,
 } from '../entities/idempotency-key.entity';
+import { Environment } from '../value-objects/environment.vo';
 
 export enum IdempotencyReservationStatus {
   RESERVED = 'RESERVED',
@@ -42,9 +43,17 @@ export interface IIdempotencyKeyRepository {
    * @param storeId - The store ID for isolation
    * @returns The IdempotencyKey entity or null if not found
    */
-  findByKeyAndStore(key: string, storeId: string): Promise<IdempotencyKey | null>;
+  findByKeyAndStore(
+    key: string,
+    storeId: string,
+    environment: Environment,
+  ): Promise<IdempotencyKey | null>;
 
-  findCompleted(key: string, storeId: string): Promise<IdempotencyKey | null>;
+  findCompleted(
+    key: string,
+    storeId: string,
+    environment: Environment,
+  ): Promise<IdempotencyKey | null>;
 
   reserve(input: ReserveIdempotencyKeyProps): Promise<IdempotencyReservation>;
 
@@ -77,5 +86,9 @@ export interface IIdempotencyKeyRepository {
    */
   deleteExpired(): Promise<number>;
 
-  deleteExpiredForKey(key: string, storeId: string): Promise<number>;
+  deleteExpiredForKey(
+    key: string,
+    storeId: string,
+    environment: Environment,
+  ): Promise<number>;
 }

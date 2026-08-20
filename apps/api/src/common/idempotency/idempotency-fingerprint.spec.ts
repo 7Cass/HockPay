@@ -1,4 +1,7 @@
-import { createIdempotencyFingerprint } from './idempotency-fingerprint';
+import {
+  createIdempotencyFingerprint,
+  generateIdempotencyCacheKey,
+} from './idempotency-fingerprint';
 
 describe('createIdempotencyFingerprint', () => {
   it('uses a canonical body hash independent from object key order', () => {
@@ -63,5 +66,11 @@ describe('createIdempotencyFingerprint', () => {
     });
 
     expect(dtoShaped.requestHash).toBe(raw.requestHash);
+  });
+
+  it('isolates Redis cache keys by environment', () => {
+    expect(generateIdempotencyCacheKey('idem-1', 'store-1', 'TEST')).not.toBe(
+      generateIdempotencyCacheKey('idem-1', 'store-1', 'LIVE'),
+    );
   });
 });

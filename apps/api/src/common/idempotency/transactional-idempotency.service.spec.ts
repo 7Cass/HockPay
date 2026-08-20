@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { IdempotencyReservationStatus } from '@hockpay/core';
+import { Environment, IdempotencyReservationStatus } from '@hockpay/core';
 import { TransactionalIdempotencyService } from './transactional-idempotency.service';
 
 describe('TransactionalIdempotencyService', () => {
@@ -31,6 +31,7 @@ describe('TransactionalIdempotencyService', () => {
   const input = {
     idempotencyKey: 'idem-1',
     storeId: 'store-1',
+    environment: Environment.TEST,
     method: 'post',
     path: '/api/v1/payments',
     body: { amount: 1000 },
@@ -52,6 +53,7 @@ describe('TransactionalIdempotencyService', () => {
     expect(repos.idempotencyKeyRepository.reserve).toHaveBeenCalledWith({
       key: 'idem-1',
       storeId: 'store-1',
+      environment: Environment.TEST,
       requestMethod: 'POST',
       requestPath: '/api/v1/payments',
       requestHash: expect.any(String),

@@ -74,6 +74,7 @@ export class CheckoutSessionController {
     const result = await this.idempotencyService.execute({
       idempotencyKey,
       storeId,
+      environment,
       method: req?.method ?? 'POST',
       path: req?.path ?? '/checkout-sessions',
       body: dto,

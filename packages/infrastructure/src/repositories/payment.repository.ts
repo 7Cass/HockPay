@@ -310,11 +310,13 @@ export class PaymentRepository implements IPaymentRepository {
   async externalIdExists(
     externalId: string,
     storeId: string,
+    environment: Environment,
   ): Promise<boolean> {
     const count = await this.prisma.payment.count({
       where: {
         externalId,
         storeId,
+        environment,
       },
     });
 

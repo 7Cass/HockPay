@@ -26,6 +26,7 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ### Payment e PixCharge
 
 - `Payment` pertence a uma `Store` e opcionalmente a um `Customer`.
+- `Payment.externalId` e unico por `storeId + environment` quando informado (TEST e LIVE da mesma store podem repetir o id de pedido).
 - `PixCharge` representa a cobranca Pix simulada e pode agrupar tentativas.
 - Estados de `Payment`: `PENDING`, `CONFIRMED`, `RELEASED`, `EXPIRED`, `FAILED`, `REFUNDED`.
 - `PaymentMethod` inclui `PIX`, `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas o processamento real atual continua simulado e centrado em Pix. Escrita de novas cobrancas e so PIX.

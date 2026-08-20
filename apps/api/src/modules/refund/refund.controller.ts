@@ -65,6 +65,7 @@ export class RefundController {
       await this.idempotencyService.execute<CreateRefundResponseDto>({
         idempotencyKey,
         storeId,
+        environment: callerEnvironment,
         method: req.method,
         path: req.path,
         body: dto,

@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { lastValueFrom, of } from 'rxjs';
-import { IdempotencyKey, IdempotencyKeyStatus } from '@hockpay/core';
+import {
+  Environment,
+  IdempotencyKey,
+  IdempotencyKeyStatus,
+} from '@hockpay/core';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
 import { IdempotencyOptions } from '../decorators/idempotent.decorator';
 import {
@@ -213,11 +217,16 @@ describe('IdempotencyInterceptor', () => {
     );
 
     expect(cacheService.get).toHaveBeenCalledWith(
-      generateIdempotencyCacheKey('idem-1', 'store-from-user'),
+      generateIdempotencyCacheKey(
+        'idem-1',
+        'store-from-user',
+        Environment.TEST,
+      ),
     );
     expect(repository.findCompleted).toHaveBeenCalledWith(
       'idem-1',
       'store-from-user',
+      Environment.TEST,
     );
   });
 
@@ -234,11 +243,12 @@ describe('IdempotencyInterceptor', () => {
     );
 
     expect(cacheService.get).toHaveBeenCalledWith(
-      generateIdempotencyCacheKey('idem-array', 'store-1'),
+      generateIdempotencyCacheKey('idem-array', 'store-1', Environment.TEST),
     );
     expect(repository.findCompleted).toHaveBeenCalledWith(
       'idem-array',
       'store-1',
+      Environment.TEST,
     );
     expect(getIdempotencyRequestContext(request)).toEqual({
       key: 'idem-array',
@@ -312,7 +322,7 @@ describe('IdempotencyInterceptor', () => {
     );
     expect(response.status).toHaveBeenCalledWith(201);
     expect(cacheService.set).toHaveBeenCalledWith(
-      generateIdempotencyCacheKey('idem-1', 'store-1'),
+      generateIdempotencyCacheKey('idem-1', 'store-1', Environment.TEST),
       expect.objectContaining({
         responseBody: { payment: { id: 'pay-db-1' } },
         responseStatus: 201,
@@ -347,7 +357,11 @@ describe('IdempotencyInterceptor', () => {
       ),
     ).resolves.toEqual({ created: true });
     expect(cacheService.get).toHaveBeenCalledTimes(1);
-    expect(repository.findCompleted).toHaveBeenCalledWith('idem-1', 'store-1');
+    expect(repository.findCompleted).toHaveBeenCalledWith(
+      'idem-1',
+      'store-1',
+      Environment.TEST,
+    );
     expect(next.handle).toHaveBeenCalledTimes(1);
   });
 

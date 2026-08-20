@@ -78,6 +78,7 @@ export class WithdrawalController {
       await this.idempotencyService.execute<CreateWithdrawalResponseDto>({
         idempotencyKey,
         storeId,
+        environment,
         method: req?.method ?? 'POST',
         path: req?.path ?? '/withdrawals',
         body: dto,

@@ -1,5 +1,5 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
-import { IdempotencyReservationStatus } from '@hockpay/core';
+import { Environment, IdempotencyReservationStatus } from '@hockpay/core';
 import type {
   CachedIdempotencyResponse,
   ITransactedRepositories,
@@ -14,6 +14,7 @@ import {
 export interface TransactionalIdempotencyInput<TResponse> {
   idempotencyKey: string;
   storeId: string;
+  environment: Environment;
   method: string;
   path: string;
   body: unknown;
@@ -48,6 +49,7 @@ export class TransactionalIdempotencyService {
       const reservation = await repos.idempotencyKeyRepository.reserve({
         key: input.idempotencyKey,
         storeId: input.storeId,
+        environment: input.environment,
         requestMethod: fingerprint.requestMethod,
         requestPath: fingerprint.requestPath,
         requestHash: fingerprint.requestHash,
@@ -99,6 +101,7 @@ export class TransactionalIdempotencyService {
     await this.cacheCompletedResponse({
       idempotencyKey: input.idempotencyKey,
       storeId: input.storeId,
+      environment: input.environment,
       ttlSeconds: input.ttlSeconds,
       response: {
         requestMethod: fingerprint.requestMethod,
@@ -115,12 +118,17 @@ export class TransactionalIdempotencyService {
   private async cacheCompletedResponse(input: {
     idempotencyKey: string;
     storeId: string;
+    environment: Environment;
     ttlSeconds?: number;
     response: CachedIdempotencyResponse;
   }): Promise<void> {
     try {
       await this.cacheService.set(
-        generateIdempotencyCacheKey(input.idempotencyKey, input.storeId),
+        generateIdempotencyCacheKey(
+          input.idempotencyKey,
+          input.storeId,
+          input.environment,
+        ),
         input.response,
         input.ttlSeconds,
       );

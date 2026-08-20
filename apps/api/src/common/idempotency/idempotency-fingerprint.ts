@@ -21,8 +21,9 @@ export function createIdempotencyFingerprint(input: {
 export function generateIdempotencyCacheKey(
   idempotencyKey: string,
   storeId: string,
+  environment: string,
 ): string {
-  return sha256(`${idempotencyKey}:${storeId}`);
+  return sha256(`${idempotencyKey}:${storeId}:${environment}`);
 }
 
 export function matchesIdempotencyFingerprint(

@@ -455,4 +455,34 @@ describe("CreatePaymentUseCase", () => {
       }),
     ).rejects.toBeInstanceOf(CustomerIdentityConflictError);
   });
+
+  it("scopes payment externalId uniqueness to the request environment", async () => {
+    const paymentRepository = {
+      externalIdExists: vi.fn().mockResolvedValue(false),
+      save: vi.fn(),
+    };
+    const useCase = makeUseCase({
+      paymentRepository,
+      customerRepository: {
+        findByExternalId: vi.fn(),
+        findByDocument: vi.fn().mockResolvedValue(null),
+        save: vi.fn(),
+        update: vi.fn(),
+      },
+    });
+
+    await useCase.execute({
+      storeId: "store-1",
+      externalId: "order-1",
+      amount: 7990,
+      customer: { document: "52998224725" },
+      environment: Environment.LIVE,
+    });
+
+    expect(paymentRepository.externalIdExists).toHaveBeenCalledWith(
+      "order-1",
+      "store-1",
+      Environment.LIVE,
+    );
+  });
 });
