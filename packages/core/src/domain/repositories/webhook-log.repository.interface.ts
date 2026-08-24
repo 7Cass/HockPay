@@ -1,4 +1,4 @@
-import { WebhookLog, WebhookLogProps } from '../entities/webhook-log.entity';
+import { WebhookLog } from '../entities/webhook-log.entity';
 
 export type WebhookLogStatus = 'pending' | 'delivered' | 'failed';
 
@@ -37,10 +37,7 @@ export interface IWebhookLogRepository {
   /**
    * Find the canonical delivery row for an outbox/config pair.
    */
-  findByConfigAndOutboxEvent(
-    configId: string,
-    outboxEventId: string,
-  ): Promise<WebhookLog | null>;
+  findByConfigAndOutboxEvent(configId: string, outboxEventId: string): Promise<WebhookLog | null>;
 
   /**
    * Find all delivery rows for an outbox event.
@@ -91,8 +88,5 @@ export interface IWebhookLogRepository {
    * Reset non-delivered canonical delivery rows before DLQ requeue.
    * When configIds is omitted, all non-delivered rows for the outbox event are reset.
    */
-  resetOutboxDeliveriesForRequeue(
-    outboxEventId: string,
-    configIds?: string[],
-  ): Promise<number>;
+  resetOutboxDeliveriesForRequeue(outboxEventId: string, configIds?: string[]): Promise<number>;
 }

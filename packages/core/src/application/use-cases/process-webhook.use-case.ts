@@ -2,22 +2,19 @@ import {
   OutboxEvent,
   OutboxEventObject,
   OutboxEventStatus,
-} from "../../domain/entities/outbox-event.entity";
-import {
-  WebhookConfig,
-  WebhookConfigObject,
-} from "../../domain/entities/webhook-config.entity";
-import { WebhookLog } from "../../domain/entities/webhook-log.entity";
-import { IOutboxRepository } from "../../domain/repositories/outbox.repository.interface";
-import { IWebhookConfigRepository } from "../../domain/repositories/webhook-config.repository.interface";
-import { IWebhookLogRepository } from "../../domain/repositories/webhook-log.repository.interface";
-import { IWebhookSenderPort } from "../ports/webhook-sender.port";
-import { IHmacSignerPort } from "../ports/hmac-signer.port";
-import { IEncryptionPort } from "../ports/encryption.port";
+} from '../../domain/entities/outbox-event.entity';
+import { WebhookConfig } from '../../domain/entities/webhook-config.entity';
+import { WebhookLog } from '../../domain/entities/webhook-log.entity';
+import { IOutboxRepository } from '../../domain/repositories/outbox.repository.interface';
+import { IWebhookConfigRepository } from '../../domain/repositories/webhook-config.repository.interface';
+import { IWebhookLogRepository } from '../../domain/repositories/webhook-log.repository.interface';
+import { IWebhookSenderPort } from '../ports/webhook-sender.port';
+import { IHmacSignerPort } from '../ports/hmac-signer.port';
+import { IEncryptionPort } from '../ports/encryption.port';
 import {
   buildWebhookEventPayload,
   WebhookEventPayload,
-} from "../services/webhook-payload-builder.service";
+} from '../services/webhook-payload-builder.service';
 
 type OperationalLogger = {
   debug(message: string): void;
@@ -76,9 +73,9 @@ export class ProcessWebhookUseCase {
       return {
         event: {
           id: input.eventId,
-          aggregateType: "",
-          aggregateId: "",
-          eventType: "",
+          aggregateType: '',
+          aggregateId: '',
+          eventType: '',
           payload: {},
           status: OutboxEventStatus.FAILED,
           retryCount: 0,
@@ -86,7 +83,7 @@ export class ProcessWebhookUseCase {
           createdAt: new Date(),
         },
         delivered: false,
-        error: "Event not found",
+        error: 'Event not found',
       };
     }
 
@@ -98,9 +95,8 @@ export class ProcessWebhookUseCase {
       };
     }
 
-    const payload = event.payload as Record<string, unknown>;
-    const storeId =
-      typeof payload.storeId === "string" ? payload.storeId : undefined;
+    const payload = event.payload;
+    const storeId = typeof payload.storeId === 'string' ? payload.storeId : undefined;
 
     if (!storeId) {
       event.markAsProcessed();
@@ -112,10 +108,7 @@ export class ProcessWebhookUseCase {
     }
 
     // Find active webhook configs
-    const configs = await this.webhookConfigRepository.findActiveForEvent(
-      storeId,
-      event.eventType,
-    );
+    const configs = await this.webhookConfigRepository.findActiveForEvent(storeId, event.eventType);
 
     if (configs.length === 0) {
       event.markAsProcessed();
@@ -132,9 +125,7 @@ export class ProcessWebhookUseCase {
       ),
     );
     const allSucceeded = results.every((result) => result.success);
-    const lastError = [...results]
-      .reverse()
-      .find((result) => !result.success)?.error;
+    const lastError = [...results].reverse().find((result) => !result.success)?.error;
 
     if (allSucceeded) {
       event.markAsProcessed();
@@ -172,10 +163,10 @@ export class ProcessWebhookUseCase {
     requestId?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const timestamp = Date.now();
-    const aggregatePayload = event.payload as Record<string, unknown>;
+    const aggregatePayload = event.payload;
     const aggregateId =
-      typeof aggregatePayload.id === "string" ? aggregatePayload.id : event.aggregateId;
-    const paymentId = event.aggregateType === "Payment" ? aggregateId : undefined;
+      typeof aggregatePayload.id === 'string' ? aggregatePayload.id : event.aggregateId;
+    const paymentId = event.aggregateType === 'Payment' ? aggregateId : undefined;
 
     // Build webhook envelope payload (Stripe-like format)
     const webhookPayload: WebhookEventPayload = buildWebhookEventPayload(
@@ -195,27 +186,25 @@ export class ProcessWebhookUseCase {
       eventType: event.eventType,
       payload: webhookPayload as unknown as Record<string, unknown>,
     });
-    const existingLog =
-      await this.webhookLogRepository.findByConfigAndOutboxEvent(
-        config.id,
-        event.id,
-      );
+    const existingLog = await this.webhookLogRepository.findByConfigAndOutboxEvent(
+      config.id,
+      event.id,
+    );
     const deliveryLog = existingLog ?? log;
 
     if (deliveryLog.isDelivered()) {
       this.logger?.debug(
-        `Skipping already delivered webhook requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${deliveryLog.id}`,
+        `Skipping already delivered webhook requestId=${requestId ?? 'unknown'} outboxEventId=${event.id} paymentId=${paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${deliveryLog.id}`,
       );
       return { success: true };
     }
 
     deliveryLog.beginAttempt(requestId);
     const webhookId = deliveryLog.id;
-    const deliveryPayload =
-      deliveryLog.payload as unknown as WebhookEventPayload;
+    const deliveryPayload = deliveryLog.payload as unknown as WebhookEventPayload;
 
     this.logger?.debug(
-      `Sending webhook requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
+      `Sending webhook requestId=${requestId ?? 'unknown'} outboxEventId=${event.id} paymentId=${paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${webhookId}`,
     );
 
     try {
@@ -226,12 +215,12 @@ export class ProcessWebhookUseCase {
         timestamp,
       );
       const headers = {
-        "Content-Type": "application/json",
-        "X-Hockpay-Signature": signature,
-        "X-Hockpay-Timestamp": String(timestamp),
-        "X-Hockpay-Webhook-Id": webhookId,
-        ...(requestId ? { "X-Request-ID": requestId } : {}),
-        "User-Agent": "Hockpay-Webhook/1.0",
+        'Content-Type': 'application/json',
+        'X-Hockpay-Signature': signature,
+        'X-Hockpay-Timestamp': String(timestamp),
+        'X-Hockpay-Webhook-Id': webhookId,
+        ...(requestId ? { 'X-Request-ID': requestId } : {}),
+        'User-Agent': 'Hockpay-Webhook/1.0',
       };
 
       deliveryLog.setRequestHeaders(headers);
@@ -245,24 +234,23 @@ export class ProcessWebhookUseCase {
         deliveryLog.recordSuccess(response.statusCode, response.body);
         await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.debug(
-          `Webhook delivered requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId}`,
+          `Webhook delivered requestId=${requestId ?? 'unknown'} outboxEventId=${event.id} paymentId=${paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${webhookId}`,
         );
         return { success: true };
       } else {
         deliveryLog.recordFailure(response.statusCode, response.body);
         await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.warn(
-          `Webhook delivery rejected requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} statusCode=${response.statusCode}`,
+          `Webhook delivery rejected requestId=${requestId ?? 'unknown'} outboxEventId=${event.id} paymentId=${paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${webhookId} statusCode=${response.statusCode}`,
         );
         return { success: false, error: `HTTP ${response.statusCode}` };
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       deliveryLog.recordFailure(0, errorMessage);
       await this.webhookLogRepository.upsertDelivery(deliveryLog);
       this.logger?.warn(
-        `Webhook delivery failed requestId=${requestId ?? "unknown"} outboxEventId=${event.id} paymentId=${paymentId ?? "unknown"} webhookConfigId=${config.id} deliveryId=${webhookId} error=${errorMessage}`,
+        `Webhook delivery failed requestId=${requestId ?? 'unknown'} outboxEventId=${event.id} paymentId=${paymentId ?? 'unknown'} webhookConfigId=${config.id} deliveryId=${webhookId} error=${errorMessage}`,
       );
       return { success: false, error: errorMessage };
     }

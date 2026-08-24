@@ -1,4 +1,4 @@
-import { InvalidRefundStatusError } from "../errors/invalid-refund-status.error";
+import { InvalidRefundStatusError } from '../errors/invalid-refund-status.error';
 
 export class Refund {
   private readonly _id: string;
@@ -76,13 +76,13 @@ export class Refund {
 
   process(): void {
     if (this._status !== RefundStatus.PENDING) {
-      throw new InvalidRefundStatusError("Can only process pending refunds");
+      throw new InvalidRefundStatusError('Can only process pending refunds');
     }
     this._status = RefundStatus.PROCESSED;
     this._processedAt = new Date();
   }
 
-  fail(reason?: string): void {
+  fail(): void {
     this._status = RefundStatus.FAILED;
   }
 
@@ -101,9 +101,9 @@ export class Refund {
 }
 
 export enum RefundStatus {
-  PENDING = "PENDING",
-  PROCESSED = "PROCESSED",
-  FAILED = "FAILED",
+  PENDING = 'PENDING',
+  PROCESSED = 'PROCESSED',
+  FAILED = 'FAILED',
 }
 
 export interface CreateRefundProps {

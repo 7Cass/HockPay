@@ -1,34 +1,30 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  Environment,
-  IdempotencyKeyStatus,
-  IdempotencyReservationStatus,
-} from "@hockpay/core";
-import { IdempotencyKeyRepository } from "./idempotency-key.repository";
+import { describe, expect, it, vi } from 'vitest';
+import { Environment, IdempotencyKeyStatus, IdempotencyReservationStatus } from '@hockpay/core';
+import { IdempotencyKeyRepository } from './idempotency-key.repository';
 
-describe("IdempotencyKeyRepository", () => {
-  const now = new Date("2026-05-20T12:00:00.000Z");
-  const future = new Date("2030-05-21T12:00:00.000Z");
+describe('IdempotencyKeyRepository', () => {
+  const now = new Date('2026-05-20T12:00:00.000Z');
+  const future = new Date('2030-05-21T12:00:00.000Z');
 
   const input = {
-    key: "idem-1",
-    storeId: "store-1",
+    key: 'idem-1',
+    storeId: 'store-1',
     environment: Environment.TEST,
-    requestMethod: "POST",
-    requestPath: "/api/v1/payments",
-    requestHash: "hash-1",
+    requestMethod: 'POST',
+    requestPath: '/api/v1/payments',
+    requestHash: 'hash-1',
   };
 
   function makeRecord(overrides: Record<string, unknown> = {}) {
     return {
-      id: "db-idem-1",
-      key: "idem-1",
-      storeId: "store-1",
+      id: 'db-idem-1',
+      key: 'idem-1',
+      storeId: 'store-1',
       environment: Environment.TEST,
-      requestMethod: "POST",
-      requestPath: "/api/v1/payments",
-      requestHash: "hash-1",
-      responseBody: { payment: { id: "pay-1" } },
+      requestMethod: 'POST',
+      requestPath: '/api/v1/payments',
+      requestHash: 'hash-1',
+      responseBody: { payment: { id: 'pay-1' } },
       responseStatus: 201,
       status: IdempotencyKeyStatus.COMPLETED,
       completedAt: now,
@@ -66,7 +62,7 @@ describe("IdempotencyKeyRepository", () => {
     };
   }
 
-  it("creates a pending reservation when the key does not exist", async () => {
+  it('creates a pending reservation when the key does not exist', async () => {
     const prisma = makePrisma(null);
     const repository = new IdempotencyKeyRepository(prisma as any);
 
@@ -75,29 +71,29 @@ describe("IdempotencyKeyRepository", () => {
     expect(result.status).toBe(IdempotencyReservationStatus.RESERVED);
     expect(prisma.idempotencyKey.createMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        key: "idem-1",
-        storeId: "store-1",
+        key: 'idem-1',
+        storeId: 'store-1',
         environment: Environment.TEST,
-        requestMethod: "POST",
-        requestPath: "/api/v1/payments",
-        requestHash: "hash-1",
+        requestMethod: 'POST',
+        requestPath: '/api/v1/payments',
+        requestHash: 'hash-1',
         status: IdempotencyKeyStatus.PENDING,
       }),
       skipDuplicates: true,
     });
     expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
-      "responseBody",
+      'responseBody',
     );
     expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
-      "responseStatus",
+      'responseStatus',
     );
     expect(prisma.idempotencyKey.createMany.mock.calls[0][0].data).not.toHaveProperty(
-      "completedAt",
+      'completedAt',
     );
     expect(result.key.isCompleted()).toBe(false);
   });
 
-  it("looks up existing keys by store and environment", async () => {
+  it('looks up existing keys by store and environment', async () => {
     const prisma = makePrisma(makeRecord());
     const repository = new IdempotencyKeyRepository(prisma as never);
 
@@ -109,15 +105,15 @@ describe("IdempotencyKeyRepository", () => {
     expect(prisma.idempotencyKey.findUnique).toHaveBeenCalledWith({
       where: {
         key_storeId_environment: {
-          key: "idem-1",
-          storeId: "store-1",
+          key: 'idem-1',
+          storeId: 'store-1',
           environment: Environment.LIVE,
         },
       },
     });
   });
 
-  it("replays a completed matching key", async () => {
+  it('replays a completed matching key', async () => {
     const prisma = makePrisma(makeRecord());
     const repository = new IdempotencyKeyRepository(prisma as any);
 
@@ -125,20 +121,16 @@ describe("IdempotencyKeyRepository", () => {
 
     expect(result.status).toBe(IdempotencyReservationStatus.REPLAY);
     expect(prisma.idempotencyKey.create).not.toHaveBeenCalled();
-    expect(result.key.responseBody).toEqual({ payment: { id: "pay-1" } });
+    expect(result.key.responseBody).toEqual({ payment: { id: 'pay-1' } });
   });
 
-  it("finds only completed non-expired keys for replay", async () => {
+  it('finds only completed non-expired keys for replay', async () => {
     const prisma = makePrisma(makeRecord());
     const repository = new IdempotencyKeyRepository(prisma as any);
 
-    const completed = await repository.findCompleted(
-      "idem-1",
-      "store-1",
-      Environment.TEST,
-    );
+    const completed = await repository.findCompleted('idem-1', 'store-1', Environment.TEST);
 
-    expect(completed?.id).toBe("db-idem-1");
+    expect(completed?.id).toBe('db-idem-1');
     expect(completed?.responseStatus).toBe(201);
 
     prisma.idempotencyKey.findUnique.mockResolvedValueOnce(
@@ -150,13 +142,13 @@ describe("IdempotencyKeyRepository", () => {
       }),
     );
 
-    await expect(
-      repository.findCompleted("idem-1", "store-1", Environment.TEST),
-    ).resolves.toBe(null);
+    await expect(repository.findCompleted('idem-1', 'store-1', Environment.TEST)).resolves.toBe(
+      null,
+    );
   });
 
-  it("returns conflict when the same key was used with a different request", async () => {
-    const prisma = makePrisma(makeRecord({ requestHash: "hash-2" }));
+  it('returns conflict when the same key was used with a different request', async () => {
+    const prisma = makePrisma(makeRecord({ requestHash: 'hash-2' }));
     const repository = new IdempotencyKeyRepository(prisma as any);
 
     const result = await repository.reserve(input);
@@ -165,7 +157,7 @@ describe("IdempotencyKeyRepository", () => {
     expect(prisma.idempotencyKey.create).not.toHaveBeenCalled();
   });
 
-  it("cleans an expired key before creating a new reservation", async () => {
+  it('cleans an expired key before creating a new reservation', async () => {
     const prisma = makePrisma(null);
     const repository = new IdempotencyKeyRepository(prisma as any);
 
@@ -173,8 +165,8 @@ describe("IdempotencyKeyRepository", () => {
 
     expect(prisma.idempotencyKey.deleteMany).toHaveBeenCalledWith({
       where: {
-        key: "idem-1",
-        storeId: "store-1",
+        key: 'idem-1',
+        storeId: 'store-1',
         environment: Environment.TEST,
         expiresAt: {
           lt: expect.any(Date),
@@ -185,21 +177,17 @@ describe("IdempotencyKeyRepository", () => {
     expect(result.status).toBe(IdempotencyReservationStatus.RESERVED);
   });
 
-  it("marks a reservation as completed with the response payload", async () => {
+  it('marks a reservation as completed with the response payload', async () => {
     const prisma = makePrisma(null);
     const repository = new IdempotencyKeyRepository(prisma as any);
 
-    const result = await repository.complete(
-      "db-idem-1",
-      { payment: { id: "pay-1" } },
-      201,
-    );
+    const result = await repository.complete('db-idem-1', { payment: { id: 'pay-1' } }, 201);
 
     expect(prisma.idempotencyKey.update).toHaveBeenCalledWith({
-      where: { id: "db-idem-1" },
+      where: { id: 'db-idem-1' },
       data: expect.objectContaining({
         status: IdempotencyKeyStatus.COMPLETED,
-        responseBody: { payment: { id: "pay-1" } },
+        responseBody: { payment: { id: 'pay-1' } },
         responseStatus: 201,
         completedAt: expect.any(Date),
       }),

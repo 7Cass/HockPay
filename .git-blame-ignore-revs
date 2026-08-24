@@ -1,0 +1,9 @@
+# Commits puramente mecanicos, ignorados no `git blame`.
+#
+# Habilite localmente com:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub respeita este arquivo automaticamente.
+
+# chore(format): align core, infrastructure and database with root prettier
+54b50d89b7291e9cd8216bd3d1148579261cf96e

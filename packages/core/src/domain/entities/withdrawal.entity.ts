@@ -1,11 +1,11 @@
-import { InvalidWithdrawalStatusError } from "../errors/invalid-withdrawal-status.error";
-import { Environment } from "../value-objects/environment.vo";
+import { InvalidWithdrawalStatusError } from '../errors/invalid-withdrawal-status.error';
+import { Environment } from '../value-objects/environment.vo';
 
 export enum WithdrawalStatus {
-  PENDING = "PENDING",
-  PROCESSING = "PROCESSING",
-  COMPLETED = "COMPLETED",
-  FAILED = "FAILED",
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 
 export class Withdrawal {
@@ -138,17 +138,12 @@ export class Withdrawal {
   }
 
   isTerminal(): boolean {
-    return (
-      this._status === WithdrawalStatus.COMPLETED ||
-      this._status === WithdrawalStatus.FAILED
-    );
+    return this._status === WithdrawalStatus.COMPLETED || this._status === WithdrawalStatus.FAILED;
   }
 
   markProcessing(): void {
     if (!this.isPending()) {
-      throw new InvalidWithdrawalStatusError(
-        "Withdrawal must be pending to start processing",
-      );
+      throw new InvalidWithdrawalStatusError('Withdrawal must be pending to start processing');
     }
 
     this._status = WithdrawalStatus.PROCESSING;
@@ -160,9 +155,7 @@ export class Withdrawal {
 
   recordRetry(error: string, nextProcessAt: Date): void {
     if (!this.isProcessing()) {
-      throw new InvalidWithdrawalStatusError(
-        "Withdrawal must be processing to schedule a retry",
-      );
+      throw new InvalidWithdrawalStatusError('Withdrawal must be processing to schedule a retry');
     }
 
     this._status = WithdrawalStatus.PENDING;
@@ -173,14 +166,11 @@ export class Withdrawal {
 
   complete(props?: { pixE2eId?: string; paidAt?: Date }): void {
     if (this.isTerminal()) {
-      throw new InvalidWithdrawalStatusError(
-        "Withdrawal is already terminal",
-      );
+      throw new InvalidWithdrawalStatusError('Withdrawal is already terminal');
     }
 
     this._status = WithdrawalStatus.COMPLETED;
-    this._pixE2eId =
-      props?.pixE2eId ?? `E2E${crypto.randomUUID().replace(/-/g, "")}`;
+    this._pixE2eId = props?.pixE2eId ?? `E2E${crypto.randomUUID().replace(/-/g, '')}`;
     this._paidAt = props?.paidAt ?? new Date();
     this._failedReason = undefined;
     this._nextProcessAt = undefined;
@@ -190,9 +180,7 @@ export class Withdrawal {
 
   fail(reason: string): void {
     if (this.isTerminal()) {
-      throw new InvalidWithdrawalStatusError(
-        "Withdrawal is already terminal",
-      );
+      throw new InvalidWithdrawalStatusError('Withdrawal is already terminal');
     }
 
     this._status = WithdrawalStatus.FAILED;

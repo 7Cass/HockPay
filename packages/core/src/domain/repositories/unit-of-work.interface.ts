@@ -1,20 +1,20 @@
-import { IPaymentRepository } from "./payment.repository.interface";
-import { IAccountRepository } from "./account.repository.interface";
-import { ITransactionRepository } from "./transaction.repository.interface";
-import { IOutboxWriter } from "./outbox-writer.repository.interface";
-import { IBankAccountRepository } from "./bank-account.repository.interface";
-import { IReceiptRepository } from "./receipt.repository.interface";
-import { IStoreRepository } from "./store.repository.interface";
-import { IRefundRepository } from "./refund.repository.interface";
-import { ICustomerRepository } from "./customer.repository.interface";
-import { IPixChargeRepository } from "./pix-charge.repository.interface";
-import { IWithdrawalRepository } from "./withdrawal.repository.interface";
-import { IIdempotencyKeyRepository } from "./idempotency-key.repository.interface";
-import { IMerchantRepository } from "./merchant.repository.interface";
-import { ICheckoutSessionRepository } from "./checkout-session.repository.interface";
-import { IPaymentLinkRepository } from "./payment-link.repository.interface";
-import { IProductRepository } from "./product.repository.interface";
-import { IRefreshTokenRepositoryPort } from "../../application/ports/refresh-token-repository.port";
+import { IPaymentRepository } from './payment.repository.interface';
+import { IAccountRepository } from './account.repository.interface';
+import { ITransactionRepository } from './transaction.repository.interface';
+import { IOutboxWriter } from './outbox-writer.repository.interface';
+import { IBankAccountRepository } from './bank-account.repository.interface';
+import { IReceiptRepository } from './receipt.repository.interface';
+import { IStoreRepository } from './store.repository.interface';
+import { IRefundRepository } from './refund.repository.interface';
+import { ICustomerRepository } from './customer.repository.interface';
+import { IPixChargeRepository } from './pix-charge.repository.interface';
+import { IWithdrawalRepository } from './withdrawal.repository.interface';
+import { IIdempotencyKeyRepository } from './idempotency-key.repository.interface';
+import { IMerchantRepository } from './merchant.repository.interface';
+import { ICheckoutSessionRepository } from './checkout-session.repository.interface';
+import { IPaymentLinkRepository } from './payment-link.repository.interface';
+import { IProductRepository } from './product.repository.interface';
+import { IRefreshTokenRepositoryPort } from '../../application/ports/refresh-token-repository.port';
 
 /**
  * Interface containing transacted repositories.

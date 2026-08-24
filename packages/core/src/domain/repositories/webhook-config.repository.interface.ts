@@ -1,4 +1,4 @@
-import { WebhookConfig, WebhookConfigProps } from '../entities/webhook-config.entity';
+import { WebhookConfig } from '../entities/webhook-config.entity';
 
 /**
  * Repository interface for WebhookConfig aggregate.

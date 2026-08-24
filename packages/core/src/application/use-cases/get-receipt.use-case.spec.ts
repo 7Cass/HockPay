@@ -50,9 +50,7 @@ describe('GetReceiptUseCase', () => {
       environment: Environment.TEST,
     });
 
-    expect(repository.findByReceiptNumber).toHaveBeenCalledWith(
-      'RCP-20260419-STORE1-00001',
-    );
+    expect(repository.findByReceiptNumber).toHaveBeenCalledWith('RCP-20260419-STORE1-00001');
     expect(result.receipt).toEqual({ ...receiptObject, items: [] });
   });
 

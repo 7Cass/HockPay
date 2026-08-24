@@ -1,7 +1,7 @@
-import { Product, ProductObject } from "../../domain/entities/product.entity";
-import { ProductExternalIdAlreadyExistsError } from "../../domain/errors/product-external-id-already-exists.error";
-import { IProductRepository } from "../../domain/repositories/product.repository.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { Product, ProductObject } from '../../domain/entities/product.entity';
+import { ProductExternalIdAlreadyExistsError } from '../../domain/errors/product-external-id-already-exists.error';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface ICreateProductInput {
   storeId: string;
@@ -38,7 +38,7 @@ export class CreateProductUseCase {
       name: input.name,
       description: input.description,
       price: input.price,
-      currency: "BRL",
+      currency: 'BRL',
       imageUrl: input.imageUrl,
       metadata: input.metadata,
     });

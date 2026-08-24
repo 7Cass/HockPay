@@ -8,10 +8,7 @@ export class CustomerNotFoundError extends DomainError {
   public readonly externalId: string;
 
   constructor(externalId: string) {
-    super(
-      `Customer not found with externalId: ${externalId}`,
-      'CUSTOMER_NOT_FOUND',
-    );
+    super(`Customer not found with externalId: ${externalId}`, 'CUSTOMER_NOT_FOUND');
     this.externalId = externalId;
   }
 }

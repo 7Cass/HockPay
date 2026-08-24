@@ -4,22 +4,23 @@ import { PrismaService } from '../../infra/database/prisma.service';
 
 // Repositories
 import {
-  OutboxRepository,
-  PaymentRepository,
-  WebhookConfigRepository,
-  WebhookLogRepository,
+  AccountRepository,
   AlertConfigRepository,
   AlertDeliveryLogRepository,
   DiscordAlertSenderService,
   EncryptionService,
+  getRequiredEnv,
   HmacSignerService,
   IdempotencyKeyRepository,
-  AccountRepository,
+  OutboxRepository,
+  PaymentRepository,
+  StoreRepository,
   TransactionRepository,
   UnitOfWork,
-  WithdrawalRepository,
-  StoreRepository,
+  WebhookConfigRepository,
   WebhookHttpClientService,
+  WebhookLogRepository,
+  WithdrawalRepository,
 } from '@hockpay/infrastructure';
 
 // Use Cases
@@ -261,11 +262,3 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
   ],
 })
 export class CoreModule {}
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} environment variable is required`);
-  }
-  return value;
-}

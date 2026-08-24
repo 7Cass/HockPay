@@ -86,10 +86,7 @@ describe('ExpirePaymentUseCase', () => {
   it('expires payment, PixCharge, and outbox in one UnitOfWork', async () => {
     const pixCharge = makePixCharge();
     const payment = makePayment(pixCharge);
-    const { useCase, repos, unitOfWork, expirationQueue } = makeUseCase(
-      payment,
-      pixCharge,
-    );
+    const { useCase, repos, unitOfWork, expirationQueue } = makeUseCase(payment, pixCharge);
 
     const result = await useCase.execute({
       storeId: 'store-1',
@@ -139,9 +136,7 @@ describe('ExpirePaymentUseCase', () => {
   it('treats expiration cancellation as best-effort after commit', async () => {
     const payment = makePayment();
     const { useCase, expirationQueue } = makeUseCase(payment);
-    expirationQueue.cancelExpiration.mockRejectedValueOnce(
-      new Error('queue unavailable'),
-    );
+    expirationQueue.cancelExpiration.mockRejectedValueOnce(new Error('queue unavailable'));
 
     await expect(
       useCase.execute({

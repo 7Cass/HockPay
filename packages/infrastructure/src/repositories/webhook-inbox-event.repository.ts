@@ -1,16 +1,16 @@
-import { PrismaClient } from "@hockpay/database";
+import { PrismaClient } from '@hockpay/database';
 import {
   IWebhookInboxEventRepository,
   ListWebhookInboxEventsOptions,
   WebhookInboxEvent,
   WebhookInboxEventProps,
-} from "@hockpay/core";
+} from '@hockpay/core';
 
 export class WebhookInboxEventRepository implements IWebhookInboxEventRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async save(event: WebhookInboxEvent): Promise<void> {
-    await (this.prisma as any).webhookInboxEvent.create({
+    await this.prisma.webhookInboxEvent.create({
       data: {
         id: event.id,
         storeId: event.storeId,
@@ -34,9 +34,9 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
   ): Promise<WebhookInboxEvent[]> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 50;
-    const events = await (this.prisma as any).webhookInboxEvent.findMany({
+    const events = await this.prisma.webhookInboxEvent.findMany({
       where: { configId },
-      orderBy: { receivedAt: "desc" },
+      orderBy: { receivedAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -45,7 +45,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
   }
 
   async countByConfigId(configId: string): Promise<number> {
-    return (this.prisma as any).webhookInboxEvent.count({
+    return this.prisma.webhookInboxEvent.count({
       where: { configId },
     });
   }
@@ -70,9 +70,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
       configId: prismaEvent.configId,
       eventType: prismaEvent.eventType,
       payload: prismaEvent.payload as Record<string, unknown>,
-      requestHeaders: prismaEvent.requestHeaders as
-        | Record<string, string>
-        | undefined,
+      requestHeaders: prismaEvent.requestHeaders as Record<string, string> | undefined,
       requestId: prismaEvent.requestId ?? undefined,
       deliveryId: prismaEvent.deliveryId ?? undefined,
       outboxEventId: prismaEvent.outboxEventId ?? undefined,

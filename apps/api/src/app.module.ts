@@ -7,6 +7,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { PrismaModule } from './infra/database/prisma.module';
+import { InfrastructureModule } from './infra/infrastructure.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
@@ -87,6 +88,7 @@ import { getOrCreateRequestId } from './common/request-id';
       }),
     }),
     PrismaModule,
+    InfrastructureModule,
     MerchantModule,
     AuthModule,
     ApiKeyModule,

@@ -1,4 +1,4 @@
-import { WebhookInboxEvent } from "../entities/webhook-inbox-event.entity";
+import { WebhookInboxEvent } from '../entities/webhook-inbox-event.entity';
 
 export interface ListWebhookInboxEventsOptions {
   page?: number;

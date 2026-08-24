@@ -1,7 +1,7 @@
-import { ProductObject } from "../../domain/entities/product.entity";
-import { ProductNotFoundError } from "../../domain/errors/product-not-found.error";
-import { IProductRepository } from "../../domain/repositories/product.repository.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { ProductObject } from '../../domain/entities/product.entity';
+import { ProductNotFoundError } from '../../domain/errors/product-not-found.error';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IGetProductInput {
   storeId: string;

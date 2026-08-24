@@ -1,10 +1,5 @@
-import {
-  Document,
-  Email,
-  IMerchantRepository,
-  Merchant as DomainMerchant,
-} from "@hockpay/core";
-import { Merchant as PrismaMerchant, Prisma, PrismaClient } from "@hockpay/database";
+import { Document, Email, IMerchantRepository, Merchant as DomainMerchant } from '@hockpay/core';
+import { Merchant as PrismaMerchant, Prisma, PrismaClient } from '@hockpay/database';
 
 type MerchantRow = {
   id: string;
@@ -19,9 +14,7 @@ type MerchantRow = {
 };
 
 export class MerchantRepository implements IMerchantRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(merchant: DomainMerchant): Promise<void> {
     await this.prisma.merchant.create({
@@ -100,10 +93,7 @@ export class MerchantRepository implements IMerchantRepository {
     return this.toDomain(prismaMerchant);
   }
 
-  async existsByEmailOrDocument(
-    email: string,
-    document: string,
-  ): Promise<boolean> {
+  async existsByEmailOrDocument(email: string, document: string): Promise<boolean> {
     const merchant = await this.prisma.merchant.findFirst({
       where: {
         OR: [{ email }, { document }],

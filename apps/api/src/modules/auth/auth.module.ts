@@ -10,107 +10,48 @@ import {
   RefreshTokenUseCase,
   LogoutUseCase,
   SwitchStoreUseCase,
-  IUnitOfWork,
 } from '@hockpay/core';
-import {
-  MerchantRepository,
-  RefreshTokenRepository,
-  UnitOfWork,
-} from '@hockpay/infrastructure';
+import { RefreshTokenRepository } from '@hockpay/infrastructure';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
-import { PrismaService } from 'src/infra/database/prisma.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 
 /**
  * Auth Module
  *
  * This module provides authentication-related endpoints and dependencies.
  * Use cases from the core layer are instantiated here with their dependencies.
+ *
+ * Repositorios, UnitOfWork, JwtService e TokenGeneratorService vem do
+ * InfrastructureModule global.
  */
 @Module({
   imports: [ConfigModule, PassportModule.register({ defaultStrategy: 'jwt' })],
   controllers: [AuthController],
   providers: [
-    // Strategies
     JwtStrategy,
-
-    // Guards
     JwtAuthGuard,
     RequireStoreGuard,
-
-    // Infrastructure
-    {
-      provide: MerchantRepository,
-      useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: RefreshTokenRepository,
-      useFactory: (prisma: PrismaService) => new RefreshTokenRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IUnitOfWork',
-      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
-      inject: [PrismaService],
-    },
     PasswordHasherService,
-    JwtService,
-    TokenGeneratorService,
 
-    // Use Cases (from core)
-    {
-      provide: LoginUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        passwordHasher: PasswordHasherService,
-        jwtService: JwtService,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new LoginUseCase(
-          unitOfWork,
-          passwordHasher,
-          jwtService,
-          tokenGenerator,
-        );
-      },
-      inject: [
-        'IUnitOfWork',
-        PasswordHasherService,
-        JwtService,
-        TokenGeneratorService,
-      ],
-    },
-    {
-      provide: RefreshTokenUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        jwtService: JwtService,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new RefreshTokenUseCase(unitOfWork, jwtService, tokenGenerator);
-      },
-      inject: ['IUnitOfWork', JwtService, TokenGeneratorService],
-    },
-    {
-      provide: LogoutUseCase,
-      useFactory: (refreshTokenRepo: RefreshTokenRepository) => {
-        return new LogoutUseCase(refreshTokenRepo);
-      },
-      inject: [RefreshTokenRepository],
-    },
-    {
-      provide: SwitchStoreUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        jwtService: JwtService,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new SwitchStoreUseCase(unitOfWork, jwtService, tokenGenerator);
-      },
-      inject: ['IUnitOfWork', JwtService, TokenGeneratorService],
-    },
+    provideUseCase(LoginUseCase, [
+      'IUnitOfWork',
+      PasswordHasherService,
+      JwtService,
+      TokenGeneratorService,
+    ]),
+    provideUseCase(RefreshTokenUseCase, [
+      'IUnitOfWork',
+      JwtService,
+      TokenGeneratorService,
+    ]),
+    provideUseCase(LogoutUseCase, [RefreshTokenRepository]),
+    provideUseCase(SwitchStoreUseCase, [
+      'IUnitOfWork',
+      JwtService,
+      TokenGeneratorService,
+    ]),
   ],
   exports: [
     LoginUseCase,

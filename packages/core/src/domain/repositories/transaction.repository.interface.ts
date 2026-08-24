@@ -1,4 +1,4 @@
-import { Transaction, TransactionProps, TransactionType, DailyVolume } from '../entities/transaction.entity';
+import { Transaction, TransactionType, DailyVolume } from '../entities/transaction.entity';
 
 export interface ITransactionFilters {
   accountId: string;
@@ -61,7 +61,11 @@ export interface ITransactionRepository {
   /**
    * Find transactions with arbitrary filters and pagination.
    */
-  findWithFilters(filters: ITransactionFilters, page: number, limit: number): Promise<Transaction[]>;
+  findWithFilters(
+    filters: ITransactionFilters,
+    page: number,
+    limit: number,
+  ): Promise<Transaction[]>;
 
   /**
    * Count transactions matching filters.

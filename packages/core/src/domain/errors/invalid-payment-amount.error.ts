@@ -7,7 +7,7 @@ import { DomainError } from './domain-error';
 export class InvalidPaymentAmountError extends DomainError {
   constructor(
     message: string = 'Invalid payment amount',
-    public readonly amount?: number
+    public readonly amount?: number,
   ) {
     super(message, 'INVALID_PAYMENT_AMOUNT');
   }

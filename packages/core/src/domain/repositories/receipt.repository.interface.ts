@@ -3,8 +3,8 @@
  *
  * Defines the contract for receipt persistence operations.
  */
-import { Receipt } from "../entities/receipt.entity";
-import { Environment } from "../value-objects/environment.vo";
+import { Receipt } from '../entities/receipt.entity';
+import { Environment } from '../value-objects/environment.vo';
 
 export interface ReceiptListFilters {
   receiptNumber?: string;

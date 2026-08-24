@@ -1,38 +1,29 @@
-import { describe, expect, it, vi } from "vitest";
-import { Account } from "../../domain/entities/account.entity";
-import {
-  BankAccount,
-  PixKeyType,
-} from "../../domain/entities/bank-account.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { Store } from "../../domain/entities/store.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import {
-  Withdrawal,
-  WithdrawalStatus,
-} from "../../domain/entities/withdrawal.entity";
-import { BankAccountNotFoundError } from "../../domain/errors/bank-account-not-found.error";
-import { BankAccountNotVerifiedError } from "../../domain/errors/bank-account-not-verified.error";
-import { InsufficientWithdrawalBalanceError } from "../../domain/errors/insufficient-withdrawal-balance.error";
-import { InvalidWithdrawalAmountError } from "../../domain/errors/invalid-withdrawal-amount.error";
-import { WithdrawalLimitExceededError } from "../../domain/errors/withdrawal-limit-exceeded.error";
-import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { describe, expect, it, vi } from 'vitest';
+import { Account } from '../../domain/entities/account.entity';
+import { BankAccount, PixKeyType } from '../../domain/entities/bank-account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Store } from '../../domain/entities/store.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { Withdrawal, WithdrawalStatus } from '../../domain/entities/withdrawal.entity';
+import { BankAccountNotFoundError } from '../../domain/errors/bank-account-not-found.error';
+import { BankAccountNotVerifiedError } from '../../domain/errors/bank-account-not-verified.error';
+import { InsufficientWithdrawalBalanceError } from '../../domain/errors/insufficient-withdrawal-balance.error';
+import { InvalidWithdrawalAmountError } from '../../domain/errors/invalid-withdrawal-amount.error';
+import { WithdrawalLimitExceededError } from '../../domain/errors/withdrawal-limit-exceeded.error';
+import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   IUnitOfWork,
   ITransactedRepositories,
-} from "../../domain/repositories/unit-of-work.interface";
-import { CompleteWithdrawalUseCase } from "./complete-withdrawal.use-case";
-import { CreateWithdrawalUseCase } from "./create-withdrawal.use-case";
-import { FailWithdrawalUseCase } from "./fail-withdrawal.use-case";
-import { GetWithdrawalUseCase } from "./get-withdrawal.use-case";
-import { ListWithdrawalsUseCase } from "./list-withdrawals.use-case";
+} from '../../domain/repositories/unit-of-work.interface';
+import { CompleteWithdrawalUseCase } from './complete-withdrawal.use-case';
+import { CreateWithdrawalUseCase } from './create-withdrawal.use-case';
+import { FailWithdrawalUseCase } from './fail-withdrawal.use-case';
+import { GetWithdrawalUseCase } from './get-withdrawal.use-case';
+import { ListWithdrawalsUseCase } from './list-withdrawals.use-case';
 
-describe("withdrawal use cases", () => {
-  it("creates a valid withdrawal and reserves available balance", async () => {
+describe('withdrawal use cases', () => {
+  it('creates a valid withdrawal and reserves available balance', async () => {
     const fixture = makeFixture({ available: 20_000 });
     const useCase = new CreateWithdrawalUseCase(fixture.unitOfWork);
 
@@ -40,7 +31,7 @@ describe("withdrawal use cases", () => {
       storeId: fixture.store.id,
       bankAccountId: fixture.bankAccount.id,
       amount: 10_000,
-      requestId: "req-1",
+      requestId: 'req-1',
     });
 
     expect(result.withdrawal.status).toBe(WithdrawalStatus.PENDING);
@@ -49,18 +40,12 @@ describe("withdrawal use cases", () => {
     expect(result.account.available).toBe(10_000);
     expect(result.account.blocked).toBe(10_000);
     expect(fixture.transactions).toHaveLength(1);
-    expect(fixture.transactions[0].type).toBe(
-      TransactionType.WITHDRAWAL_RESERVED,
-    );
-    expect(
-      fixture.accountRepository.findByStoreIdForUpdate,
-    ).toHaveBeenCalledWith(fixture.store.id);
-    expect(fixture.outbox.map((event) => event.eventType)).toEqual([
-      "withdrawal.created",
-    ]);
+    expect(fixture.transactions[0].type).toBe(TransactionType.WITHDRAWAL_RESERVED);
+    expect(fixture.accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(fixture.store.id);
+    expect(fixture.outbox.map((event) => event.eventType)).toEqual(['withdrawal.created']);
   });
 
-  it("rejects insufficient balance", async () => {
+  it('rejects insufficient balance', async () => {
     const fixture = makeFixture({ available: 5_000 });
     const useCase = new CreateWithdrawalUseCase(fixture.unitOfWork);
 
@@ -73,7 +58,7 @@ describe("withdrawal use cases", () => {
     ).rejects.toBeInstanceOf(InsufficientWithdrawalBalanceError);
   });
 
-  it("rejects unverified or foreign bank accounts", async () => {
+  it('rejects unverified or foreign bank accounts', async () => {
     const unverified = makeFixture({ bankAccountVerified: false });
     await expect(
       new CreateWithdrawalUseCase(unverified.unitOfWork).execute({
@@ -83,7 +68,7 @@ describe("withdrawal use cases", () => {
       }),
     ).rejects.toBeInstanceOf(BankAccountNotVerifiedError);
 
-    const foreign = makeFixture({ bankAccountStoreId: "other-store" });
+    const foreign = makeFixture({ bankAccountStoreId: 'other-store' });
     await expect(
       new CreateWithdrawalUseCase(foreign.unitOfWork).execute({
         storeId: foreign.store.id,
@@ -93,7 +78,7 @@ describe("withdrawal use cases", () => {
     ).rejects.toBeInstanceOf(BankAccountNotFoundError);
   });
 
-  it("applies amount and daily limits", async () => {
+  it('applies amount and daily limits', async () => {
     const fixture = makeFixture();
     const useCase = new CreateWithdrawalUseCase(fixture.unitOfWork);
 
@@ -115,42 +100,34 @@ describe("withdrawal use cases", () => {
     ).rejects.toBeInstanceOf(WithdrawalLimitExceededError);
   });
 
-  it("completes a withdrawal and deducts blocked balance", async () => {
+  it('completes a withdrawal and deducts blocked balance', async () => {
     const fixture = makeFixture({ available: 20_000 });
-    const created = await new CreateWithdrawalUseCase(
-      fixture.unitOfWork,
-    ).execute({
+    const created = await new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
       storeId: fixture.store.id,
       bankAccountId: fixture.bankAccount.id,
       amount: 10_000,
     });
 
-    const result = await new CompleteWithdrawalUseCase(
-      fixture.unitOfWork,
-    ).execute({
+    const result = await new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
       withdrawalId: created.withdrawal.id,
       storeId: fixture.store.id,
-      pixE2eId: "E2E-test",
+      pixE2eId: 'E2E-test',
     });
 
     expect(result.withdrawal.status).toBe(WithdrawalStatus.COMPLETED);
-    expect(result.withdrawal.pixE2eId).toBe("E2E-test");
+    expect(result.withdrawal.pixE2eId).toBe('E2E-test');
     expect(result.account.available).toBe(10_000);
     expect(result.account.blocked).toBe(0);
-    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(
-      fixture.account.id,
-    );
+    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(fixture.account.id);
     expect(fixture.transactions.map((tx) => tx.type)).toEqual([
       TransactionType.WITHDRAWAL_RESERVED,
       TransactionType.WITHDRAWAL_SENT,
     ]);
   });
 
-  it("fails a withdrawal and returns blocked balance to available", async () => {
+  it('fails a withdrawal and returns blocked balance to available', async () => {
     const fixture = makeFixture({ available: 20_000 });
-    const created = await new CreateWithdrawalUseCase(
-      fixture.unitOfWork,
-    ).execute({
+    const created = await new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
       storeId: fixture.store.id,
       bankAccountId: fixture.bankAccount.id,
       amount: 10_000,
@@ -159,26 +136,20 @@ describe("withdrawal use cases", () => {
     const result = await new FailWithdrawalUseCase(fixture.unitOfWork).execute({
       withdrawalId: created.withdrawal.id,
       storeId: fixture.store.id,
-      reason: "bank rejected",
+      reason: 'bank rejected',
     });
 
     expect(result.withdrawal.status).toBe(WithdrawalStatus.FAILED);
-    expect(result.withdrawal.failedReason).toBe("bank rejected");
+    expect(result.withdrawal.failedReason).toBe('bank rejected');
     expect(result.account.available).toBe(20_000);
     expect(result.account.blocked).toBe(0);
-    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(
-      fixture.account.id,
-    );
-    expect(fixture.transactions.at(-1)?.type).toBe(
-      TransactionType.WITHDRAWAL_REVERSED,
-    );
+    expect(fixture.accountRepository.findByIdForUpdate).toHaveBeenCalledWith(fixture.account.id);
+    expect(fixture.transactions.at(-1)?.type).toBe(TransactionType.WITHDRAWAL_REVERSED);
   });
 
-  it("returns enriched withdrawal detail with Pix account, ledger and timeline", async () => {
+  it('returns enriched withdrawal detail with Pix account, ledger and timeline', async () => {
     const fixture = makeFixture({ available: 20_000 });
-    const created = await new CreateWithdrawalUseCase(
-      fixture.unitOfWork,
-    ).execute({
+    const created = await new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
       storeId: fixture.store.id,
       bankAccountId: fixture.bankAccount.id,
       amount: 10_000,
@@ -186,7 +157,7 @@ describe("withdrawal use cases", () => {
     await new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
       withdrawalId: created.withdrawal.id,
       storeId: fixture.store.id,
-      pixE2eId: "E2E-test",
+      pixE2eId: 'E2E-test',
     });
 
     const result = await new GetWithdrawalUseCase(fixture.unitOfWork).execute({
@@ -200,11 +171,11 @@ describe("withdrawal use cases", () => {
       TransactionType.WITHDRAWAL_SENT,
     ]);
     expect(result.timeline.map((event) => event.type)).toEqual(
-      expect.arrayContaining(["CREATED", "RESERVED", "SENT"]),
+      expect.arrayContaining(['CREATED', 'RESERVED', 'SENT']),
     );
   });
 
-  it("returns withdrawal summary and forwards search filters", async () => {
+  it('returns withdrawal summary and forwards search filters', async () => {
     const fixture = makeFixture();
     const withdrawal = Withdrawal.create({
       accountId: fixture.account.id,
@@ -244,25 +215,23 @@ describe("withdrawal use cases", () => {
       accountRepository as any,
     ).execute({
       storeId: fixture.store.id,
-      q: "12345678",
+      q: '12345678',
       status: WithdrawalStatus.PENDING,
     });
 
     expect(withdrawalRepository.list).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: fixture.account.id,
-        q: "12345678",
+        q: '12345678',
         status: WithdrawalStatus.PENDING,
       }),
     );
     expect(result.summary.pendingOrProcessingAmount).toBe(10_000);
   });
 
-  it("refuses TEST simulation complete/fail of a LIVE withdrawal", async () => {
+  it('refuses TEST simulation complete/fail of a LIVE withdrawal', async () => {
     const fixture = makeFixture({ available: 20_000 });
-    const created = await new CreateWithdrawalUseCase(
-      fixture.unitOfWork,
-    ).execute({
+    const created = await new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
       storeId: fixture.store.id,
       bankAccountId: fixture.bankAccount.id,
       amount: 10_000,
@@ -281,7 +250,7 @@ describe("withdrawal use cases", () => {
       new FailWithdrawalUseCase(fixture.unitOfWork).execute({
         withdrawalId: created.withdrawal.id,
         storeId: fixture.store.id,
-        reason: "simulated fail",
+        reason: 'simulated fail',
         simulation: true,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
@@ -299,10 +268,10 @@ function makeFixture(
   } = {},
 ) {
   const store = Store.reconstitute({
-    id: "store-1",
-    merchantId: "merchant-1",
-    name: "Store",
-    slug: "store",
+    id: 'store-1',
+    merchantId: 'merchant-1',
+    name: 'Store',
+    slug: 'store',
     isActive: true,
     isApproved: true,
     settlementDays: 1,
@@ -312,21 +281,21 @@ function makeFixture(
     updatedAt: new Date(),
   });
   const account = Account.reconstitute({
-    id: "account-1",
+    id: 'account-1',
     storeId: store.id,
     available: options.available ?? 100_000,
     pending: 0,
     blocked: 0,
-    currency: "BRL",
+    currency: 'BRL',
     updatedAt: new Date(),
   });
   const bankAccount = BankAccount.reconstitute({
-    id: "bank-1",
+    id: 'bank-1',
     storeId: options.bankAccountStoreId ?? store.id,
-    pixKey: "12345678901",
+    pixKey: '12345678901',
     pixKeyType: PixKeyType.CPF,
-    holderName: "Merchant",
-    holderDocument: "12345678901",
+    holderName: 'Merchant',
+    holderDocument: '12345678901',
     isDefault: true,
     isVerified: options.bankAccountVerified ?? true,
     createdAt: new Date(),
@@ -338,16 +307,12 @@ function makeFixture(
   let dailyAmount = 0;
   let dailyCount = 0;
   const accountRepository = {
-    findByStoreId: vi.fn(async (storeId: string) =>
-      storeId === store.id ? account : null,
-    ),
+    findByStoreId: vi.fn(async (storeId: string) => (storeId === store.id ? account : null)),
     findByStoreIdForUpdate: vi.fn(async (storeId: string) =>
       storeId === store.id ? account : null,
     ),
     findById: vi.fn(async (id: string) => (id === account.id ? account : null)),
-    findByIdForUpdate: vi.fn(async (id: string) =>
-      id === account.id ? account : null,
-    ),
+    findByIdForUpdate: vi.fn(async (id: string) => (id === account.id ? account : null)),
     update: vi.fn(async () => undefined),
   };
 
@@ -357,8 +322,7 @@ function makeFixture(
     },
     accountRepository,
     bankAccountRepository: {
-      findById: async (id: string) =>
-        id === bankAccount.id ? bankAccount : null,
+      findById: async (id: string) => (id === bankAccount.id ? bankAccount : null),
       findUsageByStoreId: async () => ({}),
     },
     withdrawalRepository: {
@@ -384,8 +348,7 @@ function makeFixture(
       findByReference: async (referenceType: string, referenceId: string) =>
         transactions.filter(
           (transaction) =>
-            transaction.referenceType === referenceType &&
-            transaction.referenceId === referenceId,
+            transaction.referenceType === referenceType && transaction.referenceId === referenceId,
         ),
     },
     outboxWriter: {

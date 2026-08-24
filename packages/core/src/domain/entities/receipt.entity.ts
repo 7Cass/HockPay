@@ -1,5 +1,5 @@
-import { LineItemObject } from "./line-item.entity";
-import { ReceiptAlreadyCancelledError } from "../errors/receipt-already-cancelled.error";
+import { LineItemObject } from './line-item.entity';
+import { ReceiptAlreadyCancelledError } from '../errors/receipt-already-cancelled.error';
 
 /**
  * Domain Entity: Receipt
@@ -43,7 +43,7 @@ export class Receipt {
     this._amount = props.amount;
     this._fee = props.fee;
     this._netAmount = props.netAmount;
-    this._currency = props.currency ?? "BRL";
+    this._currency = props.currency ?? 'BRL';
     this._description = props.description;
     this._status = props.status;
     this._issuedAt = props.issuedAt;
@@ -66,7 +66,7 @@ export class Receipt {
       amount: props.amount,
       fee: props.fee,
       netAmount: props.netAmount,
-      currency: props.currency ?? "BRL",
+      currency: props.currency ?? 'BRL',
       description: props.description,
       status: ReceiptStatus.ISSUED,
       issuedAt: new Date(),
@@ -179,8 +179,8 @@ export class Receipt {
 }
 
 export enum ReceiptStatus {
-  ISSUED = "ISSUED",
-  CANCELLED = "CANCELLED",
+  ISSUED = 'ISSUED',
+  CANCELLED = 'CANCELLED',
 }
 
 export interface CreateReceiptProps {

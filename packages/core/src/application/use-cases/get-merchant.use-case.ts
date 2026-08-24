@@ -1,6 +1,5 @@
 import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
 import { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
-import { Merchant } from '../../domain/entities/merchant.entity';
 
 /**
  * Output DTO for GetMerchantUseCase.

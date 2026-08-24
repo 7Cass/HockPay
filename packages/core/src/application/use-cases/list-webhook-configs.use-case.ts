@@ -1,7 +1,4 @@
-import {
-  IWebhookConfigRepository,
-  WebhookConfig,
-} from '../..';
+import { IWebhookConfigRepository, WebhookConfig } from '../..';
 
 /**
  * Input for listing webhook configs.
@@ -21,9 +18,7 @@ export interface IListWebhookConfigsOutput {
  * Use case for listing all webhook configurations for a store.
  */
 export class ListWebhookConfigsUseCase {
-  constructor(
-    private readonly webhookConfigRepository: IWebhookConfigRepository,
-  ) {}
+  constructor(private readonly webhookConfigRepository: IWebhookConfigRepository) {}
 
   async execute(input: IListWebhookConfigsInput): Promise<IListWebhookConfigsOutput> {
     const webhookConfigs = await this.webhookConfigRepository.findByStoreId(input.storeId);

@@ -1,7 +1,15 @@
-import { AlertConfig, AlertConfigObject, AlertChannel } from '../../domain/entities/alert-config.entity';
+import {
+  AlertConfig,
+  AlertConfigObject,
+  AlertChannel,
+} from '../../domain/entities/alert-config.entity';
 import { IAlertConfigRepository } from '../../domain/repositories/alert-config.repository.interface';
 import { IEncryptionPort } from '../ports/encryption.port';
-import { buildDiscordAlertConfig, validateAlertChannel, validateAlertEvents } from './alert-config.helpers';
+import {
+  buildDiscordAlertConfig,
+  validateAlertChannel,
+  validateAlertEvents,
+} from './alert-config.helpers';
 
 export interface ICreateAlertConfigInput {
   storeId: string;

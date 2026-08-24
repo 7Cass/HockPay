@@ -92,8 +92,6 @@ describe('ListReceiptsUseCase', () => {
       'store-1',
     );
     expect(paymentRepository.findByIdAndStoreId).not.toHaveBeenCalled();
-    expect(result.receipts.map((receipt) => receipt.items?.length ?? 0)).toEqual([
-      1, 0, 1,
-    ]);
+    expect(result.receipts.map((receipt) => receipt.items?.length ?? 0)).toEqual([1, 0, 1]);
   });
 });

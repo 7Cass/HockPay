@@ -63,10 +63,7 @@ export class CreateCustomerUseCase {
         // If updateExisting is true, update the customer
         if (input.updateExisting) {
           // Check if document is being changed to one that's already in use
-          if (
-            input.document &&
-            !existingByExternalId.document.equals(document)
-          ) {
+          if (input.document && !existingByExternalId.document.equals(document)) {
             const existingByDocument = await this.customerRepository.findByDocument(
               input.storeId,
               input.document,
@@ -113,9 +110,7 @@ export class CreateCustomerUseCase {
     );
 
     if (existingByDocument) {
-      throw new DocumentAlreadyInUseError(
-        existingByDocument.externalId ?? existingByDocument.id,
-      );
+      throw new DocumentAlreadyInUseError(existingByDocument.externalId ?? existingByDocument.id);
     }
 
     // 4. Create new customer

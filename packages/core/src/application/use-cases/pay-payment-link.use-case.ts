@@ -1,36 +1,23 @@
-import { Payment, PaymentMethod, PaymentObject } from "../../domain/entities/payment.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  PaymentLinkListItem,
-  PaymentLinkStatus,
-} from "../../domain/entities/payment-link.entity";
-import {
-  PixChargeObject,
-  PixChargeStatus,
-} from "../../domain/entities/pix-charge.entity";
-import { Receipt } from "../../domain/entities/receipt.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { Payment, PaymentMethod, PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { PaymentLinkListItem, PaymentLinkStatus } from '../../domain/entities/payment-link.entity';
+import { PixChargeObject, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   ITransactedRepositories,
   IUnitOfWork,
-} from "../../domain/repositories/unit-of-work.interface";
-import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
-import { FeePolicy } from "../services/fee-policy.service";
-import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
-import { settleConfirmedPayment } from "./settle-confirmed-payment";
-import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
-import { PaymentLinkUnavailableError } from "../../domain/errors/payment-link-unavailable.error";
-import { CustomerDocumentRequiredError } from "../../domain/errors/customer-document-required.error";
-import { Customer } from "../../domain/entities/customer.entity";
-import { Document } from "../../domain/value-objects/document.vo";
-import { PaymentCustomerInput } from "./create-payment.use-case";
-import { buildReceiptNumber } from "./receipt-number";
+} from '../../domain/repositories/unit-of-work.interface';
+import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
+import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
+import { FeePolicy } from '../services/fee-policy.service';
+import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
+import { settleConfirmedPayment } from './settle-confirmed-payment';
+import { PaymentLinkNotFoundError } from '../../domain/errors/payment-link-not-found.error';
+import { PaymentLinkUnavailableError } from '../../domain/errors/payment-link-unavailable.error';
+import { CustomerDocumentRequiredError } from '../../domain/errors/customer-document-required.error';
+import { Customer } from '../../domain/entities/customer.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { PaymentCustomerInput } from './create-payment.use-case';
 
 export interface IPayPaymentLinkInput {
   publicToken: string;
@@ -52,38 +39,27 @@ export class PayPaymentLinkUseCase {
 
   async execute(input: IPayPaymentLinkInput): Promise<IPayPaymentLinkOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const item = await repos.paymentLinkRepository.findPublicByTokenForUpdate(
-        input.publicToken,
-      );
+      const item = await repos.paymentLinkRepository.findPublicByTokenForUpdate(input.publicToken);
       if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
 
       this.ensureSimulationAllowed(input.environment, item.environment);
 
-      const pixCharge =
-        await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
-          item.pixCharge.id,
-          item.storeId,
-        );
+      const pixCharge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
+        item.pixCharge.id,
+        item.storeId,
+      );
       if (!pixCharge) {
-        throw new PaymentLinkUnavailableError("Payment link Pix charge is invalid");
+        throw new PaymentLinkUnavailableError('Payment link Pix charge is invalid');
       }
 
       if (
         this.isAlreadyPaid(item.status, pixCharge.status) ||
         pixCharge.status === PixChargeStatus.PAID
       ) {
-        const paidPayment = await this.findPaidPayment(
-          repos,
-          item.storeId,
-          pixCharge.id,
-        );
+        const paidPayment = await this.findPaidPayment(repos, item.storeId, pixCharge.id);
         if (paidPayment) {
           return {
-            payment: await this.buildPaymentPayload(
-              repos,
-              paidPayment,
-              pixCharge.toObject(),
-            ),
+            payment: await this.buildPaymentPayload(repos, paidPayment, pixCharge.toObject()),
           };
         }
       }
@@ -93,36 +69,26 @@ export class PayPaymentLinkUseCase {
       if (pixCharge.hasExpired()) {
         pixCharge.expire();
         await repos.pixChargeRepository.update(pixCharge);
-        throw new PaymentLinkUnavailableError("Payment link has expired");
+        throw new PaymentLinkUnavailableError('Payment link has expired');
       }
       if (!pixCharge.isOpen()) {
-        throw new PaymentLinkUnavailableError("Payment link is not payable");
+        throw new PaymentLinkUnavailableError('Payment link is not payable');
       }
 
       const store = await repos.storeRepository.findById(item.storeId);
-      if (!store) throw new PaymentLinkUnavailableError("Payment link store is invalid");
+      if (!store) throw new PaymentLinkUnavailableError('Payment link store is invalid');
 
       const customer = await this.resolveCustomer(repos, item.storeId, input.customer);
 
-      const payment = this.createAttempt(
-        input,
-        item,
-        pixCharge.toObject(),
-        store,
-        customer,
-      );
+      const payment = this.createAttempt(input, item, pixCharge.toObject(), store, customer);
 
       await repos.paymentRepository.save(payment);
-      const createdPayload = await this.buildPaymentPayload(
-        repos,
-        payment,
-        pixCharge.toObject(),
-      );
+      const createdPayload = await this.buildPaymentPayload(repos, payment, pixCharge.toObject());
 
       const createdOutboxEvent = OutboxEvent.create({
-        aggregateType: "Payment",
+        aggregateType: 'Payment',
         aggregateId: payment.id,
-        eventType: "payment.created",
+        eventType: 'payment.created',
         requestId: input.requestId,
         storeId: payment.storeId,
         payload: createdPayload as unknown as Record<string, unknown>,
@@ -154,10 +120,7 @@ export class PayPaymentLinkUseCase {
     }
     const document = new Document(customerInput.document);
 
-    const existing = await repos.customerRepository.findByDocument(
-      storeId,
-      document.value,
-    );
+    const existing = await repos.customerRepository.findByDocument(storeId, document.value);
     if (existing) {
       return existing;
     }
@@ -184,8 +147,7 @@ export class PayPaymentLinkUseCase {
       feePercent: store.feePercent,
       feeFixed: store.feeFixed,
     });
-    const paymentExpiresAt =
-      pixCharge.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
+    const paymentExpiresAt = pixCharge.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
 
     return Payment.create({
       storeId: item.storeId,
@@ -204,7 +166,7 @@ export class PayPaymentLinkUseCase {
       pixCharge,
       expiresAt: paymentExpiresAt,
       metadata: {
-        origin: "payment_link",
+        origin: 'payment_link',
         paymentLinkId: item.id,
         internalReference: item.internalReference ?? undefined,
       },
@@ -239,19 +201,13 @@ export class PayPaymentLinkUseCase {
     requestEnvironment: Environment,
     linkEnvironment: Environment,
   ): void {
-    if (
-      requestEnvironment === Environment.LIVE ||
-      linkEnvironment === Environment.LIVE
-    ) {
+    if (requestEnvironment === Environment.LIVE || linkEnvironment === Environment.LIVE) {
       throw new LiveEnvironmentNotAllowedError();
     }
   }
 
-  private isAlreadyPaid(
-    linkStatus: PaymentLinkStatus,
-    pixChargeStatus: PixChargeStatus,
-  ): boolean {
-    return linkStatus === "PAID" || pixChargeStatus === PixChargeStatus.PAID;
+  private isAlreadyPaid(linkStatus: PaymentLinkStatus, pixChargeStatus: PixChargeStatus): boolean {
+    return linkStatus === 'PAID' || pixChargeStatus === PixChargeStatus.PAID;
   }
 
   private async findPaidPayment(
@@ -263,22 +219,15 @@ export class PayPaymentLinkUseCase {
       pixChargeId,
       storeId,
     );
-    return (
-      attempts.find(
-        (attempt) => attempt.isConfirmed() || attempt.isReleased(),
-      ) ?? null
-    );
+    return attempts.find((attempt) => attempt.isConfirmed() || attempt.isReleased()) ?? null;
   }
 
-  private ensurePayable(
-    linkStatus: PaymentLinkStatus,
-    pixChargeStatus: PixChargeStatus,
-  ): void {
+  private ensurePayable(linkStatus: PaymentLinkStatus, pixChargeStatus: PixChargeStatus): void {
     if (
-      (linkStatus !== "ACTIVE" && linkStatus !== "OPENED") ||
+      (linkStatus !== 'ACTIVE' && linkStatus !== 'OPENED') ||
       pixChargeStatus !== PixChargeStatus.OPEN
     ) {
-      throw new PaymentLinkUnavailableError("Payment link is not payable");
+      throw new PaymentLinkUnavailableError('Payment link is not payable');
     }
   }
 }

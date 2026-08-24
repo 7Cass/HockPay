@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { FeePolicy } from "./fee-policy.service";
-import { InvalidPaymentAmountError } from "../../domain/errors/invalid-payment-amount.error";
+import { describe, expect, it } from 'vitest';
+import { FeePolicy } from './fee-policy.service';
+import { InvalidPaymentAmountError } from '../../domain/errors/invalid-payment-amount.error';
 
-describe("FeePolicy", () => {
+describe('FeePolicy', () => {
   const policy = new FeePolicy();
 
-  it("calculates percent plus fixed fee", () => {
+  it('calculates percent plus fixed fee', () => {
     expect(
       policy.calculate({
         amountInCents: 10_000,
@@ -20,7 +20,7 @@ describe("FeePolicy", () => {
     });
   });
 
-  it("rejects a fee that would zero or invert the net amount", () => {
+  it('rejects a fee that would zero or invert the net amount', () => {
     expect(() =>
       policy.calculate({
         amountInCents: 100,

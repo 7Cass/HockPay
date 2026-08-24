@@ -4,8 +4,8 @@ import {
   OutboxEvent,
   OutboxEventProps,
   OutboxEventStatus,
-} from "@hockpay/core";
-import { PrismaClient, OutboxStatus, Prisma } from "@hockpay/database";
+} from '@hockpay/core';
+import { PrismaClient, OutboxStatus, Prisma } from '@hockpay/database';
 
 type OutboxEventRow = {
   id: string;
@@ -32,9 +32,7 @@ type OutboxEventRow = {
 export class OutboxRepository implements IOutboxRepository {
   private static readonly LEGACY_DISPATCHED_STALE_MS = 45 * 60 * 1000;
 
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(event: OutboxEvent): Promise<void> {
     await this.prisma.outboxEvent.create({
@@ -102,17 +100,14 @@ export class OutboxRepository implements IOutboxRepository {
         status: OutboxStatus.PENDING,
         OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       take: limit,
     });
 
     return events.map((e) => this.toDomain(e));
   }
 
-  async findDispatchableEvents(
-    limit: number,
-    now = new Date(),
-  ): Promise<OutboxEvent[]> {
+  async findDispatchableEvents(limit: number, now = new Date()): Promise<OutboxEvent[]> {
     const legacyDispatchedCutoff = new Date(
       now.getTime() - OutboxRepository.LEGACY_DISPATCHED_STALE_MS,
     );
@@ -142,7 +137,7 @@ export class OutboxRepository implements IOutboxRepository {
           },
         ],
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       take: limit,
     });
 
@@ -218,16 +213,13 @@ export class OutboxRepository implements IOutboxRepository {
     return events.map((e) => this.toDomain(e));
   }
 
-  async findByAggregate(
-    aggregateType: string,
-    aggregateId: string,
-  ): Promise<OutboxEvent[]> {
+  async findByAggregate(aggregateType: string, aggregateId: string): Promise<OutboxEvent[]> {
     const events = await this.prisma.outboxEvent.findMany({
       where: {
         aggregateType,
         aggregateId,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return events.map((e) => this.toDomain(e));

@@ -1,21 +1,17 @@
-import * as crypto from "crypto";
-import { IHmacSignerPort } from "@hockpay/core";
+import * as crypto from 'crypto';
+import { IHmacSignerPort } from '@hockpay/core';
 
 /**
  * Implementation of IHmacSignerPort using Node.js crypto module.
  */
 export class HmacSignerService implements IHmacSignerPort {
-  sign(
-    secret: string,
-    payload: Record<string, unknown>,
-    timestamp: number,
-  ): string {
+  sign(secret: string, payload: Record<string, unknown>, timestamp: number): string {
     const payloadString = JSON.stringify(payload);
     const signatureBase = `${secret}${timestamp}${payloadString}`;
 
-    const hmac = crypto.createHmac("sha256", secret);
+    const hmac = crypto.createHmac('sha256', secret);
     hmac.update(signatureBase);
-    const hash = hmac.digest("hex");
+    const hash = hmac.digest('hex');
 
     return `sha256=${hash}`;
   }
@@ -27,9 +23,6 @@ export class HmacSignerService implements IHmacSignerPort {
     signature: string,
   ): boolean {
     const expectedSignature = this.sign(secret, payload, timestamp);
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature),
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   }
 }

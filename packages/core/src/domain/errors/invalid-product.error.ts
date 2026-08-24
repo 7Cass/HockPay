@@ -1,7 +1,7 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from './domain-error';
 
 export class InvalidProductError extends DomainError {
   constructor(message: string) {
-    super(message, "INVALID_PRODUCT");
+    super(message, 'INVALID_PRODUCT');
   }
 }

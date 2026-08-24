@@ -9,8 +9,8 @@ import {
 } from '@hockpay/core';
 import { ApiKeyRepository } from '@hockpay/infrastructure';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 import { AuthModule } from '../auth/auth.module';
-import { PrismaService } from 'src/infra/database/prisma.service';
 
 /**
  * ApiKey Module
@@ -23,63 +23,24 @@ import { PrismaService } from 'src/infra/database/prisma.service';
  * - Revoke API keys
  * - Validate API keys (via ApiKeyGuard for public API authentication)
  *
- * Use cases from the core layer are instantiated here with their dependencies.
+ * ApiKeyRepository e TokenGeneratorService vem do InfrastructureModule global.
  */
 @Module({
   imports: [AuthModule],
   controllers: [ApiKeyController],
   providers: [
-    // Guards
     ApiKeyGuard,
 
-    {
-      provide: ApiKeyRepository,
-      useFactory: (prisma: PrismaService) => new ApiKeyRepository(prisma),
-      inject: [PrismaService],
-    },
-    TokenGeneratorService,
-
-    // Use Cases (from core) - CreateApiKeyUseCase
-    {
-      provide: CreateApiKeyUseCase,
-      useFactory: (
-        repo: ApiKeyRepository,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new CreateApiKeyUseCase(repo, tokenGenerator);
-      },
-      inject: [ApiKeyRepository, TokenGeneratorService],
-    },
-
-    // ListApiKeysUseCase
-    {
-      provide: ListApiKeysUseCase,
-      useFactory: (repo: ApiKeyRepository) => {
-        return new ListApiKeysUseCase(repo);
-      },
-      inject: [ApiKeyRepository],
-    },
-
-    // RevokeApiKeyUseCase
-    {
-      provide: RevokeApiKeyUseCase,
-      useFactory: (repo: ApiKeyRepository) => {
-        return new RevokeApiKeyUseCase(repo);
-      },
-      inject: [ApiKeyRepository],
-    },
-
-    // ValidateApiKeyUseCase
-    {
-      provide: ValidateApiKeyUseCase,
-      useFactory: (
-        repo: ApiKeyRepository,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new ValidateApiKeyUseCase(repo, tokenGenerator);
-      },
-      inject: [ApiKeyRepository, TokenGeneratorService],
-    },
+    provideUseCase(CreateApiKeyUseCase, [
+      ApiKeyRepository,
+      TokenGeneratorService,
+    ]),
+    provideUseCase(ListApiKeysUseCase, [ApiKeyRepository]),
+    provideUseCase(RevokeApiKeyUseCase, [ApiKeyRepository]),
+    provideUseCase(ValidateApiKeyUseCase, [
+      ApiKeyRepository,
+      TokenGeneratorService,
+    ]),
   ],
   exports: [
     ApiKeyGuard,

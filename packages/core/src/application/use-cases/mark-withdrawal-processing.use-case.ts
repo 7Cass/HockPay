@@ -1,10 +1,10 @@
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { WithdrawalObject } from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { InvalidWithdrawalStatusError } from "../../domain/errors/invalid-withdrawal-status.error";
-import { WithdrawalNotFoundError } from "../../domain/errors/withdrawal-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { sanitizeWithdrawal } from "./create-withdrawal.use-case";
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { WithdrawalObject } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { InvalidWithdrawalStatusError } from '../../domain/errors/invalid-withdrawal-status.error';
+import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { sanitizeWithdrawal } from './create-withdrawal.use-case';
 
 export interface IMarkWithdrawalProcessingInput {
   withdrawalId: string;
@@ -20,18 +20,12 @@ export interface IMarkWithdrawalProcessingOutput {
 export class MarkWithdrawalProcessingUseCase {
   constructor(private readonly unitOfWork: IUnitOfWork) {}
 
-  async execute(
-    input: IMarkWithdrawalProcessingInput,
-  ): Promise<IMarkWithdrawalProcessingOutput> {
+  async execute(input: IMarkWithdrawalProcessingInput): Promise<IMarkWithdrawalProcessingOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const withdrawal = await repos.withdrawalRepository.findById(
-        input.withdrawalId,
-      );
+      const withdrawal = await repos.withdrawalRepository.findById(input.withdrawalId);
       if (!withdrawal) throw new WithdrawalNotFoundError(input.withdrawalId);
 
-      const account = await repos.accountRepository.findById(
-        withdrawal.accountId,
-      );
+      const account = await repos.accountRepository.findById(withdrawal.accountId);
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);
       if (input.storeId && account.storeId !== input.storeId) {
         throw new WithdrawalNotFoundError(input.withdrawalId);
@@ -54,9 +48,9 @@ export class MarkWithdrawalProcessingUseCase {
       await repos.withdrawalRepository.update(withdrawal);
       await repos.outboxWriter.save(
         OutboxEvent.create({
-          aggregateType: "Withdrawal",
+          aggregateType: 'Withdrawal',
           aggregateId: withdrawal.id,
-          eventType: "withdrawal.processing",
+          eventType: 'withdrawal.processing',
           requestId: input.requestId,
           storeId: account.storeId,
           payload: sanitizeWithdrawal(account.storeId, withdrawal.toObject()),

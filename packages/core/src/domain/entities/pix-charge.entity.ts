@@ -1,10 +1,10 @@
-import { PixChargeNotOpenError } from "../errors/pix-charge-not-open.error";
+import { PixChargeNotOpenError } from '../errors/pix-charge-not-open.error';
 
 export enum PixChargeStatus {
-  OPEN = "OPEN",
-  PAID = "PAID",
-  EXPIRED = "EXPIRED",
-  CANCELLED = "CANCELLED",
+  OPEN = 'OPEN',
+  PAID = 'PAID',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
 }
 
 export interface PixChargeProps {
@@ -45,7 +45,7 @@ export class PixCharge {
       id: crypto.randomUUID(),
       storeId: props.storeId,
       amount: props.amount,
-      currency: props.currency ?? "BRL",
+      currency: props.currency ?? 'BRL',
       status: PixChargeStatus.OPEN,
       pixQrCode: props.pixQrCode,
       pixCopyPaste: props.pixCopyPaste,
@@ -60,19 +60,45 @@ export class PixCharge {
     return new PixCharge(props);
   }
 
-  get id(): string { return this.props.id; }
-  get storeId(): string { return this.props.storeId; }
-  get amount(): number { return this.props.amount; }
-  get currency(): string { return this.props.currency; }
-  get status(): PixChargeStatus { return this.props.status; }
-  get pixQrCode(): string { return this.props.pixQrCode; }
-  get pixCopyPaste(): string { return this.props.pixCopyPaste; }
-  get pixTxId(): string { return this.props.pixTxId; }
-  get expiresAt(): Date | null | undefined { return this.props.expiresAt; }
-  get paidAt(): Date | undefined { return this.props.paidAt; }
-  get cancelledAt(): Date | undefined { return this.props.cancelledAt; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get storeId(): string {
+    return this.props.storeId;
+  }
+  get amount(): number {
+    return this.props.amount;
+  }
+  get currency(): string {
+    return this.props.currency;
+  }
+  get status(): PixChargeStatus {
+    return this.props.status;
+  }
+  get pixQrCode(): string {
+    return this.props.pixQrCode;
+  }
+  get pixCopyPaste(): string {
+    return this.props.pixCopyPaste;
+  }
+  get pixTxId(): string {
+    return this.props.pixTxId;
+  }
+  get expiresAt(): Date | null | undefined {
+    return this.props.expiresAt;
+  }
+  get paidAt(): Date | undefined {
+    return this.props.paidAt;
+  }
+  get cancelledAt(): Date | undefined {
+    return this.props.cancelledAt;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 
   isOpen(): boolean {
     return this.props.status === PixChargeStatus.OPEN;

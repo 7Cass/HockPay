@@ -5,9 +5,6 @@ import { DomainError } from './domain-error';
  */
 export class WebhookConfigNotFoundError extends DomainError {
   constructor(id: string) {
-    super(
-      `Webhook config not found: ${id}`,
-      'WEBHOOK_CONFIG_NOT_FOUND',
-    );
+    super(`Webhook config not found: ${id}`, 'WEBHOOK_CONFIG_NOT_FOUND');
   }
 }

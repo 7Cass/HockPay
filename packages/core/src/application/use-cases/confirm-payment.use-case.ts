@@ -1,11 +1,10 @@
-import { PaymentObject } from "../../domain/entities/payment.entity";
-import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.error";
-import { PaymentExpiredError } from "../../domain/errors/payment-expired.error";
-import { InvalidPaymentStatusError } from "../../domain/errors/invalid-payment-status.error";
-import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { assertNotLiveEnvironment } from "../services/live-environment-guard";
-import { settleConfirmedPayment } from "./settle-confirmed-payment";
+import { PaymentObject } from '../../domain/entities/payment.entity';
+import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { PaymentExpiredError } from '../../domain/errors/payment-expired.error';
+import { PixChargeNotOpenError } from '../../domain/errors/pix-charge-not-open.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { settleConfirmedPayment } from './settle-confirmed-payment';
 
 /**
  * Input DTO for ConfirmPaymentUseCase.
@@ -60,11 +59,10 @@ export class ConfirmPaymentUseCase {
       if (payment.isPending() && payment.hasExpired()) {
         payment.expire();
         if (payment.pixChargeId) {
-          const charge =
-            await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
-              payment.pixChargeId,
-              input.storeId,
-            );
+          const charge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
+            payment.pixChargeId,
+            input.storeId,
+          );
           charge?.expire();
           if (charge) await repos.pixChargeRepository.update(charge);
         }

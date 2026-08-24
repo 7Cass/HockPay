@@ -56,10 +56,7 @@ export class LoginUseCase {
     }
 
     // 2. Verify password
-    const isPasswordValid = await this.passwordHasher.verify(
-      input.password,
-      merchant.passwordHash,
-    );
+    const isPasswordValid = await this.passwordHasher.verify(input.password, merchant.passwordHash);
 
     if (!isPasswordValid) {
       throw new InvalidCredentialsError();
@@ -71,9 +68,7 @@ export class LoginUseCase {
     }
 
     return this.unitOfWork.execute(async (repos) => {
-      const lockedMerchant = await repos.merchantRepository.findByIdForUpdate(
-        merchant.id,
-      );
+      const lockedMerchant = await repos.merchantRepository.findByIdForUpdate(merchant.id);
 
       if (!lockedMerchant) {
         throw new InvalidCredentialsError();

@@ -1,10 +1,5 @@
-import {
-  IPixChargeRepository,
-  PixCharge,
-  PixChargeProps,
-  PixChargeStatus,
-} from "@hockpay/core";
-import { Prisma, PrismaClient } from "@hockpay/database";
+import { IPixChargeRepository, PixCharge, PixChargeProps, PixChargeStatus } from '@hockpay/core';
+import { Prisma, PrismaClient } from '@hockpay/database';
 
 type PixChargeRow = {
   id: string;
@@ -23,18 +18,16 @@ type PixChargeRow = {
 };
 
 export class PixChargeRepository implements IPixChargeRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(charge: PixCharge): Promise<void> {
-    await (this.prisma as any).pixCharge.create({
+    await this.prisma.pixCharge.create({
       data: this.toData(charge),
     });
   }
 
   async update(charge: PixCharge): Promise<void> {
-    await (this.prisma as any).pixCharge.update({
+    await this.prisma.pixCharge.update({
       where: { id: charge.id },
       data: {
         status: charge.status,
@@ -46,26 +39,20 @@ export class PixChargeRepository implements IPixChargeRepository {
   }
 
   async findById(id: string): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findUnique({
+    const row = await this.prisma.pixCharge.findUnique({
       where: { id },
     });
     return row ? this.toDomain(row) : null;
   }
 
-  async findByIdAndStoreId(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findFirst({
+  async findByIdAndStoreId(id: string, storeId: string): Promise<PixCharge | null> {
+    const row = await this.prisma.pixCharge.findFirst({
       where: { id, storeId },
     });
     return row ? this.toDomain(row) : null;
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<PixCharge | null> {
     const rows = await this.prisma.$queryRaw<PixChargeRow[]>`
       SELECT
         id,
@@ -92,7 +79,7 @@ export class PixChargeRepository implements IPixChargeRepository {
   }
 
   async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findUnique({
+    const row = await this.prisma.pixCharge.findUnique({
       where: { pixTxId },
     });
     return row ? this.toDomain(row) : null;

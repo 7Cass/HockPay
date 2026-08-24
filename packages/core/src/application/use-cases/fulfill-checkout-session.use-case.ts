@@ -3,16 +3,16 @@ import {
   ICreatePaymentInput,
   CustomerPromotionPolicy,
   PaymentCustomerInput,
-} from "./create-payment.use-case";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { Document } from "../../domain/value-objects/document.vo";
-import { CustomerCollectionMode } from "../../domain/entities/checkout-session.entity";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { CheckoutSessionNotFoundError } from "../../domain/errors/checkout-session-not-found.error";
-import { CheckoutSessionExpiredError } from "../../domain/errors/checkout-session-expired.error";
-import { CheckoutSessionInvalidStatusError } from "../../domain/errors/checkout-session-invalid-status.error";
-import { InvalidDocumentError } from "../../domain/errors/invalid-document.error";
-import { CustomerDocumentRequiredError } from "../../domain/errors/customer-document-required.error";
+} from './create-payment.use-case';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { Document } from '../../domain/value-objects/document.vo';
+import { CustomerCollectionMode } from '../../domain/entities/checkout-session.entity';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { CheckoutSessionNotFoundError } from '../../domain/errors/checkout-session-not-found.error';
+import { CheckoutSessionExpiredError } from '../../domain/errors/checkout-session-expired.error';
+import { CheckoutSessionInvalidStatusError } from '../../domain/errors/checkout-session-invalid-status.error';
+import { InvalidDocumentError } from '../../domain/errors/invalid-document.error';
+import { CustomerDocumentRequiredError } from '../../domain/errors/customer-document-required.error';
 
 export interface IFulfillCheckoutSessionInput {
   token: string;
@@ -32,20 +32,13 @@ export class FulfillCheckoutSessionUseCase {
     private readonly createPaymentUseCase: CreatePaymentUseCase,
   ) {}
 
-  async execute(
-    input: IFulfillCheckoutSessionInput,
-  ): Promise<IFulfillCheckoutSessionOutput> {
+  async execute(input: IFulfillCheckoutSessionInput): Promise<IFulfillCheckoutSessionOutput> {
     const result = await this.unitOfWork.execute(async (repos) => {
       const now = new Date();
-      const session = await repos.checkoutSessionRepository.claimOpenByToken(
-        input.token,
-        now,
-      );
+      const session = await repos.checkoutSessionRepository.claimOpenByToken(input.token, now);
 
       if (!session) {
-        const currentSession = await repos.checkoutSessionRepository.findByToken(
-          input.token,
-        );
+        const currentSession = await repos.checkoutSessionRepository.findByToken(input.token);
 
         if (!currentSession) {
           throw new CheckoutSessionNotFoundError(input.token);
@@ -61,21 +54,15 @@ export class FulfillCheckoutSessionUseCase {
           };
         }
 
-        if (currentSession.status === "OPEN" && now > currentSession.expiresAt) {
-          await repos.checkoutSessionRepository.expireOpenByToken(
-            input.token,
-            now,
-          );
+        if (currentSession.status === 'OPEN' && now > currentSession.expiresAt) {
+          await repos.checkoutSessionRepository.expireOpenByToken(input.token, now);
           throw new CheckoutSessionExpiredError(input.token);
         }
 
         throw new CheckoutSessionInvalidStatusError(currentSession.status);
       }
 
-      const customer = resolveCheckoutCustomer(
-        session.prefillCustomer,
-        input.customer,
-      );
+      const customer = resolveCheckoutCustomer(session.prefillCustomer, input.customer);
 
       if (
         session.customerCollectionMode === CustomerCollectionMode.IDENTIFIED &&
@@ -120,7 +107,7 @@ export class FulfillCheckoutSessionUseCase {
       };
     });
 
-    if (!("replayed" in result) || !result.replayed) {
+    if (!('replayed' in result) || !result.replayed) {
       await this.createPaymentUseCase.scheduleExpirationAfterCommit(
         result.paymentInput,
         result.paymentResult,

@@ -60,10 +60,7 @@ export class ValidateApiKeyUseCase {
     const keyHash = this.tokenGenerator.hash(input.plainKey);
 
     // 3. Find by hash and environment
-    const apiKey = await this.apiKeyRepository.findByKeyHash(
-      keyHash,
-      environment,
-    );
+    const apiKey = await this.apiKeyRepository.findByKeyHash(keyHash, environment);
 
     if (!apiKey) {
       throw new InvalidApiKeyFormatError();

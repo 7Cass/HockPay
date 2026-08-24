@@ -1,16 +1,13 @@
-import { AccountObject } from "../../domain/entities/account.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { WithdrawalObject } from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { InvalidWithdrawalStatusError } from "../../domain/errors/invalid-withdrawal-status.error";
-import { WithdrawalNotFoundError } from "../../domain/errors/withdrawal-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { assertNotLiveEnvironment } from "../services/live-environment-guard";
-import { sanitizeWithdrawal } from "./create-withdrawal.use-case";
+import { AccountObject } from '../../domain/entities/account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { WithdrawalObject } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { InvalidWithdrawalStatusError } from '../../domain/errors/invalid-withdrawal-status.error';
+import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { sanitizeWithdrawal } from './create-withdrawal.use-case';
 
 export interface ICompleteWithdrawalInput {
   withdrawalId: string;
@@ -29,18 +26,12 @@ export interface ICompleteWithdrawalOutput {
 export class CompleteWithdrawalUseCase {
   constructor(private readonly unitOfWork: IUnitOfWork) {}
 
-  async execute(
-    input: ICompleteWithdrawalInput,
-  ): Promise<ICompleteWithdrawalOutput> {
+  async execute(input: ICompleteWithdrawalInput): Promise<ICompleteWithdrawalOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const withdrawal = await repos.withdrawalRepository.findByIdForUpdate(
-        input.withdrawalId,
-      );
+      const withdrawal = await repos.withdrawalRepository.findByIdForUpdate(input.withdrawalId);
       if (!withdrawal) throw new WithdrawalNotFoundError(input.withdrawalId);
 
-      const account = await repos.accountRepository.findByIdForUpdate(
-        withdrawal.accountId,
-      );
+      const account = await repos.accountRepository.findByIdForUpdate(withdrawal.accountId);
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);
       if (input.storeId && account.storeId !== input.storeId) {
         throw new WithdrawalNotFoundError(input.withdrawalId);
@@ -51,9 +42,7 @@ export class CompleteWithdrawalUseCase {
       }
 
       if (withdrawal.isTerminal()) {
-        throw new InvalidWithdrawalStatusError(
-          `Withdrawal ${withdrawal.id} is already terminal`,
-        );
+        throw new InvalidWithdrawalStatusError(`Withdrawal ${withdrawal.id} is already terminal`);
       }
 
       withdrawal.complete({
@@ -72,16 +61,16 @@ export class CompleteWithdrawalUseCase {
           fee: withdrawal.fee,
           netAmount: withdrawal.netAmount,
           balanceAfter: account.available,
-          referenceType: "WITHDRAWAL",
+          referenceType: 'WITHDRAWAL',
           referenceId: withdrawal.id,
           description: `Withdrawal sent ${withdrawal.id}`,
         }),
       );
       await repos.outboxWriter.save(
         OutboxEvent.create({
-          aggregateType: "Withdrawal",
+          aggregateType: 'Withdrawal',
           aggregateId: withdrawal.id,
-          eventType: "withdrawal.completed",
+          eventType: 'withdrawal.completed',
           requestId: input.requestId,
           storeId: account.storeId,
           payload: sanitizeWithdrawal(account.storeId, withdrawal.toObject()),

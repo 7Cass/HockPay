@@ -1,6 +1,6 @@
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
-import { Agent } from "undici";
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
+import { Agent } from 'undici';
 import {
   IWebhookSenderPort,
   WebhookResponse,
@@ -9,7 +9,7 @@ import {
   WebhookUrlPolicyResult,
   validateWebhookResolvedAddress,
   validateWebhookUrl,
-} from "@hockpay/core";
+} from '@hockpay/core';
 
 type PreparedWebhookTarget =
   | { valid: false; result: WebhookUrlPolicyResult }
@@ -54,8 +54,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     this.logger = options.logger;
     this.webhookUrlPolicyOptions = options.webhookUrlPolicyOptions ?? {};
     this.dnsLookup =
-      options.dnsLookup ??
-      ((hostname) => lookup(hostname, { all: true, verbatim: true }));
+      options.dnsLookup ?? ((hostname) => lookup(hostname, { all: true, verbatim: true }));
     this.maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   }
 
@@ -67,8 +66,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     try {
       return await this.sendWithManualRedirects(url, payload, headers);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger?.error(`Failed to send webhook to ${url}: ${errorMessage}`);
 
       return {
@@ -98,7 +96,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         return this.responseFromFetchResult(currentUrl, response);
       }
 
-      const location = response.headers.get("location");
+      const location = response.headers.get('location');
       if (!location) {
         const body = await response.text();
         this.logger?.warn(
@@ -113,7 +111,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       }
 
       if (redirects === this.maxRedirects) {
-        const message = "Webhook redirect limit exceeded.";
+        const message = 'Webhook redirect limit exceeded.';
         this.logger?.warn(`Blocked webhook target ${currentUrl}: ${message}`);
 
         return {
@@ -128,7 +126,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
 
     return {
       statusCode: 0,
-      body: "Webhook redirect limit exceeded.",
+      body: 'Webhook redirect limit exceeded.',
       success: false,
     };
   }
@@ -170,7 +168,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         valid: false,
         result: {
           valid: false,
-          message: "Webhook URL resolved to a different address before connect.",
+          message: 'Webhook URL resolved to a different address before connect.',
         },
       };
     }
@@ -181,7 +179,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         valid: false,
         result: {
           valid: false,
-          message: "Webhook URL hostname did not resolve.",
+          message: 'Webhook URL hostname did not resolve.',
         },
       };
     }
@@ -203,7 +201,9 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     };
   }
 
-  private async resolvePublicAddresses(hostname: string): Promise<
+  private async resolvePublicAddresses(
+    hostname: string,
+  ): Promise<
     | { valid: true; addresses: WebhookResolvedAddress[] }
     | { valid: false; result: WebhookUrlPolicyResult }
   > {
@@ -213,14 +213,13 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         valid: false,
         result: {
           valid: false,
-          message: "Webhook URL hostname did not resolve.",
+          message: 'Webhook URL hostname did not resolve.',
         },
       };
     }
 
     for (const resolvedAddress of resolvedAddresses) {
-      const resolvedPolicyResult =
-        validateWebhookResolvedAddress(resolvedAddress);
+      const resolvedPolicyResult = validateWebhookResolvedAddress(resolvedAddress);
       if (!resolvedPolicyResult.valid) {
         return { valid: false, result: resolvedPolicyResult };
       }
@@ -238,19 +237,19 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
     const requestUrl = new URL(target.requestUrl);
     const dispatcher =
-      requestUrl.protocol === "https:"
+      requestUrl.protocol === 'https:'
         ? new Agent({ connect: { servername: target.serverName } })
         : undefined;
 
     try {
       return await fetch(target.requestUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
           ...headers,
           Host: target.hostHeader,
         },
         body: JSON.stringify(payload),
-        redirect: "manual",
+        redirect: 'manual',
         signal: controller.signal,
         ...(dispatcher ? { dispatcher } : {}),
       } as RequestInit);
@@ -260,10 +259,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     }
   }
 
-  private async responseFromFetchResult(
-    url: string,
-    response: Response,
-  ): Promise<WebhookResponse> {
+  private async responseFromFetchResult(url: string, response: Response): Promise<WebhookResponse> {
     const body = await response.text();
 
     if (response.ok) {
@@ -283,11 +279,8 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
     };
   }
 
-  private blockedResponse(
-    url: string,
-    policyResult: WebhookUrlPolicyResult,
-  ): WebhookResponse {
-    const message = policyResult.message ?? "Webhook URL is not allowed";
+  private blockedResponse(url: string, policyResult: WebhookUrlPolicyResult): WebhookResponse {
+    const message = policyResult.message ?? 'Webhook URL is not allowed';
     this.logger?.warn(`Blocked webhook target ${url}: ${message}`);
 
     return {
@@ -302,10 +295,8 @@ function sameResolvedAddresses(
   first: WebhookResolvedAddress[],
   second: WebhookResolvedAddress[],
 ): boolean {
-  const firstSet = new Set(first.map((entry) => `${entry.family ?? ""}:${entry.address}`));
-  const secondSet = new Set(
-    second.map((entry) => `${entry.family ?? ""}:${entry.address}`),
-  );
+  const firstSet = new Set(first.map((entry) => `${entry.family ?? ''}:${entry.address}`));
+  const secondSet = new Set(second.map((entry) => `${entry.family ?? ''}:${entry.address}`));
   if (firstSet.size !== secondSet.size) {
     return false;
   }
@@ -323,15 +314,12 @@ function rewriteUrlHostToIp(parsed: URL, address: string): string {
   return rewritten.toString();
 }
 
-function isExplicitLocalHttpTarget(
-  parsed: URL,
-  options: WebhookUrlPolicyOptions,
-): boolean {
-  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+function isExplicitLocalHttpTarget(parsed: URL, options: WebhookUrlPolicyOptions): boolean {
+  const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
 
   return (
-    parsed.protocol === "http:" &&
+    parsed.protocol === 'http:' &&
     options.allowLocalHttp === true &&
-    (hostname === "localhost" || hostname === "127.0.0.1")
+    (hostname === 'localhost' || hostname === '127.0.0.1')
   );
 }

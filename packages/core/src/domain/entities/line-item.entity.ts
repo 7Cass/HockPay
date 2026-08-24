@@ -21,22 +21,17 @@ export interface ProductLineItemInput {
 
 export type CreateLineItemInput = ProductLineItemInput;
 
-export function isProductLineItemInput(
-  input: unknown,
-): input is ProductLineItemInput {
+export function isProductLineItemInput(input: unknown): input is ProductLineItemInput {
   return (
-    typeof input === "object" &&
+    typeof input === 'object' &&
     input !== null &&
-    "productId" in input &&
-    typeof (input as { productId?: unknown }).productId === "string" &&
+    'productId' in input &&
+    typeof (input as { productId?: unknown }).productId === 'string' &&
     (input as { productId: string }).productId.trim().length > 0
   );
 }
 
-export function calculateLineItemTotal(input: {
-  quantity: number;
-  unitPrice: number;
-}): number {
+export function calculateLineItemTotal(input: { quantity: number; unitPrice: number }): number {
   return input.quantity * input.unitPrice;
 }
 

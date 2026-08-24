@@ -1,19 +1,16 @@
-import { Refund, RefundObject } from "../../domain/entities/refund.entity";
-import { PaymentObject } from "../../domain/entities/payment.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.error";
-import { InvalidRefundAmountError } from "../../domain/errors/invalid-refund-amount.error";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
+import { Refund, RefundObject } from '../../domain/entities/refund.entity';
+import { PaymentObject } from '../../domain/entities/payment.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { InvalidRefundAmountError } from '../../domain/errors/invalid-refund-amount.error';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import {
   ITransactedRepositories,
   IUnitOfWork,
-} from "../../domain/repositories/unit-of-work.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { assertCallerCanMutateEnvironment } from "../services/live-environment-guard";
+} from '../../domain/repositories/unit-of-work.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { assertCallerCanMutateEnvironment } from '../services/live-environment-guard';
 
 export interface ICreateRefundInput {
   storeId: string;
@@ -33,9 +30,7 @@ export class CreateRefundUseCase {
   constructor(private readonly unitOfWork: IUnitOfWork) {}
 
   async execute(input: ICreateRefundInput): Promise<ICreateRefundOutput> {
-    return this.unitOfWork.execute((repos) =>
-      this.executeInTransaction(input, repos),
-    );
+    return this.unitOfWork.execute((repos) => this.executeInTransaction(input, repos));
   }
 
   async executeInTransaction(
@@ -57,15 +52,13 @@ export class CreateRefundUseCase {
     );
 
     if (!payment.isConfirmed() && !payment.isReleased()) {
-      throw new InvalidRefundAmountError(
-        "Can only refund confirmed or released payments",
-      );
+      throw new InvalidRefundAmountError('Can only refund confirmed or released payments');
     }
 
     const remainingRefundable = payment.amount - payment.totalRefunded;
 
     if (input.amount <= 0) {
-      throw new InvalidRefundAmountError("Refund amount must be positive");
+      throw new InvalidRefundAmountError('Refund amount must be positive');
     }
 
     if (input.amount > remainingRefundable) {
@@ -74,16 +67,12 @@ export class CreateRefundUseCase {
       );
     }
 
-    const account = await repos.accountRepository.findByStoreIdForUpdate(
-      input.storeId,
-    );
+    const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
     if (!account) {
       throw new AccountNotFoundError(input.storeId);
     }
 
-    const feeRefunded = Math.round(
-      payment.fee * (input.amount / payment.amount),
-    );
+    const feeRefunded = Math.round(payment.fee * (input.amount / payment.amount));
     const balanceDeduction = input.amount - feeRefunded;
 
     const refund = Refund.create({
@@ -113,16 +102,16 @@ export class CreateRefundUseCase {
       fee: feeRefunded,
       netAmount: balanceDeduction,
       balanceAfter: account.totalBalance,
-      referenceType: "REFUND",
+      referenceType: 'REFUND',
       referenceId: refund.id,
-      description: `Estorno parcial (#${refund.id.split("-")[0]})`,
+      description: `Estorno parcial (#${refund.id.split('-')[0]})`,
     });
     await repos.transactionRepository.save(transaction);
 
     const outboxEvent = OutboxEvent.create({
-      aggregateType: "Payment",
+      aggregateType: 'Payment',
       aggregateId: payment.id,
-      eventType: "payment.refunded",
+      eventType: 'payment.refunded',
       requestId: input.requestId,
       storeId: payment.storeId,
       payload: payment.toObject() as unknown as Record<string, unknown>,

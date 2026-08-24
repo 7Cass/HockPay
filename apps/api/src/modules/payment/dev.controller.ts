@@ -109,9 +109,9 @@ export class DevController {
   @HttpCode(HttpStatus.OK)
   async failPayment(
     @Param('id') id: string,
-    @Query('reason') reason?: string,
     @CurrentStore() storeId: string,
     @CurrentEnvironment() environment: Environment,
+    @Query('reason') reason?: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
     this.validateTestEnvironment(environment);

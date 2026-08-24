@@ -21,6 +21,7 @@ import {
   CreateWithdrawalUseCase,
   GetWithdrawalUseCase,
   ListStoresUseCase,
+  UpdateStoreProfileUseCase,
   ListWithdrawalsUseCase,
   LoginUseCase,
   LogoutUseCase,
@@ -56,6 +57,7 @@ export type ApiE2eMocks = {
   switchStoreUseCase: { execute: jest.Mock };
   createStoreUseCase: { execute: jest.Mock };
   listStoresUseCase: { execute: jest.Mock };
+  updateStoreProfileUseCase: { execute: jest.Mock };
   createWithdrawalUseCase: { executeInTransaction: jest.Mock };
   listWithdrawalsUseCase: { execute: jest.Mock };
   getWithdrawalUseCase: { execute: jest.Mock };
@@ -113,6 +115,7 @@ export async function createApiE2eTestApp(): Promise<{
     switchStoreUseCase: { execute: jest.fn() },
     createStoreUseCase: { execute: jest.fn() },
     listStoresUseCase: { execute: jest.fn() },
+    updateStoreProfileUseCase: { execute: jest.fn() },
     createWithdrawalUseCase: { executeInTransaction: jest.fn() },
     listWithdrawalsUseCase: { execute: jest.fn() },
     getWithdrawalUseCase: { execute: jest.fn() },
@@ -224,6 +227,10 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: ListStoresUseCase,
         useValue: mocks.listStoresUseCase,
+      },
+      {
+        provide: UpdateStoreProfileUseCase,
+        useValue: mocks.updateStoreProfileUseCase,
       },
       {
         provide: CreateWithdrawalUseCase,

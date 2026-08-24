@@ -25,9 +25,7 @@ export class GetCustomerHistoryReceiptUseCase {
     private readonly receiptRepository: IReceiptRepository,
   ) {}
 
-  async execute(
-    input: IGetCustomerHistoryReceiptInput,
-  ): Promise<IGetCustomerHistoryReceiptOutput> {
+  async execute(input: IGetCustomerHistoryReceiptInput): Promise<IGetCustomerHistoryReceiptOutput> {
     const customer = await resolveCustomerByExternalId(
       this.customerRepository,
       input.storeId,
@@ -49,10 +47,7 @@ export class GetCustomerHistoryReceiptUseCase {
       throw new PaymentNotFoundError(receipt.paymentId);
     }
 
-    if (
-      payment.customerId !== customer.id ||
-      payment.environment !== input.environment
-    ) {
+    if (payment.customerId !== customer.id || payment.environment !== input.environment) {
       throw new ReceiptNotFoundError(input.receiptId);
     }
 

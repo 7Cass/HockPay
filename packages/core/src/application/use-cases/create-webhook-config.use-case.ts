@@ -8,7 +8,7 @@ import {
   WebhookUrlPolicyOptions,
   assertWebhookUrlAllowed,
   getInvalidEvents,
-} from "../..";
+} from '../..';
 
 /**
  * Input for creating a webhook config.
@@ -41,9 +41,7 @@ export class CreateWebhookConfigUseCase {
     private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions = {},
   ) {}
 
-  async execute(
-    input: ICreateWebhookConfigInput,
-  ): Promise<ICreateWebhookConfigOutput> {
+  async execute(input: ICreateWebhookConfigInput): Promise<ICreateWebhookConfigOutput> {
     // Validate events
     const invalidEvents = getInvalidEvents(input.events);
     if (invalidEvents.length > 0) {

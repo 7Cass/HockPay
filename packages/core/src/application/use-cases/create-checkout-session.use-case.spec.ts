@@ -42,12 +42,8 @@ describe('CreateCheckoutSessionUseCase', () => {
       description: 'Produto',
     });
 
-    expect(savedSession.customerCollectionMode).toBe(
-      CustomerCollectionMode.IDENTIFIED,
-    );
-    expect(result.customerCollectionMode).toBe(
-      CustomerCollectionMode.IDENTIFIED,
-    );
+    expect(savedSession.customerCollectionMode).toBe(CustomerCollectionMode.IDENTIFIED);
+    expect(result.customerCollectionMode).toBe(CustomerCollectionMode.IDENTIFIED);
   });
 
   it('persists an explicit guest mode when provided', async () => {
@@ -62,9 +58,7 @@ describe('CreateCheckoutSessionUseCase', () => {
       customerCollectionMode: CustomerCollectionMode.GUEST,
     });
 
-    expect(savedSession.customerCollectionMode).toBe(
-      CustomerCollectionMode.GUEST,
-    );
+    expect(savedSession.customerCollectionMode).toBe(CustomerCollectionMode.GUEST);
     expect(result.customerCollectionMode).toBe(CustomerCollectionMode.GUEST);
   });
 

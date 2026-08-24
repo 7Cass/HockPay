@@ -6,14 +6,14 @@ import { IAccountRepository } from '../../domain/repositories/account.repository
  * Input DTO for GetAccountUseCase.
  */
 export interface IGetAccountInput {
-    storeId: string;
+  storeId: string;
 }
 
 /**
  * Output DTO for GetAccountUseCase.
  */
 export interface IGetAccountOutput {
-    account: AccountObject;
+  account: AccountObject;
 }
 
 /**
@@ -23,17 +23,17 @@ export interface IGetAccountOutput {
  * It will return the balances (available, pending, blocked) in raw cents.
  */
 export class GetAccountUseCase {
-    constructor(private readonly accountRepository: IAccountRepository) { }
+  constructor(private readonly accountRepository: IAccountRepository) {}
 
-    async execute(input: IGetAccountInput): Promise<IGetAccountOutput> {
-        const account = await this.accountRepository.findByStoreId(input.storeId);
+  async execute(input: IGetAccountInput): Promise<IGetAccountOutput> {
+    const account = await this.accountRepository.findByStoreId(input.storeId);
 
-        if (!account) {
-            throw new AccountNotFoundError(input.storeId);
-        }
-
-        return {
-            account: account.toObject(),
-        };
+    if (!account) {
+      throw new AccountNotFoundError(input.storeId);
     }
+
+    return {
+      account: account.toObject(),
+    };
+  }
 }

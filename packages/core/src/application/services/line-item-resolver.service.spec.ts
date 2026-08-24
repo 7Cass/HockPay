@@ -1,51 +1,51 @@
-import { describe, expect, it } from "vitest";
-import { Product } from "../../domain/entities/product.entity";
-import { InvalidLineItemsError } from "../../domain/errors/invalid-line-items.error";
-import { ProductUnavailableError } from "../../domain/errors/product-unavailable.error";
-import { IProductRepository } from "../../domain/repositories/product.repository.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { LineItemResolverService } from "./line-item-resolver.service";
+import { describe, expect, it } from 'vitest';
+import { Product } from '../../domain/entities/product.entity';
+import { InvalidLineItemsError } from '../../domain/errors/invalid-line-items.error';
+import { ProductUnavailableError } from '../../domain/errors/product-unavailable.error';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { LineItemResolverService } from './line-item-resolver.service';
 
-describe("LineItemResolverService", () => {
-  it("derives amount and snapshots active product items", async () => {
+describe('LineItemResolverService', () => {
+  it('derives amount and snapshots active product items', async () => {
     const product = Product.create({
-      id: "prod-1",
-      storeId: "store-1",
+      id: 'prod-1',
+      storeId: 'store-1',
       environment: Environment.TEST,
-      externalId: "platform-prod-1",
-      name: "Media Kit",
-      description: "Demo kit",
+      externalId: 'platform-prod-1',
+      name: 'Media Kit',
+      description: 'Demo kit',
       price: 2500,
-      imageUrl: "https://example.com/product.png",
+      imageUrl: 'https://example.com/product.png',
     });
     const resolver = new LineItemResolverService(new InMemoryProductRepository([product]));
 
     const result = await resolver.resolve({
-      storeId: "store-1",
+      storeId: 'store-1',
       environment: Environment.TEST,
-      items: [{ productId: "prod-1", quantity: 2, metadata: { orderLine: "1" } }],
+      items: [{ productId: 'prod-1', quantity: 2, metadata: { orderLine: '1' } }],
     });
 
     expect(result.amount).toBe(5000);
     expect(result.items).toEqual([
       expect.objectContaining({
-        productId: "prod-1",
-        productExternalId: "platform-prod-1",
-        name: "Media Kit",
+        productId: 'prod-1',
+        productExternalId: 'platform-prod-1',
+        name: 'Media Kit',
         quantity: 2,
         unitPrice: 2500,
         totalPrice: 5000,
-        metadata: { orderLine: "1" },
+        metadata: { orderLine: '1' },
       }),
     ]);
   });
 
-  it("rejects inactive product items", async () => {
+  it('rejects inactive product items', async () => {
     const product = Product.create({
-      id: "prod-1",
-      storeId: "store-1",
+      id: 'prod-1',
+      storeId: 'store-1',
       environment: Environment.TEST,
-      name: "Archived",
+      name: 'Archived',
       price: 1000,
       isActive: false,
     });
@@ -53,34 +53,34 @@ describe("LineItemResolverService", () => {
 
     await expect(
       resolver.resolve({
-        storeId: "store-1",
+        storeId: 'store-1',
         environment: Environment.TEST,
-        items: [{ productId: "prod-1" }],
+        items: [{ productId: 'prod-1' }],
       }),
     ).rejects.toBeInstanceOf(ProductUnavailableError);
   });
 
-  it("rejects line items without a productId", async () => {
+  it('rejects line items without a productId', async () => {
     const resolver = new LineItemResolverService(new InMemoryProductRepository([]));
 
     await expect(
       resolver.resolve({
-        storeId: "store-1",
+        storeId: 'store-1',
         environment: Environment.TEST,
-        items: [{ name: "Manual", unitPrice: 1000 } as any],
+        items: [{ name: 'Manual', unitPrice: 1000 } as any],
       }),
     ).rejects.toBeInstanceOf(InvalidLineItemsError);
   });
 
-  it("requires exactly one of amount or items", async () => {
+  it('requires exactly one of amount or items', async () => {
     const resolver = new LineItemResolverService(new InMemoryProductRepository([]));
 
     await expect(
       resolver.resolve({
-        storeId: "store-1",
+        storeId: 'store-1',
         environment: Environment.TEST,
         amount: 1000,
-        items: [{ productId: "prod-1" }],
+        items: [{ productId: 'prod-1' }],
       }),
     ).rejects.toBeInstanceOf(InvalidLineItemsError);
   });
@@ -106,9 +106,7 @@ class InMemoryProductRepository implements IProductRepository {
     return (
       this.products.find(
         (product) =>
-          product.id === id &&
-          product.storeId === storeId &&
-          product.environment === environment,
+          product.id === id && product.storeId === storeId && product.environment === environment,
       ) ?? null
     );
   }

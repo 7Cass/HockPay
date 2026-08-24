@@ -1,6 +1,5 @@
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
 import {
-  CheckoutSession,
   CustomerCollectionMode,
   CheckoutSessionPrefillCustomer,
 } from '../../domain/entities/checkout-session.entity';
@@ -44,7 +43,7 @@ export class GetCheckoutSessionUseCase {
     private readonly sessionRepository: ICheckoutSessionRepository,
     private readonly storeRepository: IStoreRepository,
     private readonly paymentRepository: IPaymentRepository,
-  ) { }
+  ) {}
 
   async execute(token: string): Promise<IGetCheckoutSessionOutput> {
     const session = await this.sessionRepository.findByToken(token);
@@ -95,7 +94,7 @@ export class GetCheckoutSessionUseCase {
 
 type PublicLineItem = Pick<
   LineItemObject,
-  "id" | "name" | "description" | "quantity" | "unitPrice" | "totalPrice" | "imageUrl"
+  'id' | 'name' | 'description' | 'quantity' | 'unitPrice' | 'totalPrice' | 'imageUrl'
 >;
 
 function toPublicLineItem(item: LineItemObject): PublicLineItem {
@@ -127,15 +126,9 @@ function buildCustomerInputState(
     hasDocument: Boolean(prefillCustomer?.document),
     hasName: Boolean(prefillCustomer?.name),
     hasEmail: Boolean(prefillCustomer?.email),
-    maskedDocument: prefillCustomer?.document
-      ? maskDocument(prefillCustomer.document)
-      : undefined,
-    maskedName: prefillCustomer?.name
-      ? maskName(prefillCustomer.name)
-      : undefined,
-    maskedEmail: prefillCustomer?.email
-      ? maskEmail(prefillCustomer.email)
-      : undefined,
+    maskedDocument: prefillCustomer?.document ? maskDocument(prefillCustomer.document) : undefined,
+    maskedName: prefillCustomer?.name ? maskName(prefillCustomer.name) : undefined,
+    maskedEmail: prefillCustomer?.email ? maskEmail(prefillCustomer.email) : undefined,
   };
 }
 
@@ -154,9 +147,7 @@ function maskName(name: string): string {
 
   if (parts.length === 0) return '';
 
-  return parts
-    .map((part) => `${part[0]}${'*'.repeat(Math.max(part.length - 1, 1))}`)
-    .join(' ');
+  return parts.map((part) => `${part[0]}${'*'.repeat(Math.max(part.length - 1, 1))}`).join(' ');
 }
 
 function maskEmail(email: string): string {

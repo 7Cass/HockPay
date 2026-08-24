@@ -8,12 +8,8 @@ import {
   Environment,
   PixChargeStatus,
   LineItemObject,
-} from "@hockpay/core";
-import {
-  PrismaClient,
-  Payment as PrismaPayment,
-  Prisma,
-} from "@hockpay/database";
+} from '@hockpay/core';
+import { PrismaClient, Payment as PrismaPayment, Prisma } from '@hockpay/database';
 
 type PaymentLockRow = {
   id: string;
@@ -26,9 +22,7 @@ type PaymentLockRow = {
  * Each app provides its own PrismaClient instance.
  */
 export class PaymentRepository implements IPaymentRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(payment: DomainPayment): Promise<void> {
     await this.prisma.payment.create({
@@ -109,10 +103,7 @@ export class PaymentRepository implements IPaymentRepository {
     return row ? this.findById(row.id) : null;
   }
 
-  async findByIdsAndStoreId(
-    ids: string[],
-    storeId: string,
-  ): Promise<DomainPayment[]> {
+  async findByIdsAndStoreId(ids: string[], storeId: string): Promise<DomainPayment[]> {
     if (ids.length === 0) return [];
     const rows = await this.prisma.payment.findMany({
       where: {
@@ -124,10 +115,7 @@ export class PaymentRepository implements IPaymentRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
-  async findByIdAndStoreId(
-    id: string,
-    storeId: string,
-  ): Promise<DomainPayment | null> {
+  async findByIdAndStoreId(id: string, storeId: string): Promise<DomainPayment | null> {
     const prismaPayment = await this.prisma.payment.findFirst({
       where: {
         id,
@@ -143,10 +131,7 @@ export class PaymentRepository implements IPaymentRepository {
     return this.toDomain(prismaPayment);
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<DomainPayment | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<DomainPayment | null> {
     const rows = await this.prisma.$queryRaw<PaymentLockRow[]>`
       SELECT id
       FROM payments
@@ -233,7 +218,7 @@ export class PaymentRepository implements IPaymentRepository {
         include: this.includePixCharge(),
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.payment.count({ where }),
     ]);
@@ -259,7 +244,7 @@ export class PaymentRepository implements IPaymentRepository {
         storeId,
       },
       include: this.includePixCharge(),
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
 
     return prismaPayments.map((p) => this.toDomain(p));
@@ -278,7 +263,7 @@ export class PaymentRepository implements IPaymentRepository {
         storeId,
       },
       include: this.includePixCharge(),
-      orderBy: [{ pixChargeId: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      orderBy: [{ pixChargeId: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
     return prismaPayments.map((p) => this.toDomain(p));
@@ -356,7 +341,7 @@ export class PaymentRepository implements IPaymentRepository {
   private includePixCharge() {
     return {
       pixCharge: true,
-      items: { orderBy: { createdAt: "asc" as const } },
+      items: { orderBy: { createdAt: 'asc' as const } },
     };
   }
 
@@ -381,8 +366,7 @@ export class PaymentRepository implements IPaymentRepository {
       environment: (prismaPayment as any).environment as Environment,
       paymentMethod: (prismaPayment as any).paymentMethod,
       paymentDetails:
-        ((prismaPayment as any).paymentDetails as Record<string, unknown>) ??
-        undefined,
+        ((prismaPayment as any).paymentDetails as Record<string, unknown>) ?? undefined,
       acquirerId: (prismaPayment as any).acquirerId ?? undefined,
       totalRefunded: (prismaPayment as any).totalRefunded ?? 0,
       pixCharge: prismaPayment.pixCharge
@@ -420,8 +404,7 @@ export class PaymentRepository implements IPaymentRepository {
       paidAt: prismaPayment.paidAt ?? undefined,
       releasedAt: prismaPayment.releasedAt ?? undefined,
       failedReason: prismaPayment.failedReason ?? undefined,
-      metadata:
-        (prismaPayment.metadata as Record<string, unknown>) ?? undefined,
+      metadata: (prismaPayment.metadata as Record<string, unknown>) ?? undefined,
       createdAt: prismaPayment.createdAt,
       updatedAt: prismaPayment.updatedAt,
     };

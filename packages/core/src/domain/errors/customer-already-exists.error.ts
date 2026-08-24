@@ -8,10 +8,7 @@ export class CustomerAlreadyExistsError extends DomainError {
   public readonly internalId: string;
 
   constructor(internalId: string) {
-    super(
-      'Customer already exists with this externalId',
-      'CUSTOMER_ALREADY_EXISTS',
-    );
+    super('Customer already exists with this externalId', 'CUSTOMER_ALREADY_EXISTS');
     this.internalId = internalId;
   }
 }

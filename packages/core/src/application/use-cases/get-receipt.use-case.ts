@@ -1,8 +1,8 @@
-import { Receipt, ReceiptObject } from "../../domain/entities/receipt.entity";
-import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
-import { IPaymentRepository } from "../../domain/repositories/payment.repository.interface";
-import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.error";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { Receipt, ReceiptObject } from '../../domain/entities/receipt.entity';
+import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
+import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
+import { ReceiptNotFoundError } from '../../domain/errors/receipt-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IGetReceiptInput {
   receiptId?: string;
@@ -30,20 +30,18 @@ export class GetReceiptUseCase {
     } else if (input.paymentId) {
       receipt = await this.receiptRepository.findByPaymentId(input.paymentId);
     } else if (input.receiptNumber) {
-      receipt = await this.receiptRepository.findByReceiptNumber(
-        input.receiptNumber,
-      );
+      receipt = await this.receiptRepository.findByReceiptNumber(input.receiptNumber);
     }
 
     if (!receipt) {
       throw new ReceiptNotFoundError(
-        input.receiptId || input.paymentId || input.receiptNumber || "",
+        input.receiptId || input.paymentId || input.receiptNumber || '',
       );
     }
 
     if (receipt.storeId !== input.storeId) {
       throw new ReceiptNotFoundError(
-        input.receiptId || input.paymentId || input.receiptNumber || "",
+        input.receiptId || input.paymentId || input.receiptNumber || '',
       );
     }
 

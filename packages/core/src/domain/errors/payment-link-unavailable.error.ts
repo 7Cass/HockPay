@@ -1,7 +1,7 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from './domain-error';
 
 export class PaymentLinkUnavailableError extends DomainError {
   constructor(message: string) {
-    super(message, "PAYMENT_LINK_UNAVAILABLE");
+    super(message, 'PAYMENT_LINK_UNAVAILABLE');
   }
 }

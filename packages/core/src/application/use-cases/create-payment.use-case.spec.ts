@@ -1,15 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
-import { CreatePaymentUseCase } from "./create-payment.use-case";
-import { CustomerIdentityConflictError } from "../../domain/errors/customer-identity-conflict.error";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { Customer } from "../../domain/entities/customer.entity";
-import { Document } from "../../domain/value-objects/document.vo";
-import { CustomerPromotionPolicy } from "./create-payment.use-case";
+import { describe, expect, it, vi } from 'vitest';
+import { CreatePaymentUseCase } from './create-payment.use-case';
+import { CustomerIdentityConflictError } from '../../domain/errors/customer-identity-conflict.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { Customer } from '../../domain/entities/customer.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { CustomerPromotionPolicy } from './create-payment.use-case';
 
-describe("CreatePaymentUseCase", () => {
+describe('CreatePaymentUseCase', () => {
   const store = {
-    id: "store-1",
-    name: "Hockpay Store",
+    id: 'store-1',
+    name: 'Hockpay Store',
     isActive: true,
     isApproved: true,
     feePercent: 1.5,
@@ -18,9 +18,9 @@ describe("CreatePaymentUseCase", () => {
 
   const pixQrCodeGenerator = {
     generate: vi.fn().mockResolvedValue({
-      qrCodeBase64: "qr-code",
-      copyPaste: "pix-copy-paste",
-      txId: "txid",
+      qrCodeBase64: 'qr-code',
+      copyPaste: 'pix-copy-paste',
+      txId: 'txid',
     }),
   };
 
@@ -68,13 +68,13 @@ describe("CreatePaymentUseCase", () => {
         ),
       } as any,
       pixQrCodeGenerator as any,
-      queue as any,
+      queue,
       feePolicy as any,
-      "test@hockpay.com",
+      'test@hockpay.com',
     );
   }
 
-  it("creates a guest payment without customerId and preserves payer snapshot", async () => {
+  it('creates a guest payment without customerId and preserves payer snapshot', async () => {
     const paymentRepository = {
       externalIdExists: vi.fn().mockResolvedValue(false),
       save: vi.fn(),
@@ -90,12 +90,12 @@ describe("CreatePaymentUseCase", () => {
     const useCase = makeUseCase({ paymentRepository, customerRepository });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
-      description: "Compra avulsa",
+      description: 'Compra avulsa',
       customer: {
-        name: "Visitante",
-        email: "guest@example.com",
+        name: 'Visitante',
+        email: 'guest@example.com',
       },
       environment: Environment.TEST,
     });
@@ -104,16 +104,16 @@ describe("CreatePaymentUseCase", () => {
     expect(customerRepository.findByExternalId).not.toHaveBeenCalled();
     expect(customerRepository.save).not.toHaveBeenCalled();
     expect(result.payment.customerId).toBeUndefined();
-    expect(result.payment.payerName).toBe("Visitante");
-    expect(result.payment.payerEmail).toBe("guest@example.com");
+    expect(result.payment.payerName).toBe('Visitante');
+    expect(result.payment.payerEmail).toBe('guest@example.com');
   });
 
-  it("creates or associates a customer when document is provided", async () => {
+  it('creates or associates a customer when document is provided', async () => {
     const existingCustomer = Customer.create({
-      storeId: "store-1",
-      name: "Cliente",
-      email: "cliente@example.com",
-      document: new Document("52998224725"),
+      storeId: 'store-1',
+      name: 'Cliente',
+      email: 'cliente@example.com',
+      document: new Document('52998224725'),
     });
 
     const paymentRepository = {
@@ -131,22 +131,22 @@ describe("CreatePaymentUseCase", () => {
     const useCase = makeUseCase({ paymentRepository, customerRepository });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        document: "52998224725",
+        document: '52998224725',
       },
       environment: Environment.TEST,
     });
 
     expect(customerRepository.findByDocument).toHaveBeenCalled();
     expect(result.payment.customerId).toBe(existingCustomer.id);
-    expect(result.payment.payerDocument).toBe("52998224725");
-    expect(result.payment.payerName).toBe("Cliente");
-    expect(result.payment.payerEmail).toBe("cliente@example.com");
+    expect(result.payment.payerDocument).toBe('52998224725');
+    expect(result.payment.payerName).toBe('Cliente');
+    expect(result.payment.payerEmail).toBe('cliente@example.com');
   });
 
-  it("does not create a customer for checkout-session doc-only payments", async () => {
+  it('does not create a customer for checkout-session doc-only payments', async () => {
     const paymentRepository = {
       externalIdExists: vi.fn().mockResolvedValue(false),
       save: vi.fn(),
@@ -162,10 +162,10 @@ describe("CreatePaymentUseCase", () => {
     const useCase = makeUseCase({ paymentRepository, customerRepository });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        document: "52998224725",
+        document: '52998224725',
       },
       customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
       environment: Environment.TEST,
@@ -174,10 +174,10 @@ describe("CreatePaymentUseCase", () => {
     expect(customerRepository.findByDocument).toHaveBeenCalled();
     expect(customerRepository.save).not.toHaveBeenCalled();
     expect(result.payment.customerId).toBeUndefined();
-    expect(result.payment.payerDocument).toBe("52998224725");
+    expect(result.payment.payerDocument).toBe('52998224725');
   });
 
-  it("creates a customer for checkout-session payments when document and name are provided", async () => {
+  it('creates a customer for checkout-session payments when document and name are provided', async () => {
     const paymentRepository = {
       externalIdExists: vi.fn().mockResolvedValue(false),
       save: vi.fn(),
@@ -193,11 +193,11 @@ describe("CreatePaymentUseCase", () => {
     const useCase = makeUseCase({ paymentRepository, customerRepository });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        document: "52998224725",
-        name: "Cliente checkout",
+        document: '52998224725',
+        name: 'Cliente checkout',
       },
       customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
       environment: Environment.TEST,
@@ -208,11 +208,11 @@ describe("CreatePaymentUseCase", () => {
     expect(result.payment.customerId).toBeDefined();
   });
 
-  it("reuses and enriches a customer found by externalId", async () => {
+  it('reuses and enriches a customer found by externalId', async () => {
     const existingCustomer = Customer.create({
-      storeId: "store-1",
-      externalId: "cust_123",
-      document: new Document("52998224725"),
+      storeId: 'store-1',
+      externalId: 'cust_123',
+      document: new Document('52998224725'),
     });
 
     const paymentRepository = {
@@ -230,27 +230,24 @@ describe("CreatePaymentUseCase", () => {
     const useCase = makeUseCase({ paymentRepository, customerRepository });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        externalId: "cust_123",
-        name: "Cliente",
-        email: "cliente@example.com",
+        externalId: 'cust_123',
+        name: 'Cliente',
+        email: 'cliente@example.com',
       },
       customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
       environment: Environment.TEST,
     });
 
-    expect(customerRepository.findByExternalId).toHaveBeenCalledWith(
-      "store-1",
-      "cust_123",
-    );
+    expect(customerRepository.findByExternalId).toHaveBeenCalledWith('store-1', 'cust_123');
     expect(customerRepository.update).toHaveBeenCalledTimes(1);
     expect(result.payment.customerId).toBe(existingCustomer.id);
-    expect(result.payment.payerName).toBe("Cliente");
+    expect(result.payment.payerName).toBe('Cliente');
   });
 
-  it("uses repositories provided by unitOfWork.execute for customer, payment and outbox writes", async () => {
+  it('uses repositories provided by unitOfWork.execute for customer, payment and outbox writes', async () => {
     const calls: string[] = [];
     let insideTransaction = false;
 
@@ -258,7 +255,7 @@ describe("CreatePaymentUseCase", () => {
       externalIdExists: vi.fn().mockResolvedValue(false),
       save: vi.fn(async () => {
         expect(insideTransaction).toBe(true);
-        calls.push("payment");
+        calls.push('payment');
       }),
     };
     const customerRepository = {
@@ -266,14 +263,14 @@ describe("CreatePaymentUseCase", () => {
       findByDocument: vi.fn().mockResolvedValue(null),
       save: vi.fn(async () => {
         expect(insideTransaction).toBe(true);
-        calls.push("customer");
+        calls.push('customer');
       }),
       update: vi.fn(),
     };
     const outboxWriter = {
       save: vi.fn(async () => {
         expect(insideTransaction).toBe(true);
-        calls.push("outbox");
+        calls.push('outbox');
       }),
     };
     const unitOfWork = {
@@ -285,7 +282,7 @@ describe("CreatePaymentUseCase", () => {
             pixChargeRepository: {
               save: vi.fn(async () => {
                 expect(insideTransaction).toBe(true);
-                calls.push("pixCharge");
+                calls.push('pixCharge');
               }),
             },
             customerRepository,
@@ -308,24 +305,24 @@ describe("CreatePaymentUseCase", () => {
       pixQrCodeGenerator as any,
       { scheduleExpiration: vi.fn() } as any,
       feePolicy as any,
-      "test@hockpay.com",
+      'test@hockpay.com',
     );
 
     await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        document: "52998224725",
-        name: "Cliente",
+        document: '52998224725',
+        name: 'Cliente',
       },
       environment: Environment.TEST,
     });
 
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1);
-    expect(calls).toEqual(["customer", "pixCharge", "payment", "outbox"]);
+    expect(calls).toEqual(['customer', 'pixCharge', 'payment', 'outbox']);
   });
 
-  it("does not schedule expiration when outbox persistence fails", async () => {
+  it('does not schedule expiration when outbox persistence fails', async () => {
     const scheduleExpiration = vi.fn();
     const useCase = makeUseCase({
       paymentRepository: {
@@ -339,26 +336,26 @@ describe("CreatePaymentUseCase", () => {
         update: vi.fn(),
       },
       outboxWriter: {
-        save: vi.fn().mockRejectedValue(new Error("outbox failed")),
+        save: vi.fn().mockRejectedValue(new Error('outbox failed')),
       },
       queue: { scheduleExpiration },
     });
 
     await expect(
       useCase.execute({
-        storeId: "store-1",
+        storeId: 'store-1',
         amount: 7990,
         customer: {
-          name: "Visitante",
+          name: 'Visitante',
         },
         environment: Environment.TEST,
       }),
-    ).rejects.toThrow("outbox failed");
+    ).rejects.toThrow('outbox failed');
 
     expect(scheduleExpiration).not.toHaveBeenCalled();
   });
 
-  it("rejects non-PIX payment methods before writing", async () => {
+  it('rejects non-PIX payment methods before writing', async () => {
     const paymentRepository = {
       externalIdExists: vi.fn(),
       save: vi.fn(),
@@ -375,17 +372,17 @@ describe("CreatePaymentUseCase", () => {
 
     await expect(
       useCase.execute({
-        storeId: "store-1",
+        storeId: 'store-1',
         amount: 7990,
-        customer: { document: "52998224725" },
+        customer: { document: '52998224725' },
         environment: Environment.TEST,
-        paymentMethod: "CREDIT_CARD" as never,
+        paymentMethod: 'CREDIT_CARD' as never,
       }),
-    ).rejects.toMatchObject({ code: "UNSUPPORTED_PAYMENT_METHOD" });
+    ).rejects.toMatchObject({ code: 'UNSUPPORTED_PAYMENT_METHOD' });
     expect(paymentRepository.save).not.toHaveBeenCalled();
   });
 
-  it("returns the created payment when scheduling expiration fails after commit", async () => {
+  it('returns the created payment when scheduling expiration fails after commit', async () => {
     const useCase = makeUseCase({
       paymentRepository: {
         externalIdExists: vi.fn().mockResolvedValue(false),
@@ -398,33 +395,33 @@ describe("CreatePaymentUseCase", () => {
         update: vi.fn(),
       },
       queue: {
-        scheduleExpiration: vi.fn().mockRejectedValue(new Error("queue down")),
+        scheduleExpiration: vi.fn().mockRejectedValue(new Error('queue down')),
       },
     });
 
     const result = await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       customer: {
-        name: "Visitante",
+        name: 'Visitante',
       },
       environment: Environment.TEST,
     });
 
     expect(result.payment.id).toBeDefined();
-    expect(result.payment.status).toBe("PENDING");
+    expect(result.payment.status).toBe('PENDING');
   });
 
-  it("rejects conflicting externalId and document matches in checkout-session promotion", async () => {
+  it('rejects conflicting externalId and document matches in checkout-session promotion', async () => {
     const customerByExternalId = Customer.create({
-      storeId: "store-1",
-      externalId: "cust_123",
-      document: new Document("52998224725"),
+      storeId: 'store-1',
+      externalId: 'cust_123',
+      document: new Document('52998224725'),
     });
     const customerByDocument = Customer.create({
-      storeId: "store-1",
-      externalId: "cust_999",
-      document: new Document("11144477735"),
+      storeId: 'store-1',
+      externalId: 'cust_999',
+      document: new Document('11144477735'),
     });
 
     const customerRepository = {
@@ -444,11 +441,11 @@ describe("CreatePaymentUseCase", () => {
 
     await expect(
       useCase.execute({
-        storeId: "store-1",
+        storeId: 'store-1',
         amount: 7990,
         customer: {
-          externalId: "cust_123",
-          document: "11144477735",
+          externalId: 'cust_123',
+          document: '11144477735',
         },
         customerPromotionPolicy: CustomerPromotionPolicy.CHECKOUT_SESSION,
         environment: Environment.TEST,
@@ -456,7 +453,7 @@ describe("CreatePaymentUseCase", () => {
     ).rejects.toBeInstanceOf(CustomerIdentityConflictError);
   });
 
-  it("scopes payment externalId uniqueness to the request environment", async () => {
+  it('scopes payment externalId uniqueness to the request environment', async () => {
     const paymentRepository = {
       externalIdExists: vi.fn().mockResolvedValue(false),
       save: vi.fn(),
@@ -472,16 +469,16 @@ describe("CreatePaymentUseCase", () => {
     });
 
     await useCase.execute({
-      storeId: "store-1",
-      externalId: "order-1",
+      storeId: 'store-1',
+      externalId: 'order-1',
       amount: 7990,
-      customer: { document: "52998224725" },
+      customer: { document: '52998224725' },
       environment: Environment.LIVE,
     });
 
     expect(paymentRepository.externalIdExists).toHaveBeenCalledWith(
-      "order-1",
-      "store-1",
+      'order-1',
+      'store-1',
       Environment.LIVE,
     );
   });

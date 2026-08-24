@@ -1,26 +1,20 @@
-import { AccountObject } from "../../domain/entities/account.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import {
-  Withdrawal,
-  WithdrawalObject,
-} from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { BankAccountNotFoundError } from "../../domain/errors/bank-account-not-found.error";
-import { BankAccountNotVerifiedError } from "../../domain/errors/bank-account-not-verified.error";
-import { InsufficientWithdrawalBalanceError } from "../../domain/errors/insufficient-withdrawal-balance.error";
-import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
-import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
-import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
+import { AccountObject } from '../../domain/entities/account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { Withdrawal, WithdrawalObject } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { BankAccountNotFoundError } from '../../domain/errors/bank-account-not-found.error';
+import { BankAccountNotVerifiedError } from '../../domain/errors/bank-account-not-verified.error';
+import { InsufficientWithdrawalBalanceError } from '../../domain/errors/insufficient-withdrawal-balance.error';
+import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
+import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import {
   ITransactedRepositories,
   IUnitOfWork,
-} from "../../domain/repositories/unit-of-work.interface";
-import { WithdrawalPolicy } from "../services/withdrawal-policy.service";
-import { Environment } from "../../domain/value-objects/environment.vo";
+} from '../../domain/repositories/unit-of-work.interface';
+import { WithdrawalPolicy } from '../services/withdrawal-policy.service';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface ICreateWithdrawalInput {
   storeId: string;
@@ -41,12 +35,8 @@ export class CreateWithdrawalUseCase {
     private readonly policy: WithdrawalPolicy = new WithdrawalPolicy(),
   ) {}
 
-  async execute(
-    input: ICreateWithdrawalInput,
-  ): Promise<ICreateWithdrawalOutput> {
-    return this.unitOfWork.execute((repos) =>
-      this.executeInTransaction(input, repos),
-    );
+  async execute(input: ICreateWithdrawalInput): Promise<ICreateWithdrawalOutput> {
+    return this.unitOfWork.execute((repos) => this.executeInTransaction(input, repos));
   }
 
   async executeInTransaction(
@@ -58,14 +48,10 @@ export class CreateWithdrawalUseCase {
     if (!store.isActive) throw new StoreInactiveError(store.id);
     if (!store.isApproved) throw new StoreNotApprovedError(store.id);
 
-    const account = await repos.accountRepository.findByStoreIdForUpdate(
-      input.storeId,
-    );
+    const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
     if (!account) throw new AccountNotFoundError(input.storeId);
 
-    const bankAccount = await repos.bankAccountRepository.findById(
-      input.bankAccountId,
-    );
+    const bankAccount = await repos.bankAccountRepository.findById(input.bankAccountId);
     if (!bankAccount || bankAccount.storeId !== input.storeId) {
       throw new BankAccountNotFoundError(input.bankAccountId);
     }
@@ -74,12 +60,11 @@ export class CreateWithdrawalUseCase {
     }
 
     const { startOfDay, endOfDay } = getDayRange(new Date());
-    const dailyAmount =
-      await repos.withdrawalRepository.sumAmountCreatedInRange(
-        account.id,
-        startOfDay,
-        endOfDay,
-      );
+    const dailyAmount = await repos.withdrawalRepository.sumAmountCreatedInRange(
+      account.id,
+      startOfDay,
+      endOfDay,
+    );
     const dailyCount = await repos.withdrawalRepository.countCreatedInRange(
       account.id,
       startOfDay,
@@ -116,16 +101,16 @@ export class CreateWithdrawalUseCase {
       fee: withdrawal.fee,
       netAmount: withdrawal.netAmount,
       balanceAfter: account.available,
-      referenceType: "WITHDRAWAL",
+      referenceType: 'WITHDRAWAL',
       referenceId: withdrawal.id,
       description: `Withdrawal reserved ${withdrawal.id}`,
     });
     await repos.transactionRepository.save(transaction);
 
     const outboxEvent = OutboxEvent.create({
-      aggregateType: "Withdrawal",
+      aggregateType: 'Withdrawal',
       aggregateId: withdrawal.id,
-      eventType: "withdrawal.created",
+      eventType: 'withdrawal.created',
       requestId: input.requestId,
       storeId: input.storeId,
       payload: sanitizeWithdrawal(input.storeId, withdrawal.toObject()),

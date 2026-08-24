@@ -1,5 +1,5 @@
-import { isIP } from "node:net";
-import { InvalidWebhookUrlError } from "../../domain/errors/invalid-webhook-url.error";
+import { isIP } from 'node:net';
+import { InvalidWebhookUrlError } from '../../domain/errors/invalid-webhook-url.error';
 
 export interface WebhookUrlPolicyOptions {
   allowLocalHttp?: boolean;
@@ -16,7 +16,7 @@ export interface WebhookResolvedAddress {
 }
 
 const PUBLIC_HTTPS_MESSAGE =
-  "Webhook URL must be a public HTTPS endpoint. Local HTTP is allowed only for localhost/127.0.0.1 in development.";
+  'Webhook URL must be a public HTTPS endpoint. Local HTTP is allowed only for localhost/127.0.0.1 in development.';
 
 export function getWebhookUrlPolicyOptionsForNodeEnv(
   nodeEnv: string | undefined,
@@ -25,17 +25,14 @@ export function getWebhookUrlPolicyOptionsForNodeEnv(
 
   return {
     allowLocalHttp:
-      normalized === "development" ||
-      normalized === "dev" ||
-      normalized === "local" ||
-      normalized === "test",
+      normalized === 'development' ||
+      normalized === 'dev' ||
+      normalized === 'local' ||
+      normalized === 'test',
   };
 }
 
-export function isWebhookUrlAllowed(
-  url: string,
-  options: WebhookUrlPolicyOptions = {},
-): boolean {
+export function isWebhookUrlAllowed(url: string, options: WebhookUrlPolicyOptions = {}): boolean {
   return validateWebhookUrl(url, options).valid;
 }
 
@@ -56,39 +53,37 @@ export function validateWebhookUrl(
   url: string,
   options: WebhookUrlPolicyOptions = {},
 ): WebhookUrlPolicyResult {
-  if (typeof url !== "string" || url.trim() !== url || url.length === 0) {
-    return invalid("Webhook URL must be a valid absolute URL.");
+  if (typeof url !== 'string' || url.trim() !== url || url.length === 0) {
+    return invalid('Webhook URL must be a valid absolute URL.');
   }
 
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
-    return invalid("Webhook URL must be a valid absolute URL.");
+    return invalid('Webhook URL must be a valid absolute URL.');
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return invalid("Webhook URL must use HTTP or HTTPS.");
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return invalid('Webhook URL must use HTTP or HTTPS.');
   }
 
   if (parsed.username || parsed.password) {
-    return invalid("Webhook URL must not include embedded credentials.");
+    return invalid('Webhook URL must not include embedded credentials.');
   }
 
   const hostname = normalizeHostname(parsed.hostname);
 
-  if (parsed.protocol === "http:") {
+  if (parsed.protocol === 'http:') {
     if (options.allowLocalHttp && isAllowedLocalHttpHost(hostname)) {
       return { valid: true };
     }
 
-    return invalid(
-      "HTTP webhook URLs are allowed only for localhost/127.0.0.1 in development.",
-    );
+    return invalid('HTTP webhook URLs are allowed only for localhost/127.0.0.1 in development.');
   }
 
   if (isBlockedLocalOrReservedHost(hostname)) {
-    return invalid("Webhook URL host must be a public remote host.");
+    return invalid('Webhook URL host must be a public remote host.');
   }
 
   return { valid: true };
@@ -100,7 +95,7 @@ export function validateWebhookResolvedAddress(
   const hostname = normalizeHostname(resolvedAddress.address);
 
   if (isBlockedLocalOrReservedHost(hostname)) {
-    return invalid("Webhook URL resolved to a non-public address.");
+    return invalid('Webhook URL resolved to a non-public address.');
   }
 
   return { valid: true };
@@ -114,16 +109,16 @@ function normalizeHostname(hostname: string): string {
   return hostname
     .trim()
     .toLowerCase()
-    .replace(/^\[(.*)\]$/, "$1")
-    .replace(/\.$/, "");
+    .replace(/^\[(.*)\]$/, '$1')
+    .replace(/\.$/, '');
 }
 
 function isAllowedLocalHttpHost(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1";
+  return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
 function isBlockedLocalOrReservedHost(hostname: string): boolean {
-  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
     return true;
   }
 
@@ -142,7 +137,7 @@ function isBlockedLocalOrReservedHost(hostname: string): boolean {
 }
 
 function parseIpv4Octets(hostname: string): number[] | null {
-  const parts = hostname.split(".");
+  const parts = hostname.split('.');
 
   if (parts.length !== 4) {
     return null;
@@ -152,10 +147,7 @@ function parseIpv4Octets(hostname: string): number[] | null {
   if (
     octets.some(
       (octet, index) =>
-        !Number.isInteger(octet) ||
-        octet < 0 ||
-        octet > 255 ||
-        parts[index] !== String(octet),
+        !Number.isInteger(octet) || octet < 0 || octet > 255 || parts[index] !== String(octet),
     )
   ) {
     return null;
@@ -193,16 +185,13 @@ function isBlockedIpv6(hostname: string): boolean {
   }
 
   const isUnspecified = words.every((word) => word === 0);
-  const isLoopback =
-    words.slice(0, 7).every((word) => word === 0) && words[7] === 1;
+  const isLoopback = words.slice(0, 7).every((word) => word === 0) && words[7] === 1;
   const isUniqueLocal = (words[0] & 0xfe00) === 0xfc00;
   const isLinkLocal = (words[0] & 0xffc0) === 0xfe80;
   const isMulticast = (words[0] & 0xff00) === 0xff00;
-  const isDiscardOnly =
-    words[0] === 0x0100 && words.slice(1).every((word) => word === 0);
+  const isDiscardOnly = words[0] === 0x0100 && words.slice(1).every((word) => word === 0);
   const isDocumentation = words[0] === 0x2001 && words[1] === 0x0db8;
-  const isBenchmarking =
-    words[0] === 0x2001 && words[1] === 0x0002 && words[2] === 0;
+  const isBenchmarking = words[0] === 0x2001 && words[1] === 0x0002 && words[2] === 0;
   const mappedIpv4 = getMappedIpv4Octets(words);
 
   return (
@@ -229,7 +218,7 @@ function getMappedIpv4Octets(words: number[]): number[] | null {
 
 function expandIpv6Words(hostname: string): number[] | null {
   let input = hostname.toLowerCase();
-  const zoneIndex = input.indexOf("%");
+  const zoneIndex = input.indexOf('%');
   if (zoneIndex >= 0) {
     input = input.slice(0, zoneIndex);
   }
@@ -249,21 +238,19 @@ function expandIpv6Words(hostname: string): number[] | null {
     )}${firstWord.toString(16)}:${secondWord.toString(16)}`;
   }
 
-  const doubleColonParts = input.split("::");
+  const doubleColonParts = input.split('::');
   if (doubleColonParts.length > 2) {
     return null;
   }
 
   const head = splitIpv6Part(doubleColonParts[0]);
-  const tail =
-    doubleColonParts.length === 2 ? splitIpv6Part(doubleColonParts[1]) : [];
+  const tail = doubleColonParts.length === 2 ? splitIpv6Part(doubleColonParts[1]) : [];
 
   if (!head || !tail) {
     return null;
   }
 
-  const fillLength =
-    doubleColonParts.length === 2 ? 8 - head.length - tail.length : 0;
+  const fillLength = doubleColonParts.length === 2 ? 8 - head.length - tail.length : 0;
   if (fillLength < 0 || (doubleColonParts.length === 1 && head.length !== 8)) {
     return null;
   }
@@ -276,7 +263,7 @@ function splitIpv6Part(part: string): number[] | null {
     return [];
   }
 
-  const words = part.split(":");
+  const words = part.split(':');
   return words
     .map((word) => {
       if (!/^[0-9a-f]{1,4}$/.test(word)) {

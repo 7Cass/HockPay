@@ -7,10 +7,7 @@ export async function resolveCustomerByExternalId(
   storeId: string,
   customerExternalId: string,
 ): Promise<Customer> {
-  const customer = await customerRepository.findByExternalId(
-    storeId,
-    customerExternalId,
-  );
+  const customer = await customerRepository.findByExternalId(storeId, customerExternalId);
 
   if (!customer) {
     throw new CustomerNotFoundError(customerExternalId);

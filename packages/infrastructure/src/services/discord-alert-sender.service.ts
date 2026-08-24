@@ -1,8 +1,4 @@
-import {
-  AlertSendInput,
-  AlertSendResponse,
-  IAlertSenderPort,
-} from '@hockpay/core';
+import { AlertSendInput, AlertSendResponse, IAlertSenderPort } from '@hockpay/core';
 
 export class DiscordAlertSenderService implements IAlertSenderPort {
   private readonly timeout = 30000;
@@ -60,7 +56,8 @@ function buildDiscordPayload(input: AlertSendInput): Record<string, unknown> {
     { name: 'Valor', value: amount, inline: true },
     { name: 'Payment ID', value: stringify(payment.id ?? '-'), inline: false },
   ];
-  const paymentLinkId = stringValue(payment.paymentLinkId) ?? metadataString(payment, 'paymentLinkId');
+  const paymentLinkId =
+    stringValue(payment.paymentLinkId) ?? metadataString(payment, 'paymentLinkId');
   const pixChargeId = stringValue(payment.pixChargeId) ?? nestedString(payment.pixCharge, 'id');
   const pixTxId = nestedString(payment.pixCharge, 'pixTxId');
   const attemptNumber = numberValue(payment.attemptNumber);
@@ -157,7 +154,21 @@ function formatCurrency(amountInCents: number): string {
 
 function stringify(value: unknown): string {
   if (value === null || value === undefined) return '-';
-  return String(value);
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
+  }
+  // `payment` e Record<string, unknown>: sem isso um campo nao-primitivo vira
+  // "[object Object]" dentro do embed do Discord.
+  try {
+    return JSON.stringify(value) ?? '-';
+  } catch {
+    return '-';
+  }
 }
 
 function stringValue(value: unknown): string | undefined {

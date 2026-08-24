@@ -22,19 +22,14 @@ export class GetCustomerHistoryPaymentUseCase {
     private readonly paymentRepository: IPaymentRepository,
   ) {}
 
-  async execute(
-    input: IGetCustomerHistoryPaymentInput,
-  ): Promise<IGetCustomerHistoryPaymentOutput> {
+  async execute(input: IGetCustomerHistoryPaymentInput): Promise<IGetCustomerHistoryPaymentOutput> {
     const customer = await resolveCustomerByExternalId(
       this.customerRepository,
       input.storeId,
       input.customerExternalId,
     );
 
-    const payment = await this.paymentRepository.findByIdAndStoreId(
-      input.paymentId,
-      input.storeId,
-    );
+    const payment = await this.paymentRepository.findByIdAndStoreId(input.paymentId, input.storeId);
 
     if (
       !payment ||

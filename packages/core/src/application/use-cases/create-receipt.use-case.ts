@@ -1,7 +1,6 @@
-import { Receipt, ReceiptObject } from "../../domain/entities/receipt.entity";
-import { IReceiptRepository } from "../../domain/repositories/receipt.repository.interface";
-import { ReceiptNotFoundError } from "../../domain/errors/receipt-not-found.error";
-import { buildReceiptNumber } from "./receipt-number";
+import { Receipt, ReceiptObject } from '../../domain/entities/receipt.entity';
+import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
+import { buildReceiptNumber } from './receipt-number';
 
 /**
  * Input DTO for CreateReceiptUseCase.
@@ -45,17 +44,10 @@ export class CreateReceiptUseCase {
 
   async execute(input: ICreateReceiptInput): Promise<ICreateReceiptOutput> {
     const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    const sequence = await this.receiptRepository.incrementCounter(
-      input.storeId,
-      dateStr,
-    );
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    const sequence = await this.receiptRepository.incrementCounter(input.storeId, dateStr);
 
-    const receiptNumber = buildReceiptNumber(
-      input.storeId,
-      dateStr,
-      sequence,
-    );
+    const receiptNumber = buildReceiptNumber(input.storeId, dateStr, sequence);
 
     const receipt = Receipt.create({
       receiptNumber,

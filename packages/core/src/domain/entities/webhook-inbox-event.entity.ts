@@ -128,4 +128,4 @@ export interface WebhookInboxEventProps extends CreateWebhookInboxEventProps {
   receivedAt: Date;
 }
 
-export interface WebhookInboxEventObject extends WebhookInboxEventProps {}
+export type WebhookInboxEventObject = WebhookInboxEventProps;

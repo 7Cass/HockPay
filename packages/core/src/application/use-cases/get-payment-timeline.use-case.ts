@@ -1,14 +1,9 @@
-import {
-  CheckoutSessionObject,
-} from '../../domain/entities/checkout-session.entity';
+import { CheckoutSessionObject } from '../../domain/entities/checkout-session.entity';
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { ReceiptObject } from '../../domain/entities/receipt.entity';
 import { RefundObject } from '../../domain/entities/refund.entity';
 import { TransactionObject } from '../../domain/entities/transaction.entity';
-import {
-  WebhookDeliveryStatus,
-  WebhookLogObject,
-} from '../../domain/entities/webhook-log.entity';
+import { WebhookDeliveryStatus, WebhookLogObject } from '../../domain/entities/webhook-log.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { Environment } from '../../domain/value-objects/environment.vo';
@@ -37,11 +32,7 @@ export type PaymentTimelineEventType =
   | 'webhook.failed'
   | 'webhook.pending';
 
-export type PaymentTimelineEventStatus =
-  | 'completed'
-  | 'pending'
-  | 'failed'
-  | 'neutral';
+export type PaymentTimelineEventStatus = 'completed' | 'pending' | 'failed' | 'neutral';
 
 export interface PaymentTimelineEvent {
   id: string;
@@ -81,26 +72,14 @@ export class GetPaymentTimelineUseCase {
     private readonly webhookLogRepository: IWebhookLogRepository,
   ) {}
 
-  async execute(
-    input: IGetPaymentTimelineInput,
-  ): Promise<IGetPaymentTimelineOutput> {
-    const payment = await this.paymentRepository.findByIdAndStoreId(
-      input.paymentId,
-      input.storeId,
-    );
+  async execute(input: IGetPaymentTimelineInput): Promise<IGetPaymentTimelineOutput> {
+    const payment = await this.paymentRepository.findByIdAndStoreId(input.paymentId, input.storeId);
 
     if (!payment || payment.environment !== input.environment) {
       throw new PaymentNotFoundError(input.paymentId);
     }
 
-    const [
-      receipt,
-      refunds,
-      checkoutSession,
-      paymentTransactions,
-      webhookLogs,
-      relatedPayments,
-    ] =
+    const [receipt, refunds, checkoutSession, paymentTransactions, webhookLogs, relatedPayments] =
       await Promise.all([
         this.receiptRepository.findByPaymentId(payment.id),
         this.refundRepository.findByPaymentId(payment.id),
@@ -108,36 +87,23 @@ export class GetPaymentTimelineUseCase {
         this.transactionRepository.findByReference('PAYMENT', payment.id),
         this.webhookLogRepository.findByPaymentId(payment.id),
         payment.pixChargeId
-          ? this.paymentRepository.findByPixChargeIdAndStoreId(
-              payment.pixChargeId,
-              input.storeId,
-            )
+          ? this.paymentRepository.findByPixChargeIdAndStoreId(payment.pixChargeId, input.storeId)
           : Promise.resolve([payment]),
       ]);
 
     const refundTransactionGroups = await Promise.all(
-      refunds.map((refund) =>
-        this.transactionRepository.findByReference('REFUND', refund.id),
-      ),
+      refunds.map((refund) => this.transactionRepository.findByReference('REFUND', refund.id)),
     );
-    const transactions = [
-      ...paymentTransactions,
-      ...refundTransactionGroups.flat(),
-    ];
+    const transactions = [...paymentTransactions, ...refundTransactionGroups.flat()];
 
     const relatedAttemptObjects = enrichPaymentAttempts(
       relatedPayments.map((relatedPayment) => relatedPayment.toObject()),
     );
-    const paymentObject = enrichPaymentAttempt(
-      payment.toObject(),
-      relatedAttemptObjects,
-    );
+    const paymentObject = enrichPaymentAttempt(payment.toObject(), relatedAttemptObjects);
     const receiptObject = receipt?.toObject() ?? null;
     const refundObjects = refunds.map((refund) => refund.toObject());
     const checkoutSessionObject = checkoutSession?.toObject() ?? null;
-    const transactionObjects = transactions.map((transaction) =>
-      transaction.toObject(),
-    );
+    const transactionObjects = transactions.map((transaction) => transaction.toObject());
     const webhookLogObjects = webhookLogs.map((log) => log.toObject());
 
     return {
@@ -328,9 +294,7 @@ export class GetPaymentTimelineUseCase {
       });
     }
 
-    return events.sort(
-      (a, b) => a.occurredAt.getTime() - b.occurredAt.getTime(),
-    );
+    return events.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
   }
 
   private mapRefundStatus(status: RefundObject['status']): PaymentTimelineEventStatus {

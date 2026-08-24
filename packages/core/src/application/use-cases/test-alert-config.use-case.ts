@@ -63,7 +63,12 @@ export class TestAlertConfigUseCase {
     if (response.success) {
       log.recordSuccess(response.statusCode, response.body);
     } else {
-      log.recordFailure(response.statusCode, response.body, response.body, response.retryAfterSeconds);
+      log.recordFailure(
+        response.statusCode,
+        response.body,
+        response.body,
+        response.retryAfterSeconds,
+      );
     }
 
     await this.alertLogRepository.save(log);

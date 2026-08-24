@@ -82,9 +82,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
     });
   }
 
-  async reserve(
-    input: ReserveIdempotencyKeyProps,
-  ): Promise<IdempotencyReservation> {
+  async reserve(input: ReserveIdempotencyKeyProps): Promise<IdempotencyReservation> {
     await this.deleteExpiredForKey(input.key, input.storeId, input.environment);
 
     const idempotencyKey = IdempotencyKey.reserve(input);
@@ -124,11 +122,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
       };
     }
 
-    const existing = await this.findByKeyAndStore(
-      input.key,
-      input.storeId,
-      input.environment,
-    );
+    const existing = await this.findByKeyAndStore(input.key, input.storeId, input.environment);
     if (!existing) {
       return this.reserve(input);
     }
@@ -223,9 +217,7 @@ export class IdempotencyKeyRepository implements IIdempotencyKeyRepository {
       requestPath: record.requestPath,
       requestHash: record.requestHash,
       responseBody:
-        record.responseBody === null
-          ? undefined
-          : (record.responseBody as Record<string, unknown>),
+        record.responseBody === null ? undefined : (record.responseBody as Record<string, unknown>),
       responseStatus: record.responseStatus ?? undefined,
       status: record.status as unknown as IdempotencyKeyStatus,
       completedAt: record.completedAt ?? undefined,

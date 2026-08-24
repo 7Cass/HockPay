@@ -1,15 +1,12 @@
-import { PaymentObject } from "../../domain/entities/payment.entity";
-import { AccountObject } from "../../domain/entities/account.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { PaymentNotFoundError } from "../../domain/errors/payment-not-found.error";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { PaymentNotConfirmedError } from "../../domain/errors/payment-not-confirmed.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { assertNotLiveEnvironment } from "../services/live-environment-guard";
+import { PaymentObject } from '../../domain/entities/payment.entity';
+import { AccountObject } from '../../domain/entities/account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { PaymentNotConfirmedError } from '../../domain/errors/payment-not-confirmed.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
 
 /**
  * Input DTO for ReleasePaymentUseCase.
@@ -52,10 +49,7 @@ export class ReleasePaymentUseCase {
     return this.unitOfWork.execute(async (repos) => {
       // Find payment
       const payment = input.storeId
-        ? await repos.paymentRepository.findByIdAndStoreIdForUpdate(
-            input.paymentId,
-            input.storeId,
-          )
+        ? await repos.paymentRepository.findByIdAndStoreIdForUpdate(input.paymentId, input.storeId)
         : await repos.paymentRepository.findByIdForUpdate(input.paymentId);
 
       if (!payment) {
@@ -67,9 +61,7 @@ export class ReleasePaymentUseCase {
       }
 
       if (payment.isReleased()) {
-        const account = await repos.accountRepository.findByStoreId(
-          payment.storeId,
-        );
+        const account = await repos.accountRepository.findByStoreId(payment.storeId);
 
         if (!account) {
           throw new AccountNotFoundError(payment.storeId);
@@ -88,25 +80,17 @@ export class ReleasePaymentUseCase {
       }
 
       // Find account
-      const account = await repos.accountRepository.findByStoreIdForUpdate(
-        payment.storeId,
-      );
+      const account = await repos.accountRepository.findByStoreIdForUpdate(payment.storeId);
 
       if (!account) {
         throw new AccountNotFoundError(payment.storeId);
       }
 
-      const processedRefunds = (
-        await repos.refundRepository.findByPaymentId(payment.id)
-      ).filter((refund) => refund.isProcessed());
-      const refundedAmount = processedRefunds.reduce(
-        (total, refund) => total + refund.amount,
-        0,
+      const processedRefunds = (await repos.refundRepository.findByPaymentId(payment.id)).filter(
+        (refund) => refund.isProcessed(),
       );
-      const refundedFee = processedRefunds.reduce(
-        (total, refund) => total + refund.feeRefunded,
-        0,
-      );
+      const refundedAmount = processedRefunds.reduce((total, refund) => total + refund.amount, 0);
+      const refundedFee = processedRefunds.reduce((total, refund) => total + refund.feeRefunded, 0);
       const releaseAmount = payment.amount - refundedAmount;
       const releaseFee = payment.fee - refundedFee;
       const releaseNetAmount = releaseAmount - releaseFee;
@@ -128,7 +112,7 @@ export class ReleasePaymentUseCase {
         fee: releaseFee,
         netAmount: releaseNetAmount,
         balanceAfter,
-        referenceType: "PAYMENT",
+        referenceType: 'PAYMENT',
         referenceId: payment.id,
         description: `Release of payment ${payment.id}`,
       });
@@ -136,9 +120,9 @@ export class ReleasePaymentUseCase {
 
       // Create outbox event for webhook notification
       const outboxEvent = OutboxEvent.create({
-        aggregateType: "Payment",
+        aggregateType: 'Payment',
         aggregateId: payment.id,
-        eventType: "payment.released",
+        eventType: 'payment.released',
         requestId: input.requestId,
         storeId: payment.storeId,
         payload: payment.toObject() as unknown as Record<string, unknown>,

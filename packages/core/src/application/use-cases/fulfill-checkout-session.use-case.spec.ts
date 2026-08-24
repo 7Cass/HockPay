@@ -17,8 +17,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
     } = {},
   ) {
     const sessionRepository = {
-      claimOpenByToken:
-        overrides.claimOpenByToken ?? vi.fn().mockResolvedValue(session),
+      claimOpenByToken: overrides.claimOpenByToken ?? vi.fn().mockResolvedValue(session),
       findByToken: overrides.findByToken ?? vi.fn().mockResolvedValue(session),
       expireOpenByToken: vi.fn(),
       save: overrides.save ?? vi.fn(),
@@ -44,10 +43,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
     };
 
     return {
-      useCase: new FulfillCheckoutSessionUseCase(
-        unitOfWork as any,
-        createPaymentUseCase as any,
-      ),
+      useCase: new FulfillCheckoutSessionUseCase(unitOfWork as any, createPaymentUseCase as any),
       unitOfWork,
       sessionRepository,
       createPaymentUseCase,
@@ -84,8 +80,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    const { useCase, sessionRepository, createPaymentUseCase, unitOfWork } =
-      makeUseCase(session);
+    const { useCase, sessionRepository, createPaymentUseCase, unitOfWork } = makeUseCase(session);
 
     const result = await useCase.execute({
       token: 'token',
@@ -169,9 +164,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
       paymentId: 'payment-existing',
     });
     expect(createPaymentUseCase.executeInTransaction).not.toHaveBeenCalled();
-    expect(
-      createPaymentUseCase.scheduleExpirationAfterCommit,
-    ).not.toHaveBeenCalled();
+    expect(createPaymentUseCase.scheduleExpirationAfterCommit).not.toHaveBeenCalled();
   });
 
   it('does not schedule payment expiration when saving the fulfilled session fails', async () => {
@@ -195,9 +188,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
     ).rejects.toThrow('session save failed');
 
     expect(createPaymentUseCase.executeInTransaction).toHaveBeenCalledTimes(1);
-    expect(
-      createPaymentUseCase.scheduleExpirationAfterCommit,
-    ).not.toHaveBeenCalled();
+    expect(createPaymentUseCase.scheduleExpirationAfterCommit).not.toHaveBeenCalled();
   });
 
   it('creates a single payment when the same checkout session is fulfilled twice', async () => {
@@ -208,10 +199,7 @@ describe('FulfillCheckoutSessionUseCase', () => {
       customerCollectionMode: CustomerCollectionMode.GUEST,
       expiresAt: new Date(Date.now() + 60_000),
     });
-    const claimOpenByToken = vi
-      .fn()
-      .mockResolvedValueOnce(session)
-      .mockResolvedValueOnce(null);
+    const claimOpenByToken = vi.fn().mockResolvedValueOnce(session).mockResolvedValueOnce(null);
     const findByToken = vi.fn(async () => session);
     const { useCase, createPaymentUseCase } = makeUseCase(session, {
       claimOpenByToken,

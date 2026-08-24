@@ -1,8 +1,8 @@
-import { ProductObject } from "../../domain/entities/product.entity";
-import { ProductExternalIdAlreadyExistsError } from "../../domain/errors/product-external-id-already-exists.error";
-import { ProductNotFoundError } from "../../domain/errors/product-not-found.error";
-import { IProductRepository } from "../../domain/repositories/product.repository.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { ProductObject } from '../../domain/entities/product.entity';
+import { ProductExternalIdAlreadyExistsError } from '../../domain/errors/product-external-id-already-exists.error';
+import { ProductNotFoundError } from '../../domain/errors/product-not-found.error';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IUpdateProductInput {
   storeId: string;

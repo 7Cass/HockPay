@@ -26,9 +26,7 @@ export interface IDetectAnomaliesOutput {
 }
 
 export class DetectAnomaliesUseCase {
-  async execute(
-    _input: IDetectAnomaliesInput = {},
-  ): Promise<IDetectAnomaliesOutput> {
+  async execute(_input: IDetectAnomaliesInput = {}): Promise<IDetectAnomaliesOutput> {
     return {
       anomalies: [],
       scannedPayments: 0,

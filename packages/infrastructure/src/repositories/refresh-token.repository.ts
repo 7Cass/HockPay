@@ -1,12 +1,5 @@
-import {
-  IRefreshTokenRepositoryPort,
-  RefreshToken as DomainRefreshToken,
-} from "@hockpay/core";
-import {
-  Prisma,
-  PrismaClient,
-  RefreshToken as PrismaRefreshToken,
-} from "@hockpay/database";
+import { IRefreshTokenRepositoryPort, RefreshToken as DomainRefreshToken } from '@hockpay/core';
+import { Prisma, PrismaClient, RefreshToken as PrismaRefreshToken } from '@hockpay/database';
 
 type RefreshTokenRow = {
   id: string;
@@ -19,9 +12,7 @@ type RefreshTokenRow = {
 };
 
 export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async create(token: DomainRefreshToken): Promise<void> {
     await this.prisma.refreshToken.create({
@@ -49,9 +40,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
     return this.toDomain(prismaToken);
   }
 
-  async findByTokenForUpdate(
-    token: string,
-  ): Promise<DomainRefreshToken | null> {
+  async findByTokenForUpdate(token: string): Promise<DomainRefreshToken | null> {
     const rows = await this.prisma.$queryRaw<RefreshTokenRow[]>`
       SELECT
         id,
@@ -74,9 +63,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
     return this.toDomain(row);
   }
 
-  async findByMerchantId(
-    merchantId: string,
-  ): Promise<DomainRefreshToken | null> {
+  async findByMerchantId(merchantId: string): Promise<DomainRefreshToken | null> {
     const prismaToken = await this.prisma.refreshToken.findUnique({
       where: { merchantId },
     });
@@ -119,9 +106,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepositoryPort {
     });
   }
 
-  private toDomain(
-    prismaToken: PrismaRefreshToken | RefreshTokenRow,
-  ): DomainRefreshToken {
+  private toDomain(prismaToken: PrismaRefreshToken | RefreshTokenRow): DomainRefreshToken {
     return DomainRefreshToken.reconstitute({
       id: prismaToken.id,
       token: prismaToken.token,

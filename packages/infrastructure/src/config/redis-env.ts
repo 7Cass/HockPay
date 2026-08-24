@@ -22,12 +22,10 @@ export interface ParsedRedisEnv {
   displayName: string;
 }
 
-const DEFAULT_REDIS_HOST = "localhost";
+const DEFAULT_REDIS_HOST = 'localhost';
 const DEFAULT_REDIS_PORT = 6379;
 
-export function parseRedisEnv(
-  env: RedisEnvInput = process.env,
-): ParsedRedisEnv {
+export function parseRedisEnv(env: RedisEnvInput = process.env): ParsedRedisEnv {
   const redisUrl = clean(env.REDIS_URL);
   const redisHost = clean(env.REDIS_HOST);
   const redisPort = env.REDIS_PORT;
@@ -39,7 +37,7 @@ export function parseRedisEnv(
     if (hasHostPort) {
       const configuredHost = redisHost;
       const configuredPort = hasValue(redisPort)
-        ? parseRedisPort(redisPort, "REDIS_PORT")
+        ? parseRedisPort(redisPort, 'REDIS_PORT')
         : DEFAULT_REDIS_PORT;
 
       if (configuredHost !== undefined && configuredHost !== parsedUrl.host) {
@@ -59,14 +57,12 @@ export function parseRedisEnv(
   }
 
   const host = redisHost ?? DEFAULT_REDIS_HOST;
-  const port = hasValue(redisPort)
-    ? parseRedisPort(redisPort, "REDIS_PORT")
-    : DEFAULT_REDIS_PORT;
+  const port = hasValue(redisPort) ? parseRedisPort(redisPort, 'REDIS_PORT') : DEFAULT_REDIS_PORT;
 
   return buildParsedRedisEnv({
     host,
     port,
-    protocol: "redis:",
+    protocol: 'redis:',
   });
 }
 
@@ -78,19 +74,15 @@ function parseRedisUrl(value: string): ParsedRedisEnv {
     throw new Error(`Invalid REDIS_URL "${value}".`);
   }
 
-  if (url.protocol !== "redis:" && url.protocol !== "rediss:") {
-    throw new Error(
-      `Invalid REDIS_URL protocol "${url.protocol}". Use redis:// or rediss://.`,
-    );
+  if (url.protocol !== 'redis:' && url.protocol !== 'rediss:') {
+    throw new Error(`Invalid REDIS_URL protocol "${url.protocol}". Use redis:// or rediss://.`);
   }
 
   if (!url.hostname) {
-    throw new Error("REDIS_URL must include a host.");
+    throw new Error('REDIS_URL must include a host.');
   }
 
-  const port = url.port
-    ? parseRedisPort(url.port, "REDIS_URL port")
-    : DEFAULT_REDIS_PORT;
+  const port = url.port ? parseRedisPort(url.port, 'REDIS_URL port') : DEFAULT_REDIS_PORT;
   const db = parseRedisDb(url.pathname);
 
   return buildParsedRedisEnv({
@@ -106,18 +98,16 @@ function parseRedisUrl(value: string): ParsedRedisEnv {
 function buildParsedRedisEnv(input: {
   host: string;
   port: number;
-  protocol: "redis:" | "rediss:";
+  protocol: 'redis:' | 'rediss:';
   username?: string;
   password?: string;
   db?: number;
 }): ParsedRedisEnv {
   const auth =
     input.username || input.password
-      ? `${encodeURIComponent(input.username ?? "")}:${encodeURIComponent(
-          input.password ?? "",
-        )}@`
-      : "";
-  const dbPath = input.db === undefined ? "" : `/${input.db}`;
+      ? `${encodeURIComponent(input.username ?? '')}:${encodeURIComponent(input.password ?? '')}@`
+      : '';
+  const dbPath = input.db === undefined ? '' : `/${input.db}`;
   const url = `${input.protocol}//${auth}${input.host}:${input.port}${dbPath}`;
   const connection: RedisConnectionOptions = {
     host: input.host,
@@ -133,7 +123,7 @@ function buildParsedRedisEnv(input: {
   if (input.db !== undefined) {
     connection.db = input.db;
   }
-  if (input.protocol === "rediss:") {
+  if (input.protocol === 'rediss:') {
     connection.tls = {};
   }
 
@@ -155,14 +145,14 @@ function parseRedisPort(value: string | number, label: string): number {
 }
 
 function parseRedisDb(pathname: string): number | undefined {
-  const raw = pathname.replace(/^\//, "");
-  if (raw === "") {
+  const raw = pathname.replace(/^\//, '');
+  if (raw === '') {
     return undefined;
   }
 
   const db = Number(raw);
   if (!Number.isInteger(db) || db < 0) {
-    throw new Error("REDIS_URL database must be a non-negative integer.");
+    throw new Error('REDIS_URL database must be a non-negative integer.');
   }
   return db;
 }
@@ -172,11 +162,9 @@ function clean(value: string | null | undefined): string | undefined {
     return undefined;
   }
   const trimmed = value.trim();
-  return trimmed === "" ? undefined : trimmed;
+  return trimmed === '' ? undefined : trimmed;
 }
 
-function hasValue(
-  value: string | number | null | undefined,
-): value is string | number {
-  return value !== null && value !== undefined && String(value).trim() !== "";
+function hasValue(value: string | number | null | undefined): value is string | number {
+  return value !== null && value !== undefined && String(value).trim() !== '';
 }

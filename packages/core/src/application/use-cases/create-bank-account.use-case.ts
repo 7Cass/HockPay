@@ -1,11 +1,8 @@
-import {
-  BankAccount,
-  PixKeyType,
-} from "../../domain/entities/bank-account.entity";
-import { BankAccountHolderMismatchError } from "../../domain/errors/bank-account-holder-mismatch.error";
-import { MerchantNotFoundError } from "../../domain/errors/merchant-not-found.error";
-import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { BankAccount, PixKeyType } from '../../domain/entities/bank-account.entity';
+import { BankAccountHolderMismatchError } from '../../domain/errors/bank-account-holder-mismatch.error';
+import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 export interface CreateBankAccountDto {
   storeId: string;
@@ -26,30 +23,22 @@ export class CreateBankAccountUseCase {
         throw new StoreNotFoundError(dto.storeId);
       }
 
-      const merchant = await repos.merchantRepository.findById(
-        store.merchantId,
-      );
+      const merchant = await repos.merchantRepository.findById(store.merchantId);
       if (!merchant) {
         throw new MerchantNotFoundError(store.merchantId);
       }
 
       const merchantDocument = merchant.document.value;
-      const cleanHolderDoc = dto.holderDocument.replace(/\D/g, "");
-      const cleanMerchantDoc = merchantDocument.replace(/\D/g, "");
+      const cleanHolderDoc = dto.holderDocument.replace(/\D/g, '');
+      const cleanMerchantDoc = merchantDocument.replace(/\D/g, '');
 
       if (cleanHolderDoc !== cleanMerchantDoc) {
-        throw new BankAccountHolderMismatchError(
-          dto.holderDocument,
-          merchantDocument,
-        );
+        throw new BankAccountHolderMismatchError(dto.holderDocument, merchantDocument);
       }
 
       let isVerified = false;
-      if (
-        dto.pixKeyType === PixKeyType.CPF ||
-        dto.pixKeyType === PixKeyType.CNPJ
-      ) {
-        const cleanPixKey = dto.pixKey.replace(/\D/g, "");
+      if (dto.pixKeyType === PixKeyType.CPF || dto.pixKeyType === PixKeyType.CNPJ) {
+        const cleanPixKey = dto.pixKey.replace(/\D/g, '');
         if (cleanPixKey === cleanHolderDoc) {
           isVerified = true;
         }

@@ -1,9 +1,5 @@
-import { IAccountRepository, Account as DomainAccount } from "@hockpay/core";
-import {
-  PrismaClient,
-  Account as PrismaAccount,
-  Prisma,
-} from "@hockpay/database";
+import { IAccountRepository, Account as DomainAccount } from '@hockpay/core';
+import { PrismaClient, Account as PrismaAccount, Prisma } from '@hockpay/database';
 
 type AccountRow = {
   id: string;
@@ -19,9 +15,7 @@ type AccountRow = {
  * Shared implementation of IAccountRepository using Prisma.
  */
 export class AccountRepository implements IAccountRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(account: DomainAccount): Promise<void> {
     await this.prisma.account.create({

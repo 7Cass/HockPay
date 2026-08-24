@@ -754,9 +754,7 @@ describe('PaymentLink use cases', () => {
         savedPayment = payment;
       }),
       update: vi.fn(),
-      findByPixChargeIdAndStoreId: vi.fn(async () =>
-        savedPayment ? [savedPayment] : [],
-      ),
+      findByPixChargeIdAndStoreId: vi.fn(async () => (savedPayment ? [savedPayment] : [])),
     };
     const account = {
       id: 'account-1',
@@ -877,11 +875,7 @@ function makeCancelPaymentLinkSut(options: { linkEnvironment: Environment }) {
       }),
     ),
   };
-  const useCase = new CancelPaymentLinkUseCase(
-    {} as never,
-    {} as never,
-    unitOfWork as never,
-  );
+  const useCase = new CancelPaymentLinkUseCase({} as never, {} as never, unitOfWork as never);
 
   return {
     useCase,

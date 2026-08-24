@@ -20,11 +20,7 @@ export interface IIdempotencyCachePort {
    * @param response - The response to cache
    * @param ttlSeconds - Time-to-live in seconds (default: 86400 = 24 hours)
    */
-  set(
-    cacheKey: string,
-    response: CachedIdempotencyResponse,
-    ttlSeconds?: number,
-  ): Promise<void>;
+  set(cacheKey: string, response: CachedIdempotencyResponse, ttlSeconds?: number): Promise<void>;
 
   /**
    * Delete a cached response.

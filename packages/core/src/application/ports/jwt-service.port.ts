@@ -13,11 +13,7 @@ export interface IJwtServicePort {
    * @param expiresIn - Token expiration time (e.g., '15m', '1h')
    * @returns The signed JWT token
    */
-  generateAccessToken(
-    sub: string,
-    storeId: string | null,
-    expiresIn?: string,
-  ): Promise<string>;
+  generateAccessToken(sub: string, storeId: string | null, expiresIn?: string): Promise<string>;
 
   /**
    * Generate a refresh token for a merchant.

@@ -7,9 +7,6 @@ import { DomainError } from './domain-error';
  */
 export class LiveEnvironmentNotAllowedError extends DomainError {
   constructor() {
-    super(
-      'TEST callers cannot mutate LIVE financial aggregates',
-      'LIVE_ENVIRONMENT_NOT_ALLOWED',
-    );
+    super('TEST callers cannot mutate LIVE financial aggregates', 'LIVE_ENVIRONMENT_NOT_ALLOWED');
   }
 }
