@@ -11,13 +11,13 @@ export class ProductRepository implements IProductRepository {
   constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(product: Product): Promise<void> {
-    await (this.prisma as any).product.create({
+    await this.prisma.product.create({
       data: this.toPrisma(product),
     });
   }
 
   async update(product: Product): Promise<void> {
-    await (this.prisma as any).product.update({
+    await this.prisma.product.update({
       where: { id: product.id },
       data: {
         externalId: product.externalId,
@@ -38,7 +38,7 @@ export class ProductRepository implements IProductRepository {
     storeId: string,
     environment: Environment,
   ): Promise<Product | null> {
-    const row = await (this.prisma as any).product.findFirst({
+    const row = await this.prisma.product.findFirst({
       where: { id, storeId, environment },
     });
     return row ? this.toDomain(row) : null;
@@ -49,7 +49,7 @@ export class ProductRepository implements IProductRepository {
     storeId: string,
     environment: Environment,
   ): Promise<Product | null> {
-    const row = await (this.prisma as any).product.findFirst({
+    const row = await this.prisma.product.findFirst({
       where: { id, storeId, environment, isActive: true },
     });
     return row ? this.toDomain(row) : null;
@@ -60,7 +60,7 @@ export class ProductRepository implements IProductRepository {
     storeId: string,
     environment: Environment,
   ): Promise<Product | null> {
-    const row = await (this.prisma as any).product.findFirst({
+    const row = await this.prisma.product.findFirst({
       where: { externalId, storeId, environment },
     });
     return row ? this.toDomain(row) : null;
@@ -72,7 +72,7 @@ export class ProductRepository implements IProductRepository {
     environment: Environment,
     excludingProductId?: string,
   ): Promise<boolean> {
-    const count = await (this.prisma as any).product.count({
+    const count = await this.prisma.product.count({
       where: {
         externalId,
         storeId,
@@ -103,13 +103,13 @@ export class ProductRepository implements IProductRepository {
     }
 
     const [rows, total] = await Promise.all([
-      (this.prisma as any).product.findMany({
+      this.prisma.product.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
-      (this.prisma as any).product.count({ where }),
+      this.prisma.product.count({ where }),
     ]);
 
     return {

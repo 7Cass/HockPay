@@ -4,27 +4,28 @@ import { WebhookInboxController } from './webhook-inbox.controller';
 import {
   CreateWebhookConfigUseCase,
   CreateWebhookInboxUseCase,
-  ListWebhookConfigsUseCase,
-  GetWebhookConfigUseCase,
-  UpdateWebhookConfigUseCase,
   DeleteWebhookConfigUseCase,
-  TestWebhookConfigUseCase,
-  ListWebhookLogsUseCase,
-  ListWebhookInboxEventsUseCase,
-  ReceiveWebhookInboxEventUseCase,
-  RetryWebhookLogUseCase,
+  EncryptionService,
+  getRequiredEnv,
+  GetWebhookConfigUseCase,
+  getWebhookUrlPolicyOptionsForNodeEnv,
+  HmacSignerService,
+  import {,
   IWebhookConfigRepository,
   IWebhookInboxEventRepository,
   IWebhookLogRepository,
-  getWebhookUrlPolicyOptionsForNodeEnv,
-} from '@hockpay/core';
-import {
-  EncryptionService,
-  HmacSignerService,
-  WebhookHttpClientService,
+  ListWebhookConfigsUseCase,
+  ListWebhookInboxEventsUseCase,
+  ListWebhookLogsUseCase,
+  ReceiveWebhookInboxEventUseCase,
+  RetryWebhookLogUseCase,
+  TestWebhookConfigUseCase,
+  UpdateWebhookConfigUseCase,
   WebhookConfigRepository,
+  WebhookHttpClientService,
   WebhookInboxEventRepository,
   WebhookLogRepository,
+  } from '@hockpay/core';,
 } from '@hockpay/infrastructure';
 import { TokenGeneratorService } from '../../infra/services/token-generator.service';
 import { JwtService } from '../../infra/services/jwt.service';
@@ -286,11 +287,3 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
   ],
 })
 export class WebhookModule {}
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} environment variable is required`);
-  }
-  return value;
-}

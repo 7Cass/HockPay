@@ -28,13 +28,13 @@ export class PixChargeRepository implements IPixChargeRepository {
   ) {}
 
   async save(charge: PixCharge): Promise<void> {
-    await (this.prisma as any).pixCharge.create({
+    await this.prisma.pixCharge.create({
       data: this.toData(charge),
     });
   }
 
   async update(charge: PixCharge): Promise<void> {
-    await (this.prisma as any).pixCharge.update({
+    await this.prisma.pixCharge.update({
       where: { id: charge.id },
       data: {
         status: charge.status,
@@ -46,7 +46,7 @@ export class PixChargeRepository implements IPixChargeRepository {
   }
 
   async findById(id: string): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findUnique({
+    const row = await this.prisma.pixCharge.findUnique({
       where: { id },
     });
     return row ? this.toDomain(row) : null;
@@ -56,7 +56,7 @@ export class PixChargeRepository implements IPixChargeRepository {
     id: string,
     storeId: string,
   ): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findFirst({
+    const row = await this.prisma.pixCharge.findFirst({
       where: { id, storeId },
     });
     return row ? this.toDomain(row) : null;
@@ -92,7 +92,7 @@ export class PixChargeRepository implements IPixChargeRepository {
   }
 
   async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {
-    const row = await (this.prisma as any).pixCharge.findUnique({
+    const row = await this.prisma.pixCharge.findUnique({
       where: { pixTxId },
     });
     return row ? this.toDomain(row) : null;

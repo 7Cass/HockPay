@@ -10,7 +10,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
   constructor(private readonly prisma: PrismaClient) {}
 
   async save(event: WebhookInboxEvent): Promise<void> {
-    await (this.prisma as any).webhookInboxEvent.create({
+    await this.prisma.webhookInboxEvent.create({
       data: {
         id: event.id,
         storeId: event.storeId,
@@ -34,7 +34,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
   ): Promise<WebhookInboxEvent[]> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 50;
-    const events = await (this.prisma as any).webhookInboxEvent.findMany({
+    const events = await this.prisma.webhookInboxEvent.findMany({
       where: { configId },
       orderBy: { receivedAt: "desc" },
       skip: (page - 1) * limit,
@@ -45,7 +45,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
   }
 
   async countByConfigId(configId: string): Promise<number> {
-    return (this.prisma as any).webhookInboxEvent.count({
+    return this.prisma.webhookInboxEvent.count({
       where: { configId },
     });
   }

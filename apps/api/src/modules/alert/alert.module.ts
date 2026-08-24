@@ -1,21 +1,22 @@
 import { Module } from '@nestjs/common';
 import {
+  AlertConfigRepository,
+  AlertDeliveryLogRepository,
   CreateAlertConfigUseCase,
   DeleteAlertConfigUseCase,
+  DiscordAlertSenderService,
+  EncryptionService,
   GetAlertConfigUseCase,
+  getRequiredEnv,
   IAlertConfigRepository,
   IAlertDeliveryLogRepository,
+  import {,
   ListAlertConfigsUseCase,
   ListAlertDeliveryLogsUseCase,
   RetryAlertDeliveryLogUseCase,
   TestAlertConfigUseCase,
   UpdateAlertConfigUseCase,
-} from '@hockpay/core';
-import {
-  AlertConfigRepository,
-  AlertDeliveryLogRepository,
-  DiscordAlertSenderService,
-  EncryptionService,
+  } from '@hockpay/core';,
 } from '@hockpay/infrastructure';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { AlertController } from './alert.controller';
@@ -132,11 +133,3 @@ import { RequireStoreGuard } from '../auth/guards/require-store.guard';
   ],
 })
 export class AlertModule {}
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} environment variable is required`);
-  }
-  return value;
-}
