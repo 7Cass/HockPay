@@ -65,8 +65,8 @@ export class CustomerController {
   @HttpCode(HttpStatus.CREATED)
   async createCustomer(
     @Body() dto: CreateCustomerDto,
-    @Query('update_existing') updateExisting?: string,
     @CurrentStore() storeId: string,
+    @Query('update_existing') updateExisting?: string,
   ): Promise<CreateCustomerResponseDto> {
     const result = await this.createCustomerUseCase.execute({
       storeId,

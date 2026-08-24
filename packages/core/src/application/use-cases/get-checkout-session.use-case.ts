@@ -1,6 +1,5 @@
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
 import {
-  CheckoutSession,
   CustomerCollectionMode,
   CheckoutSessionPrefillCustomer,
 } from '../../domain/entities/checkout-session.entity';

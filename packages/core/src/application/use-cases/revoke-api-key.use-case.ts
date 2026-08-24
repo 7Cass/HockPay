@@ -1,4 +1,4 @@
-import { ApiKey, type ApiKeyObject } from '../../domain/entities/api-key.entity';
+import { type ApiKeyObject } from '../../domain/entities/api-key.entity';
 import { IApiKeyRepository } from '../../domain/repositories/api-key.repository.interface';
 import { ApiKeyNotFoundError } from '../../domain/errors/api-key-not-found.error';
 

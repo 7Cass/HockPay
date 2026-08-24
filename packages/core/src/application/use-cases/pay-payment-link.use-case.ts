@@ -2,15 +2,12 @@ import { Payment, PaymentMethod, PaymentObject } from '../../domain/entities/pay
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { PaymentLinkListItem, PaymentLinkStatus } from '../../domain/entities/payment-link.entity';
 import { PixChargeObject, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
-import { Receipt } from '../../domain/entities/receipt.entity';
-import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   ITransactedRepositories,
   IUnitOfWork,
 } from '../../domain/repositories/unit-of-work.interface';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
-import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { FeePolicy } from '../services/fee-policy.service';
 import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
@@ -21,7 +18,6 @@ import { CustomerDocumentRequiredError } from '../../domain/errors/customer-docu
 import { Customer } from '../../domain/entities/customer.entity';
 import { Document } from '../../domain/value-objects/document.vo';
 import { PaymentCustomerInput } from './create-payment.use-case';
-import { buildReceiptNumber } from './receipt-number';
 
 export interface IPayPaymentLinkInput {
   publicToken: string;

@@ -82,7 +82,7 @@ export class Refund {
     this._processedAt = new Date();
   }
 
-  fail(reason?: string): void {
+  fail(): void {
     this._status = RefundStatus.FAILED;
   }
 

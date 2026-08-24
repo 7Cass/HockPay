@@ -154,7 +154,21 @@ function formatCurrency(amountInCents: number): string {
 
 function stringify(value: unknown): string {
   if (value === null || value === undefined) return '-';
-  return String(value);
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
+  }
+  // `payment` e Record<string, unknown>: sem isso um campo nao-primitivo vira
+  // "[object Object]" dentro do embed do Discord.
+  try {
+    return JSON.stringify(value) ?? '-';
+  } catch {
+    return '-';
+  }
 }
 
 function stringValue(value: unknown): string | undefined {

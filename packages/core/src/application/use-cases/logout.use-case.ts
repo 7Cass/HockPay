@@ -1,4 +1,3 @@
-import { InvalidRefreshTokenError } from '../../domain/errors/invalid-refresh-token.error';
 import { IRefreshTokenRepositoryPort } from '../ports/refresh-token-repository.port';
 
 /**

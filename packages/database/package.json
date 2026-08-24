@@ -20,11 +20,15 @@
   "scripts": {
     "build": "tsc && cp -R src/generated dist/ && mkdir -p dist/prisma/migrations && cp prisma/schema.prisma dist/prisma/schema.prisma && cp -R prisma/migrations/. dist/prisma/migrations/ && cp prisma.config.ts dist/prisma.config.ts",
     "db:generate": "prisma generate",
-    "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "format": "prettier --write \"src/index.ts\" \"src/nest/**/*.ts\"",
+    "format:check": "prettier --check \"src/index.ts\" \"src/nest/**/*.ts\" --no-error-on-unmatched-pattern",
+    "lint": "eslint \"src/index.ts\" \"src/nest/**/*.ts\" --fix",
+    "lint:check": "eslint \"src/index.ts\" \"src/nest/**/*.ts\""
   },
   "dependencies": {
     "@prisma/client": "^6.19.2"
@@ -42,9 +46,16 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.7",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "prettier": "^3.4.2",
     "prisma": "^6.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
   }
 }

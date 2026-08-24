@@ -1,22 +1,22 @@
 import { Module } from '@nestjs/common';
 import {
-  AlertConfigRepository,
-  AlertDeliveryLogRepository,
   CreateAlertConfigUseCase,
   DeleteAlertConfigUseCase,
-  DiscordAlertSenderService,
-  EncryptionService,
   GetAlertConfigUseCase,
-  getRequiredEnv,
   IAlertConfigRepository,
   IAlertDeliveryLogRepository,
-  import {,
   ListAlertConfigsUseCase,
   ListAlertDeliveryLogsUseCase,
   RetryAlertDeliveryLogUseCase,
   TestAlertConfigUseCase,
   UpdateAlertConfigUseCase,
-  } from '@hockpay/core';,
+} from '@hockpay/core';
+import {
+  AlertConfigRepository,
+  AlertDeliveryLogRepository,
+  DiscordAlertSenderService,
+  EncryptionService,
+  getRequiredEnv,
 } from '@hockpay/infrastructure';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { AlertController } from './alert.controller';

@@ -1,9 +1,4 @@
-import {
-  Transaction,
-  TransactionProps,
-  TransactionType,
-  DailyVolume,
-} from '../entities/transaction.entity';
+import { Transaction, TransactionType, DailyVolume } from '../entities/transaction.entity';
 
 export interface ITransactionFilters {
   accountId: string;

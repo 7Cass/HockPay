@@ -182,7 +182,7 @@ export interface AlertConfigProps extends CreateAlertConfigProps {
   updatedAt: Date;
 }
 
-export interface AlertConfigObject extends AlertConfigProps {}
+export type AlertConfigObject = AlertConfigProps;
 
 export interface AlertConfigPublicObject {
   id: string;

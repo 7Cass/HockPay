@@ -225,4 +225,4 @@ export interface AlertDeliveryLogProps extends CreateAlertDeliveryLogProps {
   createdAt: Date;
 }
 
-export interface AlertDeliveryLogObject extends AlertDeliveryLogProps {}
+export type AlertDeliveryLogObject = AlertDeliveryLogProps;

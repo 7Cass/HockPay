@@ -1,4 +1,4 @@
-import { WebhookLog, WebhookLogProps } from '../entities/webhook-log.entity';
+import { WebhookLog } from '../entities/webhook-log.entity';
 
 export type WebhookLogStatus = 'pending' | 'delivered' | 'failed';
 

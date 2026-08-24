@@ -1,6 +1,5 @@
 import { Receipt, ReceiptObject } from '../../domain/entities/receipt.entity';
 import { IReceiptRepository } from '../../domain/repositories/receipt.repository.interface';
-import { ReceiptNotFoundError } from '../../domain/errors/receipt-not-found.error';
 import { buildReceiptNumber } from './receipt-number';
 
 /**

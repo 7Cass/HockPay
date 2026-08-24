@@ -3,7 +3,7 @@ import {
   OutboxEventObject,
   OutboxEventStatus,
 } from '../../domain/entities/outbox-event.entity';
-import { WebhookConfig, WebhookConfigObject } from '../../domain/entities/webhook-config.entity';
+import { WebhookConfig } from '../../domain/entities/webhook-config.entity';
 import { WebhookLog } from '../../domain/entities/webhook-log.entity';
 import { IOutboxRepository } from '../../domain/repositories/outbox.repository.interface';
 import { IWebhookConfigRepository } from '../../domain/repositories/webhook-config.repository.interface';
@@ -95,7 +95,7 @@ export class ProcessWebhookUseCase {
       };
     }
 
-    const payload = event.payload as Record<string, unknown>;
+    const payload = event.payload;
     const storeId = typeof payload.storeId === 'string' ? payload.storeId : undefined;
 
     if (!storeId) {
@@ -163,7 +163,7 @@ export class ProcessWebhookUseCase {
     requestId?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const timestamp = Date.now();
-    const aggregatePayload = event.payload as Record<string, unknown>;
+    const aggregatePayload = event.payload;
     const aggregateId =
       typeof aggregatePayload.id === 'string' ? aggregatePayload.id : event.aggregateId;
     const paymentId = event.aggregateType === 'Payment' ? aggregateId : undefined;

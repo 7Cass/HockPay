@@ -68,7 +68,7 @@ describe('CreatePaymentUseCase', () => {
         ),
       } as any,
       pixQrCodeGenerator as any,
-      queue as any,
+      queue,
       feePolicy as any,
       'test@hockpay.com',
     );

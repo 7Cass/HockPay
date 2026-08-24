@@ -1,7 +1,6 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { PaymentExpiredError } from '../../domain/errors/payment-expired.error';
-import { InvalidPaymentStatusError } from '../../domain/errors/invalid-payment-status.error';
 import { PixChargeNotOpenError } from '../../domain/errors/pix-charge-not-open.error';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { assertNotLiveEnvironment } from '../services/live-environment-guard';
