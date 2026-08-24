@@ -11,6 +11,7 @@ import {
   PixChargeStatus,
 } from '@hockpay/core';
 import { Prisma, PrismaClient } from '@hockpay/database';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 type PaymentLinkLockRow = {
   id: string;
@@ -271,7 +272,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
             WHERE p.pix_charge_id = pl.pix_charge_id
               AND p.status = ${PaymentStatus.EXPIRED}::"PaymentStatus"
           )
-          OR (pl.expires_at IS NOT NULL AND pl.expires_at < ${now})
+          OR (pl.expires_at IS NOT NULL AND pl.expires_at < ${utcTimestamp(now)})
         THEN CASE
           WHEN pc.status = ${PixChargeStatus.CANCELLED}::"PixChargeStatus"
           THEN 'CANCELLED'

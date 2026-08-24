@@ -73,7 +73,12 @@ describe('AccountRepository', () => {
     const accounts = await repository.findWithPendingBalance(cutoffDate);
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(prisma.$queryRaw.mock.calls[0][1]).toBe(cutoffDate);
+    // O cutoff entra como fragmento normalizado em UTC, nao como Date cru: em
+    // sessao nao-UTC um Date cru seria convertido pelo timezone da sessao e o
+    // predicado deixaria de casar. Ver `sql/utc-timestamp`.
+    const cutoffParam = prisma.$queryRaw.mock.calls[0][1];
+    expect(cutoffParam.sql ?? cutoffParam.strings.join('')).toContain("AT TIME ZONE 'UTC'");
+    expect(cutoffParam.values).toEqual([cutoffDate]);
     expect(String(prisma.$queryRaw.mock.calls[0][0].join(' '))).toContain("p.status = 'CONFIRMED'");
     expect(accounts).toHaveLength(1);
     expect(accounts[0].storeId).toBe('store-1');

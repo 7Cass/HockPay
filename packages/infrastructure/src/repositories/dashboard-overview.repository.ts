@@ -5,6 +5,7 @@ import {
   IDashboardOverviewRepository,
 } from '@hockpay/core';
 import { Prisma, PrismaClient } from '@hockpay/database';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
@@ -125,8 +126,8 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
       FROM transactions
       WHERE account_id = ${input.accountId}
         AND type = 'PAYMENT_RECEIVED'
-        AND created_at >= ${input.startDate}
-        AND created_at <= ${input.endDate}
+        AND created_at >= ${utcTimestamp(input.startDate)}
+        AND created_at <= ${utcTimestamp(input.endDate)}
       GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
       ORDER BY TO_CHAR(created_at, 'YYYY-MM-DD') ASC
     `;

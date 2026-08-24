@@ -6,6 +6,7 @@ import {
   OutboxEventStatus,
 } from '@hockpay/core';
 import { PrismaClient, OutboxStatus, Prisma } from '@hockpay/database';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 type OutboxEventRow = {
   id: string;
@@ -164,23 +165,23 @@ export class OutboxRepository implements IOutboxRepository {
         WHERE (
           (
             "status" = ${OutboxStatus.PENDING}::"OutboxStatus"
-            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${now})
+            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${utcTimestamp(now)})
           )
           OR (
             "status" = ${OutboxStatus.FAILED}::"OutboxStatus"
             AND "retry_count" < "max_retries"
-            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${now})
+            AND ("next_retry_at" IS NULL OR "next_retry_at" <= ${utcTimestamp(now)})
           )
           OR (
             "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus"
             AND "processed_at" IS NULL
-            AND "next_retry_at" <= ${now}
+            AND "next_retry_at" <= ${utcTimestamp(now)}
           )
           OR (
             "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus"
             AND "processed_at" IS NULL
             AND "next_retry_at" IS NULL
-            AND "created_at" <= ${legacyDispatchedCutoff}
+            AND "created_at" <= ${utcTimestamp(legacyDispatchedCutoff)}
           )
         )
         ORDER BY "created_at" ASC
@@ -190,7 +191,7 @@ export class OutboxRepository implements IOutboxRepository {
       UPDATE "outbox_events" AS oe
       SET
         "status" = ${OutboxStatus.DISPATCHED}::"OutboxStatus",
-        "next_retry_at" = ${watchdogUntil},
+        "next_retry_at" = ${utcTimestamp(watchdogUntil)},
         "error_message" = NULL
       FROM claimable
       WHERE oe."id" = claimable."id"

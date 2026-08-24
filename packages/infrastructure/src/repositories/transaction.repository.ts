@@ -6,6 +6,7 @@ import {
   DailyVolume,
 } from '@hockpay/core';
 import { PrismaClient, Prisma, Transaction as PrismaTransaction } from '@hockpay/database';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 /**
  * Shared implementation of ITransactionRepository using Prisma.
@@ -181,8 +182,8 @@ export class TransactionRepository implements ITransactionRepository {
                 CAST(COUNT(*) AS INTEGER) as count
             FROM transactions
             WHERE account_id = ${accountId}
-              AND created_at >= ${startDate}
-              AND created_at <= ${endDate}
+              AND created_at >= ${utcTimestamp(startDate)}
+              AND created_at <= ${utcTimestamp(endDate)}
             GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
             ORDER BY TO_CHAR(created_at, 'YYYY-MM-DD') ASC
         `;

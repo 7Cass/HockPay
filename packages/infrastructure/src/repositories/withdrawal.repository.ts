@@ -14,6 +14,7 @@ import {
   Withdrawal as PrismaWithdrawal,
 } from '@hockpay/database';
 import { Environment as CoreEnvironment } from '@hockpay/core';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 export class WithdrawalRepository implements IWithdrawalRepository {
   private static readonly PROCESSING_STALE_MS = 5 * 60 * 1000;
@@ -180,11 +181,11 @@ export class WithdrawalRepository implements IWithdrawalRepository {
           FROM withdrawals
           WHERE (
             status = ${WithdrawalStatus.PENDING}::"WithdrawalStatus"
-            AND (next_process_at IS NULL OR next_process_at <= ${now})
+            AND (next_process_at IS NULL OR next_process_at <= ${utcTimestamp(now)})
           )
           OR (
             status = ${WithdrawalStatus.PROCESSING}::"WithdrawalStatus"
-            AND updated_at <= ${staleProcessingBefore}
+            AND updated_at <= ${utcTimestamp(staleProcessingBefore)}
           )
           ORDER BY created_at ASC, id ASC
           LIMIT ${limit}
@@ -196,7 +197,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
           processing_attempts = w.processing_attempts + 1,
           next_process_at = NULL,
           last_processing_error = NULL,
-          updated_at = ${now}
+          updated_at = ${utcTimestamp(now)}
         FROM candidates
         WHERE w.id = candidates.id
         RETURNING

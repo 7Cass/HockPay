@@ -1,5 +1,6 @@
 import { IAccountRepository, Account as DomainAccount } from '@hockpay/core';
 import { PrismaClient, Account as PrismaAccount, Prisma } from '@hockpay/database';
+import { utcTimestamp } from '../sql/utc-timestamp';
 
 type AccountRow = {
   id: string;
@@ -115,7 +116,7 @@ export class AccountRepository implements IAccountRepository {
             WHERE s.is_active = true
               AND s.is_approved = true
               AND p.status = 'CONFIRMED'
-              AND p.paid_at <= ${cutoffDate}
+              AND p.paid_at <= ${utcTimestamp(cutoffDate)}
         `;
 
     return prismaAccounts.map((account) => this.toDomainFromRaw(account));
