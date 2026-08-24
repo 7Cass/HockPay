@@ -4,20 +4,14 @@ import {
   TransactionType,
   ITransactionFilters,
   DailyVolume,
-} from "@hockpay/core";
-import {
-  PrismaClient,
-  Prisma,
-  Transaction as PrismaTransaction,
-} from "@hockpay/database";
+} from '@hockpay/core';
+import { PrismaClient, Prisma, Transaction as PrismaTransaction } from '@hockpay/database';
 
 /**
  * Shared implementation of ITransactionRepository using Prisma.
  */
 export class TransactionRepository implements ITransactionRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(transaction: DomainTransaction): Promise<void> {
     await this.prisma.transaction.create({
@@ -50,29 +44,23 @@ export class TransactionRepository implements ITransactionRepository {
     return this.toDomain(prismaTransaction);
   }
 
-  async findByAccountId(
-    accountId: string,
-    limit?: number,
-  ): Promise<DomainTransaction[]> {
+  async findByAccountId(accountId: string, limit?: number): Promise<DomainTransaction[]> {
     const prismaTransactions = await this.prisma.transaction.findMany({
       where: { accountId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: limit,
     });
 
     return prismaTransactions.map(this.toDomain);
   }
 
-  async findByReference(
-    referenceType: string,
-    referenceId: string,
-  ): Promise<DomainTransaction[]> {
+  async findByReference(referenceType: string, referenceId: string): Promise<DomainTransaction[]> {
     const prismaTransactions = await this.prisma.transaction.findMany({
       where: {
         referenceType,
         referenceId,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return prismaTransactions.map(this.toDomain);
@@ -91,7 +79,7 @@ export class TransactionRepository implements ITransactionRepository {
           lte: endDate,
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return prismaTransactions.map(this.toDomain);
@@ -100,7 +88,7 @@ export class TransactionRepository implements ITransactionRepository {
   async getLatestBalance(accountId: string): Promise<number> {
     const latestTransaction = await this.prisma.transaction.findFirst({
       where: { accountId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: { balanceAfter: true },
     });
 
@@ -155,7 +143,7 @@ export class TransactionRepository implements ITransactionRepository {
     const skip = (page - 1) * limit;
     const prismaTransactions = await this.prisma.transaction.findMany({
       where: this.buildPrismaWhere(filters),
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
     });
@@ -168,9 +156,7 @@ export class TransactionRepository implements ITransactionRepository {
     });
   }
 
-  private buildPrismaWhere(
-    filters: ITransactionFilters,
-  ): Prisma.TransactionWhereInput {
+  private buildPrismaWhere(filters: ITransactionFilters): Prisma.TransactionWhereInput {
     const where: Prisma.TransactionWhereInput = {
       accountId: filters.accountId,
     };
@@ -185,11 +171,7 @@ export class TransactionRepository implements ITransactionRepository {
     return where;
   }
 
-  async getDailyVolume(
-    accountId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<DailyVolume[]> {
+  async getDailyVolume(accountId: string, startDate: Date, endDate: Date): Promise<DailyVolume[]> {
     const result = await this.prisma.$queryRaw<
       Array<{ date: string; volume: number; count: number }>
     >`

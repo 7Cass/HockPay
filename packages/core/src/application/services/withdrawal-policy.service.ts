@@ -1,5 +1,5 @@
-import { InvalidWithdrawalAmountError } from "../../domain/errors/invalid-withdrawal-amount.error";
-import { WithdrawalLimitExceededError } from "../../domain/errors/withdrawal-limit-exceeded.error";
+import { InvalidWithdrawalAmountError } from '../../domain/errors/invalid-withdrawal-amount.error';
+import { WithdrawalLimitExceededError } from '../../domain/errors/withdrawal-limit-exceeded.error';
 
 export interface WithdrawalPolicyLimits {
   feeInCents: number;
@@ -59,9 +59,7 @@ export class WithdrawalPolicy {
 
   private validateAmount(amountInCents: number): void {
     if (!Number.isInteger(amountInCents)) {
-      throw new InvalidWithdrawalAmountError(
-        "Withdrawal amount must be an integer in cents",
-      );
+      throw new InvalidWithdrawalAmountError('Withdrawal amount must be an integer in cents');
     }
 
     if (amountInCents < this.limits.minAmountInCents) {
@@ -78,7 +76,7 @@ export class WithdrawalPolicy {
 
     if (amountInCents <= this.limits.feeInCents) {
       throw new InvalidWithdrawalAmountError(
-        "Withdrawal amount must be greater than the withdrawal fee",
+        'Withdrawal amount must be greater than the withdrawal fee',
       );
     }
   }

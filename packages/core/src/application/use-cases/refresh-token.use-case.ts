@@ -39,10 +39,9 @@ export class RefreshTokenUseCase {
   async execute(input: IRefreshTokenInput): Promise<IRefreshTokenOutput> {
     return this.unitOfWork.execute(async (repos) => {
       // 1. Find the refresh token and lock it for rotation
-      const existingToken =
-        await repos.refreshTokenRepository.findByTokenForUpdate(
-          input.refreshToken,
-        );
+      const existingToken = await repos.refreshTokenRepository.findByTokenForUpdate(
+        input.refreshToken,
+      );
 
       if (!existingToken) {
         throw new InvalidRefreshTokenError();
@@ -59,9 +58,7 @@ export class RefreshTokenUseCase {
       }
 
       // 4. Verify merchant exists and is active
-      const merchant = await repos.merchantRepository.findByIdForUpdate(
-        existingToken.merchantId,
-      );
+      const merchant = await repos.merchantRepository.findByIdForUpdate(existingToken.merchantId);
 
       if (!merchant || !merchant.canLogin()) {
         // Revoke the token since merchant is not valid

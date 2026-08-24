@@ -1,6 +1,6 @@
-import { ProductObject } from "../../domain/entities/product.entity";
-import { IProductRepository } from "../../domain/repositories/product.repository.interface";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { ProductObject } from '../../domain/entities/product.entity';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IListProductsInput {
   storeId: string;

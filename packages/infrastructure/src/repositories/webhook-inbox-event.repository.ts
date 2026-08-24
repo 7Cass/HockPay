@@ -1,10 +1,10 @@
-import { PrismaClient } from "@hockpay/database";
+import { PrismaClient } from '@hockpay/database';
 import {
   IWebhookInboxEventRepository,
   ListWebhookInboxEventsOptions,
   WebhookInboxEvent,
   WebhookInboxEventProps,
-} from "@hockpay/core";
+} from '@hockpay/core';
 
 export class WebhookInboxEventRepository implements IWebhookInboxEventRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -36,7 +36,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
     const limit = options.limit ?? 50;
     const events = await this.prisma.webhookInboxEvent.findMany({
       where: { configId },
-      orderBy: { receivedAt: "desc" },
+      orderBy: { receivedAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -70,9 +70,7 @@ export class WebhookInboxEventRepository implements IWebhookInboxEventRepository
       configId: prismaEvent.configId,
       eventType: prismaEvent.eventType,
       payload: prismaEvent.payload as Record<string, unknown>,
-      requestHeaders: prismaEvent.requestHeaders as
-        | Record<string, string>
-        | undefined,
+      requestHeaders: prismaEvent.requestHeaders as Record<string, string> | undefined,
       requestId: prismaEvent.requestId ?? undefined,
       deliveryId: prismaEvent.deliveryId ?? undefined,
       outboxEventId: prismaEvent.outboxEventId ?? undefined,

@@ -1,4 +1,4 @@
-import { PaymentObject } from "../../domain/entities/payment.entity";
+import { PaymentObject } from '../../domain/entities/payment.entity';
 
 export interface PaymentAttemptContext {
   paymentLinkId?: string;
@@ -11,9 +11,7 @@ export interface PaymentAttemptContext {
 export type PaymentAttemptView = PaymentObject & PaymentAttemptContext;
 export type PaymentWithAttemptContext = PaymentAttemptView;
 
-export function enrichPaymentAttempts(
-  payments: PaymentObject[],
-): PaymentWithAttemptContext[] {
+export function enrichPaymentAttempts(payments: PaymentObject[]): PaymentWithAttemptContext[] {
   const groupedByPixCharge = new Map<string, PaymentObject[]>();
 
   for (const payment of payments) {
@@ -31,8 +29,8 @@ export function enrichPaymentAttempts(
 
     ordered.forEach((payment, index) => {
       contextByPaymentId.set(payment.id, {
-        paymentLinkId: getStringMetadata(payment, "paymentLinkId"),
-        paymentOrigin: getStringMetadata(payment, "origin"),
+        paymentLinkId: getStringMetadata(payment, 'paymentLinkId'),
+        paymentOrigin: getStringMetadata(payment, 'origin'),
         attemptNumber: index + 1,
         attemptCount,
         isLatestAttempt: index === attemptCount - 1,
@@ -59,16 +57,12 @@ export function enrichPaymentAttempt(
 }
 
 function compareAttemptsAscending(a: PaymentObject, b: PaymentObject): number {
-  const createdDiff =
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   if (createdDiff !== 0) return createdDiff;
   return a.id.localeCompare(b.id);
 }
 
-function getStringMetadata(
-  payment: PaymentObject,
-  key: string,
-): string | undefined {
+function getStringMetadata(payment: PaymentObject, key: string): string | undefined {
   const value = payment.metadata?.[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

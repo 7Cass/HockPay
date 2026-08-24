@@ -3,8 +3,8 @@ import {
   DashboardOverviewDto,
   DashboardPerformanceProjection,
   IDashboardOverviewRepository,
-} from "@hockpay/core";
-import { Prisma, PrismaClient } from "@hockpay/database";
+} from '@hockpay/core';
+import { Prisma, PrismaClient } from '@hockpay/database';
 
 type PrismaLike = PrismaClient | Prisma.TransactionClient;
 
@@ -18,7 +18,7 @@ type DashboardRange = DateRange & {
   accountId: string;
 };
 
-const APPROVED_PAYMENT_STATUSES = ["CONFIRMED", "RELEASED"] as const;
+const APPROVED_PAYMENT_STATUSES = ['CONFIRMED', 'RELEASED'] as const;
 
 export class DashboardOverviewRepository implements IDashboardOverviewRepository {
   constructor(private readonly prisma: PrismaLike) {}
@@ -46,14 +46,12 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     };
   }
 
-  async getPerformance(
-    input: DashboardRange,
-  ): Promise<DashboardPerformanceProjection> {
+  async getPerformance(input: DashboardRange): Promise<DashboardPerformanceProjection> {
     const [paymentReceived, feeCharged] = await Promise.all([
       this.prisma.transaction.aggregate({
         where: {
           accountId: input.accountId,
-          type: "PAYMENT_RECEIVED" as any,
+          type: 'PAYMENT_RECEIVED' as any,
           createdAt: dateRange(input),
         },
         _sum: {
@@ -67,7 +65,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
       this.prisma.transaction.aggregate({
         where: {
           accountId: input.accountId,
-          type: "FEE_CHARGED" as any,
+          type: 'FEE_CHARGED' as any,
           createdAt: dateRange(input),
         },
         _sum: {
@@ -84,9 +82,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     };
   }
 
-  async getBalanceMovement(
-    input: DashboardRange,
-  ): Promise<DashboardBalanceMovementProjection> {
+  async getBalanceMovement(input: DashboardRange): Promise<DashboardBalanceMovementProjection> {
     const [
       paymentReceived,
       paymentReleased,
@@ -95,12 +91,12 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
       withdrawalReversed,
       negativeCompensated,
     ] = await Promise.all([
-      this.sumTransactionNetAmount(input, "PAYMENT_RECEIVED"),
-      this.sumTransactionNetAmount(input, "PAYMENT_RELEASED"),
-      this.sumTransactionNetAmount(input, "REFUND_DEDUCTED"),
-      this.sumTransactionNetAmount(input, "WITHDRAWAL_SENT"),
-      this.sumTransactionNetAmount(input, "WITHDRAWAL_REVERSED"),
-      this.sumTransactionNetAmount(input, "NEGATIVE_COMPENSATED"),
+      this.sumTransactionNetAmount(input, 'PAYMENT_RECEIVED'),
+      this.sumTransactionNetAmount(input, 'PAYMENT_RELEASED'),
+      this.sumTransactionNetAmount(input, 'REFUND_DEDUCTED'),
+      this.sumTransactionNetAmount(input, 'WITHDRAWAL_SENT'),
+      this.sumTransactionNetAmount(input, 'WITHDRAWAL_REVERSED'),
+      this.sumTransactionNetAmount(input, 'NEGATIVE_COMPENSATED'),
     ]);
 
     return {
@@ -114,9 +110,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     };
   }
 
-  async getChart(
-    input: DashboardRange,
-  ): Promise<DashboardOverviewDto["chart"]> {
+  async getChart(input: DashboardRange): Promise<DashboardOverviewDto['chart']> {
     const result = await this.prisma.$queryRaw<
       Array<{
         date: string;
@@ -144,58 +138,50 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     }));
   }
 
-  async getConversion(
-    input: DateRange,
-  ): Promise<DashboardOverviewDto["conversion"]> {
+  async getConversion(input: DateRange): Promise<DashboardOverviewDto['conversion']> {
     const paymentWhere = {
       storeId: input.storeId,
       createdAt: dateRange(input),
     };
 
-    const [
-      paymentAttempts,
-      approvedPayments,
-      linksCreated,
-      linksOpened,
-      linksPaid,
-    ] = await Promise.all([
-      this.prisma.payment.count({ where: paymentWhere }),
-      this.prisma.payment.count({
-        where: {
-          ...paymentWhere,
-          status: { in: [...APPROVED_PAYMENT_STATUSES] as any },
-        },
-      }),
-      this.prisma.paymentLink.count({
-        where: {
-          storeId: input.storeId,
-          createdAt: dateRange(input),
-        },
-      }),
-      this.prisma.paymentLink.count({
-        where: {
-          storeId: input.storeId,
-          OR: [
-            { openedAt: dateRange(input) },
-            {
-              createdAt: dateRange(input),
-              openedAt: { not: null },
-            },
-          ],
-        },
-      }),
-      this.prisma.paymentLink.count({
-        where: {
-          storeId: input.storeId,
-          createdAt: dateRange(input),
-          ...paidPaymentLinkWhere(input.storeId),
-        },
-      }),
-    ]);
+    const [paymentAttempts, approvedPayments, linksCreated, linksOpened, linksPaid] =
+      await Promise.all([
+        this.prisma.payment.count({ where: paymentWhere }),
+        this.prisma.payment.count({
+          where: {
+            ...paymentWhere,
+            status: { in: [...APPROVED_PAYMENT_STATUSES] as any },
+          },
+        }),
+        this.prisma.paymentLink.count({
+          where: {
+            storeId: input.storeId,
+            createdAt: dateRange(input),
+          },
+        }),
+        this.prisma.paymentLink.count({
+          where: {
+            storeId: input.storeId,
+            OR: [
+              { openedAt: dateRange(input) },
+              {
+                createdAt: dateRange(input),
+                openedAt: { not: null },
+              },
+            ],
+          },
+        }),
+        this.prisma.paymentLink.count({
+          where: {
+            storeId: input.storeId,
+            createdAt: dateRange(input),
+            ...paidPaymentLinkWhere(input.storeId),
+          },
+        }),
+      ]);
 
     return {
-      paymentApprovalRate:
-        paymentAttempts > 0 ? approvedPayments / paymentAttempts : 0,
+      paymentApprovalRate: paymentAttempts > 0 ? approvedPayments / paymentAttempts : 0,
       paymentAttempts,
       approvedPayments,
       linkConversionRate: linksCreated > 0 ? linksPaid / linksCreated : 0,
@@ -207,9 +193,9 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
 
   async getPaymentStatusBreakdown(
     input: DateRange,
-  ): Promise<DashboardOverviewDto["paymentStatusBreakdown"]> {
+  ): Promise<DashboardOverviewDto['paymentStatusBreakdown']> {
     const rows = await this.prisma.payment.groupBy({
-      by: ["status"],
+      by: ['status'],
       where: {
         storeId: input.storeId,
         createdAt: dateRange(input),
@@ -221,7 +207,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
         amount: true,
       },
       orderBy: {
-        status: "asc",
+        status: 'asc',
       },
     });
 
@@ -232,9 +218,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     }));
   }
 
-  async getAttention(
-    input: DateRange,
-  ): Promise<DashboardOverviewDto["attention"]> {
+  async getAttention(input: DateRange): Promise<DashboardOverviewDto['attention']> {
     const [
       pendingPayments,
       failedPayments,
@@ -247,14 +231,14 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
       expiredLinks,
       cancelledLinks,
     ] = await Promise.all([
-      this.countPaymentsByStatus(input, "PENDING"),
-      this.countPaymentsByStatus(input, "FAILED"),
-      this.countPaymentsByStatus(input, "EXPIRED"),
-      this.countPaymentsByStatus(input, "REFUNDED"),
+      this.countPaymentsByStatus(input, 'PENDING'),
+      this.countPaymentsByStatus(input, 'FAILED'),
+      this.countPaymentsByStatus(input, 'EXPIRED'),
+      this.countPaymentsByStatus(input, 'REFUNDED'),
       this.countFailedWebhookDeliveries(input),
       this.countPendingWebhookDeliveries(input),
-      this.countAlertDeliveries(input, "FAILED"),
-      this.countAlertDeliveries(input, "PENDING"),
+      this.countAlertDeliveries(input, 'FAILED'),
+      this.countAlertDeliveries(input, 'PENDING'),
       this.countExpiredLinks(input),
       this.prisma.paymentLink.count({
         where: {
@@ -280,28 +264,24 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
 
   async getIntegrationsHealth(
     input: DateRange,
-  ): Promise<Omit<DashboardOverviewDto["integrationsHealth"], "environment">> {
-    const [
-      activeWebhooks,
-      activeAlerts,
-      failedWebhookDeliveries,
-      failedAlertDeliveries,
-    ] = await Promise.all([
-      this.prisma.webhookConfig.count({
-        where: {
-          storeId: input.storeId,
-          isActive: true,
-        },
-      }),
-      this.prisma.alertConfig.count({
-        where: {
-          storeId: input.storeId,
-          isActive: true,
-        },
-      }),
-      this.countFailedWebhookDeliveries(input),
-      this.countAlertDeliveries(input, "FAILED"),
-    ]);
+  ): Promise<Omit<DashboardOverviewDto['integrationsHealth'], 'environment'>> {
+    const [activeWebhooks, activeAlerts, failedWebhookDeliveries, failedAlertDeliveries] =
+      await Promise.all([
+        this.prisma.webhookConfig.count({
+          where: {
+            storeId: input.storeId,
+            isActive: true,
+          },
+        }),
+        this.prisma.alertConfig.count({
+          where: {
+            storeId: input.storeId,
+            isActive: true,
+          },
+        }),
+        this.countFailedWebhookDeliveries(input),
+        this.countAlertDeliveries(input, 'FAILED'),
+      ]);
 
     return {
       activeWebhooks,
@@ -314,7 +294,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
   async getRecentPayments(
     storeId: string,
     limit: number,
-  ): Promise<DashboardOverviewDto["recentPayments"]> {
+  ): Promise<DashboardOverviewDto['recentPayments']> {
     const payments = await this.prisma.payment.findMany({
       where: { storeId },
       select: {
@@ -335,7 +315,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: limit,
     });
 
@@ -345,10 +325,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
       netAmount: payment.netAmount,
       currency: payment.currency,
       status: String(payment.status),
-      origin: resolvePaymentOrigin(
-        payment.metadata,
-        Boolean(payment.checkoutSession),
-      ),
+      origin: resolvePaymentOrigin(payment.metadata, Boolean(payment.checkoutSession)),
       description: payment.description ?? undefined,
       payerName: payment.payerName ?? undefined,
       payerEmail: payment.payerEmail ?? undefined,
@@ -357,10 +334,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     }));
   }
 
-  private countPaymentsByStatus(
-    input: DateRange,
-    status: string,
-  ): Promise<number> {
+  private countPaymentsByStatus(input: DateRange, status: string): Promise<number> {
     return this.prisma.payment.count({
       where: {
         storeId: input.storeId,
@@ -370,10 +344,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
     });
   }
 
-  private async sumTransactionNetAmount(
-    input: DashboardRange,
-    type: string,
-  ): Promise<number> {
+  private async sumTransactionNetAmount(input: DashboardRange, type: string): Promise<number> {
     const result = await this.prisma.transaction.aggregate({
       where: {
         accountId: input.accountId,
@@ -394,7 +365,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
         config: {
           storeId: input.storeId,
         },
-        status: { in: ["FAILED_RETRYABLE", "FAILED_FINAL"] as any },
+        status: { in: ['FAILED_RETRYABLE', 'FAILED_FINAL'] as any },
         createdAt: dateRange(input),
       },
     });
@@ -406,16 +377,13 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
         config: {
           storeId: input.storeId,
         },
-        status: "PENDING" as any,
+        status: 'PENDING' as any,
         createdAt: dateRange(input),
       },
     });
   }
 
-  private countAlertDeliveries(
-    input: DateRange,
-    status: string,
-  ): Promise<number> {
+  private countAlertDeliveries(input: DateRange, status: string): Promise<number> {
     return this.prisma.alertDeliveryLog.count({
       where: {
         alertConfig: {
@@ -429,8 +397,7 @@ export class DashboardOverviewRepository implements IDashboardOverviewRepository
 
   private countExpiredLinks(input: DateRange): Promise<number> {
     const now = new Date();
-    const upperBound =
-      input.endDate.getTime() < now.getTime() ? input.endDate : now;
+    const upperBound = input.endDate.getTime() < now.getTime() ? input.endDate : now;
 
     if (upperBound.getTime() < input.startDate.getTime()) {
       return Promise.resolve(0);
@@ -462,7 +429,7 @@ function paidPaymentLinkWhere(storeId: string) {
     OR: [
       {
         pixCharge: {
-          status: "PAID" as any,
+          status: 'PAID' as any,
         },
       },
       {
@@ -482,33 +449,30 @@ function paidPaymentLinkWhere(storeId: string) {
 function resolvePaymentOrigin(
   metadata: Prisma.JsonValue,
   hasCheckoutSession: boolean,
-): "api" | "checkout" | "payment_link" | "unknown" {
-  const origin = metadataValue(metadata, "origin");
-  const paymentLinkId = metadataValue(metadata, "paymentLinkId");
+): 'api' | 'checkout' | 'payment_link' | 'unknown' {
+  const origin = metadataValue(metadata, 'origin');
+  const paymentLinkId = metadataValue(metadata, 'paymentLinkId');
 
-  if (origin === "payment_link" || paymentLinkId) {
-    return "payment_link";
+  if (origin === 'payment_link' || paymentLinkId) {
+    return 'payment_link';
   }
 
-  if (hasCheckoutSession || origin === "checkout") {
-    return "checkout";
+  if (hasCheckoutSession || origin === 'checkout') {
+    return 'checkout';
   }
 
-  if (!origin || origin === "api") {
-    return "api";
+  if (!origin || origin === 'api') {
+    return 'api';
   }
 
-  return "unknown";
+  return 'unknown';
 }
 
-function metadataValue(
-  metadata: Prisma.JsonValue,
-  key: string,
-): string | undefined {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+function metadataValue(metadata: Prisma.JsonValue, key: string): string | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
     return undefined;
   }
 
   const value = metadata[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

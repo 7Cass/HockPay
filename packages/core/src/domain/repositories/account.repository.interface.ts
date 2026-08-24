@@ -1,4 +1,4 @@
-import { Account, AccountProps } from "../entities/account.entity";
+import { Account, AccountProps } from '../entities/account.entity';
 
 /**
  * Repository interface for Account aggregate.

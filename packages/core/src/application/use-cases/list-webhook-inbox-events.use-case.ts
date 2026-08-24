@@ -3,7 +3,7 @@ import {
   IWebhookInboxEventRepository,
   WebhookConfigNotFoundError,
   WebhookInboxEvent,
-} from "../..";
+} from '../..';
 
 export interface IListWebhookInboxEventsInput {
   storeId: string;
@@ -25,9 +25,7 @@ export class ListWebhookInboxEventsUseCase {
     private readonly webhookConfigRepository: IWebhookConfigRepository,
   ) {}
 
-  async execute(
-    input: IListWebhookInboxEventsInput,
-  ): Promise<IListWebhookInboxEventsOutput> {
+  async execute(input: IListWebhookInboxEventsInput): Promise<IListWebhookInboxEventsOutput> {
     const config = await this.webhookConfigRepository.findById(input.configId);
     if (!config || config.storeId !== input.storeId) {
       throw new WebhookConfigNotFoundError(input.configId);

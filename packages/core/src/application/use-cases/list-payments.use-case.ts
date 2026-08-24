@@ -65,19 +65,14 @@ export class ListPaymentsUseCase {
       pixChargeIds,
       input.storeId,
     );
-    const relatedAttemptObjects = relatedAttempts.map((payment) =>
-      payment.toObject(),
-    );
+    const relatedAttemptObjects = relatedAttempts.map((payment) => payment.toObject());
     const enrichedAttempts = enrichPaymentAttempts([
       ...relatedAttemptObjects,
       ...payments.filter(
-        (payment) =>
-          !relatedAttemptObjects.some((attempt) => attempt.id === payment.id),
+        (payment) => !relatedAttemptObjects.some((attempt) => attempt.id === payment.id),
       ),
     ]);
-    const enrichedById = new Map(
-      enrichedAttempts.map((payment) => [payment.id, payment]),
-    );
+    const enrichedById = new Map(enrichedAttempts.map((payment) => [payment.id, payment]));
 
     return {
       payments: payments.map((payment) => enrichedById.get(payment.id) ?? payment),

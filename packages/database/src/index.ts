@@ -9,7 +9,9 @@ import { PrismaClient, Prisma } from './generated/prisma';
  * @param options - Opções do PrismaClient
  * @returns Instância do PrismaClient
  */
-export function createPrismaClient(options?: ConstructorParameters<typeof PrismaClient>[0]): PrismaClient {
+export function createPrismaClient(
+  options?: ConstructorParameters<typeof PrismaClient>[0],
+): PrismaClient {
   return new PrismaClient(options);
 }
 

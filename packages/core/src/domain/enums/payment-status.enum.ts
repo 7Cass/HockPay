@@ -51,11 +51,7 @@ export enum PaymentStatus {
  * Used to validate business rules for state changes.
  */
 export const VALID_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
-  [PaymentStatus.PENDING]: [
-    PaymentStatus.CONFIRMED,
-    PaymentStatus.EXPIRED,
-    PaymentStatus.FAILED,
-  ],
+  [PaymentStatus.PENDING]: [PaymentStatus.CONFIRMED, PaymentStatus.EXPIRED, PaymentStatus.FAILED],
   [PaymentStatus.CONFIRMED]: [PaymentStatus.RELEASED, PaymentStatus.REFUNDED],
   [PaymentStatus.RELEASED]: [PaymentStatus.REFUNDED],
   [PaymentStatus.EXPIRED]: [],

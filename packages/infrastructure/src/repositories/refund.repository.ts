@@ -1,10 +1,8 @@
-import { IRefundRepository, Refund, RefundStatus } from "@hockpay/core";
-import { PrismaClient, Prisma } from "@hockpay/database";
+import { IRefundRepository, Refund, RefundStatus } from '@hockpay/core';
+import { PrismaClient, Prisma } from '@hockpay/database';
 
 export class RefundRepository implements IRefundRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async findById(id: string): Promise<Refund | null> {
     const data = await this.prisma.refund.findUnique({
@@ -18,7 +16,7 @@ export class RefundRepository implements IRefundRepository {
   async findByPaymentId(paymentId: string): Promise<Refund[]> {
     const data = await this.prisma.refund.findMany({
       where: { paymentId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return data.map((item) => this.toDomain(item));

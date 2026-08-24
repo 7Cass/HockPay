@@ -1,14 +1,9 @@
-import { PaymentStatus } from "../enums/payment-status.enum";
-import { Environment } from "../value-objects/environment.vo";
-import { PixChargeObject, PixChargeStatus } from "./pix-charge.entity";
-import { PaymentObject } from "./payment.entity";
+import { PaymentStatus } from '../enums/payment-status.enum';
+import { Environment } from '../value-objects/environment.vo';
+import { PixChargeObject, PixChargeStatus } from './pix-charge.entity';
+import { PaymentObject } from './payment.entity';
 
-export type PaymentLinkStatus =
-  | "ACTIVE"
-  | "OPENED"
-  | "PAID"
-  | "EXPIRED"
-  | "CANCELLED";
+export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
 
 export interface PaymentLinkProps {
   id?: string;
@@ -76,7 +71,7 @@ export class PaymentLink {
   private props: Required<
     Omit<
       PaymentLinkProps,
-      "expiresAt" | "openedAt" | "cancelledAt" | "title" | "description" | "internalReference"
+      'expiresAt' | 'openedAt' | 'cancelledAt' | 'title' | 'description' | 'internalReference'
     >
   > & {
     title: string | null;
@@ -95,7 +90,7 @@ export class PaymentLink {
       pixChargeId: props.pixChargeId,
       publicToken: props.publicToken,
       amount: props.amount,
-      currency: props.currency ?? "BRL",
+      currency: props.currency ?? 'BRL',
       environment: props.environment ?? Environment.TEST,
       title: props.title ?? null,
       description: props.description ?? null,
@@ -116,21 +111,51 @@ export class PaymentLink {
     return new PaymentLink(props);
   }
 
-  get id(): string { return this.props.id; }
-  get storeId(): string { return this.props.storeId; }
-  get pixChargeId(): string { return this.props.pixChargeId; }
-  get publicToken(): string { return this.props.publicToken; }
-  get amount(): number { return this.props.amount; }
-  get currency(): string { return this.props.currency; }
-  get environment(): Environment { return this.props.environment; }
-  get title(): string | null { return this.props.title; }
-  get description(): string | null { return this.props.description; }
-  get internalReference(): string | null { return this.props.internalReference; }
-  get expiresAt(): Date | null { return this.props.expiresAt; }
-  get openedAt(): Date | null { return this.props.openedAt; }
-  get cancelledAt(): Date | null { return this.props.cancelledAt; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get storeId(): string {
+    return this.props.storeId;
+  }
+  get pixChargeId(): string {
+    return this.props.pixChargeId;
+  }
+  get publicToken(): string {
+    return this.props.publicToken;
+  }
+  get amount(): number {
+    return this.props.amount;
+  }
+  get currency(): string {
+    return this.props.currency;
+  }
+  get environment(): Environment {
+    return this.props.environment;
+  }
+  get title(): string | null {
+    return this.props.title;
+  }
+  get description(): string | null {
+    return this.props.description;
+  }
+  get internalReference(): string | null {
+    return this.props.internalReference;
+  }
+  get expiresAt(): Date | null {
+    return this.props.expiresAt;
+  }
+  get openedAt(): Date | null {
+    return this.props.openedAt;
+  }
+  get cancelledAt(): Date | null {
+    return this.props.cancelledAt;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 
   isCancelled(): boolean {
     return Boolean(this.props.cancelledAt);
@@ -165,13 +190,13 @@ export function computePaymentLinkStatus(input: {
   pixChargeStatus?: PixChargeStatus | null;
   now?: Date;
 }): PaymentLinkStatus {
-  if (input.link.cancelledAt) return "CANCELLED";
+  if (input.link.cancelledAt) return 'CANCELLED';
   if (
     input.pixChargeStatus === PixChargeStatus.PAID ||
     input.paymentStatus === PaymentStatus.CONFIRMED ||
     input.paymentStatus === PaymentStatus.RELEASED
   ) {
-    return "PAID";
+    return 'PAID';
   }
   if (
     input.pixChargeStatus === PixChargeStatus.EXPIRED ||
@@ -179,12 +204,10 @@ export function computePaymentLinkStatus(input: {
     input.paymentStatus === PaymentStatus.EXPIRED ||
     (input.link.expiresAt && (input.now ?? new Date()) > input.link.expiresAt)
   ) {
-    return input.pixChargeStatus === PixChargeStatus.CANCELLED
-      ? "CANCELLED"
-      : "EXPIRED";
+    return input.pixChargeStatus === PixChargeStatus.CANCELLED ? 'CANCELLED' : 'EXPIRED';
   }
   if (input.link.openedAt || input.paymentStatus === PaymentStatus.PENDING) {
-    return "OPENED";
+    return 'OPENED';
   }
-  return "ACTIVE";
+  return 'ACTIVE';
 }

@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { Store } from "@hockpay/core";
-import { StoreRepository } from "./store.repository";
+import { describe, expect, it, vi } from 'vitest';
+import { Store } from '@hockpay/core';
+import { StoreRepository } from './store.repository';
 
-describe("StoreRepository", () => {
-  it("creates an account with an explicit id when saving a store", async () => {
+describe('StoreRepository', () => {
+  it('creates an account with an explicit id when saving a store', async () => {
     const prisma = {
       store: {
         create: vi.fn().mockResolvedValue(undefined),
@@ -13,9 +13,9 @@ describe("StoreRepository", () => {
       },
     };
     const store = Store.create({
-      merchantId: "merchant-1",
-      name: "Media Kit",
-      slug: "media-kit",
+      merchantId: 'merchant-1',
+      name: 'Media Kit',
+      slug: 'media-kit',
       isApproved: true,
     });
 
@@ -30,13 +30,13 @@ describe("StoreRepository", () => {
         available: 0,
         pending: 0,
         blocked: 0,
-        currency: "BRL",
+        currency: 'BRL',
         updatedAt: expect.any(Date),
       },
     });
   });
 
-  it("uses a transaction when the provided prisma client supports it", async () => {
+  it('uses a transaction when the provided prisma client supports it', async () => {
     const tx = {
       store: {
         create: vi.fn().mockResolvedValue(undefined),
@@ -46,14 +46,12 @@ describe("StoreRepository", () => {
       },
     };
     const prisma = {
-      $transaction: vi.fn(async (work: (client: typeof tx) => Promise<void>) =>
-        work(tx),
-      ),
+      $transaction: vi.fn(async (work: (client: typeof tx) => Promise<void>) => work(tx)),
     };
     const store = Store.create({
-      merchantId: "merchant-1",
-      name: "Media Kit",
-      slug: "media-kit",
+      merchantId: 'merchant-1',
+      name: 'Media Kit',
+      slug: 'media-kit',
       isApproved: true,
     });
 
@@ -70,7 +68,7 @@ describe("StoreRepository", () => {
         available: 0,
         pending: 0,
         blocked: 0,
-        currency: "BRL",
+        currency: 'BRL',
         updatedAt: expect.any(Date),
       },
     });

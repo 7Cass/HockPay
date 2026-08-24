@@ -1,15 +1,8 @@
-import {
-  Environment,
-  IReceiptRepository,
-  Receipt,
-  ReceiptStatus,
-} from "@hockpay/core";
-import { PrismaClient, Prisma } from "@hockpay/database";
+import { Environment, IReceiptRepository, Receipt, ReceiptStatus } from '@hockpay/core';
+import { PrismaClient, Prisma } from '@hockpay/database';
 
 export class ReceiptRepository implements IReceiptRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async findById(id: string): Promise<Receipt | null> {
     const data = await this.prisma.receipt.findUnique({
@@ -58,12 +51,8 @@ export class ReceiptRepository implements IReceiptRepository {
     };
     const where: Prisma.ReceiptWhereInput = {
       storeId,
-      ...(filters?.receiptNumber
-        ? { receiptNumber: filters.receiptNumber }
-        : {}),
-      ...(Object.keys(paymentFilter).length > 0
-        ? { payment: paymentFilter }
-        : {}),
+      ...(filters?.receiptNumber ? { receiptNumber: filters.receiptNumber } : {}),
+      ...(Object.keys(paymentFilter).length > 0 ? { payment: paymentFilter } : {}),
     };
 
     const [items, total] = await Promise.all([
@@ -72,7 +61,7 @@ export class ReceiptRepository implements IReceiptRepository {
         include: { payment: { select: { customerId: true } } },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.receipt.count({ where }),
     ]);

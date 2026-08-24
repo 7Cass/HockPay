@@ -1,4 +1,7 @@
-import { AlertDeliveryLog, AlertDeliveryStatus } from '../../domain/entities/alert-delivery-log.entity';
+import {
+  AlertDeliveryLog,
+  AlertDeliveryStatus,
+} from '../../domain/entities/alert-delivery-log.entity';
 import { IAlertConfigRepository } from '../../domain/repositories/alert-config.repository.interface';
 import { IAlertDeliveryLogRepository } from '../../domain/repositories/alert-delivery-log.repository.interface';
 import { AlertConfigNotFoundError } from '../../domain/errors/alert-config-not-found.error';

@@ -1,20 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest';
 import {
   calculateDelta,
   GetDashboardOverviewUseCase,
   IDashboardOverviewRepository,
-} from "./get-dashboard-overview.use-case";
-import { Environment } from "../../domain/value-objects/environment.vo";
+} from './get-dashboard-overview.use-case';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
-describe("GetDashboardOverviewUseCase", () => {
-  it("builds the overview contract with equivalent previous period and deltas", async () => {
+describe('GetDashboardOverviewUseCase', () => {
+  it('builds the overview contract with equivalent previous period and deltas', async () => {
     const repository: IDashboardOverviewRepository = {
       getAccountBalanceByStoreId: vi.fn().mockResolvedValue({
-        accountId: "account-1",
+        accountId: 'account-1',
         available: 100_00,
         pending: 20_00,
         blocked: 5_00,
-        currency: "BRL",
+        currency: 'BRL',
       }),
       getBalanceMovement: vi
         .fn()
@@ -51,12 +51,10 @@ describe("GetDashboardOverviewUseCase", () => {
       }),
       getChart: vi
         .fn()
-        .mockResolvedValue([
-          { date: "2026-05-10", netVolume: 9_000, salesCount: 1 },
-        ]),
+        .mockResolvedValue([{ date: '2026-05-10', netVolume: 9_000, salesCount: 1 }]),
       getPaymentStatusBreakdown: vi
         .fn()
-        .mockResolvedValue([{ status: "CONFIRMED", count: 2, amount: 20_000 }]),
+        .mockResolvedValue([{ status: 'CONFIRMED', count: 2, amount: 20_000 }]),
       getAttention: vi.fn().mockResolvedValue({
         pendingPayments: 1,
         failedPayments: 2,
@@ -77,33 +75,33 @@ describe("GetDashboardOverviewUseCase", () => {
       }),
       getRecentPayments: vi.fn().mockResolvedValue([
         {
-          id: "payment-1",
+          id: 'payment-1',
           amount: 10_000,
           netAmount: 9_000,
-          currency: "BRL",
-          status: "CONFIRMED",
-          origin: "api",
-          createdAt: "2026-05-14T12:00:00.000Z",
+          currency: 'BRL',
+          status: 'CONFIRMED',
+          origin: 'api',
+          createdAt: '2026-05-14T12:00:00.000Z',
         },
       ]),
     };
 
     const useCase = new GetDashboardOverviewUseCase(repository);
     const result = await useCase.execute({
-      storeId: "store-1",
-      startDate: new Date("2026-05-10T00:00:00.000Z"),
-      endDate: new Date("2026-05-14T23:59:59.999Z"),
+      storeId: 'store-1',
+      startDate: new Date('2026-05-10T00:00:00.000Z'),
+      endDate: new Date('2026-05-14T23:59:59.999Z'),
       environment: Environment.LIVE,
     });
 
     expect(result.period).toEqual({
-      startDate: "2026-05-10T00:00:00.000Z",
-      endDate: "2026-05-14T23:59:59.999Z",
-      previousStartDate: "2026-05-05T00:00:00.000Z",
-      previousEndDate: "2026-05-09T23:59:59.999Z",
+      startDate: '2026-05-10T00:00:00.000Z',
+      endDate: '2026-05-14T23:59:59.999Z',
+      previousStartDate: '2026-05-05T00:00:00.000Z',
+      previousEndDate: '2026-05-09T23:59:59.999Z',
     });
     expect(result.balance).toMatchObject({
-      currency: "BRL",
+      currency: 'BRL',
       availableDelta: 1,
       pendingDelta: 1,
     });
@@ -118,16 +116,16 @@ describe("GetDashboardOverviewUseCase", () => {
       salesCountDelta: 0,
       averageTicketDelta: 1,
     });
-    expect(result.integrationsHealth.environment).toBe("LIVE");
+    expect(result.integrationsHealth.environment).toBe('LIVE');
     expect(repository.getPerformance).toHaveBeenNthCalledWith(2, {
-      storeId: "store-1",
-      accountId: "account-1",
-      startDate: new Date("2026-05-05T00:00:00.000Z"),
-      endDate: new Date("2026-05-09T23:59:59.999Z"),
+      storeId: 'store-1',
+      accountId: 'account-1',
+      startDate: new Date('2026-05-05T00:00:00.000Z'),
+      endDate: new Date('2026-05-09T23:59:59.999Z'),
     });
   });
 
-  it("uses the required zero-base delta semantics", () => {
+  it('uses the required zero-base delta semantics', () => {
     expect(calculateDelta(0, 0)).toBe(0);
     expect(calculateDelta(10, 0)).toBeNull();
     expect(calculateDelta(15, 10)).toBe(0.5);

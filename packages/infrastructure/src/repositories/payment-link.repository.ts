@@ -9,8 +9,8 @@ import {
   PaymentObject,
   PaymentStatus,
   PixChargeStatus,
-} from "@hockpay/core";
-import { Prisma, PrismaClient } from "@hockpay/database";
+} from '@hockpay/core';
+import { Prisma, PrismaClient } from '@hockpay/database';
 
 type PaymentLinkLockRow = {
   id: string;
@@ -64,10 +64,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<PaymentLink | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<PaymentLink | null> {
     const rows = await this.prisma.$queryRaw<PaymentLinkLockRow[]>`
       SELECT id
       FROM payment_links
@@ -105,9 +102,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     return row ? this.toListItem(row) : null;
   }
 
-  async findPublicByTokenForUpdate(
-    token: string,
-  ): Promise<PaymentLinkListItem | null> {
+  async findPublicByTokenForUpdate(token: string): Promise<PaymentLinkListItem | null> {
     const rows = await this.prisma.$queryRaw<PaymentLinkLockRow[]>`
       SELECT id
       FROM payment_links
@@ -145,9 +140,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
             where: { id: { in: pageIds } },
             include: this.includePayment(),
           });
-    const byId = new Map<string, any>(
-      hydrated.map((row: any) => [row.id, row]),
-    );
+    const byId = new Map<string, any>(hydrated.map((row: any) => [row.id, row]));
     const items = pageIds.flatMap((id) => {
       const row = byId.get(id);
       return row ? [this.toListItem(row)] : [];
@@ -297,9 +290,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     `;
   }
 
-  private statsFromAggregate(
-    row: PaymentLinkStatsRow | undefined,
-  ): PaymentLinkStats {
+  private statsFromAggregate(row: PaymentLinkStatsRow | undefined): PaymentLinkStats {
     const total = Number(row?.total ?? 0);
     const paid = Number(row?.paid ?? 0);
     return {
@@ -320,8 +311,8 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       pixCharge: {
         include: {
           payments: {
-            include: { items: { orderBy: { createdAt: "asc" as const } } },
-            orderBy: { createdAt: "desc" as const },
+            include: { items: { orderBy: { createdAt: 'asc' as const } } },
+            orderBy: { createdAt: 'desc' as const },
           },
         },
       },
@@ -373,14 +364,10 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const payments = row.pixCharge?.payments ?? [];
     const payment =
       payments.find((p: any) =>
-        [PaymentStatus.CONFIRMED, PaymentStatus.RELEASED].includes(
-          p.status as PaymentStatus,
-        ),
+        [PaymentStatus.CONFIRMED, PaymentStatus.RELEASED].includes(p.status as PaymentStatus),
       ) ?? payments[0];
     const paymentStatus = (payment?.status as PaymentStatus | undefined) ?? null;
-    const failedPayments = payments.filter(
-      (p: any) => p.status === PaymentStatus.FAILED,
-    );
+    const failedPayments = payments.filter((p: any) => p.status === PaymentStatus.FAILED);
     const lastFailedPayment = failedPayments[0];
     const pixCharge = {
       id: row.pixCharge.id,
@@ -400,8 +387,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     const attempts = this.enrichPaymentAttempts(
       [...payments]
         .sort((a: any, b: any) => {
-          const createdDiff =
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           if (createdDiff !== 0) return createdDiff;
           return a.id.localeCompare(b.id);
         })
@@ -422,15 +408,13 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       failedPaymentCount: failedPayments.length,
       lastPaymentId: payment?.id ?? null,
       lastPaymentStatus: paymentStatus,
-      lastPayment: payment
-        ? this.toPaymentObject(payment, pixCharge)
-        : null,
+      lastPayment: payment ? this.toPaymentObject(payment, pixCharge) : null,
       lastFailedAt: lastFailedPayment?.updatedAt ?? null,
       attempts,
     };
   }
 
-  private toPaymentObject(payment: any, pixCharge: PaymentLinkListItem["pixCharge"]) {
+  private toPaymentObject(payment: any, pixCharge: PaymentLinkListItem['pixCharge']) {
     return {
       id: payment.id,
       storeId: payment.storeId,
@@ -485,8 +469,8 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
 
     return payments.map((payment, index) => ({
       ...payment,
-      paymentLinkId: this.getStringMetadata(payment, "paymentLinkId"),
-      paymentOrigin: this.getStringMetadata(payment, "origin"),
+      paymentLinkId: this.getStringMetadata(payment, 'paymentLinkId'),
+      paymentOrigin: this.getStringMetadata(payment, 'origin'),
       attemptNumber: index + 1,
       attemptCount,
       isLatestAttempt: index === attemptCount - 1,
@@ -495,21 +479,21 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
 
   private getStringMetadata(payment: PaymentObject, key: string): string | undefined {
     const value = payment.metadata?.[key];
-    return typeof value === "string" && value.length > 0 ? value : undefined;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private buildStats(items: PaymentLinkListItem[]): PaymentLinkStats {
-    const paidItems = items.filter((item) => item.status === "PAID");
+    const paidItems = items.filter((item) => item.status === 'PAID');
     const opened = items.filter((item) => item.openedAt).length;
     const total = items.length;
     return {
       total,
-      active: items.filter((item) => item.status === "ACTIVE").length,
+      active: items.filter((item) => item.status === 'ACTIVE').length,
       opened,
-      pending: items.filter((item) => item.status === "OPENED").length,
+      pending: items.filter((item) => item.status === 'OPENED').length,
       paid: paidItems.length,
-      expired: items.filter((item) => item.status === "EXPIRED").length,
-      cancelled: items.filter((item) => item.status === "CANCELLED").length,
+      expired: items.filter((item) => item.status === 'EXPIRED').length,
+      cancelled: items.filter((item) => item.status === 'CANCELLED').length,
       conversionRate: total > 0 ? paidItems.length / total : 0,
       paidAmount: paidItems.reduce((sum, item) => sum + item.amount, 0),
     };

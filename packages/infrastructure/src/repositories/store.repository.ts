@@ -1,15 +1,11 @@
-import { Account, IStoreRepository, Store as DomainStore } from "@hockpay/core";
-import { PrismaClient, Prisma, Store as PrismaStore } from "@hockpay/database";
+import { Account, IStoreRepository, Store as DomainStore } from '@hockpay/core';
+import { PrismaClient, Prisma, Store as PrismaStore } from '@hockpay/database';
 
 export class StoreRepository implements IStoreRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(store: DomainStore): Promise<void> {
-    const write = async (
-      client: PrismaClient | Prisma.TransactionClient,
-    ): Promise<void> => {
+    const write = async (client: PrismaClient | Prisma.TransactionClient): Promise<void> => {
       const account = Account.create({ storeId: store.id });
 
       await client.store.create({
@@ -59,10 +55,7 @@ export class StoreRepository implements IStoreRepository {
     return this.toDomain(data);
   }
 
-  async findByIdAndMerchantId(
-    id: string,
-    merchantId: string,
-  ): Promise<DomainStore | null> {
+  async findByIdAndMerchantId(id: string, merchantId: string): Promise<DomainStore | null> {
     const data = await this.prisma.store.findFirst({
       where: { id, merchantId },
     });
@@ -140,8 +133,6 @@ export class StoreRepository implements IStoreRepository {
   private supportsTransaction(
     prisma: PrismaClient | Prisma.TransactionClient,
   ): prisma is PrismaClient {
-    return (
-      "$transaction" in prisma && typeof prisma.$transaction === "function"
-    );
+    return '$transaction' in prisma && typeof prisma.$transaction === 'function';
   }
 }

@@ -1,9 +1,5 @@
-import { PrismaClient } from "@hockpay/database";
-import {
-  IWebhookConfigRepository,
-  WebhookConfig,
-  WebhookConfigProps,
-} from "@hockpay/core";
+import { PrismaClient } from '@hockpay/database';
+import { IWebhookConfigRepository, WebhookConfig, WebhookConfigProps } from '@hockpay/core';
 
 /**
  * Infrastructure implementation of IWebhookConfigRepository.
@@ -55,16 +51,13 @@ export class WebhookConfigRepository implements IWebhookConfigRepository {
   async findByStoreId(storeId: string): Promise<WebhookConfig[]> {
     const configs = await this.prisma.webhookConfig.findMany({
       where: { storeId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return configs.map((c) => this.toDomain(c));
   }
 
-  async findActiveForEvent(
-    storeId: string,
-    eventType: string,
-  ): Promise<WebhookConfig[]> {
+  async findActiveForEvent(storeId: string, eventType: string): Promise<WebhookConfig[]> {
     const configs = await this.prisma.webhookConfig.findMany({
       where: {
         storeId,

@@ -1,7 +1,4 @@
-import {
-  OutboxEvent,
-  OutboxEventStatus,
-} from "../entities/outbox-event.entity";
+import { OutboxEvent, OutboxEventStatus } from '../entities/outbox-event.entity';
 
 export interface ClaimDispatchableEventsParams {
   limit: number;
@@ -47,17 +44,12 @@ export interface IOutboxReader {
    * @param params.now - Optional reference time, useful for deterministic tests
    * @param params.watchdogUntil - Time after which a claimed event can be reclaimed
    */
-  claimDispatchableEvents(
-    params: ClaimDispatchableEventsParams,
-  ): Promise<OutboxEvent[]>;
+  claimDispatchableEvents(params: ClaimDispatchableEventsParams): Promise<OutboxEvent[]>;
 
   /**
    * Find events by aggregate type and ID.
    */
-  findByAggregate(
-    aggregateType: string,
-    aggregateId: string,
-  ): Promise<OutboxEvent[]>;
+  findByAggregate(aggregateType: string, aggregateId: string): Promise<OutboxEvent[]>;
 
   /**
    * Count events by status.

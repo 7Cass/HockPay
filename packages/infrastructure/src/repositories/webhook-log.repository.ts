@@ -1,4 +1,4 @@
-import { PrismaClient } from "@hockpay/database";
+import { PrismaClient } from '@hockpay/database';
 import {
   IWebhookLogRepository,
   FindWebhookLogsByConfigIdOptions,
@@ -6,17 +6,15 @@ import {
   WebhookLog,
   WebhookDeliveryStatus,
   WebhookLogProps,
-} from "@hockpay/core";
-import { Prisma } from "@hockpay/database";
+} from '@hockpay/core';
+import { Prisma } from '@hockpay/database';
 
 /**
  * Infrastructure implementation of IWebhookLogRepository.
  * Shared between API and Worker.
  */
 export class WebhookLogRepository implements IWebhookLogRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(log: WebhookLog): Promise<void> {
     await this.prisma.webhookLog.create({
@@ -82,7 +80,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
   async findByOutboxEventId(outboxEventId: string): Promise<WebhookLog[]> {
     const logs = await this.prisma.webhookLog.findMany({
       where: { outboxEventId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
 
     return logs.map((l) => this.toDomain(l));
@@ -96,7 +94,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     const limit = options.limit ?? 50;
     const logs = await this.prisma.webhookLog.findMany({
       where: this.buildConfigStatusWhere(configId, options.status),
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -107,7 +105,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
   async findByPaymentId(paymentId: string): Promise<WebhookLog[]> {
     const logs = await this.prisma.webhookLog.findMany({
       where: { paymentId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return logs.map((l) => this.toDomain(l));
@@ -119,7 +117,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
         status: WebhookDeliveryStatus.FAILED_RETRYABLE as any,
         nextRetryAt: { lte: new Date() },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       take: limit,
     });
 
@@ -139,10 +137,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
     return result.count;
   }
 
-  async countByConfigId(
-    configId: string,
-    status?: WebhookLogStatus,
-  ): Promise<number> {
+  async countByConfigId(configId: string, status?: WebhookLogStatus): Promise<number> {
     return this.prisma.webhookLog.count({
       where: this.buildConfigStatusWhere(configId, status),
     });
@@ -178,9 +173,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       where: {
         outboxEventId,
         status: { not: WebhookDeliveryStatus.DELIVERED as any },
-        ...(configIds && configIds.length > 0
-          ? { configId: { in: configIds } }
-          : {}),
+        ...(configIds && configIds.length > 0 ? { configId: { in: configIds } } : {}),
       },
       data: {
         status: WebhookDeliveryStatus.PENDING as any,
@@ -198,22 +191,19 @@ export class WebhookLogRepository implements IWebhookLogRepository {
 
   private buildConfigStatusWhere(configId: string, status?: WebhookLogStatus) {
     switch (status) {
-      case "delivered":
+      case 'delivered':
         return {
           configId,
           status: WebhookDeliveryStatus.DELIVERED,
         };
-      case "failed":
+      case 'failed':
         return {
           configId,
           status: {
-            in: [
-              WebhookDeliveryStatus.FAILED_RETRYABLE,
-              WebhookDeliveryStatus.FAILED_FINAL,
-            ],
+            in: [WebhookDeliveryStatus.FAILED_RETRYABLE, WebhookDeliveryStatus.FAILED_FINAL],
           },
         };
-      case "pending":
+      case 'pending':
         return {
           configId,
           status: WebhookDeliveryStatus.PENDING,
@@ -298,9 +288,7 @@ export class WebhookLogRepository implements IWebhookLogRepository {
       requestId: prismaLog.requestId ?? undefined,
       eventType: prismaLog.eventType,
       payload: prismaLog.payload as Record<string, unknown>,
-      requestHeaders: prismaLog.requestHeaders as
-        | Record<string, string>
-        | undefined,
+      requestHeaders: prismaLog.requestHeaders as Record<string, string> | undefined,
       responseStatus: prismaLog.responseStatus ?? undefined,
       responseBody: prismaLog.responseBody ?? undefined,
       status: prismaLog.status as WebhookDeliveryStatus | undefined,

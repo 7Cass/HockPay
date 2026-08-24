@@ -2,10 +2,10 @@
  * OutboxEvent Status Enum
  */
 export enum OutboxEventStatus {
-  PENDING = "PENDING",
-  DISPATCHED = "DISPATCHED",
-  PROCESSED = "PROCESSED",
-  FAILED = "FAILED",
+  PENDING = 'PENDING',
+  DISPATCHED = 'DISPATCHED',
+  PROCESSED = 'PROCESSED',
+  FAILED = 'FAILED',
 }
 
 /**
@@ -49,9 +49,7 @@ export class OutboxEvent {
    * Factory method to create a new OutboxEvent.
    */
   static create(props: CreateOutboxEventProps): OutboxEvent {
-    const payload = props.storeId
-      ? { ...props.payload, storeId: props.storeId }
-      : props.payload;
+    const payload = props.storeId ? { ...props.payload, storeId: props.storeId } : props.payload;
 
     return new OutboxEvent({
       id: crypto.randomUUID(),

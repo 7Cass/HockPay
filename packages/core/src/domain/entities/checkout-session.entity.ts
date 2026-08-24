@@ -67,8 +67,7 @@ export class CheckoutSession {
       currency: props.currency ?? 'BRL',
       environment: props.environment ?? Environment.TEST,
       description: props.description ?? null,
-      customerCollectionMode:
-        props.customerCollectionMode ?? CustomerCollectionMode.IDENTIFIED,
+      customerCollectionMode: props.customerCollectionMode ?? CustomerCollectionMode.IDENTIFIED,
       prefillCustomer: props.prefillCustomer ?? null,
       paymentId: props.paymentId ?? null,
       status: props.status ?? 'OPEN',
@@ -86,24 +85,60 @@ export class CheckoutSession {
   }
 
   // Getters
-  get id(): string { return this.props.id; }
-  get storeId(): string { return this.props.storeId; }
-  get amount(): number { return this.props.amount; }
-  get currency(): string { return this.props.currency; }
-  get environment(): Environment { return this.props.environment; }
-  get description(): string | null { return this.props.description; }
-  get customerCollectionMode(): CustomerCollectionMode { return this.props.customerCollectionMode; }
-  get prefillCustomer(): CheckoutSessionPrefillCustomer | null { return this.props.prefillCustomer; }
-  get paymentId(): string | null { return this.props.paymentId; }
-  get checkoutToken(): string { return this.props.checkoutToken; }
-  get status(): SessionStatus { return this.props.status; }
-  get expiresAt(): Date { return this.props.expiresAt; }
-  get successUrl(): string | null { return this.props.successUrl; }
-  get cancelUrl(): string | null { return this.props.cancelUrl; }
-  get metadata(): Record<string, unknown> | null { return this.props.metadata; }
-  get items(): LineItemObject[] { return this.props.items; }
-  get createdAt(): Date { return this.props.createdAt; }
-  get updatedAt(): Date { return this.props.updatedAt; }
+  get id(): string {
+    return this.props.id;
+  }
+  get storeId(): string {
+    return this.props.storeId;
+  }
+  get amount(): number {
+    return this.props.amount;
+  }
+  get currency(): string {
+    return this.props.currency;
+  }
+  get environment(): Environment {
+    return this.props.environment;
+  }
+  get description(): string | null {
+    return this.props.description;
+  }
+  get customerCollectionMode(): CustomerCollectionMode {
+    return this.props.customerCollectionMode;
+  }
+  get prefillCustomer(): CheckoutSessionPrefillCustomer | null {
+    return this.props.prefillCustomer;
+  }
+  get paymentId(): string | null {
+    return this.props.paymentId;
+  }
+  get checkoutToken(): string {
+    return this.props.checkoutToken;
+  }
+  get status(): SessionStatus {
+    return this.props.status;
+  }
+  get expiresAt(): Date {
+    return this.props.expiresAt;
+  }
+  get successUrl(): string | null {
+    return this.props.successUrl;
+  }
+  get cancelUrl(): string | null {
+    return this.props.cancelUrl;
+  }
+  get metadata(): Record<string, unknown> | null {
+    return this.props.metadata;
+  }
+  get items(): LineItemObject[] {
+    return this.props.items;
+  }
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.props.updatedAt;
+  }
 
   // Actions
   public fulfill(paymentId: string): void {

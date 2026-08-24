@@ -1,6 +1,6 @@
-import { StoreObject } from "../../domain/entities/store.entity";
-import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
-import { IStoreRepository } from "../../domain/repositories/store.repository.interface";
+import { StoreObject } from '../../domain/entities/store.entity';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
+import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
 
 export interface IUpdateStoreProfileInput {
   storeId: string;
@@ -16,13 +16,8 @@ export interface IUpdateStoreProfileOutput {
 export class UpdateStoreProfileUseCase {
   constructor(private readonly storeRepository: IStoreRepository) {}
 
-  async execute(
-    input: IUpdateStoreProfileInput,
-  ): Promise<IUpdateStoreProfileOutput> {
-    const store = await this.storeRepository.findByIdAndMerchantId(
-      input.storeId,
-      input.merchantId,
-    );
+  async execute(input: IUpdateStoreProfileInput): Promise<IUpdateStoreProfileOutput> {
+    const store = await this.storeRepository.findByIdAndMerchantId(input.storeId, input.merchantId);
     if (!store) {
       throw new StoreNotFoundError(input.storeId);
     }

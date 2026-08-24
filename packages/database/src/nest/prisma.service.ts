@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, PrismaClient } from '../index';
 
@@ -38,9 +33,7 @@ export class PrismaService
             `Query: ${event.query} - Params: ${event.params} - Duration: ${event.duration}ms`,
           );
         } else if (event.duration >= 200) {
-          this.logger.warn(
-            `Slow query detected (${event.duration}ms): ${event.query}`,
-          );
+          this.logger.warn(`Slow query detected (${event.duration}ms): ${event.query}`);
         }
       });
     } catch (error) {

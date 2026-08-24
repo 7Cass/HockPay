@@ -1,22 +1,22 @@
-import { IUnitOfWork, ITransactedRepositories } from "@hockpay/core";
-import { PrismaClient } from "@hockpay/database";
-import { PaymentRepository } from "./payment.repository";
-import { PixChargeRepository } from "./pix-charge.repository";
-import { AccountRepository } from "./account.repository";
-import { TransactionRepository } from "./transaction.repository";
-import { BankAccountRepository } from "./bank-account.repository";
-import { OutboxRepository } from "./outbox.repository";
-import { ReceiptRepository } from "./receipt.repository";
-import { StoreRepository } from "./store.repository";
-import { RefundRepository } from "./refund.repository";
-import { CustomerRepository } from "./customer.repository";
-import { WithdrawalRepository } from "./withdrawal.repository";
-import { IdempotencyKeyRepository } from "./idempotency-key.repository";
-import { MerchantRepository } from "./merchant.repository";
-import { RefreshTokenRepository } from "./refresh-token.repository";
-import { CheckoutSessionRepository } from "./checkout-session.repository";
-import { PaymentLinkRepository } from "./payment-link.repository";
-import { ProductRepository } from "./product.repository";
+import { IUnitOfWork, ITransactedRepositories } from '@hockpay/core';
+import { PrismaClient } from '@hockpay/database';
+import { PaymentRepository } from './payment.repository';
+import { PixChargeRepository } from './pix-charge.repository';
+import { AccountRepository } from './account.repository';
+import { TransactionRepository } from './transaction.repository';
+import { BankAccountRepository } from './bank-account.repository';
+import { OutboxRepository } from './outbox.repository';
+import { ReceiptRepository } from './receipt.repository';
+import { StoreRepository } from './store.repository';
+import { RefundRepository } from './refund.repository';
+import { CustomerRepository } from './customer.repository';
+import { WithdrawalRepository } from './withdrawal.repository';
+import { IdempotencyKeyRepository } from './idempotency-key.repository';
+import { MerchantRepository } from './merchant.repository';
+import { RefreshTokenRepository } from './refresh-token.repository';
+import { CheckoutSessionRepository } from './checkout-session.repository';
+import { PaymentLinkRepository } from './payment-link.repository';
+import { ProductRepository } from './product.repository';
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -27,13 +27,10 @@ import { ProductRepository } from "./product.repository";
 export class UnitOfWork implements IUnitOfWork {
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly checkoutBaseUrl =
-      process.env.CHECKOUT_BASE_URL ?? "http://localhost:3333",
+    private readonly checkoutBaseUrl = process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
   ) {}
 
-  async execute<T>(
-    work: (repos: ITransactedRepositories) => Promise<T>,
-  ): Promise<T> {
+  async execute<T>(work: (repos: ITransactedRepositories) => Promise<T>): Promise<T> {
     // We increase timeout slightly for payment confirmations involving many tables.
     return this.prisma.$transaction(
       async (tx) => {
@@ -51,10 +48,7 @@ export class UnitOfWork implements IUnitOfWork {
           merchantRepository: new MerchantRepository(tx),
           refreshTokenRepository: new RefreshTokenRepository(tx),
           checkoutSessionRepository: new CheckoutSessionRepository(tx),
-          paymentLinkRepository: new PaymentLinkRepository(
-            tx,
-            this.checkoutBaseUrl,
-          ),
+          paymentLinkRepository: new PaymentLinkRepository(tx, this.checkoutBaseUrl),
           customerRepository: new CustomerRepository(tx),
           idempotencyKeyRepository: new IdempotencyKeyRepository(tx),
           productRepository: new ProductRepository(tx),

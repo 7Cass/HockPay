@@ -1,14 +1,11 @@
-import {
-  WithdrawalObject,
-  WithdrawalStatus,
-} from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { IAccountRepository } from "../../domain/repositories/account.repository.interface";
+import { WithdrawalObject, WithdrawalStatus } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import {
   IWithdrawalRepository,
   ListWithdrawalsOptions,
   WithdrawalSummary,
-} from "../../domain/repositories/withdrawal.repository.interface";
+} from '../../domain/repositories/withdrawal.repository.interface';
 
 export interface IListWithdrawalsInput {
   storeId: string;
@@ -54,9 +51,7 @@ export class ListWithdrawalsUseCase {
     const result = await this.withdrawalRepository.list(options);
 
     return {
-      withdrawals: result.withdrawals.map((withdrawal) =>
-        withdrawal.toObject(),
-      ),
+      withdrawals: result.withdrawals.map((withdrawal) => withdrawal.toObject()),
       total: result.total,
       page: result.page,
       limit: result.limit,

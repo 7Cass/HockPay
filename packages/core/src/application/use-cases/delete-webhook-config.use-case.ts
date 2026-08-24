@@ -1,7 +1,4 @@
-import {
-  IWebhookConfigRepository,
-  WebhookConfigNotFoundError,
-} from '../..';
+import { IWebhookConfigRepository, WebhookConfigNotFoundError } from '../..';
 
 /**
  * Input for deleting a webhook config.
@@ -15,9 +12,7 @@ export interface IDeleteWebhookConfigInput {
  * Use case for deleting a webhook configuration.
  */
 export class DeleteWebhookConfigUseCase {
-  constructor(
-    private readonly webhookConfigRepository: IWebhookConfigRepository,
-  ) {}
+  constructor(private readonly webhookConfigRepository: IWebhookConfigRepository) {}
 
   async execute(input: IDeleteWebhookConfigInput): Promise<void> {
     const webhookConfig = await this.webhookConfigRepository.findById(input.configId);

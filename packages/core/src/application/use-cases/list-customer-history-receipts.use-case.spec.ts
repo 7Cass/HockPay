@@ -46,16 +46,11 @@ describe('ListCustomerHistoryReceiptsUseCase', () => {
       environment: Environment.TEST,
     });
 
-    expect(receiptRepository.findByStoreId).toHaveBeenCalledWith(
-      'store-1',
-      1,
-      20,
-      {
-        receiptNumber: undefined,
-        customerId: customer.id,
-        environment: Environment.TEST,
-      },
-    );
+    expect(receiptRepository.findByStoreId).toHaveBeenCalledWith('store-1', 1, 20, {
+      receiptNumber: undefined,
+      customerId: customer.id,
+      environment: Environment.TEST,
+    });
     expect(result.receipts).toHaveLength(1);
   });
 });

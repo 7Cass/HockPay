@@ -1,16 +1,13 @@
-import { AccountObject } from "../../domain/entities/account.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { WithdrawalObject } from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { InvalidWithdrawalStatusError } from "../../domain/errors/invalid-withdrawal-status.error";
-import { WithdrawalNotFoundError } from "../../domain/errors/withdrawal-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { assertNotLiveEnvironment } from "../services/live-environment-guard";
-import { sanitizeWithdrawal } from "./create-withdrawal.use-case";
+import { AccountObject } from '../../domain/entities/account.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { WithdrawalObject } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { InvalidWithdrawalStatusError } from '../../domain/errors/invalid-withdrawal-status.error';
+import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { sanitizeWithdrawal } from './create-withdrawal.use-case';
 
 export interface IFailWithdrawalInput {
   withdrawalId: string;
@@ -30,14 +27,10 @@ export class FailWithdrawalUseCase {
 
   async execute(input: IFailWithdrawalInput): Promise<IFailWithdrawalOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const withdrawal = await repos.withdrawalRepository.findByIdForUpdate(
-        input.withdrawalId,
-      );
+      const withdrawal = await repos.withdrawalRepository.findByIdForUpdate(input.withdrawalId);
       if (!withdrawal) throw new WithdrawalNotFoundError(input.withdrawalId);
 
-      const account = await repos.accountRepository.findByIdForUpdate(
-        withdrawal.accountId,
-      );
+      const account = await repos.accountRepository.findByIdForUpdate(withdrawal.accountId);
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);
       if (input.storeId && account.storeId !== input.storeId) {
         throw new WithdrawalNotFoundError(input.withdrawalId);
@@ -48,9 +41,7 @@ export class FailWithdrawalUseCase {
       }
 
       if (withdrawal.isTerminal()) {
-        throw new InvalidWithdrawalStatusError(
-          `Withdrawal ${withdrawal.id} is already terminal`,
-        );
+        throw new InvalidWithdrawalStatusError(`Withdrawal ${withdrawal.id} is already terminal`);
       }
 
       withdrawal.fail(input.reason);
@@ -66,16 +57,16 @@ export class FailWithdrawalUseCase {
           fee: 0,
           netAmount: withdrawal.amount,
           balanceAfter: account.available,
-          referenceType: "WITHDRAWAL",
+          referenceType: 'WITHDRAWAL',
           referenceId: withdrawal.id,
           description: `Withdrawal reversed ${withdrawal.id}`,
         }),
       );
       await repos.outboxWriter.save(
         OutboxEvent.create({
-          aggregateType: "Withdrawal",
+          aggregateType: 'Withdrawal',
           aggregateId: withdrawal.id,
-          eventType: "withdrawal.failed",
+          eventType: 'withdrawal.failed',
           requestId: input.requestId,
           storeId: account.storeId,
           payload: sanitizeWithdrawal(account.storeId, withdrawal.toObject()),

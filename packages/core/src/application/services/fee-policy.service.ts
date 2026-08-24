@@ -1,4 +1,4 @@
-import { InvalidPaymentAmountError } from "../../domain/errors/invalid-payment-amount.error";
+import { InvalidPaymentAmountError } from '../../domain/errors/invalid-payment-amount.error';
 
 export interface FeeCalculationInput {
   amountInCents: number;
@@ -19,7 +19,7 @@ export class FeePolicy {
 
     if (!Number.isInteger(amountInCents) || amountInCents <= 0) {
       throw new InvalidPaymentAmountError(
-        "Amount must be a positive integer in cents",
+        'Amount must be a positive integer in cents',
         amountInCents,
       );
     }
@@ -30,7 +30,7 @@ export class FeePolicy {
 
     if (feeInCents >= amountInCents) {
       throw new InvalidPaymentAmountError(
-        "Fee must be less than the payment amount",
+        'Fee must be less than the payment amount',
         amountInCents,
       );
     }

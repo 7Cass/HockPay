@@ -25,7 +25,9 @@ class InMemoryAlertConfigRepository implements IAlertConfigRepository {
   }
 
   async findActiveForEvent(storeId: string, eventType: string): Promise<AlertConfig[]> {
-    return this.configs.filter((config) => config.storeId === storeId && config.shouldReceiveEvent(eventType));
+    return this.configs.filter(
+      (config) => config.storeId === storeId && config.shouldReceiveEvent(eventType),
+    );
   }
 
   async delete(id: string): Promise<void> {

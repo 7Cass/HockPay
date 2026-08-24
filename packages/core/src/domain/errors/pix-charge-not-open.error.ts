@@ -1,4 +1,4 @@
-import { DomainError } from "./domain-error";
+import { DomainError } from './domain-error';
 
 export class PixChargeNotOpenError extends DomainError {
   constructor(pixChargeId: string, status?: string) {
@@ -6,7 +6,7 @@ export class PixChargeNotOpenError extends DomainError {
       status
         ? `Pix charge ${pixChargeId} is not open: ${status}`
         : `Pix charge ${pixChargeId} is not open`,
-      "PIX_CHARGE_NOT_OPEN",
+      'PIX_CHARGE_NOT_OPEN',
     );
   }
 }

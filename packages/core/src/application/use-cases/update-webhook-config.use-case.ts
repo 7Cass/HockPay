@@ -7,7 +7,7 @@ import {
   assertWebhookUrlAllowed,
   getInvalidEvents,
   UpdateWebhookConfigProps,
-} from "../..";
+} from '../..';
 
 /**
  * Input for updating a webhook config.
@@ -36,12 +36,8 @@ export class UpdateWebhookConfigUseCase {
     private readonly webhookUrlPolicyOptions: WebhookUrlPolicyOptions = {},
   ) {}
 
-  async execute(
-    input: IUpdateWebhookConfigInput,
-  ): Promise<IUpdateWebhookConfigOutput> {
-    const webhookConfig = await this.webhookConfigRepository.findById(
-      input.configId,
-    );
+  async execute(input: IUpdateWebhookConfigInput): Promise<IUpdateWebhookConfigOutput> {
+    const webhookConfig = await this.webhookConfigRepository.findById(input.configId);
 
     if (!webhookConfig) {
       throw new WebhookConfigNotFoundError(input.configId);

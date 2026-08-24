@@ -5,6 +5,9 @@ export interface IAlertDeliveryLogRepository {
   update(log: AlertDeliveryLog): Promise<void>;
   findById(id: string): Promise<AlertDeliveryLog | null>;
   findByAlertConfigId(alertConfigId: string, limit?: number): Promise<AlertDeliveryLog[]>;
-  findByAlertConfigIdAndOutboxEventId(alertConfigId: string, outboxEventId: string): Promise<AlertDeliveryLog | null>;
+  findByAlertConfigIdAndOutboxEventId(
+    alertConfigId: string,
+    outboxEventId: string,
+  ): Promise<AlertDeliveryLog | null>;
   countByAlertConfigId(alertConfigId: string, status?: AlertDeliveryStatus): Promise<number>;
 }

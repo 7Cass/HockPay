@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { OutboxEvent, OutboxEventStatus } from "@hockpay/core";
-import { OutboxRepository } from "./outbox.repository";
+import { describe, expect, it, vi } from 'vitest';
+import { OutboxEvent, OutboxEventStatus } from '@hockpay/core';
+import { OutboxRepository } from './outbox.repository';
 
 function renderSql(query: unknown): string {
   const sqlQuery = query as {
@@ -9,16 +9,16 @@ function renderSql(query: unknown): string {
     strings?: readonly string[];
   };
 
-  return sqlQuery.sql ?? sqlQuery.text ?? sqlQuery.strings?.join("?") ?? String(query);
+  return sqlQuery.sql ?? sqlQuery.text ?? sqlQuery.strings?.join('?') ?? String(query);
 }
 
-describe("OutboxRepository", () => {
-  it("queries pending, retryable failed, and stale dispatched events", async () => {
-    const now = new Date("2026-01-01T01:00:00.000Z");
+describe('OutboxRepository', () => {
+  it('queries pending, retryable failed, and stale dispatched events', async () => {
+    const now = new Date('2026-01-01T01:00:00.000Z');
     const prisma = {
       outboxEvent: {
         fields: {
-          maxRetries: "maxRetries-field",
+          maxRetries: 'maxRetries-field',
         },
         findMany: vi.fn().mockResolvedValue([]),
       },
@@ -31,35 +31,35 @@ describe("OutboxRepository", () => {
       where: {
         OR: [
           {
-            status: "PENDING",
+            status: 'PENDING',
             OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
           },
           {
-            status: "FAILED",
-            retryCount: { lt: "maxRetries-field" },
+            status: 'FAILED',
+            retryCount: { lt: 'maxRetries-field' },
             OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
           },
           {
-            status: "DISPATCHED",
+            status: 'DISPATCHED',
             processedAt: null,
             nextRetryAt: { lte: now },
           },
           {
-            status: "DISPATCHED",
+            status: 'DISPATCHED',
             processedAt: null,
             nextRetryAt: null,
-            createdAt: { lte: new Date("2026-01-01T00:15:00.000Z") },
+            createdAt: { lte: new Date('2026-01-01T00:15:00.000Z') },
           },
         ],
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       take: 50,
     });
   });
 
-  it("claims dispatchable events atomically with row locks", async () => {
-    const now = new Date("2026-01-01T01:00:00.000Z");
-    const watchdogUntil = new Date("2026-01-01T01:45:00.000Z");
+  it('claims dispatchable events atomically with row locks', async () => {
+    const now = new Date('2026-01-01T01:00:00.000Z');
+    const watchdogUntil = new Date('2026-01-01T01:45:00.000Z');
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValue([]),
     };
@@ -87,20 +87,20 @@ describe("OutboxRepository", () => {
     );
   });
 
-  it("maps claimed rows to outbox events", async () => {
-    const now = new Date("2026-01-01T01:00:00.000Z");
-    const watchdogUntil = new Date("2026-01-01T01:45:00.000Z");
-    const createdAt = new Date("2026-01-01T00:30:00.000Z");
+  it('maps claimed rows to outbox events', async () => {
+    const now = new Date('2026-01-01T01:00:00.000Z');
+    const watchdogUntil = new Date('2026-01-01T01:45:00.000Z');
+    const createdAt = new Date('2026-01-01T00:30:00.000Z');
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValue([
         {
-          id: "outbox-1",
-          aggregateType: "Payment",
-          aggregateId: "payment-1",
-          eventType: "payment.created",
+          id: 'outbox-1',
+          aggregateType: 'Payment',
+          aggregateId: 'payment-1',
+          eventType: 'payment.created',
           requestId: null,
-          payload: { id: "payment-1", storeId: "store-1" },
-          status: "DISPATCHED",
+          payload: { id: 'payment-1', storeId: 'store-1' },
+          status: 'DISPATCHED',
           processedAt: null,
           retryCount: 1,
           maxRetries: 5,
@@ -119,12 +119,12 @@ describe("OutboxRepository", () => {
     });
 
     expect(event).toBeInstanceOf(OutboxEvent);
-    expect(event.id).toBe("outbox-1");
-    expect(event.aggregateType).toBe("Payment");
-    expect(event.aggregateId).toBe("payment-1");
-    expect(event.eventType).toBe("payment.created");
+    expect(event.id).toBe('outbox-1');
+    expect(event.aggregateType).toBe('Payment');
+    expect(event.aggregateId).toBe('payment-1');
+    expect(event.eventType).toBe('payment.created');
     expect(event.requestId).toBeUndefined();
-    expect(event.payload).toEqual({ id: "payment-1", storeId: "store-1" });
+    expect(event.payload).toEqual({ id: 'payment-1', storeId: 'store-1' });
     expect(event.status).toBe(OutboxEventStatus.DISPATCHED);
     expect(event.retryCount).toBe(1);
     expect(event.maxRetries).toBe(5);
@@ -133,7 +133,7 @@ describe("OutboxRepository", () => {
     expect(event.createdAt).toEqual(createdAt);
   });
 
-  it("does not query when claiming with a non-positive limit", async () => {
+  it('does not query when claiming with a non-positive limit', async () => {
     const prisma = {
       $queryRaw: vi.fn(),
     };
@@ -141,20 +141,20 @@ describe("OutboxRepository", () => {
 
     const events = await repository.claimDispatchableEvents({
       limit: 0,
-      watchdogUntil: new Date("2026-01-01T01:45:00.000Z"),
+      watchdogUntil: new Date('2026-01-01T01:45:00.000Z'),
     });
 
     expect(events).toEqual([]);
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
-  it("persists request ids with outbox events", async () => {
+  it('persists request ids with outbox events', async () => {
     const event = OutboxEvent.create({
-      aggregateType: "Payment",
-      aggregateId: "payment-1",
-      eventType: "payment.created",
-      requestId: "req-1",
-      payload: { id: "payment-1" },
+      aggregateType: 'Payment',
+      aggregateId: 'payment-1',
+      eventType: 'payment.created',
+      requestId: 'req-1',
+      payload: { id: 'payment-1' },
     });
     const prisma = {
       outboxEvent: {
@@ -168,27 +168,27 @@ describe("OutboxRepository", () => {
     expect(prisma.outboxEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         id: event.id,
-        requestId: "req-1",
+        requestId: 'req-1',
       }),
     });
   });
 
-  it("resets an outbox event before DLQ requeue", async () => {
+  it('resets an outbox event before DLQ requeue', async () => {
     const prisma = {
       outboxEvent: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     const repository = new OutboxRepository(prisma as any);
-    const watchdogUntil = new Date("2026-01-01T00:45:00.000Z");
+    const watchdogUntil = new Date('2026-01-01T00:45:00.000Z');
 
-    const count = await repository.resetForRequeue("outbox-1", watchdogUntil);
+    const count = await repository.resetForRequeue('outbox-1', watchdogUntil);
 
     expect(count).toBe(1);
     expect(prisma.outboxEvent.updateMany).toHaveBeenCalledWith({
-      where: { id: "outbox-1" },
+      where: { id: 'outbox-1' },
       data: {
-        status: "DISPATCHED",
+        status: 'DISPATCHED',
         processedAt: null,
         retryCount: 0,
         nextRetryAt: watchdogUntil,

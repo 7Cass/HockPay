@@ -1,16 +1,13 @@
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { Payment, PaymentObject } from "../../domain/entities/payment.entity";
-import { PixCharge } from "../../domain/entities/pix-charge.entity";
-import { Receipt } from "../../domain/entities/receipt.entity";
-import {
-  Transaction,
-  TransactionType,
-} from "../../domain/entities/transaction.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
-import { ITransactedRepositories } from "../../domain/repositories/unit-of-work.interface";
-import { enrichPaymentAttempt } from "../services/payment-attempt-context.service";
-import { buildReceiptNumber } from "./receipt-number";
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Payment, PaymentObject } from '../../domain/entities/payment.entity';
+import { PixCharge } from '../../domain/entities/pix-charge.entity';
+import { Receipt } from '../../domain/entities/receipt.entity';
+import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
+import { ITransactedRepositories } from '../../domain/repositories/unit-of-work.interface';
+import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
+import { buildReceiptNumber } from './receipt-number';
 
 export interface SettleConfirmedPaymentInput {
   payment: Payment;
@@ -23,9 +20,7 @@ export async function settleConfirmedPayment(
   repos: ITransactedRepositories,
   input: SettleConfirmedPaymentInput,
 ): Promise<PaymentObject> {
-  const account = await repos.accountRepository.findByStoreIdForUpdate(
-    input.storeId,
-  );
+  const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
   if (!account) {
     throw new AccountNotFoundError(input.storeId);
   }
@@ -47,9 +42,9 @@ export async function settleConfirmedPayment(
     fee: input.payment.fee,
     netAmount: input.payment.netAmount,
     balanceAfter: account.totalBalance,
-    referenceType: "PAYMENT",
+    referenceType: 'PAYMENT',
     referenceId: input.payment.id,
-    description: `Pagamento recebido (#${input.payment.id.split("-")[0]})`,
+    description: `Pagamento recebido (#${input.payment.id.split('-')[0]})`,
   });
   await repos.transactionRepository.save(transaction);
 
@@ -59,11 +54,8 @@ export async function settleConfirmedPayment(
   }
 
   const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-  const sequence = await repos.receiptRepository.incrementCounter(
-    input.storeId,
-    dateStr,
-  );
+  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+  const sequence = await repos.receiptRepository.incrementCounter(input.storeId, dateStr);
   const receiptNumber = buildReceiptNumber(input.storeId, dateStr, sequence);
 
   const customer = input.payment.customerId
@@ -110,9 +102,9 @@ export async function settleConfirmedPayment(
   );
 
   const outboxEvent = OutboxEvent.create({
-    aggregateType: "Payment",
+    aggregateType: 'Payment',
     aggregateId: input.payment.id,
-    eventType: "payment.confirmed",
+    eventType: 'payment.confirmed',
     requestId: input.requestId,
     storeId: input.payment.storeId,
     payload: paymentPayload as unknown as Record<string, unknown>,

@@ -3,7 +3,7 @@
  *
  * Defines the contract for refund persistence operations.
  */
-import { Refund } from "../entities/refund.entity";
+import { Refund } from '../entities/refund.entity';
 
 export interface IRefundRepository {
   findById(id: string): Promise<Refund | null>;

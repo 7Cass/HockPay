@@ -1,8 +1,4 @@
-import {
-  IWebhookConfigRepository,
-  WebhookConfig,
-  WebhookConfigNotFoundError,
-} from '../..';
+import { IWebhookConfigRepository, WebhookConfig, WebhookConfigNotFoundError } from '../..';
 
 /**
  * Input for getting a webhook config.
@@ -24,9 +20,7 @@ export interface IGetWebhookConfigOutput {
  * Validates that the config belongs to the store.
  */
 export class GetWebhookConfigUseCase {
-  constructor(
-    private readonly webhookConfigRepository: IWebhookConfigRepository,
-  ) {}
+  constructor(private readonly webhookConfigRepository: IWebhookConfigRepository) {}
 
   async execute(input: IGetWebhookConfigInput): Promise<IGetWebhookConfigOutput> {
     const webhookConfig = await this.webhookConfigRepository.findById(input.configId);

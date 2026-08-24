@@ -1,8 +1,8 @@
-import { WithdrawalObject } from "../../domain/entities/withdrawal.entity";
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { InvalidWithdrawalStatusError } from "../../domain/errors/invalid-withdrawal-status.error";
-import { WithdrawalNotFoundError } from "../../domain/errors/withdrawal-not-found.error";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
+import { WithdrawalObject } from '../../domain/entities/withdrawal.entity';
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { InvalidWithdrawalStatusError } from '../../domain/errors/invalid-withdrawal-status.error';
+import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 export interface IRecordWithdrawalProcessingErrorInput {
   withdrawalId: string;
@@ -21,14 +21,10 @@ export class RecordWithdrawalProcessingErrorUseCase {
     input: IRecordWithdrawalProcessingErrorInput,
   ): Promise<IRecordWithdrawalProcessingErrorOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const withdrawal = await repos.withdrawalRepository.findById(
-        input.withdrawalId,
-      );
+      const withdrawal = await repos.withdrawalRepository.findById(input.withdrawalId);
       if (!withdrawal) throw new WithdrawalNotFoundError(input.withdrawalId);
 
-      const account = await repos.accountRepository.findById(
-        withdrawal.accountId,
-      );
+      const account = await repos.accountRepository.findById(withdrawal.accountId);
       if (!account) throw new AccountNotFoundError(withdrawal.accountId);
 
       if (!withdrawal.isProcessing()) {

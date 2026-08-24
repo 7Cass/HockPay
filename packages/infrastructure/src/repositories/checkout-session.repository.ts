@@ -5,7 +5,7 @@ import {
 import { PrismaClient, Prisma, CheckoutSession } from '@hockpay/database';
 
 export class CheckoutSessionRepository implements ICheckoutSessionRepository {
-  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) { }
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(session: DomainCheckoutSession): Promise<void> {
     await this.prisma.checkoutSession.upsert({
@@ -76,10 +76,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
     return this.toDomain(prismaSession);
   }
 
-  async claimOpenByToken(
-    token: string,
-    now: Date,
-  ): Promise<DomainCheckoutSession | null> {
+  async claimOpenByToken(token: string, now: Date): Promise<DomainCheckoutSession | null> {
     const result = await this.prisma.checkoutSession.updateMany({
       where: {
         checkoutToken: token,
@@ -99,10 +96,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
     return this.findByToken(token);
   }
 
-  async expireOpenByToken(
-    token: string,
-    now: Date,
-  ): Promise<DomainCheckoutSession | null> {
+  async expireOpenByToken(token: string, now: Date): Promise<DomainCheckoutSession | null> {
     const result = await this.prisma.checkoutSession.updateMany({
       where: {
         checkoutToken: token,
@@ -145,8 +139,7 @@ export class CheckoutSessionRepository implements ICheckoutSessionRepository {
       environment: (prismaSession as any).environment,
       description: prismaSession.description ?? undefined,
       customerCollectionMode: prismaSession.customerCollectionMode as any,
-      prefillCustomer:
-        (prismaSession.prefillCustomer as Record<string, unknown>) ?? undefined,
+      prefillCustomer: (prismaSession.prefillCustomer as Record<string, unknown>) ?? undefined,
       paymentId: prismaSession.paymentId ?? undefined,
       checkoutToken: prismaSession.checkoutToken,
       status: prismaSession.status as any,

@@ -6,15 +6,15 @@ import { IMerchantRepository } from '../../domain/repositories/merchant.reposito
  * Contains only non-sensitive merchant data.
  */
 export interface IGetCurrentMerchantOutput {
-    id: string;
-    name: string;
-    email: string;
-    document: string;
-    formattedDocument: string;
-    documentType: 'CPF' | 'CNPJ';
-    isActive: boolean;
-    createdAt: Date;
-    currentStoreId?: string;
+  id: string;
+  name: string;
+  email: string;
+  document: string;
+  formattedDocument: string;
+  documentType: 'CPF' | 'CNPJ';
+  isActive: boolean;
+  createdAt: Date;
+  currentStoreId?: string;
 }
 
 /**
@@ -25,25 +25,25 @@ export interface IGetCurrentMerchantOutput {
  * rather than from a URL parameter.
  */
 export class GetCurrentMerchantUseCase {
-    constructor(private readonly merchantRepository: IMerchantRepository) { }
+  constructor(private readonly merchantRepository: IMerchantRepository) {}
 
-    async execute(merchantId: string): Promise<IGetCurrentMerchantOutput> {
-        const merchant = await this.merchantRepository.findById(merchantId);
+  async execute(merchantId: string): Promise<IGetCurrentMerchantOutput> {
+    const merchant = await this.merchantRepository.findById(merchantId);
 
-        if (!merchant) {
-            throw new MerchantNotFoundError(merchantId);
-        }
-
-        return {
-            id: merchant.id,
-            name: merchant.name,
-            email: merchant.email.toString(),
-            document: merchant.document.value,
-            formattedDocument: merchant.document.formatted,
-            documentType: merchant.document.type,
-            isActive: merchant.isActive,
-            createdAt: merchant.createdAt,
-            currentStoreId: merchant.currentStoreId,
-        };
+    if (!merchant) {
+      throw new MerchantNotFoundError(merchantId);
     }
+
+    return {
+      id: merchant.id,
+      name: merchant.name,
+      email: merchant.email.toString(),
+      document: merchant.document.value,
+      formattedDocument: merchant.document.formatted,
+      documentType: merchant.document.type,
+      isActive: merchant.isActive,
+      createdAt: merchant.createdAt,
+      currentStoreId: merchant.currentStoreId,
+    };
+  }
 }

@@ -15,15 +15,11 @@ export interface ILogoutInput {
  * This invalidates the token, preventing further refresh operations.
  */
 export class LogoutUseCase {
-  constructor(
-    private readonly refreshTokenRepository: IRefreshTokenRepositoryPort,
-  ) {}
+  constructor(private readonly refreshTokenRepository: IRefreshTokenRepositoryPort) {}
 
   async execute(input: ILogoutInput): Promise<void> {
     // 1. Find the refresh token
-    const token = await this.refreshTokenRepository.findByToken(
-      input.refreshToken,
-    );
+    const token = await this.refreshTokenRepository.findByToken(input.refreshToken);
 
     // 2. If token doesn't exist, that's okay - it might have already been revoked
     // We don't throw an error to allow logout to be idempotent

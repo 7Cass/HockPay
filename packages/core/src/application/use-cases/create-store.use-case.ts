@@ -67,9 +67,7 @@ export class CreateStoreUseCase {
 
     return this.unitOfWork.execute(async (repos) => {
       // 2. Get merchant and lock it for store/token mutation
-      const merchant = await repos.merchantRepository.findByIdForUpdate(
-        input.merchantId,
-      );
+      const merchant = await repos.merchantRepository.findByIdForUpdate(input.merchantId);
 
       if (!merchant) {
         throw new MerchantNotFoundError(input.merchantId);
@@ -94,11 +92,7 @@ export class CreateStoreUseCase {
       await repos.refreshTokenRepository.revokeAllForMerchant(input.merchantId);
 
       // 7. Generate new JWT with storeId
-      const accessToken = await this.jwtService.generateAccessToken(
-        merchant.id,
-        store.id,
-        '15m',
-      );
+      const accessToken = await this.jwtService.generateAccessToken(merchant.id, store.id, '15m');
 
       // 8. Generate new refresh token
       const refreshTokenString = this.tokenGenerator.generateBase64(32);

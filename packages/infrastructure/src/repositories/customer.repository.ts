@@ -5,12 +5,8 @@ import {
   ICustomerRepository,
   ListCustomersParams,
   ListCustomersResult,
-} from "@hockpay/core";
-import {
-  Customer as PrismaCustomer,
-  Prisma,
-  PrismaClient,
-} from "@hockpay/database";
+} from '@hockpay/core';
+import { Customer as PrismaCustomer, Prisma, PrismaClient } from '@hockpay/database';
 
 /**
  * Shared implementation of ICustomerRepository using Prisma.
@@ -19,9 +15,7 @@ import {
  * Each app provides its own PrismaClient instance.
  */
 export class CustomerRepository implements ICustomerRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(customer: DomainCustomer): Promise<void> {
     await this.prisma.customer.create({
@@ -56,10 +50,7 @@ export class CustomerRepository implements ICustomerRepository {
     return this.toDomain(prismaCustomer);
   }
 
-  async findByExternalId(
-    storeId: string,
-    externalId: string,
-  ): Promise<DomainCustomer | null> {
+  async findByExternalId(storeId: string, externalId: string): Promise<DomainCustomer | null> {
     const prismaCustomer = await this.prisma.customer.findFirst({
       where: {
         storeId,
@@ -71,11 +62,8 @@ export class CustomerRepository implements ICustomerRepository {
     return this.toDomain(prismaCustomer);
   }
 
-  async findByDocument(
-    storeId: string,
-    document: string,
-  ): Promise<DomainCustomer | null> {
-    const normalizedDocument = document.replace(/\D/g, "");
+  async findByDocument(storeId: string, document: string): Promise<DomainCustomer | null> {
+    const normalizedDocument = document.replace(/\D/g, '');
 
     const prismaCustomer = await this.prisma.customer.findFirst({
       where: {
@@ -109,10 +97,7 @@ export class CustomerRepository implements ICustomerRepository {
     });
   }
 
-  async list(
-    storeId: string,
-    params: ListCustomersParams,
-  ): Promise<ListCustomersResult> {
+  async list(storeId: string, params: ListCustomersParams): Promise<ListCustomersResult> {
     const page = params.page ?? 1;
     const limit = params.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -121,13 +106,13 @@ export class CustomerRepository implements ICustomerRepository {
       storeId,
       ...(params.search && {
         OR: [
-          { name: { contains: params.search, mode: "insensitive" as const } },
-          { email: { contains: params.search, mode: "insensitive" as const } },
+          { name: { contains: params.search, mode: 'insensitive' as const } },
+          { email: { contains: params.search, mode: 'insensitive' as const } },
           { document: { contains: params.search } },
           {
             externalId: {
               contains: params.search,
-              mode: "insensitive" as const,
+              mode: 'insensitive' as const,
             },
           },
         ],
@@ -139,7 +124,7 @@ export class CustomerRepository implements ICustomerRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.customer.count({ where }),
     ]);
@@ -175,8 +160,7 @@ export class CustomerRepository implements ICustomerRepository {
       state: prismaCustomer.state ?? undefined,
       zipCode: prismaCustomer.zipCode ?? undefined,
       country: prismaCustomer.country ?? undefined,
-      metadata:
-        (prismaCustomer.metadata as Record<string, unknown>) ?? undefined,
+      metadata: (prismaCustomer.metadata as Record<string, unknown>) ?? undefined,
       createdAt: prismaCustomer.createdAt,
       updatedAt: prismaCustomer.updatedAt,
     };

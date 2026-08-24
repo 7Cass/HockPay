@@ -39,16 +39,11 @@ export class ListCustomerHistoryReceiptsUseCase {
     const page = input.page ?? 1;
     const limit = input.limit ?? 20;
 
-    const result = await this.receiptRepository.findByStoreId(
-      input.storeId,
-      page,
-      limit,
-      {
-        receiptNumber: input.receiptNumber,
-        customerId: customer.id,
-        environment: input.environment,
-      },
-    );
+    const result = await this.receiptRepository.findByStoreId(input.storeId, page, limit, {
+      receiptNumber: input.receiptNumber,
+      customerId: customer.id,
+      environment: input.environment,
+    });
 
     return {
       receipts: result.items.map((receipt) => receipt.toObject()),

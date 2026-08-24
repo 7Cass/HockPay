@@ -5,9 +5,6 @@ import { DomainError } from './domain-error';
  */
 export class PaymentExpiredError extends DomainError {
   constructor(paymentId: string) {
-    super(
-      `Payment ${paymentId} has expired and cannot be modified`,
-      'PAYMENT_EXPIRED'
-    );
+    super(`Payment ${paymentId} has expired and cannot be modified`, 'PAYMENT_EXPIRED');
   }
 }

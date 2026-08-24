@@ -1,4 +1,4 @@
-import { Withdrawal, WithdrawalStatus } from "../entities/withdrawal.entity";
+import { Withdrawal, WithdrawalStatus } from '../entities/withdrawal.entity';
 
 export interface ListWithdrawalsOptions {
   accountId: string;
@@ -45,21 +45,10 @@ export interface IWithdrawalRepository {
   update(withdrawal: Withdrawal): Promise<void>;
   findById(id: string): Promise<Withdrawal | null>;
   findByIdForUpdate(id: string): Promise<Withdrawal | null>;
-  findByIdAndAccountId(
-    id: string,
-    accountId: string,
-  ): Promise<Withdrawal | null>;
+  findByIdAndAccountId(id: string, accountId: string): Promise<Withdrawal | null>;
   list(options: ListWithdrawalsOptions): Promise<ListWithdrawalsResult>;
-  countCreatedInRange(
-    accountId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<number>;
-  sumAmountCreatedInRange(
-    accountId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<number>;
+  countCreatedInRange(accountId: string, startDate: Date, endDate: Date): Promise<number>;
+  sumAmountCreatedInRange(accountId: string, startDate: Date, endDate: Date): Promise<number>;
   /**
    * Finds withdrawals ready for processing.
    * Implementations may also include stale PROCESSING rows for crash recovery.
@@ -69,7 +58,5 @@ export interface IWithdrawalRepository {
    * Atomically claims withdrawals ready for processing.
    * Implementations should move PENDING and stale PROCESSING rows to PROCESSING.
    */
-  claimProcessableWithdrawals(
-    options: ClaimProcessableWithdrawalsOptions,
-  ): Promise<Withdrawal[]>;
+  claimProcessableWithdrawals(options: ClaimProcessableWithdrawalsOptions): Promise<Withdrawal[]>;
 }

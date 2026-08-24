@@ -1,6 +1,6 @@
-import { Queue } from "bullmq";
-import { IExpirationQueuePort } from "@hockpay/core";
-import { RedisConnectionOptions } from "../config/redis-env";
+import { Queue } from 'bullmq';
+import { IExpirationQueuePort } from '@hockpay/core';
+import { RedisConnectionOptions } from '../config/redis-env';
 
 export type ExpirationQueueConnectionOptions = RedisConnectionOptions;
 
@@ -10,7 +10,7 @@ export type ExpirationQueueConnectionOptions = RedisConnectionOptions;
  * API schedules expiration jobs and Worker processes the same queue.
  */
 export class ExpirationQueue implements IExpirationQueuePort {
-  private static readonly QUEUE_NAME = "payment-expiration";
+  private static readonly QUEUE_NAME = 'payment-expiration';
 
   private readonly queue: Queue;
 
@@ -24,15 +24,11 @@ export class ExpirationQueue implements IExpirationQueuePort {
     await this.queue.close();
   }
 
-  async scheduleExpiration(
-    paymentId: string,
-    expiresAt: Date,
-    requestId?: string,
-  ): Promise<void> {
+  async scheduleExpiration(paymentId: string, expiresAt: Date, requestId?: string): Promise<void> {
     const delay = Math.max(0, expiresAt.getTime() - Date.now());
 
     await this.queue.add(
-      "expire",
+      'expire',
       { paymentId, requestId },
       {
         delay,

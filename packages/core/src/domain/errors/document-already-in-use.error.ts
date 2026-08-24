@@ -8,10 +8,7 @@ export class DocumentAlreadyInUseError extends DomainError {
   public readonly conflictingExternalId: string;
 
   constructor(conflictingExternalId: string) {
-    super(
-      'Document is already associated with another customer',
-      'DOCUMENT_ALREADY_IN_USE',
-    );
+    super('Document is already associated with another customer', 'DOCUMENT_ALREADY_IN_USE');
     this.conflictingExternalId = conflictingExternalId;
   }
 }

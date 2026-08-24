@@ -4,8 +4,8 @@ import {
   ListProductsOptions,
   ListProductsResult,
   Product,
-} from "@hockpay/core";
-import { Prisma, PrismaClient } from "@hockpay/database";
+} from '@hockpay/core';
+import { Prisma, PrismaClient } from '@hockpay/database';
 
 export class ProductRepository implements IProductRepository {
   constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
@@ -96,9 +96,9 @@ export class ProductRepository implements IProductRepository {
     if (options.isActive !== undefined) where.isActive = options.isActive;
     if (options.search) {
       where.OR = [
-        { name: { contains: options.search, mode: "insensitive" } },
-        { description: { contains: options.search, mode: "insensitive" } },
-        { externalId: { contains: options.search, mode: "insensitive" } },
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { description: { contains: options.search, mode: 'insensitive' } },
+        { externalId: { contains: options.search, mode: 'insensitive' } },
       ];
     }
 
@@ -107,7 +107,7 @@ export class ProductRepository implements IProductRepository {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       }),
       this.prisma.product.count({ where }),
     ]);

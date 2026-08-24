@@ -48,10 +48,7 @@ export class ExpirePaymentUseCase {
   async execute(input: IExpirePaymentInput): Promise<IExpirePaymentOutput> {
     const result = await this.unitOfWork.execute(async (repos) => {
       const payment = input.storeId
-        ? await repos.paymentRepository.findByIdAndStoreIdForUpdate(
-            input.paymentId,
-            input.storeId,
-          )
+        ? await repos.paymentRepository.findByIdAndStoreIdForUpdate(input.paymentId, input.storeId)
         : await repos.paymentRepository.findByIdForUpdate(input.paymentId);
 
       if (!payment) {

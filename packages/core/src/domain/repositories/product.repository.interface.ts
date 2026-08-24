@@ -1,5 +1,5 @@
-import { Product } from "../entities/product.entity";
-import { Environment } from "../value-objects/environment.vo";
+import { Product } from '../entities/product.entity';
+import { Environment } from '../value-objects/environment.vo';
 
 export interface ListProductsOptions {
   storeId: string;

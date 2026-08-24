@@ -1,29 +1,29 @@
-import { describe, expect, it } from "vitest";
-import { Account } from "../../domain/entities/account.entity";
-import { ApiKey } from "../../domain/entities/api-key.entity";
-import { CheckoutSession } from "../../domain/entities/checkout-session.entity";
-import { Customer } from "../../domain/entities/customer.entity";
-import { Merchant } from "../../domain/entities/merchant.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { Payment } from "../../domain/entities/payment.entity";
-import { PixCharge } from "../../domain/entities/pix-charge.entity";
-import { Receipt } from "../../domain/entities/receipt.entity";
-import { RefreshToken } from "../../domain/entities/refresh-token.entity";
-import { Store } from "../../domain/entities/store.entity";
-import { Document } from "../../domain/value-objects/document.vo";
-import { Email } from "../../domain/value-objects/email.vo";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { FeePolicy } from "../services/fee-policy.service";
-import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
-import { CreateApiKeyUseCase } from "./create-api-key.use-case";
-import { CreateCheckoutSessionUseCase } from "./create-checkout-session.use-case";
-import { CreatePaymentUseCase } from "./create-payment.use-case";
-import { CreateStoreUseCase } from "./create-store.use-case";
-import { FulfillCheckoutSessionUseCase } from "./fulfill-checkout-session.use-case";
-import { GetCheckoutSessionUseCase } from "./get-checkout-session.use-case";
+import { describe, expect, it } from 'vitest';
+import { Account } from '../../domain/entities/account.entity';
+import { ApiKey } from '../../domain/entities/api-key.entity';
+import { CheckoutSession } from '../../domain/entities/checkout-session.entity';
+import { Customer } from '../../domain/entities/customer.entity';
+import { Merchant } from '../../domain/entities/merchant.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Payment } from '../../domain/entities/payment.entity';
+import { PixCharge } from '../../domain/entities/pix-charge.entity';
+import { Receipt } from '../../domain/entities/receipt.entity';
+import { RefreshToken } from '../../domain/entities/refresh-token.entity';
+import { Store } from '../../domain/entities/store.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { Email } from '../../domain/value-objects/email.vo';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { FeePolicy } from '../services/fee-policy.service';
+import { ConfirmPaymentUseCase } from './confirm-payment.use-case';
+import { CreateApiKeyUseCase } from './create-api-key.use-case';
+import { CreateCheckoutSessionUseCase } from './create-checkout-session.use-case';
+import { CreatePaymentUseCase } from './create-payment.use-case';
+import { CreateStoreUseCase } from './create-store.use-case';
+import { FulfillCheckoutSessionUseCase } from './fulfill-checkout-session.use-case';
+import { GetCheckoutSessionUseCase } from './get-checkout-session.use-case';
 
-describe("P0 checkout happy path", () => {
-  it("creates a store account, fulfills checkout, confirms payment, and writes receipt/outbox", async () => {
+describe('P0 checkout happy path', () => {
+  it('creates a store account, fulfills checkout, confirms payment, and writes receipt/outbox', async () => {
     const merchants = new InMemoryMerchantRepository();
     const stores = new InMemoryStoreRepository();
     const accounts = new InMemoryAccountRepository();
@@ -69,10 +69,10 @@ describe("P0 checkout happy path", () => {
     });
 
     const merchant = Merchant.create({
-      name: "Media Kit Merchant",
-      email: new Email("merchant@example.com"),
-      document: new Document("52998224725"),
-      passwordHash: "hashed-password",
+      name: 'Media Kit Merchant',
+      email: new Email('merchant@example.com'),
+      document: new Document('52998224725'),
+      passwordHash: 'hashed-password',
     });
     await merchants.save(merchant);
 
@@ -85,10 +85,10 @@ describe("P0 checkout happy path", () => {
           return `access-token:${storeId}`;
         },
         async generateRefreshToken() {
-          return "refresh-token";
+          return 'refresh-token';
         },
         async verifyToken() {
-          throw new Error("not used");
+          throw new Error('not used');
         },
         decodeToken() {
           return null;
@@ -96,8 +96,7 @@ describe("P0 checkout happy path", () => {
       },
       tokenGenerator,
       {
-        generateFromName: (name: string) =>
-          name.toLowerCase().replace(/\s+/g, "-"),
+        generateFromName: (name: string) => name.toLowerCase().replace(/\s+/g, '-'),
         generateUnique: async (slug: string) => slug,
         validateFormat: () => true,
         isAvailable: async () => true,
@@ -106,19 +105,16 @@ describe("P0 checkout happy path", () => {
 
     const storeResult = await createStore.execute({
       merchantId: merchant.id,
-      name: "Media Kit",
-      slug: "media-kit",
+      name: 'Media Kit',
+      slug: 'media-kit',
     });
     const storeId = storeResult.store.id;
 
     expect(await accounts.findByStoreId(storeId)).not.toBeNull();
 
-    const apiKeyResult = await new CreateApiKeyUseCase(
-      apiKeys,
-      tokenGenerator,
-    ).execute({
+    const apiKeyResult = await new CreateApiKeyUseCase(apiKeys, tokenGenerator).execute({
       storeId,
-      name: "P0 key",
+      name: 'P0 key',
       environment: Environment.TEST,
     });
 
@@ -131,9 +127,9 @@ describe("P0 checkout happy path", () => {
       {
         async generate() {
           return {
-            qrCodeBase64: "qr-code",
-            copyPaste: "pix-copy-paste",
-            txId: "pix-tx-id",
+            qrCodeBase64: 'qr-code',
+            copyPaste: 'pix-copy-paste',
+            txId: 'pix-tx-id',
           };
         },
       },
@@ -141,7 +137,7 @@ describe("P0 checkout happy path", () => {
         async scheduleExpiration() {},
       },
       new FeePolicy(),
-      "test@hockpay.local",
+      'test@hockpay.local',
     );
     const createSession = new CreateCheckoutSessionUseCase(
       {
@@ -153,13 +149,9 @@ describe("P0 checkout happy path", () => {
           } as never),
       },
       tokenGenerator,
-      "http://localhost:3333",
+      'http://localhost:3333',
     );
-    const getSession = new GetCheckoutSessionUseCase(
-      sessions,
-      stores,
-      payments,
-    );
+    const getSession = new GetCheckoutSessionUseCase(sessions, stores, payments);
     const fulfillSession = new FulfillCheckoutSessionUseCase(
       {
         execute: async (work) => work(makeRepos()),
@@ -170,25 +162,23 @@ describe("P0 checkout happy path", () => {
     const session = await createSession.execute({
       storeId,
       amount: 7_990,
-      description: "Media kit premium",
-      metadata: { studyCase: "demo-mediakit" },
+      description: 'Media kit premium',
+      metadata: { studyCase: 'demo-mediakit' },
     });
     const loadedOpenSession = await getSession.execute(session.checkoutToken);
 
-    expect(loadedOpenSession.status).toBe("OPEN");
+    expect(loadedOpenSession.status).toBe('OPEN');
 
     const fulfilled = await fulfillSession.execute({
       token: session.checkoutToken,
       customer: {
-        document: "52998224725",
-        name: "Cliente Demo",
-        email: "cliente@example.com",
+        document: '52998224725',
+        name: 'Cliente Demo',
+        email: 'cliente@example.com',
       },
       environment: Environment.TEST,
     });
-    const loadedFulfilledSession = await getSession.execute(
-      session.checkoutToken,
-    );
+    const loadedFulfilledSession = await getSession.execute(session.checkoutToken);
 
     expect(loadedFulfilledSession.paymentId).toBe(fulfilled.paymentId);
 
@@ -201,12 +191,10 @@ describe("P0 checkout happy path", () => {
     const account = await accounts.findByStoreId(storeId);
     const receipt = await receipts.findByPaymentId(fulfilled.paymentId);
 
-    expect(confirmed.payment.status).toBe("CONFIRMED");
+    expect(confirmed.payment.status).toBe('CONFIRMED');
     expect(account?.pending).toBe(7_855);
     expect(receipt).not.toBeNull();
-    expect(outbox.events.map((event) => event.eventType)).toContain(
-      "payment.confirmed",
-    );
+    expect(outbox.events.map((event) => event.eventType)).toContain('payment.confirmed');
   });
 });
 
@@ -215,7 +203,7 @@ class DeterministicTokenGenerator {
 
   generate(): string {
     this.sequence += 1;
-    return this.sequence.toString(16).padStart(32, "0");
+    return this.sequence.toString(16).padStart(32, '0');
   }
 
   generateBase64(): string {
@@ -244,28 +232,17 @@ class InMemoryMerchantRepository {
   }
 
   async findByEmail(email: string): Promise<Merchant | null> {
-    return (
-      [...this.items.values()].find(
-        (merchant) => merchant.email.toString() === email,
-      ) ?? null
-    );
+    return [...this.items.values()].find((merchant) => merchant.email.toString() === email) ?? null;
   }
 
   async findByDocument(document: string): Promise<Merchant | null> {
     return (
-      [...this.items.values()].find(
-        (merchant) => merchant.document.value === document,
-      ) ?? null
+      [...this.items.values()].find((merchant) => merchant.document.value === document) ?? null
     );
   }
 
-  async existsByEmailOrDocument(
-    email: string,
-    document: string,
-  ): Promise<boolean> {
-    return Boolean(
-      (await this.findByEmail(email)) ?? (await this.findByDocument(document)),
-    );
+  async existsByEmailOrDocument(email: string, document: string): Promise<boolean> {
+    return Boolean((await this.findByEmail(email)) ?? (await this.findByDocument(document)));
   }
 
   async update(merchant: Merchant): Promise<void> {
@@ -288,24 +265,17 @@ class InMemoryStoreRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByIdAndMerchantId(
-    id: string,
-    merchantId: string,
-  ): Promise<Store | null> {
+  async findByIdAndMerchantId(id: string, merchantId: string): Promise<Store | null> {
     const store = this.items.get(id);
     return store?.merchantId === merchantId ? store : null;
   }
 
   async findBySlug(slug: string): Promise<Store | null> {
-    return (
-      [...this.items.values()].find((store) => store.slug === slug) ?? null
-    );
+    return [...this.items.values()].find((store) => store.slug === slug) ?? null;
   }
 
   async findByMerchantId(merchantId: string): Promise<Store[]> {
-    return [...this.items.values()].filter(
-      (store) => store.merchantId === merchantId,
-    );
+    return [...this.items.values()].filter((store) => store.merchantId === merchantId);
   }
 
   async update(store: Store): Promise<void> {
@@ -337,10 +307,7 @@ class InMemoryAccountRepository {
   }
 
   async findByStoreId(storeId: string): Promise<Account | null> {
-    return (
-      [...this.items.values()].find((account) => account.storeId === storeId) ??
-      null
-    );
+    return [...this.items.values()].find((account) => account.storeId === storeId) ?? null;
   }
 
   async findByStoreIdForUpdate(storeId: string): Promise<Account | null> {
@@ -364,16 +331,11 @@ class InMemoryApiKeyRepository {
   }
 
   async findByKeyHash(keyHash: string): Promise<ApiKey | null> {
-    return (
-      [...this.items.values()].find((apiKey) => apiKey.keyHash === keyHash) ??
-      null
-    );
+    return [...this.items.values()].find((apiKey) => apiKey.keyHash === keyHash) ?? null;
   }
 
   async findByStoreId(storeId: string): Promise<ApiKey[]> {
-    return [...this.items.values()].filter(
-      (apiKey) => apiKey.storeId === storeId,
-    );
+    return [...this.items.values()].filter((apiKey) => apiKey.storeId === storeId);
   }
 
   async update(apiKey: ApiKey): Promise<void> {
@@ -401,11 +363,7 @@ class InMemoryRefreshTokenRepository {
   }
 
   async findByMerchantId(merchantId: string): Promise<RefreshToken | null> {
-    return (
-      [...this.items.values()].find(
-        (token) => token.merchantId === merchantId,
-      ) ?? null
-    );
+    return [...this.items.values()].find((token) => token.merchantId === merchantId) ?? null;
   }
 
   async update(token: RefreshToken): Promise<void> {
@@ -429,36 +387,21 @@ class InMemoryCheckoutSessionRepository {
   }
 
   async findByToken(token: string): Promise<CheckoutSession | null> {
-    return (
-      [...this.items.values()].find(
-        (session) => session.checkoutToken === token,
-      ) ?? null
-    );
+    return [...this.items.values()].find((session) => session.checkoutToken === token) ?? null;
   }
 
-  async claimOpenByToken(
-    token: string,
-    now: Date,
-  ): Promise<CheckoutSession | null> {
+  async claimOpenByToken(token: string, now: Date): Promise<CheckoutSession | null> {
     const session = await this.findByToken(token);
-    if (
-      !session ||
-      session.status !== "OPEN" ||
-      session.paymentId ||
-      session.expiresAt <= now
-    ) {
+    if (!session || session.status !== 'OPEN' || session.paymentId || session.expiresAt <= now) {
       return null;
     }
 
     return session;
   }
 
-  async expireOpenByToken(
-    token: string,
-    now: Date,
-  ): Promise<CheckoutSession | null> {
+  async expireOpenByToken(token: string, now: Date): Promise<CheckoutSession | null> {
     const session = await this.findByToken(token);
-    if (!session || session.status !== "OPEN" || session.expiresAt > now) {
+    if (!session || session.status !== 'OPEN' || session.expiresAt > now) {
       return null;
     }
 
@@ -468,11 +411,7 @@ class InMemoryCheckoutSessionRepository {
   }
 
   async findByPaymentId(paymentId: string): Promise<CheckoutSession | null> {
-    return (
-      [...this.items.values()].find(
-        (session) => session.paymentId === paymentId,
-      ) ?? null
-    );
+    return [...this.items.values()].find((session) => session.paymentId === paymentId) ?? null;
   }
 }
 
@@ -491,28 +430,19 @@ class InMemoryPaymentRepository {
     return this.findById(id);
   }
 
-  async findByIdAndStoreId(
-    id: string,
-    storeId: string,
-  ): Promise<Payment | null> {
+  async findByIdAndStoreId(id: string, storeId: string): Promise<Payment | null> {
     const payment = this.items.get(id);
     return payment?.storeId === storeId ? payment : null;
   }
 
-  async findByIdsAndStoreId(
-    ids: string[],
-    storeId: string,
-  ): Promise<Payment[]> {
+  async findByIdsAndStoreId(ids: string[], storeId: string): Promise<Payment[]> {
     return ids.flatMap((id) => {
       const payment = this.items.get(id);
       return payment?.storeId === storeId ? [payment] : [];
     });
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<Payment | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<Payment | null> {
     return this.findByIdAndStoreId(id, storeId);
   }
 
@@ -522,9 +452,7 @@ class InMemoryPaymentRepository {
 
   async findByPixTxId(pixTxId: string): Promise<Payment | null> {
     return (
-      [...this.items.values()].find(
-        (payment) => payment.pixCharge?.pixTxId === pixTxId,
-      ) ?? null
+      [...this.items.values()].find((payment) => payment.pixCharge?.pixTxId === pixTxId) ?? null
     );
   }
 
@@ -538,26 +466,13 @@ class InMemoryPaymentRepository {
     };
   }
 
-  async findByPixChargeIdAndStoreId(
-    pixChargeId: string,
-    storeId: string,
-  ): Promise<Payment[]> {
+  async findByPixChargeIdAndStoreId(pixChargeId: string, storeId: string): Promise<Payment[]> {
     return [...this.items.values()]
-      .filter(
-        (payment) =>
-          payment.pixChargeId === pixChargeId && payment.storeId === storeId,
-      )
-      .sort(
-        (a, b) =>
-          a.createdAt.getTime() - b.createdAt.getTime() ||
-          a.id.localeCompare(b.id),
-      );
+      .filter((payment) => payment.pixChargeId === pixChargeId && payment.storeId === storeId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
   }
 
-  async listByPixChargeIdsAndStoreId(
-    pixChargeIds: string[],
-    storeId: string,
-  ): Promise<Payment[]> {
+  async listByPixChargeIdsAndStoreId(pixChargeIds: string[], storeId: string): Promise<Payment[]> {
     const ids = new Set(pixChargeIds);
     return [...this.items.values()]
       .filter(
@@ -566,11 +481,7 @@ class InMemoryPaymentRepository {
           ids.has(payment.pixChargeId!) &&
           payment.storeId === storeId,
       )
-      .sort(
-        (a, b) =>
-          a.createdAt.getTime() - b.createdAt.getTime() ||
-          a.id.localeCompare(b.id),
-      );
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
   }
 
   async update(payment: Payment): Promise<void> {
@@ -601,26 +512,17 @@ class InMemoryPixChargeRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByIdAndStoreId(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
+  async findByIdAndStoreId(id: string, storeId: string): Promise<PixCharge | null> {
     const charge = this.items.get(id);
     return charge?.storeId === storeId ? charge : null;
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<PixCharge | null> {
     return this.findByIdAndStoreId(id, storeId);
   }
 
   async findByPixTxId(pixTxId: string): Promise<PixCharge | null> {
-    return (
-      [...this.items.values()].find((charge) => charge.pixTxId === pixTxId) ??
-      null
-    );
+    return [...this.items.values()].find((charge) => charge.pixTxId === pixTxId) ?? null;
   }
 }
 
@@ -635,26 +537,18 @@ class InMemoryCustomerRepository {
     return this.items.get(id) ?? null;
   }
 
-  async findByExternalId(
-    storeId: string,
-    externalId: string,
-  ): Promise<Customer | null> {
+  async findByExternalId(storeId: string, externalId: string): Promise<Customer | null> {
     return (
       [...this.items.values()].find(
-        (customer) =>
-          customer.storeId === storeId && customer.externalId === externalId,
+        (customer) => customer.storeId === storeId && customer.externalId === externalId,
       ) ?? null
     );
   }
 
-  async findByDocument(
-    storeId: string,
-    document: string,
-  ): Promise<Customer | null> {
+  async findByDocument(storeId: string, document: string): Promise<Customer | null> {
     return (
       [...this.items.values()].find(
-        (customer) =>
-          customer.storeId === storeId && customer.document.value === document,
+        (customer) => customer.storeId === storeId && customer.document.value === document,
       ) ?? null
     );
   }
@@ -687,18 +581,12 @@ class InMemoryReceiptRepository {
   }
 
   async findByPaymentId(paymentId: string): Promise<Receipt | null> {
-    return (
-      [...this.items.values()].find(
-        (receipt) => receipt.paymentId === paymentId,
-      ) ?? null
-    );
+    return [...this.items.values()].find((receipt) => receipt.paymentId === paymentId) ?? null;
   }
 
   async findByReceiptNumber(receiptNumber: string): Promise<Receipt | null> {
     return (
-      [...this.items.values()].find(
-        (receipt) => receipt.receiptNumber === receiptNumber,
-      ) ?? null
+      [...this.items.values()].find((receipt) => receipt.receiptNumber === receiptNumber) ?? null
     );
   }
 

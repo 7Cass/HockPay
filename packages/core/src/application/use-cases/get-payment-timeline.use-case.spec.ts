@@ -67,10 +67,7 @@ describe('GetPaymentTimelineUseCase', () => {
       environment: Environment.TEST,
     });
 
-    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(
-      payment.id,
-      'store-1',
-    );
+    expect(repos.paymentRepository.findByIdAndStoreId).toHaveBeenCalledWith(payment.id, 'store-1');
     expect(result.payment.id).toBe(payment.id);
     expect(result.checkoutSession?.id).toBe(checkoutSession.id);
     expect(result.receipt?.id).toBe(receipt.id);
@@ -156,10 +153,7 @@ describe('GetPaymentTimelineUseCase', () => {
       'payment-failed',
       'payment-confirmed',
     ]);
-    expect(result.relatedAttempts.map((attempt) => attempt.attemptNumber)).toEqual([
-      1,
-      2,
-    ]);
+    expect(result.relatedAttempts.map((attempt) => attempt.attemptNumber)).toEqual([1, 2]);
   });
 
   it('hides LIVE payment operational detail from a TEST caller', async () => {
@@ -239,9 +233,9 @@ function makeUseCase(input: {
   const repos = {
     paymentRepository: {
       findByIdAndStoreId: vi.fn().mockResolvedValue(input.payment),
-      findByPixChargeIdAndStoreId: vi.fn().mockResolvedValue(
-        input.relatedPayments ?? (input.payment ? [input.payment] : []),
-      ),
+      findByPixChargeIdAndStoreId: vi
+        .fn()
+        .mockResolvedValue(input.relatedPayments ?? (input.payment ? [input.payment] : [])),
     },
     receiptRepository: {
       findByPaymentId: vi.fn().mockResolvedValue(input.receipt ?? null),
@@ -254,9 +248,7 @@ function makeUseCase(input: {
     },
     transactionRepository: {
       findByReference: vi.fn((referenceType: string, referenceId: string) =>
-        Promise.resolve(
-          transactionsByReference.get(`${referenceType}:${referenceId}`) ?? [],
-        ),
+        Promise.resolve(transactionsByReference.get(`${referenceType}:${referenceId}`) ?? []),
       ),
     },
     webhookLogRepository: {

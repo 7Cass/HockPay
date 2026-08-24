@@ -87,7 +87,10 @@ export class ListWebhookLogsUseCase {
     };
   }
 
-  private filterByStatus(logs: WebhookLog[], status?: 'pending' | 'delivered' | 'failed'): WebhookLog[] {
+  private filterByStatus(
+    logs: WebhookLog[],
+    status?: 'pending' | 'delivered' | 'failed',
+  ): WebhookLog[] {
     if (!status) return logs;
 
     switch (status) {

@@ -149,14 +149,17 @@ export class AlertDeliveryLog {
     this._deliveredAt = new Date();
   }
 
-  recordFailure(responseStatus: number, responseBody?: string, errorMessage?: string, retryAfterSeconds?: number): void {
+  recordFailure(
+    responseStatus: number,
+    responseBody?: string,
+    errorMessage?: string,
+    retryAfterSeconds?: number,
+  ): void {
     this._status = AlertDeliveryStatus.FAILED;
     this._responseStatus = responseStatus;
     this._responseBody = responseBody;
     this._errorMessage = errorMessage;
-    this._nextRetryAt = this.canRetry()
-      ? this.calculateNextRetry(retryAfterSeconds)
-      : undefined;
+    this._nextRetryAt = this.canRetry() ? this.calculateNextRetry(retryAfterSeconds) : undefined;
   }
 
   markRetryAttempt(): void {

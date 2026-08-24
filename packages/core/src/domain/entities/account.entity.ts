@@ -1,4 +1,4 @@
-import { InvalidBalanceError } from "../errors/invalid-balance.error";
+import { InvalidBalanceError } from '../errors/invalid-balance.error';
 
 export class Account {
   private readonly _id: string;

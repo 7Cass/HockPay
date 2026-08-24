@@ -6,21 +6,19 @@ import {
   Withdrawal as DomainWithdrawal,
   WithdrawalProps,
   WithdrawalStatus,
-} from "@hockpay/core";
+} from '@hockpay/core';
 import {
   Environment,
   Prisma,
   PrismaClient,
   Withdrawal as PrismaWithdrawal,
-} from "@hockpay/database";
-import { Environment as CoreEnvironment } from "@hockpay/core";
+} from '@hockpay/database';
+import { Environment as CoreEnvironment } from '@hockpay/core';
 
 export class WithdrawalRepository implements IWithdrawalRepository {
   private static readonly PROCESSING_STALE_MS = 5 * 60 * 1000;
 
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(withdrawal: DomainWithdrawal): Promise<void> {
     await this.prisma.withdrawal.create({
@@ -80,10 +78,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     return withdrawals[0] ? this.toDomain(withdrawals[0] as any) : null;
   }
 
-  async findByIdAndAccountId(
-    id: string,
-    accountId: string,
-  ): Promise<DomainWithdrawal | null> {
+  async findByIdAndAccountId(id: string, accountId: string): Promise<DomainWithdrawal | null> {
     const withdrawal = await this.prisma.withdrawal.findFirst({
       where: { id, accountId },
     });
@@ -99,7 +94,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     const [withdrawals, total, summary] = await Promise.all([
       this.prisma.withdrawal.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
@@ -108,9 +103,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     ]);
 
     return {
-      withdrawals: withdrawals.map((withdrawal) =>
-        this.toDomain(withdrawal as any),
-      ),
+      withdrawals: withdrawals.map((withdrawal) => this.toDomain(withdrawal as any)),
       total,
       page,
       limit,
@@ -119,11 +112,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     };
   }
 
-  async countCreatedInRange(
-    accountId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<number> {
+  async countCreatedInRange(accountId: string, startDate: Date, endDate: Date): Promise<number> {
     return this.prisma.withdrawal.count({
       where: {
         accountId,
@@ -147,10 +136,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     return result._sum.amount ?? 0;
   }
 
-  async findProcessablePending(
-    limit: number,
-    now = new Date(),
-  ): Promise<DomainWithdrawal[]> {
+  async findProcessablePending(limit: number, now = new Date()): Promise<DomainWithdrawal[]> {
     const staleProcessingCutoff = new Date(
       now.getTime() - WithdrawalRepository.PROCESSING_STALE_MS,
     );
@@ -167,7 +153,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
           },
         ],
       } as any,
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       take: limit,
     });
 
@@ -236,9 +222,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     return withdrawals.map((withdrawal) => this.toDomain(withdrawal as any));
   }
 
-  private buildWhere(
-    options: ListWithdrawalsOptions,
-  ): Prisma.WithdrawalWhereInput {
+  private buildWhere(options: ListWithdrawalsOptions): Prisma.WithdrawalWhereInput {
     const where: Prisma.WithdrawalWhereInput = {
       accountId: options.accountId,
     };
@@ -251,7 +235,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     }
     if (options.q?.trim()) {
       const q = options.q.trim();
-      const clean = q.replace(/\D/g, "");
+      const clean = q.replace(/\D/g, '');
       const searchTerms = [q, clean].filter(Boolean);
       where.OR = [
         { id: { contains: q } },
@@ -288,7 +272,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
         },
       }),
       this.prisma.withdrawal.groupBy({
-        by: ["status"],
+        by: ['status'],
         where,
         _count: { _all: true },
         _sum: {
@@ -322,8 +306,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       processingCount: processing?.count ?? 0,
       completedCount: completed?.count ?? 0,
       failedCount: failed?.count ?? 0,
-      pendingOrProcessingAmount:
-        (pending?.amount ?? 0) + (processing?.amount ?? 0),
+      pendingOrProcessingAmount: (pending?.amount ?? 0) + (processing?.amount ?? 0),
       completedNetAmount: completed?.netAmount ?? 0,
       failedAmount: failed?.amount ?? 0,
     };
@@ -350,9 +333,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
     } as any;
   }
 
-  private toDomain(
-    prismaWithdrawal: PrismaWithdrawal & Record<string, any>,
-  ): DomainWithdrawal {
+  private toDomain(prismaWithdrawal: PrismaWithdrawal & Record<string, any>): DomainWithdrawal {
     const props: WithdrawalProps = {
       id: prismaWithdrawal.id,
       accountId: prismaWithdrawal.accountId,
@@ -360,7 +341,7 @@ export class WithdrawalRepository implements IWithdrawalRepository {
       amount: prismaWithdrawal.amount,
       fee: prismaWithdrawal.fee,
       netAmount: prismaWithdrawal.netAmount,
-      environment: (prismaWithdrawal.environment ?? "TEST") as CoreEnvironment,
+      environment: (prismaWithdrawal.environment ?? 'TEST') as CoreEnvironment,
       status: prismaWithdrawal.status as WithdrawalStatus,
       pixE2eId: prismaWithdrawal.pixE2eId ?? undefined,
       paidAt: prismaWithdrawal.paidAt ?? undefined,

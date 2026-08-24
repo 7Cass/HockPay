@@ -1,23 +1,17 @@
-import {
-  IApiKeyRepository,
-  ApiKey as DomainApiKey,
-  Environment,
-} from "@hockpay/core";
+import { IApiKeyRepository, ApiKey as DomainApiKey, Environment } from '@hockpay/core';
 import {
   PrismaClient,
   Prisma,
   ApiKey as PrismaApiKey,
   Environment as PrismaEnvironment,
-} from "@hockpay/database";
+} from '@hockpay/database';
 
 function toPrismaEnvironment(env: Environment): PrismaEnvironment {
-  return env === Environment.LIVE
-    ? PrismaEnvironment.LIVE
-    : PrismaEnvironment.TEST;
+  return env === Environment.LIVE ? PrismaEnvironment.LIVE : PrismaEnvironment.TEST;
 }
 
 function toCoreEnvironment(env: string): Environment {
-  return env === "LIVE" ? Environment.LIVE : Environment.TEST;
+  return env === 'LIVE' ? Environment.LIVE : Environment.TEST;
 }
 
 export class ApiKeyRepository implements IApiKeyRepository {
@@ -36,10 +30,7 @@ export class ApiKeyRepository implements IApiKeyRepository {
     return prismaApiKey ? this.toDomain(prismaApiKey) : null;
   }
 
-  async findByKeyHash(
-    keyHash: string,
-    environment: Environment,
-  ): Promise<DomainApiKey | null> {
+  async findByKeyHash(keyHash: string, environment: Environment): Promise<DomainApiKey | null> {
     const prismaApiKey = await this.prisma.apiKey.findFirst({
       where: {
         keyHash,
@@ -50,16 +41,13 @@ export class ApiKeyRepository implements IApiKeyRepository {
     return prismaApiKey ? this.toDomain(prismaApiKey) : null;
   }
 
-  async findByStoreId(
-    storeId: string,
-    includeRevoked = false,
-  ): Promise<DomainApiKey[]> {
+  async findByStoreId(storeId: string, includeRevoked = false): Promise<DomainApiKey[]> {
     const prismaApiKeys = await this.prisma.apiKey.findMany({
       where: {
         storeId,
         revokedAt: includeRevoked ? undefined : null,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
     return prismaApiKeys.map((key) => this.toDomain(key));
   }

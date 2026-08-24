@@ -1,12 +1,12 @@
-import { IPaymentLinkRepository } from "../../domain/repositories/payment-link.repository.interface";
-import { IPixChargeRepository } from "../../domain/repositories/pix-charge.repository.interface";
-import { IUnitOfWork } from "../../domain/repositories/unit-of-work.interface";
-import { PixChargeStatus } from "../../domain/entities/pix-charge.entity";
-import { PaymentLinkNotFoundError } from "../../domain/errors/payment-link-not-found.error";
-export { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
-import { PaymentLinkCannotBeCancelledError } from "../../domain/errors/payment-link-cannot-be-cancelled.error";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { assertCallerCanMutateEnvironment } from "../services/live-environment-guard";
+import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
+import { IPixChargeRepository } from '../../domain/repositories/pix-charge.repository.interface';
+import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { PixChargeStatus } from '../../domain/entities/pix-charge.entity';
+import { PaymentLinkNotFoundError } from '../../domain/errors/payment-link-not-found.error';
+export { PaymentLinkCannotBeCancelledError } from '../../domain/errors/payment-link-cannot-be-cancelled.error';
+import { PaymentLinkCannotBeCancelledError } from '../../domain/errors/payment-link-cannot-be-cancelled.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { assertCallerCanMutateEnvironment } from '../services/live-environment-guard';
 
 export interface ICancelPaymentLinkInput {
   storeId: string;
@@ -34,11 +34,7 @@ export class CancelPaymentLinkUseCase {
       return;
     }
 
-    await this.cancelWithRepositories(
-      input,
-      this.paymentLinkRepository,
-      this.pixChargeRepository,
-    );
+    await this.cancelWithRepositories(input, this.paymentLinkRepository, this.pixChargeRepository);
   }
 
   private async cancelWithRepositories(
@@ -74,12 +70,8 @@ export class CancelPaymentLinkUseCase {
     }
   }
 
-  private async findLinkForUpdate(
-    repository: IPaymentLinkRepository,
-    id: string,
-    storeId: string,
-  ) {
-    if (typeof repository.findByIdAndStoreIdForUpdate === "function") {
+  private async findLinkForUpdate(repository: IPaymentLinkRepository, id: string, storeId: string) {
+    if (typeof repository.findByIdAndStoreIdForUpdate === 'function') {
       return repository.findByIdAndStoreIdForUpdate(id, storeId);
     }
     return repository.findByIdAndStoreId(id, storeId);
@@ -90,7 +82,7 @@ export class CancelPaymentLinkUseCase {
     id: string,
     storeId: string,
   ) {
-    if (typeof repository.findByIdAndStoreIdForUpdate === "function") {
+    if (typeof repository.findByIdAndStoreIdForUpdate === 'function') {
       return repository.findByIdAndStoreIdForUpdate(id, storeId);
     }
     return repository.findByIdAndStoreId(id, storeId);

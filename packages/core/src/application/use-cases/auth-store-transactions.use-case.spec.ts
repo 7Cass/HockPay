@@ -1,21 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
-import { Merchant } from "../../domain/entities/merchant.entity";
-import { RefreshToken } from "../../domain/entities/refresh-token.entity";
-import { Store } from "../../domain/entities/store.entity";
-import { InvalidRefreshTokenError } from "../../domain/errors/invalid-refresh-token.error";
-import { Document } from "../../domain/value-objects/document.vo";
-import { Email } from "../../domain/value-objects/email.vo";
-import { ITransactedRepositories } from "../../domain/repositories/unit-of-work.interface";
-import { CreateStoreUseCase } from "./create-store.use-case";
-import { LoginUseCase } from "./login.use-case";
-import { RefreshTokenUseCase } from "./refresh-token.use-case";
-import { SwitchStoreUseCase } from "./switch-store.use-case";
+import { describe, expect, it, vi } from 'vitest';
+import { Merchant } from '../../domain/entities/merchant.entity';
+import { RefreshToken } from '../../domain/entities/refresh-token.entity';
+import { Store } from '../../domain/entities/store.entity';
+import { InvalidRefreshTokenError } from '../../domain/errors/invalid-refresh-token.error';
+import { Document } from '../../domain/value-objects/document.vo';
+import { Email } from '../../domain/value-objects/email.vo';
+import { ITransactedRepositories } from '../../domain/repositories/unit-of-work.interface';
+import { CreateStoreUseCase } from './create-store.use-case';
+import { LoginUseCase } from './login.use-case';
+import { RefreshTokenUseCase } from './refresh-token.use-case';
+import { SwitchStoreUseCase } from './switch-store.use-case';
 
-describe("auth/store transactional use cases", () => {
-  it("rolls back login token rotation when creating the new refresh token fails", async () => {
+describe('auth/store transactional use cases', () => {
+  it('rolls back login token rotation when creating the new refresh token fails', async () => {
     const state = makeState();
     const merchant = makeMerchant();
-    const oldToken = makeRefreshToken(merchant.id, "old-token");
+    const oldToken = makeRefreshToken(merchant.id, 'old-token');
     state.merchants.set(merchant.id, merchant);
     state.refreshTokens.set(oldToken.token, oldToken);
     const unitOfWork = new SnapshotUnitOfWork(state);
@@ -25,23 +25,23 @@ describe("auth/store transactional use cases", () => {
       unitOfWork as any,
       { verify: vi.fn().mockResolvedValue(true) } as any,
       makeJwtService() as any,
-      makeTokenGenerator("new-token") as any,
+      makeTokenGenerator('new-token') as any,
     );
 
     await expect(
       useCase.execute({
         email: merchant.email.toString(),
-        password: "secret",
+        password: 'secret',
       }),
-    ).rejects.toThrow("refresh create failed");
+    ).rejects.toThrow('refresh create failed');
 
-    expect(state.refreshTokens.get("old-token")?.merchantId).toBe(merchant.id);
+    expect(state.refreshTokens.get('old-token')?.merchantId).toBe(merchant.id);
   });
 
-  it("rolls back store creation, merchant update, and token rotation together", async () => {
+  it('rolls back store creation, merchant update, and token rotation together', async () => {
     const state = makeState();
     const merchant = makeMerchant();
-    const oldToken = makeRefreshToken(merchant.id, "old-token");
+    const oldToken = makeRefreshToken(merchant.id, 'old-token');
     state.merchants.set(merchant.id, merchant);
     state.refreshTokens.set(oldToken.token, oldToken);
     const unitOfWork = new SnapshotUnitOfWork(state);
@@ -50,10 +50,10 @@ describe("auth/store transactional use cases", () => {
     const useCase = new CreateStoreUseCase(
       unitOfWork as any,
       makeJwtService() as any,
-      makeTokenGenerator("new-token") as any,
+      makeTokenGenerator('new-token') as any,
       {
-        generateFromName: vi.fn().mockReturnValue("new-store"),
-        generateUnique: vi.fn().mockResolvedValue("new-store"),
+        generateFromName: vi.fn().mockReturnValue('new-store'),
+        generateUnique: vi.fn().mockResolvedValue('new-store'),
         validateFormat: vi.fn().mockReturnValue(true),
         isAvailable: vi.fn().mockResolvedValue(true),
       },
@@ -62,20 +62,20 @@ describe("auth/store transactional use cases", () => {
     await expect(
       useCase.execute({
         merchantId: merchant.id,
-        name: "New Store",
+        name: 'New Store',
       }),
-    ).rejects.toThrow("refresh create failed");
+    ).rejects.toThrow('refresh create failed');
 
     expect(state.stores.size).toBe(0);
     expect(state.merchants.get(merchant.id)?.currentStoreId).toBeUndefined();
-    expect(state.refreshTokens.get("old-token")?.merchantId).toBe(merchant.id);
+    expect(state.refreshTokens.get('old-token')?.merchantId).toBe(merchant.id);
   });
 
-  it("rolls back switch store merchant update when refresh token creation fails", async () => {
+  it('rolls back switch store merchant update when refresh token creation fails', async () => {
     const state = makeState();
-    const merchant = makeMerchant("store-old");
-    const targetStore = makeStore(merchant.id, "store-new");
-    const oldToken = makeRefreshToken(merchant.id, "old-token");
+    const merchant = makeMerchant('store-old');
+    const targetStore = makeStore(merchant.id, 'store-new');
+    const oldToken = makeRefreshToken(merchant.id, 'old-token');
     state.merchants.set(merchant.id, merchant);
     state.stores.set(targetStore.id, targetStore);
     state.refreshTokens.set(oldToken.token, oldToken);
@@ -85,7 +85,7 @@ describe("auth/store transactional use cases", () => {
     const useCase = new SwitchStoreUseCase(
       unitOfWork as any,
       makeJwtService() as any,
-      makeTokenGenerator("new-token") as any,
+      makeTokenGenerator('new-token') as any,
     );
 
     await expect(
@@ -93,13 +93,13 @@ describe("auth/store transactional use cases", () => {
         merchantId: merchant.id,
         storeId: targetStore.id,
       }),
-    ).rejects.toThrow("refresh create failed");
+    ).rejects.toThrow('refresh create failed');
 
-    expect(state.merchants.get(merchant.id)?.currentStoreId).toBe("store-old");
-    expect(state.refreshTokens.get("old-token")?.merchantId).toBe(merchant.id);
+    expect(state.merchants.get(merchant.id)?.currentStoreId).toBe('store-old');
+    expect(state.refreshTokens.get('old-token')?.merchantId).toBe(merchant.id);
   });
 
-  it("treats an already rotated refresh token as invalid without creating a new token", async () => {
+  it('treats an already rotated refresh token as invalid without creating a new token', async () => {
     const state = makeState();
     const merchant = makeMerchant();
     state.merchants.set(merchant.id, merchant);
@@ -108,12 +108,12 @@ describe("auth/store transactional use cases", () => {
     const useCase = new RefreshTokenUseCase(
       unitOfWork as any,
       makeJwtService() as any,
-      makeTokenGenerator("new-token") as any,
+      makeTokenGenerator('new-token') as any,
     );
 
-    await expect(
-      useCase.execute({ refreshToken: "already-rotated" }),
-    ).rejects.toBeInstanceOf(InvalidRefreshTokenError);
+    await expect(useCase.execute({ refreshToken: 'already-rotated' })).rejects.toBeInstanceOf(
+      InvalidRefreshTokenError,
+    );
 
     expect(state.refreshTokens.size).toBe(0);
   });
@@ -158,10 +158,8 @@ class SnapshotUnitOfWork {
         save: async (merchant) => {
           this.state.merchants.set(merchant.id, cloneMerchant(merchant));
         },
-        findById: async (id) =>
-          cloneNullable(this.state.merchants.get(id), cloneMerchant),
-        findByIdForUpdate: async (id) =>
-          cloneNullable(this.state.merchants.get(id), cloneMerchant),
+        findById: async (id) => cloneNullable(this.state.merchants.get(id), cloneMerchant),
+        findByIdForUpdate: async (id) => cloneNullable(this.state.merchants.get(id), cloneMerchant),
         findByEmail: async (email) =>
           cloneNullable(
             [...this.state.merchants.values()].find(
@@ -179,8 +177,7 @@ class SnapshotUnitOfWork {
         existsByEmailOrDocument: async (email, document) =>
           [...this.state.merchants.values()].some(
             (merchant) =>
-              merchant.email.toString() === email ||
-              merchant.document.value === document,
+              merchant.email.toString() === email || merchant.document.value === document,
           ),
         delete: async (id) => {
           this.state.merchants.delete(id);
@@ -192,7 +189,7 @@ class SnapshotUnitOfWork {
       refreshTokenRepository: {
         create: async (token) => {
           if (this.failRefreshCreate) {
-            throw new Error("refresh create failed");
+            throw new Error('refresh create failed');
           }
           this.state.refreshTokens.set(token.token, cloneRefreshToken(token));
         },
@@ -202,9 +199,7 @@ class SnapshotUnitOfWork {
           cloneNullable(this.state.refreshTokens.get(token), cloneRefreshToken),
         findByMerchantId: async (merchantId) =>
           cloneNullable(
-            [...this.state.refreshTokens.values()].find(
-              (token) => token.merchantId === merchantId,
-            ),
+            [...this.state.refreshTokens.values()].find((token) => token.merchantId === merchantId),
             cloneRefreshToken,
           ),
         update: async (token) => {
@@ -223,8 +218,7 @@ class SnapshotUnitOfWork {
         save: async (store) => {
           this.state.stores.set(store.id, cloneStore(store));
         },
-        findById: async (id) =>
-          cloneNullable(this.state.stores.get(id), cloneStore),
+        findById: async (id) => cloneNullable(this.state.stores.get(id), cloneStore),
         findByIdAndMerchantId: async (id, merchantId) =>
           cloneNullable(
             [...this.state.stores.values()].find(
@@ -275,14 +269,9 @@ function makeState(): State {
 function cloneState(state: State): State {
   return {
     merchants: new Map(
-      [...state.merchants.entries()].map(([id, merchant]) => [
-        id,
-        cloneMerchant(merchant),
-      ]),
+      [...state.merchants.entries()].map(([id, merchant]) => [id, cloneMerchant(merchant)]),
     ),
-    stores: new Map(
-      [...state.stores.entries()].map(([id, store]) => [id, cloneStore(store)]),
-    ),
+    stores: new Map([...state.stores.entries()].map(([id, store]) => [id, cloneStore(store)])),
     refreshTokens: new Map(
       [...state.refreshTokens.entries()].map(([token, refreshToken]) => [
         token,
@@ -298,15 +287,15 @@ function cloneNullable<T>(value: T | undefined, clone: (value: T) => T): T | nul
 
 function makeMerchant(currentStoreId?: string): Merchant {
   return Merchant.reconstitute({
-    id: "merchant-1",
-    email: new Email("merchant@example.com"),
-    document: new Document("52998224725"),
-    passwordHash: "hashed-secret",
-    name: "Merchant",
+    id: 'merchant-1',
+    email: new Email('merchant@example.com'),
+    document: new Document('52998224725'),
+    passwordHash: 'hashed-secret',
+    name: 'Merchant',
     isActive: true,
     currentStoreId,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
 }
 
@@ -321,8 +310,8 @@ function makeStore(merchantId: string, id: string): Store {
     settlementDays: 30,
     feePercent: 1.5,
     feeFixed: 15,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
 }
 
@@ -331,9 +320,9 @@ function makeRefreshToken(merchantId: string, token: string): RefreshToken {
     id: `refresh-${token}`,
     token,
     merchantId,
-    expiresAt: new Date("2026-12-31T00:00:00.000Z"),
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    expiresAt: new Date('2026-12-31T00:00:00.000Z'),
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
 }
 
@@ -370,7 +359,7 @@ function cloneRefreshToken(token: RefreshToken): RefreshToken {
 function makeJwtService() {
   return {
     generateAccessToken: vi.fn((_merchantId: string, storeId: string | null) =>
-      Promise.resolve(`access:${storeId ?? "none"}`),
+      Promise.resolve(`access:${storeId ?? 'none'}`),
     ),
   };
 }

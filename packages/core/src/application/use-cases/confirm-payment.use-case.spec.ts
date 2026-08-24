@@ -1,33 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
-import { ConfirmPaymentUseCase } from "./confirm-payment.use-case";
-import { Payment } from "../../domain/entities/payment.entity";
-import { PixCharge, PixChargeStatus } from "../../domain/entities/pix-charge.entity";
-import { Environment } from "../../domain/value-objects/environment.vo";
-import { Customer } from "../../domain/entities/customer.entity";
-import { Document } from "../../domain/value-objects/document.vo";
-import { PixChargeNotOpenError } from "../../domain/errors/pix-charge-not-open.error";
-import { LiveEnvironmentNotAllowedError } from "../../domain/errors/live-environment-not-allowed.error";
+import { describe, expect, it, vi } from 'vitest';
+import { ConfirmPaymentUseCase } from './confirm-payment.use-case';
+import { Payment } from '../../domain/entities/payment.entity';
+import { PixCharge, PixChargeStatus } from '../../domain/entities/pix-charge.entity';
+import { Environment } from '../../domain/value-objects/environment.vo';
+import { Customer } from '../../domain/entities/customer.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { PixChargeNotOpenError } from '../../domain/errors/pix-charge-not-open.error';
+import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 
-describe("ConfirmPaymentUseCase", () => {
+describe('ConfirmPaymentUseCase', () => {
   const account = {
-    id: "account-1",
+    id: 'account-1',
     totalBalance: 7855,
     addToPending: vi.fn(),
   };
 
   const store = {
-    id: "store-1",
-    name: "Hockpay Store",
+    id: 'store-1',
+    name: 'Hockpay Store',
   };
 
-  it("builds the receipt from the payment payer snapshot", async () => {
+  it('builds the receipt from the payment payer snapshot', async () => {
     const payment = Payment.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       fee: 135,
       netAmount: 7855,
-      payerName: "Visitante",
-      payerEmail: "guest@example.com",
+      payerName: 'Visitante',
+      payerEmail: 'guest@example.com',
       expiresAt: new Date(Date.now() + 60_000),
       environment: Environment.TEST,
     });
@@ -68,25 +68,25 @@ describe("ConfirmPaymentUseCase", () => {
     const useCase = new ConfirmPaymentUseCase(unitOfWork as any);
 
     await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       paymentId: payment.id,
     });
 
-    expect(savedReceipt.payerName).toBe("Visitante");
-    expect(savedReceipt.payerEmail).toBe("guest@example.com");
+    expect(savedReceipt.payerName).toBe('Visitante');
+    expect(savedReceipt.payerEmail).toBe('guest@example.com');
   });
 
-  it("locks payment, Pix charge and account before confirming a Pix payment", async () => {
+  it('locks payment, Pix charge and account before confirming a Pix payment', async () => {
     const pixCharge = PixCharge.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
-      pixQrCode: "qr-code",
-      pixCopyPaste: "copy-paste",
-      pixTxId: "tx-1",
+      pixQrCode: 'qr-code',
+      pixCopyPaste: 'copy-paste',
+      pixTxId: 'tx-1',
       expiresAt: new Date(Date.now() + 60_000),
     });
     const payment = Payment.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       pixChargeId: pixCharge.id,
       amount: 7990,
       fee: 135,
@@ -132,35 +132,34 @@ describe("ConfirmPaymentUseCase", () => {
     };
 
     await new ConfirmPaymentUseCase(unitOfWork as any).execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       paymentId: payment.id,
     });
 
     expect(paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
       payment.id,
-      "store-1",
+      'store-1',
     );
-    expect(
-      pixChargeRepository.findByIdAndStoreIdForUpdate,
-    ).toHaveBeenCalledWith(pixCharge.id, "store-1");
-    expect(accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(
-      "store-1",
+    expect(pixChargeRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
+      pixCharge.id,
+      'store-1',
     );
+    expect(accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith('store-1');
     expect(pixChargeRepository.update).toHaveBeenCalledWith(pixCharge);
   });
 
-  it("rejects a Pix payment when the locked Pix charge is no longer open", async () => {
+  it('rejects a Pix payment when the locked Pix charge is no longer open', async () => {
     const pixCharge = PixCharge.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
-      pixQrCode: "qr-code",
-      pixCopyPaste: "copy-paste",
-      pixTxId: "tx-1",
+      pixQrCode: 'qr-code',
+      pixCopyPaste: 'copy-paste',
+      pixTxId: 'tx-1',
       expiresAt: new Date(Date.now() + 60_000),
     });
     pixCharge.cancel();
     const payment = Payment.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       pixChargeId: pixCharge.id,
       amount: 7990,
       fee: 135,
@@ -191,20 +190,20 @@ describe("ConfirmPaymentUseCase", () => {
 
     await expect(
       new ConfirmPaymentUseCase(unitOfWork as any).execute({
-        storeId: "store-1",
+        storeId: 'store-1',
         paymentId: payment.id,
       }),
     ).rejects.toBeInstanceOf(PixChargeNotOpenError);
 
-    expect(payment.status).toBe("PENDING");
+    expect(payment.status).toBe('PENDING');
     expect(pixCharge.status).toBe(PixChargeStatus.CANCELLED);
     expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
     expect(paymentRepository.update).not.toHaveBeenCalled();
   });
 
-  it("refuses to confirm a LIVE payment", async () => {
+  it('refuses to confirm a LIVE payment', async () => {
     const payment = Payment.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       amount: 7990,
       fee: 135,
       netAmount: 7855,
@@ -229,26 +228,26 @@ describe("ConfirmPaymentUseCase", () => {
 
     await expect(
       new ConfirmPaymentUseCase(unitOfWork as any).execute({
-        storeId: "store-1",
+        storeId: 'store-1',
         paymentId: payment.id,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
-    expect(payment.status).toBe("PENDING");
+    expect(payment.status).toBe('PENDING');
     expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
     expect(paymentRepository.update).not.toHaveBeenCalled();
   });
 
-  it("falls back to the associated customer when the payment has no payer snapshot", async () => {
+  it('falls back to the associated customer when the payment has no payer snapshot', async () => {
     const customer = Customer.create({
-      storeId: "store-1",
-      name: "Cliente Legado",
-      email: "legacy@example.com",
-      document: new Document("52998224725"),
+      storeId: 'store-1',
+      name: 'Cliente Legado',
+      email: 'legacy@example.com',
+      document: new Document('52998224725'),
     });
 
     const payment = Payment.create({
-      storeId: "store-1",
+      storeId: 'store-1',
       customerId: customer.id,
       amount: 7990,
       fee: 135,
@@ -296,13 +295,13 @@ describe("ConfirmPaymentUseCase", () => {
     const useCase = new ConfirmPaymentUseCase(unitOfWork as any);
 
     await useCase.execute({
-      storeId: "store-1",
+      storeId: 'store-1',
       paymentId: payment.id,
     });
 
-    expect(savedReceipt.payerName).toBe("Cliente Legado");
-    expect(savedReceipt.payerDocument).toBe("52998224725");
-    expect(savedReceipt.payerEmail).toBe("legacy@example.com");
+    expect(savedReceipt.payerName).toBe('Cliente Legado');
+    expect(savedReceipt.payerDocument).toBe('52998224725');
+    expect(savedReceipt.payerEmail).toBe('legacy@example.com');
     expect(customerRepository.findById).toHaveBeenCalledWith(customer.id);
   });
 });

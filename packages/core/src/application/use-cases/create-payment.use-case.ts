@@ -1,28 +1,24 @@
-import {
-  Payment,
-  PaymentObject,
-  PaymentMethod,
-} from "../../domain/entities/payment.entity";
-import { LineItemObject } from "../../domain/entities/line-item.entity";
-import { PixCharge } from "../../domain/entities/pix-charge.entity";
-import { OutboxEvent } from "../../domain/entities/outbox-event.entity";
-import { Document } from "../../domain/value-objects/document.vo";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { Payment, PaymentObject, PaymentMethod } from '../../domain/entities/payment.entity';
+import { LineItemObject } from '../../domain/entities/line-item.entity';
+import { PixCharge } from '../../domain/entities/pix-charge.entity';
+import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { Document } from '../../domain/value-objects/document.vo';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   ITransactedRepositories,
   IUnitOfWork,
-} from "../../domain/repositories/unit-of-work.interface";
-import { IPixQrCodeGeneratorPort } from "../ports/pix-qr-code-generator.port";
-import { IExpirationQueuePort } from "../ports/expiration-queue.port";
-import { FeePolicy } from "../services/fee-policy.service";
-import { resolvePixMerchantCity } from "../services/pix-merchant-city";
-import { StoreNotFoundError } from "../../domain/errors/store-not-found.error";
-import { StoreInactiveError } from "../../domain/errors/store-inactive.error";
-import { StoreNotApprovedError } from "../../domain/errors/store-not-approved.error";
-import { ExternalIdAlreadyExistsError } from "../../domain/errors/external-id-already-exists.error";
-import { UnsupportedPaymentMethodError } from "../../domain/errors/unsupported-payment-method.error";
-import { Customer } from "../../domain/entities/customer.entity";
-import { CustomerIdentityConflictError } from "../../domain/errors/customer-identity-conflict.error";
+} from '../../domain/repositories/unit-of-work.interface';
+import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
+import { IExpirationQueuePort } from '../ports/expiration-queue.port';
+import { FeePolicy } from '../services/fee-policy.service';
+import { resolvePixMerchantCity } from '../services/pix-merchant-city';
+import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
+import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
+import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { ExternalIdAlreadyExistsError } from '../../domain/errors/external-id-already-exists.error';
+import { UnsupportedPaymentMethodError } from '../../domain/errors/unsupported-payment-method.error';
+import { Customer } from '../../domain/entities/customer.entity';
+import { CustomerIdentityConflictError } from '../../domain/errors/customer-identity-conflict.error';
 
 /**
  * Customer data provided in the payment creation payload.
@@ -44,8 +40,8 @@ export interface PaymentCustomerInput {
 }
 
 export enum CustomerPromotionPolicy {
-  DIRECT_PAYMENT_API = "DIRECT_PAYMENT_API",
-  CHECKOUT_SESSION = "CHECKOUT_SESSION",
+  DIRECT_PAYMENT_API = 'DIRECT_PAYMENT_API',
+  CHECKOUT_SESSION = 'CHECKOUT_SESSION',
 }
 
 /**
@@ -155,9 +151,7 @@ export class CreatePaymentUseCase {
     }
 
     // 3. Resolve customer identity and promotion strategy
-    const document = input.customer.document
-      ? new Document(input.customer.document)
-      : undefined;
+    const document = input.customer.document ? new Document(input.customer.document) : undefined;
     const externalId = input.customer.externalId?.trim() || undefined;
 
     const customerByExternalId = externalId
@@ -173,17 +167,13 @@ export class CreatePaymentUseCase {
       customerByExternalId.id !== customerByDocument.id
     ) {
       throw new CustomerIdentityConflictError(
-        "Provided externalId and document refer to different customers",
+        'Provided externalId and document refer to different customers',
       );
     }
 
-    if (
-      customerByExternalId &&
-      document &&
-      !customerByExternalId.document.equals(document)
-    ) {
+    if (customerByExternalId && document && !customerByExternalId.document.equals(document)) {
       throw new CustomerIdentityConflictError(
-        "Provided document does not match the customer linked to this externalId",
+        'Provided document does not match the customer linked to this externalId',
       );
     }
 
@@ -194,20 +184,16 @@ export class CreatePaymentUseCase {
       customerByDocument.externalId !== externalId
     ) {
       throw new CustomerIdentityConflictError(
-        "Provided externalId does not match the customer linked to this document",
+        'Provided externalId does not match the customer linked to this document',
       );
     }
 
     let customer = customerByExternalId ?? customerByDocument;
     let customerCreated = false;
     const customerPromotionPolicy =
-      input.customerPromotionPolicy ??
-      CustomerPromotionPolicy.DIRECT_PAYMENT_API;
+      input.customerPromotionPolicy ?? CustomerPromotionPolicy.DIRECT_PAYMENT_API;
 
-    if (
-      !customer &&
-      shouldCreateCustomer(customerPromotionPolicy, input.customer, document)
-    ) {
+    if (!customer && shouldCreateCustomer(customerPromotionPolicy, input.customer, document)) {
       customer = Customer.create({
         storeId: input.storeId,
         externalId,
@@ -273,7 +259,7 @@ export class CreatePaymentUseCase {
     const pixCharge = PixCharge.create({
       storeId: input.storeId,
       amount: input.amount,
-      currency: "BRL",
+      currency: 'BRL',
       pixQrCode: qrCodeResult.qrCodeBase64,
       pixCopyPaste: qrCodeResult.copyPaste,
       pixTxId: qrCodeResult.txId,
@@ -313,9 +299,9 @@ export class CreatePaymentUseCase {
 
     // 9. Create outbox event for webhook notification
     const outboxEvent = OutboxEvent.create({
-      aggregateType: "Payment",
+      aggregateType: 'Payment',
       aggregateId: payment.id,
-      eventType: "payment.created",
+      eventType: 'payment.created',
       requestId: input.requestId,
       storeId: payment.storeId,
       payload: payment.toObject() as unknown as Record<string, unknown>,
@@ -350,7 +336,7 @@ export class CreatePaymentUseCase {
    */
   private generateTxId(): string {
     const timestamp = Date.now().toString(36);
-    const random = crypto.randomUUID().split("-")[0];
+    const random = crypto.randomUUID().split('-')[0];
     return `HP${timestamp}${random}`.substring(0, 35);
   }
 }

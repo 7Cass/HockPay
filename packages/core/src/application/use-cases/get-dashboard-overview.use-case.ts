@@ -1,11 +1,7 @@
-import { AccountNotFoundError } from "../../domain/errors/account-not-found.error";
-import { Environment } from "../../domain/value-objects/environment.vo";
+import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
-export type DashboardPaymentOrigin =
-  | "api"
-  | "checkout"
-  | "payment_link"
-  | "unknown";
+export type DashboardPaymentOrigin = 'api' | 'checkout' | 'payment_link' | 'unknown';
 
 export interface DashboardOverviewDto {
   period: {
@@ -69,7 +65,7 @@ export interface DashboardOverviewDto {
     activeAlerts: number;
     failedWebhookDeliveries: number;
     failedAlertDeliveries: number;
-    environment: "TEST" | "LIVE";
+    environment: 'TEST' | 'LIVE';
   };
   recentPayments: Array<{
     id: string;
@@ -114,60 +110,47 @@ export interface DashboardDateRangeInput {
 }
 
 export interface IDashboardOverviewRepository {
-  getAccountBalanceByStoreId(
-    storeId: string,
-  ): Promise<DashboardAccountBalanceProjection | null>;
-  getPerformance(
-    input: DashboardDateRangeInput,
-  ): Promise<DashboardPerformanceProjection>;
-  getBalanceMovement(
-    input: DashboardDateRangeInput,
-  ): Promise<DashboardBalanceMovementProjection>;
-  getChart(
-    input: DashboardDateRangeInput,
-  ): Promise<DashboardOverviewDto["chart"]>;
+  getAccountBalanceByStoreId(storeId: string): Promise<DashboardAccountBalanceProjection | null>;
+  getPerformance(input: DashboardDateRangeInput): Promise<DashboardPerformanceProjection>;
+  getBalanceMovement(input: DashboardDateRangeInput): Promise<DashboardBalanceMovementProjection>;
+  getChart(input: DashboardDateRangeInput): Promise<DashboardOverviewDto['chart']>;
   getConversion(
-    input: Omit<DashboardDateRangeInput, "accountId">,
-  ): Promise<DashboardOverviewDto["conversion"]>;
+    input: Omit<DashboardDateRangeInput, 'accountId'>,
+  ): Promise<DashboardOverviewDto['conversion']>;
   getPaymentStatusBreakdown(
-    input: Omit<DashboardDateRangeInput, "accountId">,
-  ): Promise<DashboardOverviewDto["paymentStatusBreakdown"]>;
+    input: Omit<DashboardDateRangeInput, 'accountId'>,
+  ): Promise<DashboardOverviewDto['paymentStatusBreakdown']>;
   getAttention(
-    input: Omit<DashboardDateRangeInput, "accountId">,
-  ): Promise<DashboardOverviewDto["attention"]>;
+    input: Omit<DashboardDateRangeInput, 'accountId'>,
+  ): Promise<DashboardOverviewDto['attention']>;
   getIntegrationsHealth(
-    input: Omit<DashboardDateRangeInput, "accountId">,
-  ): Promise<Omit<DashboardOverviewDto["integrationsHealth"], "environment">>;
+    input: Omit<DashboardDateRangeInput, 'accountId'>,
+  ): Promise<Omit<DashboardOverviewDto['integrationsHealth'], 'environment'>>;
   getRecentPayments(
     storeId: string,
     limit: number,
-  ): Promise<DashboardOverviewDto["recentPayments"]>;
+  ): Promise<DashboardOverviewDto['recentPayments']>;
 }
 
 export interface GetDashboardOverviewInput {
   storeId: string;
   startDate: Date;
   endDate: Date;
-  environment?: Environment | "TEST" | "LIVE";
+  environment?: Environment | 'TEST' | 'LIVE';
 }
 
 export class GetDashboardOverviewUseCase {
-  constructor(
-    private readonly dashboardOverviewRepository: IDashboardOverviewRepository,
-  ) {}
+  constructor(private readonly dashboardOverviewRepository: IDashboardOverviewRepository) {}
 
-  async execute(
-    input: GetDashboardOverviewInput,
-  ): Promise<DashboardOverviewDto> {
+  async execute(input: GetDashboardOverviewInput): Promise<DashboardOverviewDto> {
     const { previousStartDate, previousEndDate } = calculatePreviousPeriod(
       input.startDate,
       input.endDate,
     );
 
-    const balance =
-      await this.dashboardOverviewRepository.getAccountBalanceByStoreId(
-        input.storeId,
-      );
+    const balance = await this.dashboardOverviewRepository.getAccountBalanceByStoreId(
+      input.storeId,
+    );
 
     if (!balance) {
       throw new AccountNotFoundError(input.storeId);
@@ -249,18 +232,12 @@ export class GetDashboardOverviewUseCase {
           currentPerformance.grossVolume,
           previousPerformance.grossVolume,
         ),
-        netVolumeDelta: calculateDelta(
-          currentPerformance.netVolume,
-          previousPerformance.netVolume,
-        ),
+        netVolumeDelta: calculateDelta(currentPerformance.netVolume, previousPerformance.netVolume),
         salesCountDelta: calculateDelta(
           currentPerformance.salesCount,
           previousPerformance.salesCount,
         ),
-        averageTicketDelta: calculateDelta(
-          currentAverageTicket,
-          previousAverageTicket,
-        ),
+        averageTicketDelta: calculateDelta(currentAverageTicket, previousAverageTicket),
       },
       conversion,
       chart,
@@ -286,10 +263,7 @@ export function calculatePreviousPeriod(
   return { previousStartDate, previousEndDate };
 }
 
-export function calculateDelta(
-  currentValue: number,
-  previousValue: number,
-): number | null {
+export function calculateDelta(currentValue: number, previousValue: number): number | null {
   if (previousValue === 0) {
     return currentValue === 0 ? 0 : null;
   }
@@ -297,9 +271,6 @@ export function calculateDelta(
   return (currentValue - previousValue) / previousValue;
 }
 
-function calculateAverageTicket(
-  grossVolume: number,
-  salesCount: number,
-): number {
+function calculateAverageTicket(grossVolume: number, salesCount: number): number {
   return salesCount > 0 ? Math.round(grossVolume / salesCount) : 0;
 }

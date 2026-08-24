@@ -1,8 +1,8 @@
-import { Environment } from "../value-objects/environment.vo";
+import { Environment } from '../value-objects/environment.vo';
 
 export enum IdempotencyKeyStatus {
-  PENDING = "PENDING",
-  COMPLETED = "COMPLETED",
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
 }
 
 export class IdempotencyKey {

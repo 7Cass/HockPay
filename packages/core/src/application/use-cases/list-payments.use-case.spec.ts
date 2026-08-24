@@ -35,10 +35,7 @@ describe('ListPaymentsUseCase', () => {
         limit: 20,
         totalPages: 1,
       }),
-      listByPixChargeIdsAndStoreId: vi.fn().mockResolvedValue([
-        firstAttempt,
-        secondAttempt,
-      ]),
+      listByPixChargeIdsAndStoreId: vi.fn().mockResolvedValue([firstAttempt, secondAttempt]),
     };
 
     const result = await new ListPaymentsUseCase(repository as any).execute({
@@ -61,14 +58,8 @@ describe('ListPaymentsUseCase', () => {
       'payment-confirmed',
       'payment-failed',
     ]);
-    expect(result.payments.map((payment) => payment.attemptNumber)).toEqual([
-      2,
-      1,
-    ]);
-    expect(result.payments.map((payment) => payment.attemptCount)).toEqual([
-      2,
-      2,
-    ]);
+    expect(result.payments.map((payment) => payment.attemptNumber)).toEqual([2, 1]);
+    expect(result.payments.map((payment) => payment.attemptCount)).toEqual([2, 2]);
     expect(result.payments[0].paymentLinkId).toBe('link-1');
     expect(result.payments[0].isLatestAttempt).toBe(true);
   });

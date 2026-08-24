@@ -1,7 +1,4 @@
-import {
-  IdempotencyKey,
-  ReserveIdempotencyKeyProps,
-} from '../entities/idempotency-key.entity';
+import { IdempotencyKey, ReserveIdempotencyKeyProps } from '../entities/idempotency-key.entity';
 import { Environment } from '../value-objects/environment.vo';
 
 export enum IdempotencyReservationStatus {
@@ -86,9 +83,5 @@ export interface IIdempotencyKeyRepository {
    */
   deleteExpired(): Promise<number>;
 
-  deleteExpiredForKey(
-    key: string,
-    storeId: string,
-    environment: Environment,
-  ): Promise<number>;
+  deleteExpiredForKey(key: string, storeId: string, environment: Environment): Promise<number>;
 }

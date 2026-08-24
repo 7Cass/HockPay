@@ -6,9 +6,6 @@ import { DomainError } from './domain-error';
  */
 export class ExternalIdAlreadyExistsError extends DomainError {
   constructor(externalId: string) {
-    super(
-      `A payment with externalId "${externalId}" already exists`,
-      'EXTERNAL_ID_ALREADY_EXISTS'
-    );
+    super(`A payment with externalId "${externalId}" already exists`, 'EXTERNAL_ID_ALREADY_EXISTS');
   }
 }

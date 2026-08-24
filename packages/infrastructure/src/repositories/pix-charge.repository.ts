@@ -1,10 +1,5 @@
-import {
-  IPixChargeRepository,
-  PixCharge,
-  PixChargeProps,
-  PixChargeStatus,
-} from "@hockpay/core";
-import { Prisma, PrismaClient } from "@hockpay/database";
+import { IPixChargeRepository, PixCharge, PixChargeProps, PixChargeStatus } from '@hockpay/core';
+import { Prisma, PrismaClient } from '@hockpay/database';
 
 type PixChargeRow = {
   id: string;
@@ -23,9 +18,7 @@ type PixChargeRow = {
 };
 
 export class PixChargeRepository implements IPixChargeRepository {
-  constructor(
-    private readonly prisma: PrismaClient | Prisma.TransactionClient,
-  ) {}
+  constructor(private readonly prisma: PrismaClient | Prisma.TransactionClient) {}
 
   async save(charge: PixCharge): Promise<void> {
     await this.prisma.pixCharge.create({
@@ -52,20 +45,14 @@ export class PixChargeRepository implements IPixChargeRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findByIdAndStoreId(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
+  async findByIdAndStoreId(id: string, storeId: string): Promise<PixCharge | null> {
     const row = await this.prisma.pixCharge.findFirst({
       where: { id, storeId },
     });
     return row ? this.toDomain(row) : null;
   }
 
-  async findByIdAndStoreIdForUpdate(
-    id: string,
-    storeId: string,
-  ): Promise<PixCharge | null> {
+  async findByIdAndStoreIdForUpdate(id: string, storeId: string): Promise<PixCharge | null> {
     const rows = await this.prisma.$queryRaw<PixChargeRow[]>`
       SELECT
         id,

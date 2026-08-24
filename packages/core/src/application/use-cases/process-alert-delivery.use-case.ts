@@ -45,7 +45,10 @@ export class ProcessAlertDeliveryUseCase {
     let skipped = 0;
 
     for (const config of configs) {
-      let log = await this.alertLogRepository.findByAlertConfigIdAndOutboxEventId(config.id, event.id);
+      let log = await this.alertLogRepository.findByAlertConfigIdAndOutboxEventId(
+        config.id,
+        event.id,
+      );
 
       if (log?.isDelivered()) {
         skipped++;
@@ -77,7 +80,12 @@ export class ProcessAlertDeliveryUseCase {
         log.recordSuccess(response.statusCode, response.body);
         delivered++;
       } else {
-        log.recordFailure(response.statusCode, response.body, response.body, response.retryAfterSeconds);
+        log.recordFailure(
+          response.statusCode,
+          response.body,
+          response.body,
+          response.retryAfterSeconds,
+        );
         failed++;
       }
 

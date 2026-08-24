@@ -7,7 +7,7 @@ import {
   InvalidWebhookEventsError,
   WebhookConfig,
   WebhookConfigObject,
-} from "../..";
+} from '../..';
 
 export interface ICreateWebhookInboxInput {
   storeId: string;
@@ -27,12 +27,8 @@ export class CreateWebhookInboxUseCase {
     private readonly encryption: IEncryptionPort,
   ) {}
 
-  async execute(
-    input: ICreateWebhookInboxInput,
-  ): Promise<ICreateWebhookInboxOutput> {
-    const events = input.events?.length
-      ? input.events
-      : [...ALLOWED_WEBHOOK_EVENTS];
+  async execute(input: ICreateWebhookInboxInput): Promise<ICreateWebhookInboxOutput> {
+    const events = input.events?.length ? input.events : [...ALLOWED_WEBHOOK_EVENTS];
     const invalidEvents = getInvalidEvents(events);
     if (invalidEvents.length > 0) {
       throw new InvalidWebhookEventsError(invalidEvents);
@@ -63,5 +59,5 @@ export class CreateWebhookInboxUseCase {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, "");
+  return baseUrl.replace(/\/+$/, '');
 }
