@@ -3,15 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { StoreController } from './store.controller';
 import {
   CreateStoreUseCase,
-  IUnitOfWork,
   ListStoresUseCase,
   UpdateStoreProfileUseCase,
 } from '@hockpay/core';
-import { StoreRepository, UnitOfWork } from '@hockpay/infrastructure';
+import { StoreRepository } from '@hockpay/infrastructure';
 import { JwtService } from 'src/infra/services/jwt.service';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
 import { SlugGeneratorService } from 'src/infra/services/slug-generator.service';
-import { PrismaService } from 'src/infra/database/prisma.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 import { AuthModule } from '../auth/auth.module';
 
 /**
@@ -19,63 +18,24 @@ import { AuthModule } from '../auth/auth.module';
  *
  * This module provides store-related endpoints and dependencies.
  * Use cases from the core layer are instantiated here with their dependencies.
+ *
+ * StoreRepository, UnitOfWork, JwtService e TokenGeneratorService vem do
+ * InfrastructureModule global.
  */
 @Module({
   imports: [ConfigModule, AuthModule],
   controllers: [StoreController],
   providers: [
-    // Infrastructure
-    {
-      provide: StoreRepository,
-      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IUnitOfWork',
-      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
-      inject: [PrismaService],
-    },
-    JwtService,
-    TokenGeneratorService,
     SlugGeneratorService,
 
-    // Use Cases (from core)
-    {
-      provide: CreateStoreUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        jwtService: JwtService,
-        tokenGenerator: TokenGeneratorService,
-        slugGenerator: SlugGeneratorService,
-      ) => {
-        return new CreateStoreUseCase(
-          unitOfWork,
-          jwtService,
-          tokenGenerator,
-          slugGenerator,
-        );
-      },
-      inject: [
-        'IUnitOfWork',
-        JwtService,
-        TokenGeneratorService,
-        SlugGeneratorService,
-      ],
-    },
-    {
-      provide: ListStoresUseCase,
-      useFactory: (storeRepo: StoreRepository) => {
-        return new ListStoresUseCase(storeRepo);
-      },
-      inject: [StoreRepository],
-    },
-    {
-      provide: UpdateStoreProfileUseCase,
-      useFactory: (storeRepo: StoreRepository) => {
-        return new UpdateStoreProfileUseCase(storeRepo);
-      },
-      inject: [StoreRepository],
-    },
+    provideUseCase(CreateStoreUseCase, [
+      'IUnitOfWork',
+      JwtService,
+      TokenGeneratorService,
+      SlugGeneratorService,
+    ]),
+    provideUseCase(ListStoresUseCase, [StoreRepository]),
+    provideUseCase(UpdateStoreProfileUseCase, [StoreRepository]),
   ],
   exports: [CreateStoreUseCase, ListStoresUseCase, UpdateStoreProfileUseCase],
 })

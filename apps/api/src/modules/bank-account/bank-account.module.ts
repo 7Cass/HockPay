@@ -5,54 +5,24 @@ import {
   ListBankAccountsUseCase,
   DeleteBankAccountUseCase,
   SetDefaultBankAccountUseCase,
-  IBankAccountRepository,
-  IUnitOfWork,
 } from '@hockpay/core';
-import { BankAccountRepository, UnitOfWork } from '@hockpay/infrastructure';
-import { PrismaService } from 'src/infra/database/prisma.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
-import { JwtService } from 'src/infra/services/jwt.service';
 
+/**
+ * Bank Account Module
+ *
+ * Repositorios e UnitOfWork vem do InfrastructureModule global.
+ */
 @Module({
   imports: [AuthModule, ApiKeyModule],
   controllers: [BankAccountController],
   providers: [
-    JwtService,
-    {
-      provide: 'IBankAccountRepository',
-      useFactory: (prisma: PrismaService) => new BankAccountRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: 'IUnitOfWork',
-      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: CreateBankAccountUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new CreateBankAccountUseCase(unitOfWork),
-      inject: ['IUnitOfWork'],
-    },
-    {
-      provide: ListBankAccountsUseCase,
-      useFactory: (bankAccountRepo: IBankAccountRepository) =>
-        new ListBankAccountsUseCase(bankAccountRepo),
-      inject: ['IBankAccountRepository'],
-    },
-    {
-      provide: DeleteBankAccountUseCase,
-      useFactory: (bankAccountRepo: IBankAccountRepository) =>
-        new DeleteBankAccountUseCase(bankAccountRepo),
-      inject: ['IBankAccountRepository'],
-    },
-    {
-      provide: SetDefaultBankAccountUseCase,
-      useFactory: (unitOfWork: IUnitOfWork) =>
-        new SetDefaultBankAccountUseCase(unitOfWork),
-      inject: ['IUnitOfWork'],
-    },
+    provideUseCase(CreateBankAccountUseCase, ['IUnitOfWork']),
+    provideUseCase(ListBankAccountsUseCase, ['IBankAccountRepository']),
+    provideUseCase(DeleteBankAccountUseCase, ['IBankAccountRepository']),
+    provideUseCase(SetDefaultBankAccountUseCase, ['IUnitOfWork']),
   ],
 })
 export class BankAccountModule {}

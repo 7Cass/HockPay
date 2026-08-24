@@ -7,48 +7,28 @@ import {
 } from '@hockpay/core';
 import { MerchantRepository } from '@hockpay/infrastructure';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
-import { PrismaService } from 'src/infra/database/prisma.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 
 /**
  * Merchant Module
  *
  * This module provides the merchant-related endpoints and dependencies.
  * Use cases from the core layer are instantiated here with their dependencies.
+ *
+ * MerchantRepository vem do InfrastructureModule global.
  */
 @Module({
   imports: [],
   controllers: [MerchantController],
   providers: [
-    // Infrastructure
-    {
-      provide: MerchantRepository,
-      useFactory: (prisma: PrismaService) => new MerchantRepository(prisma),
-      inject: [PrismaService],
-    },
     PasswordHasherService,
 
-    // Use Cases (from core)
-    {
-      provide: CreateMerchantUseCase,
-      useFactory: (repo: MerchantRepository, hasher: PasswordHasherService) => {
-        return new CreateMerchantUseCase(repo, hasher);
-      },
-      inject: [MerchantRepository, PasswordHasherService],
-    },
-    {
-      provide: GetMerchantUseCase,
-      useFactory: (repo: MerchantRepository) => {
-        return new GetMerchantUseCase(repo);
-      },
-      inject: [MerchantRepository],
-    },
-    {
-      provide: GetCurrentMerchantUseCase,
-      useFactory: (repo: MerchantRepository) => {
-        return new GetCurrentMerchantUseCase(repo);
-      },
-      inject: [MerchantRepository],
-    },
+    provideUseCase(CreateMerchantUseCase, [
+      MerchantRepository,
+      PasswordHasherService,
+    ]),
+    provideUseCase(GetMerchantUseCase, [MerchantRepository]),
+    provideUseCase(GetCurrentMerchantUseCase, [MerchantRepository]),
   ],
   exports: [
     CreateMerchantUseCase,

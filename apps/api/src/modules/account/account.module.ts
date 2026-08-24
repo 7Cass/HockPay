@@ -1,25 +1,18 @@
 import { Module } from '@nestjs/common';
 import { GetAccountUseCase } from '@hockpay/core';
-import { AccountRepository } from '@hockpay/infrastructure';
-import { PrismaService } from '../../infra/database/prisma.service';
 import { AccountController } from './account.controller';
+import { provideUseCase } from '../../common/provide-use-case';
 import { AuthModule } from '../auth/auth.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
-import { JwtService } from '../../infra/services/jwt.service';
 
+/**
+ * Account Module
+ *
+ * AccountRepository vem do InfrastructureModule global.
+ */
 @Module({
   imports: [AuthModule, ApiKeyModule],
   controllers: [AccountController],
-  providers: [
-    JwtService,
-    {
-      provide: GetAccountUseCase,
-      useFactory: (prismaService: PrismaService) => {
-        const accountRepo = new AccountRepository(prismaService);
-        return new GetAccountUseCase(accountRepo);
-      },
-      inject: [PrismaService],
-    },
-  ],
+  providers: [provideUseCase(GetAccountUseCase, ['IAccountRepository'])],
 })
 export class AccountModule {}

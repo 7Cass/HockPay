@@ -2,100 +2,48 @@ import { Module } from '@nestjs/common';
 import { CheckoutSessionController } from './checkout-session.controller';
 import {
   CreateCheckoutSessionUseCase,
+  CreatePaymentUseCase,
   GetCheckoutSessionUseCase,
   FulfillCheckoutSessionUseCase,
-  IUnitOfWork,
   LineItemResolverService,
 } from '@hockpay/core';
-import {
-  CheckoutSessionRepository,
-  ProductRepository,
-  StoreRepository,
-  UnitOfWork,
-} from '@hockpay/infrastructure';
-import { PrismaService } from 'src/infra/database/prisma.service';
+import { ProductRepository, StoreRepository } from '@hockpay/infrastructure';
 import { TokenGeneratorService } from 'src/infra/services/token-generator.service';
+import { provideUseCase } from 'src/common/provide-use-case';
 import { PaymentModule } from '../payment/payment.module';
 import { ApiKeyModule } from '../api-key/api-key.module';
 import { AuthModule } from '../auth/auth.module';
-import { CreatePaymentUseCase } from '@hockpay/core';
-import { JwtService } from 'src/infra/services/jwt.service';
 
+/**
+ * Checkout Session Module
+ *
+ * Repositorios e adapters vem do InfrastructureModule global.
+ */
 @Module({
   imports: [PaymentModule, ApiKeyModule, AuthModule],
   controllers: [CheckoutSessionController],
   providers: [
-    {
-      provide: StoreRepository,
-      useFactory: (prisma: PrismaService) => new StoreRepository(prisma),
-      inject: [PrismaService],
-    },
-    TokenGeneratorService,
-    JwtService,
-    {
-      provide: 'ICheckoutSessionRepository',
-      useFactory: (prisma: PrismaService) =>
-        new CheckoutSessionRepository(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: ProductRepository,
-      useFactory: (prisma: PrismaService) => new ProductRepository(prisma),
-      inject: [PrismaService],
-    },
     {
       provide: LineItemResolverService,
       useFactory: (productRepo: ProductRepository) =>
         new LineItemResolverService(productRepo),
       inject: [ProductRepository],
     },
-    {
-      provide: 'IUnitOfWork',
-      useFactory: (prisma: PrismaService) => new UnitOfWork(prisma),
-      inject: [PrismaService],
-    },
-    {
-      provide: CreateCheckoutSessionUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        tokenGenerator: TokenGeneratorService,
-      ) => {
-        return new CreateCheckoutSessionUseCase(
-          unitOfWork,
-          tokenGenerator,
-          process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333',
-        );
-      },
-      inject: ['IUnitOfWork', TokenGeneratorService],
-    },
-    {
-      provide: GetCheckoutSessionUseCase,
-      useFactory: (sessionRepo: any, storeRepo: any, paymentRepo: any) => {
-        return new GetCheckoutSessionUseCase(
-          sessionRepo,
-          storeRepo,
-          paymentRepo,
-        );
-      },
-      inject: [
-        'ICheckoutSessionRepository',
-        StoreRepository,
-        'IPaymentRepository',
-      ],
-    },
-    {
-      provide: FulfillCheckoutSessionUseCase,
-      useFactory: (
-        unitOfWork: IUnitOfWork,
-        createPaymentUseCase: CreatePaymentUseCase,
-      ) => {
-        return new FulfillCheckoutSessionUseCase(
-          unitOfWork,
-          createPaymentUseCase,
-        );
-      },
-      inject: ['IUnitOfWork', CreatePaymentUseCase],
-    },
+
+    provideUseCase(
+      CreateCheckoutSessionUseCase,
+      ['IUnitOfWork', TokenGeneratorService],
+      () => [process.env.CHECKOUT_BASE_URL ?? 'http://localhost:3333'],
+    ),
+    provideUseCase(GetCheckoutSessionUseCase, [
+      'ICheckoutSessionRepository',
+      StoreRepository,
+      'IPaymentRepository',
+    ]),
+    provideUseCase(FulfillCheckoutSessionUseCase, [
+      'IUnitOfWork',
+      CreatePaymentUseCase,
+    ]),
   ],
 })
 export class CheckoutSessionModule {}
