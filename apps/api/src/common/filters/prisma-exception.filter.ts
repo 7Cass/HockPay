@@ -14,22 +14,45 @@ import {
 } from '../constants/error-codes';
 import type { ErrorResponseDto } from '../dto/error-response.dto';
 
-@Catch(Prisma.PrismaClientKnownRequestError)
+/**
+ * Falhas do banco saem no mesmo envelope de erro de todo o resto da API.
+ *
+ * `PrismaClientUnknownRequestError` cobre o que o Prisma nao classifica —
+ * `RAISE EXCEPTION` de trigger, constraint de exclusao, erro de conector. Sem
+ * ele, essas falhas caiam no handler padrao do Nest e voltavam como
+ * `{statusCode, message}` sem `code` e, pior, sem `requestId`: justamente o
+ * que se procura no log quando um 500 aparece.
+ *
+ * A mensagem do Postgres fica no log do servidor, nunca na resposta.
+ */
+@Catch(
+  Prisma.PrismaClientKnownRequestError,
+  Prisma.PrismaClientUnknownRequestError,
+)
 export class PrismaExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(PrismaExceptionFilter.name);
 
-  catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
+  catch(
+    exception:
+      | Prisma.PrismaClientKnownRequestError
+      | Prisma.PrismaClientUnknownRequestError,
+    host: ArgumentsHost,
+  ) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const requestId = (request as { id?: string }).id;
-    const mapped = mapPrismaError(exception);
+    const mapped =
+      exception instanceof Prisma.PrismaClientKnownRequestError
+        ? mapPrismaError(exception)
+        : null;
 
     if (!mapped) {
-      this.logger.error(
-        `Unmapped Prisma error ${exception.code}`,
-        exception.stack,
-      );
+      const code =
+        exception instanceof Prisma.PrismaClientKnownRequestError
+          ? exception.code
+          : 'unknown';
+      this.logger.error(`Unmapped Prisma error ${code}`, exception.stack);
       response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         error: {
           code: 'DATABASE_ERROR',
