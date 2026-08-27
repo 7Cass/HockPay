@@ -1,89 +1,105 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
+import { DatePipe } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  WebhookService,
+  lucideCheck,
+  lucideCircleAlert,
+  lucideCopy,
+  lucideHistory,
+  lucideInbox,
+  lucideNetwork,
+  lucidePlus,
+  lucideRefreshCcw,
+  lucideSend,
+  lucideTrash2,
+} from '@ng-icons/lucide';
+import { toast } from 'ngx-sonner';
+import {
   WebhookConfig,
   WebhookDeliveryStatus,
   WebhookInboxEvent,
   WebhookLog,
+  WebhookService,
 } from '../../../../core/services/webhook.service';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
-
-// Spartan UI
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmTableImports } from '@spartan-ng/helm/table';
-import { HlmBadgeImports } from '@spartan-ng/helm/badge';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
-import { toast } from 'ngx-sonner';
-
-// Icons
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
 import {
-  lucideRefreshCcw,
-  lucidePlus,
-  lucideTrash2,
-  lucideNetwork,
-  lucideXCircle,
-  lucideTestTubeDiagonal,
-  lucideHistory,
-  lucideCopy,
-  lucideAlertTriangle,
-  lucideCheck,
-  lucideClock,
-} from '@ng-icons/lucide';
+  CopyValue,
+  PageHeader,
+  PageState,
+  Sheet,
+  StatusChip,
+  type Tone,
+} from '../../../../shared/ui';
+
+type LogFilter = 'all' | 'delivered' | 'failed' | 'pending';
+
+/** Quatro desfechos de entrega, quatro tons. Retentável ainda é esperança. */
+const LOG_TONES: Record<WebhookDeliveryStatus, Tone> = {
+  PENDING: 'neutral',
+  DELIVERED: 'ok',
+  FAILED_RETRYABLE: 'warn',
+  FAILED_FINAL: 'bad',
+};
+
+const LOG_LABELS: Record<WebhookDeliveryStatus, string> = {
+  PENDING: 'Pendente',
+  DELIVERED: 'Entregue',
+  FAILED_RETRYABLE: 'Falha temporária',
+  FAILED_FINAL: 'Falha final',
+};
+
+const FILTER_LABELS: Record<LogFilter, string> = {
+  all: 'Todas',
+  delivered: 'Entregues',
+  failed: 'Com falha',
+  pending: 'Pendentes',
+};
 
 @Component({
   selector: 'app-webhooks',
   standalone: true,
   imports: [
-    CommonModule,
     DatePipe,
+    NgIcon,
     ReactiveFormsModule,
-    // UI Components
-    ...HlmButtonImports,
-    ...HlmTableImports,
-    ...HlmBadgeImports,
-    ...HlmSpinnerImports,
-    NgIconComponent,
-    HlmIconImports,
-    ...DialogImports,
+    CopyValue,
+    PageHeader,
+    PageState,
+    Sheet,
+    StatusChip,
   ],
   viewProviders: [
     provideIcons({
-      lucideRefreshCcw,
-      lucidePlus,
-      lucideTrash2,
-      lucideNetwork,
-      lucideXCircle,
-      lucideTestTubeDiagonal,
-      lucideHistory,
-      lucideCopy,
-      lucideAlertTriangle,
       lucideCheck,
-      lucideClock,
+      lucideCircleAlert,
+      lucideCopy,
+      lucideHistory,
+      lucideInbox,
+      lucideNetwork,
+      lucidePlus,
+      lucideRefreshCcw,
+      lucideSend,
+      lucideTrash2,
     }),
   ],
   templateUrl: './webhooks.html',
+  styleUrl: './webhooks.css',
 })
 export class Webhooks implements OnInit {
   private readonly webhookService = inject(WebhookService);
 
-  // State Signals
-  webhooks = signal<WebhookConfig[]>([]);
-  isLoading = signal<boolean>(true);
-  error = signal<string | null>(null);
+  readonly webhooks = signal<WebhookConfig[]>([]);
+  readonly isLoading = signal(true);
+  readonly error = signal<string | null>(null);
 
-  // Creation State
-  isCreating = signal<boolean>(false);
-  isCreatingInbox = signal<boolean>(false);
-  newWebhookForm = new FormGroup({
+  readonly isCreating = signal(false);
+  readonly isCreatingInbox = signal(false);
+  readonly newWebhookForm = new FormGroup({
     url: new FormControl('', [Validators.required, Validators.pattern('https?://.+')]),
     events: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
   });
 
-  availableEvents = [
+  readonly availableEvents = [
     { id: 'payment.created', label: 'Pagamento criado' },
     { id: 'payment.confirmed', label: 'Pagamento confirmado' },
     { id: 'payment.failed', label: 'Pagamento falhou' },
@@ -91,74 +107,72 @@ export class Webhooks implements OnInit {
     { id: 'payment.released', label: 'Repasse liberado' },
   ];
 
-  logStatusOptions: Array<'all' | 'delivered' | 'failed' | 'pending'> = [
-    'all',
-    'delivered',
-    'failed',
-    'pending',
-  ];
+  readonly logStatusOptions: LogFilter[] = ['all', 'delivered', 'failed', 'pending'];
 
-  createDialogState = signal<'closed' | 'open'>('closed');
+  readonly createDialogState = signal<'closed' | 'open'>('closed');
 
-  // Secret Modal State
-  newSecret = signal<string>('');
-  copied = signal<boolean>(false);
-  secretDialogState = signal<'closed' | 'open'>('closed');
+  readonly newSecret = signal('');
+  readonly copied = signal(false);
+  readonly secretDialogState = signal<'closed' | 'open'>('closed');
 
-  // Test State
-  hookToTest = signal<WebhookConfig | null>(null);
-  testDialogState = signal<'closed' | 'open'>('closed');
-  isTesting = signal<boolean>(false);
+  readonly hookToTest = signal<WebhookConfig | null>(null);
+  readonly testDialogState = signal<'closed' | 'open'>('closed');
+  readonly isTesting = signal(false);
 
-  // Delete State
-  hookToDelete = signal<WebhookConfig | null>(null);
-  deleteDialogState = signal<'closed' | 'open'>('closed');
-  isDeleting = signal<boolean>(false);
+  readonly hookToDelete = signal<WebhookConfig | null>(null);
+  readonly deleteDialogState = signal<'closed' | 'open'>('closed');
+  readonly isDeleting = signal(false);
 
-  // Logs State
-  logsDialogState = signal<'closed' | 'open'>('closed');
-  hookForLogs = signal<WebhookConfig | null>(null);
-  webhookLogs = signal<WebhookLog[]>([]);
-  logsStatus = signal<'all' | 'delivered' | 'failed' | 'pending'>('all');
-  logsTotal = signal(0);
-  isLogsLoading = signal<boolean>(false);
-  logsError = signal<string | null>(null);
-  isRetrying = signal<{ [logId: string]: boolean }>({});
+  readonly logsDialogState = signal<'closed' | 'open'>('closed');
+  readonly hookForLogs = signal<WebhookConfig | null>(null);
+  readonly webhookLogs = signal<WebhookLog[]>([]);
+  readonly logsStatus = signal<LogFilter>('all');
+  readonly logsTotal = signal(0);
+  readonly isLogsLoading = signal(false);
+  readonly logsError = signal<string | null>(null);
+  readonly isRetrying = signal<{ [logId: string]: boolean }>({});
 
-  inboxDialogState = signal<'closed' | 'open'>('closed');
-  hookForInbox = signal<WebhookConfig | null>(null);
-  inboxEvents = signal<WebhookInboxEvent[]>([]);
-  inboxTotal = signal(0);
-  isInboxLoading = signal<boolean>(false);
-  inboxError = signal<string | null>(null);
+  readonly inboxDialogState = signal<'closed' | 'open'>('closed');
+  readonly hookForInbox = signal<WebhookConfig | null>(null);
+  readonly inboxEvents = signal<WebhookInboxEvent[]>([]);
+  readonly inboxTotal = signal(0);
+  readonly isInboxLoading = signal(false);
+  readonly inboxError = signal<string | null>(null);
 
   ngOnInit() {
     this.loadWebhooks();
   }
 
-  // Dialog Toggles
   openCreateDialog() {
     this.createDialogState.set('open');
   }
 
   closeCreateDialog() {
+    if (this.isCreating()) return;
     this.createDialogState.set('closed');
     this.newWebhookForm.reset({ events: [] });
   }
 
   closeSecretDialog() {
     this.secretDialogState.set('closed');
+    this.newSecret.set('');
+    this.copied.set(false);
+  }
+
+  isEventSelected(eventId: string): boolean {
+    return (this.newWebhookForm.controls.events.value ?? []).includes(eventId);
   }
 
   toggleEventSelection(eventId: string) {
-    const eventsControl = this.newWebhookForm.get('events');
-    const currentEvents = eventsControl?.value || [];
+    const control = this.newWebhookForm.controls.events;
+    const current = control.value ?? [];
 
-    if (currentEvents.includes(eventId)) {
-      eventsControl?.setValue(currentEvents.filter((e) => e !== eventId));
-    } else {
-      eventsControl?.setValue([...currentEvents, eventId]);
-    }
+    control.setValue(
+      current.includes(eventId)
+        ? current.filter((event) => event !== eventId)
+        : [...current, eventId],
+    );
+    control.markAsTouched();
   }
 
   createWebhook() {
@@ -172,21 +186,17 @@ export class Webhooks implements OnInit {
         this.isCreating.set(false);
         this.newWebhookForm.reset({ events: [] });
 
-        // Push locally without the one-time secret
-        const createdConfig: WebhookConfig = { ...response, secret: undefined } as any;
-        this.webhooks.update((hooks) => [createdConfig, ...hooks]);
+        const { secret, ...config } = response;
+        this.webhooks.update((hooks) => [config as WebhookConfig, ...hooks]);
 
-        this.newSecret.set(response.secret);
+        this.newSecret.set(secret);
         this.copied.set(false);
-
-        // Transition from Create to Secret Modal
         this.createDialogState.set('closed');
         this.secretDialogState.set('open');
       },
-      error: (err) => {
+      error: () => {
         this.isCreating.set(false);
-        console.error('Failed to create webhook', err);
-        toast.error('Falha ao criar webhook. Verifique os dados e tente novamente.');
+        toast.error('Falha ao criar o webhook. Confira a URL e tente de novo.');
       },
     });
   }
@@ -198,30 +208,27 @@ export class Webhooks implements OnInit {
     this.webhookService.createInbox().subscribe({
       next: (response) => {
         this.isCreatingInbox.set(false);
-        const createdConfig: WebhookConfig = { ...response, secret: undefined } as any;
-        this.webhooks.update((hooks) => [createdConfig, ...hooks]);
-        this.newSecret.set(response.secret);
+        const { secret, ...config } = response;
+        this.webhooks.update((hooks) => [config as WebhookConfig, ...hooks]);
+        this.newSecret.set(secret);
         this.copied.set(false);
         this.secretDialogState.set('open');
       },
-      error: (err) => {
+      error: () => {
         this.isCreatingInbox.set(false);
-        console.error('Failed to create webhook inbox', err);
-        toast.error('Falha ao criar inbox de teste.');
+        toast.error('Falha ao criar o inbox de teste.');
       },
     });
   }
 
   copyToClipboard() {
-    if (!this.newSecret()) return;
+    const secret = this.newSecret();
+    if (!secret) return;
 
-    navigator.clipboard.writeText(this.newSecret()).then(() => {
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 3000);
-    });
+    void navigator.clipboard?.writeText(secret);
+    this.copied.set(true);
+    window.setTimeout(() => this.copied.set(false), 3000);
   }
-
-  // --- ACTIONS (Test and Delete) ---
 
   openTestDialog(hook: WebhookConfig) {
     this.hookToTest.set(hook);
@@ -229,8 +236,9 @@ export class Webhooks implements OnInit {
   }
 
   closeTestDialog() {
+    if (this.isTesting()) return;
     this.testDialogState.set('closed');
-    setTimeout(() => this.hookToTest.set(null), 200);
+    window.setTimeout(() => this.hookToTest.set(null), 200);
   }
 
   testWebhook() {
@@ -242,14 +250,11 @@ export class Webhooks implements OnInit {
       next: () => {
         this.isTesting.set(false);
         this.closeTestDialog();
-        // Fire & Forget: test done. Note: Logs will show outcome if they check the history list.
       },
-      error: (err) => {
+      error: () => {
         this.isTesting.set(false);
-        console.error('Failed test webhook', err);
-        // We still close normally, as the log will register the attempt error,
-        // but we can notify the user.
-        toast.error('Falha ao disparar o ping de teste. O endpoint pode estar inacessível.');
+        this.closeTestDialog();
+        toast.error('O ping não saiu. O endpoint pode estar fora do ar.');
       },
     });
   }
@@ -260,8 +265,9 @@ export class Webhooks implements OnInit {
   }
 
   closeDeleteDialog() {
+    if (this.isDeleting()) return;
     this.deleteDialogState.set('closed');
-    setTimeout(() => this.hookToDelete.set(null), 200);
+    window.setTimeout(() => this.hookToDelete.set(null), 200);
   }
 
   deleteWebhook() {
@@ -272,18 +278,17 @@ export class Webhooks implements OnInit {
     this.webhookService.delete(hook.id).subscribe({
       next: () => {
         this.isDeleting.set(false);
-        this.closeDeleteDialog();
-        this.loadWebhooks(); // Refresh list entirely
+        this.deleteDialogState.set('closed');
+        this.hookToDelete.set(null);
+        this.loadWebhooks();
       },
-      error: (err) => {
+      error: () => {
         this.isDeleting.set(false);
-        console.error('Failed to delete webhook', err);
-        toast.error('Falha ao excluir webhook.');
+        toast.error('Falha ao excluir o webhook.');
       },
     });
   }
 
-  // --- LOGS (Delivery History) ---
   openLogsDialog(hook: WebhookConfig) {
     this.hookForLogs.set(hook);
     this.logsStatus.set('all');
@@ -293,7 +298,7 @@ export class Webhooks implements OnInit {
 
   closeLogsDialog() {
     this.logsDialogState.set('closed');
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.hookForLogs.set(null);
       this.webhookLogs.set([]);
       this.logsTotal.set(0);
@@ -308,7 +313,7 @@ export class Webhooks implements OnInit {
 
   closeInboxDialog() {
     this.inboxDialogState.set('closed');
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.hookForInbox.set(null);
       this.inboxEvents.set([]);
       this.inboxTotal.set(0);
@@ -327,8 +332,7 @@ export class Webhooks implements OnInit {
         this.inboxTotal.set(response.total);
         this.isInboxLoading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load webhook inbox events', err);
+      error: () => {
         this.inboxError.set('Falha ao carregar os eventos recebidos.');
         this.isInboxLoading.set(false);
       },
@@ -337,9 +341,7 @@ export class Webhooks implements OnInit {
 
   refreshInboxEvents() {
     const hook = this.hookForInbox();
-    if (hook) {
-      this.loadInboxEvents(hook.id);
-    }
+    if (hook) this.loadInboxEvents(hook.id);
   }
 
   loadLogs(hookId: string) {
@@ -348,15 +350,9 @@ export class Webhooks implements OnInit {
     this.webhookLogs.set([]);
     this.logsTotal.set(0);
 
-    const selectedStatus = this.logsStatus();
-    const status: 'delivered' | 'failed' | 'pending' | undefined =
-      selectedStatus === 'all' ? undefined : selectedStatus;
-    const params: { limit: number; status?: 'delivered' | 'failed' | 'pending' } = {
-      limit: 50,
-    };
-    if (status) {
-      params.status = status;
-    }
+    const selected = this.logsStatus();
+    const params: { limit: number; status?: 'delivered' | 'failed' | 'pending' } = { limit: 50 };
+    if (selected !== 'all') params.status = selected;
 
     this.webhookService.listLogs(hookId, params).subscribe({
       next: (response) => {
@@ -364,36 +360,36 @@ export class Webhooks implements OnInit {
         this.logsTotal.set(response.total);
         this.isLogsLoading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load webhook logs', err);
+      error: () => {
         this.logsError.set('Falha ao carregar o histórico de envios.');
         this.isLogsLoading.set(false);
       },
     });
   }
 
-  setLogsStatus(status: 'all' | 'delivered' | 'failed' | 'pending') {
+  setLogsStatus(status: LogFilter) {
     this.logsStatus.set(status);
     const hook = this.hookForLogs();
-    if (hook) {
-      this.loadLogs(hook.id);
-    }
+    if (hook) this.loadLogs(hook.id);
   }
 
-  copyId(value?: string) {
-    if (!value) return;
-    void navigator.clipboard?.writeText(value);
+  logStatusLabel(status: LogFilter): string {
+    return FILTER_LABELS[status];
   }
 
   shortId(value?: string): string {
-    if (!value) return '-';
-    return value.length > 12 ? `${value.slice(0, 8)}...` : value;
+    if (!value) return '—';
+    return value.length > 12 ? `${value.slice(0, 8)}…` : value;
   }
 
   isInboxWebhook(hook?: WebhookConfig | null): boolean {
     return Boolean(hook?.url.includes('/api/v1/dev/webhook-inbox/'));
   }
 
+  /**
+   * A API nem sempre manda `status`. Quando falta, o desfecho é reconstruído
+   * a partir do que sobrou: resposta HTTP, carimbo de entrega, erro, tentativa.
+   */
   resolveLogStatus(log: WebhookLog): WebhookDeliveryStatus {
     if (this.isWebhookDeliveryStatus(log.status)) {
       return log.status;
@@ -416,40 +412,11 @@ export class Webhooks implements OnInit {
   }
 
   getLogStatusLabel(log: WebhookLog): string {
-    const labels: Record<WebhookDeliveryStatus, string> = {
-      PENDING: 'Pendente',
-      DELIVERED: 'Entregue',
-      FAILED_RETRYABLE: 'Falha temporária',
-      FAILED_FINAL: 'Falha final',
-    };
-
-    return labels[this.resolveLogStatus(log)];
+    return LOG_LABELS[this.resolveLogStatus(log)];
   }
 
-  getLogStatusClasses(log: WebhookLog): string {
-    const classes: Record<WebhookDeliveryStatus, string> = {
-      PENDING:
-        'w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center border border-zinc-200 text-zinc-500 shrink-0',
-      DELIVERED:
-        'w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-600 shrink-0',
-      FAILED_RETRYABLE:
-        'w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-600 shrink-0',
-      FAILED_FINAL:
-        'w-8 h-8 rounded-full bg-red-50 flex items-center justify-center border border-red-100 text-red-600 shrink-0',
-    };
-
-    return classes[this.resolveLogStatus(log)];
-  }
-
-  getLogStatusIcon(log: WebhookLog): string {
-    const icons: Record<WebhookDeliveryStatus, string> = {
-      PENDING: 'lucideClock',
-      DELIVERED: 'lucideCheck',
-      FAILED_RETRYABLE: 'lucideAlertTriangle',
-      FAILED_FINAL: 'lucideXCircle',
-    };
-
-    return icons[this.resolveLogStatus(log)];
+  getLogStatusTone(log: WebhookLog): Tone {
+    return LOG_TONES[this.resolveLogStatus(log)];
   }
 
   getLogStatusDetail(log: WebhookLog): string {
@@ -457,21 +424,18 @@ export class Webhooks implements OnInit {
     const responseDetail =
       log.responseStatus !== undefined ? `HTTP ${log.responseStatus}` : 'sem resposta HTTP';
 
-    if (status === 'PENDING') {
-      return 'Aguardando processamento';
-    }
-
+    if (status === 'PENDING') return 'Aguardando processamento.';
     if (status === 'DELIVERED') {
-      return log.responseStatus !== undefined ? `${responseDetail} entregue` : 'Entrega confirmada';
+      return log.responseStatus !== undefined
+        ? `${responseDetail}, entregue.`
+        : 'Entrega confirmada.';
     }
 
-    if (log.lastError) {
-      return log.lastError;
-    }
+    if (log.lastError) return log.lastError;
 
     return status === 'FAILED_RETRYABLE'
-      ? `${responseDetail}; nova tentativa disponível`
-      : `${responseDetail}; reprocessamento manual disponível`;
+      ? `${responseDetail}. Ainda há nova tentativa automática.`
+      : `${responseDetail}. Só reenviando à mão.`;
   }
 
   canRetryLog(log: WebhookLog): boolean {
@@ -491,13 +455,28 @@ export class Webhooks implements OnInit {
     this.webhookService.retryLog(log.configId, log.id).subscribe({
       next: () => {
         this.isRetrying.update((state) => ({ ...state, [log.id]: false }));
-        // Refresh logs list after a successful retry request
         this.loadLogs(log.configId);
       },
-      error: (err) => {
+      error: () => {
         this.isRetrying.update((state) => ({ ...state, [log.id]: false }));
-        console.error('Failed to retry log', err);
-        toast.error('Falha ao reprocessar esse evento.');
+        toast.error('Falha ao reenviar esse evento.');
+      },
+    });
+  }
+
+  loadWebhooks() {
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.webhooks.set([]);
+
+    this.webhookService.list().subscribe({
+      next: (response) => {
+        this.webhooks.set(response.webhooks);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.error.set('O servidor não respondeu. Tente de novo em instantes.');
+        this.isLoading.set(false);
       },
     });
   }
@@ -521,23 +500,5 @@ export class Webhooks implements OnInit {
 
   private isLegacyAttemptedWithoutResponse(log: WebhookLog): boolean {
     return log.responseStatus === undefined && log.attempt > 0;
-  }
-
-  loadWebhooks() {
-    this.isLoading.set(true);
-    this.error.set(null);
-    this.webhooks.set([]);
-
-    this.webhookService.list().subscribe({
-      next: (response) => {
-        this.webhooks.set(response.webhooks);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to load webhooks', err);
-        this.error.set('Houve um erro ao se comunicar com o servidor. Tente novamente mais tarde.');
-        this.isLoading.set(false);
-      },
-    });
   }
 }

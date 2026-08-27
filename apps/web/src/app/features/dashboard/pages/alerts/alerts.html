@@ -1,393 +1,345 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
-  <hlm-sheet [side]="'right'" [state]="sheetState()" (stateChanged)="onSheetStateChange($event)">
-    <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full overflow-y-auto border-l border-zinc-200 bg-white sm:max-w-xl">
-      <div class="flex min-h-full flex-col">
-        <div hlmSheetHeader class="border-b border-zinc-200 px-6 py-6 pr-14">
-          <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">
-            {{ isEditing() ? 'Editar alerta' : 'Novo alerta' }}
-          </p>
-          <h2 hlmSheetTitle class="mt-2 text-xl font-semibold tracking-tight text-zinc-950">
-            {{ isEditing() ? 'Ajuste o alerta Discord' : 'Configure um alerta Discord' }}
-          </h2>
-          <p hlmSheetDescription class="mt-2 text-sm leading-6 text-zinc-500">
-            A URL do Discord fica criptografada no backend e aparece apenas mascarada depois de salva.
-          </p>
-        </div>
+<div class="page">
+  <app-page-header
+    heading="Alertas"
+    description="Avisos operacionais para o time, no canal onde o time já está."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="loadAlerts()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+      <button type="button" class="btn btn-ink" (click)="openCreateSheet()">
+        <ng-icon name="lucidePlus" size="15px" strokeWidth="1.9" />
+        Novo alerta
+      </button>
+    </ng-container>
+  </app-page-header>
 
-        <form class="flex-1 space-y-6 px-6 py-6" [formGroup]="alertForm" (ngSubmit)="saveAlert()">
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900" for="alert-name">Nome do alerta</label>
-              <p class="mt-1 text-sm text-zinc-500">Um nome interno para identificar rapidamente a regra.</p>
+  @if (!isLoading() && !error() && alerts().length > 0) {
+    <section class="metrics">
+      <article class="stat">
+        <p class="stat-head">Alertas</p>
+        <p class="stat-value numeric">{{ alerts().length }}</p>
+        <p class="stat-context">Configurados nesta loja</p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Ativos</p>
+        <p class="stat-value numeric">{{ activeAlertsCount() }}</p>
+        <p class="stat-context">Disparando agora</p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Canais</p>
+        <p class="stat-value numeric">{{ configuredChannelsCount() }}</p>
+        <p class="stat-context">Em uso</p>
+      </article>
+    </section>
+  }
+
+  @if (isLoading()) {
+    <app-page-state variant="loading" message="Carregando alertas…" />
+  } @else if (error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="loadAlerts()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (alerts().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideBellRing"
+      heading="Nenhum alerta"
+      message="Ligue o Discord da equipe a um evento e o aviso chega sem ninguém precisar olhar o dashboard."
+    >
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="openCreateSheet()">
+        Criar o primeiro
+      </button>
+    </app-page-state>
+  } @else {
+    <div class="cards">
+      @for (alert of alerts(); track alert.id) {
+        <article class="panel alert">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>{{ alert.name }}</h2>
+              <p>{{ channelLabel(alert.channel) }} · {{ alert.updatedAt | date: 'dd/MM/yy HH:mm' }}</p>
             </div>
-            <input hlmInput id="alert-name" formControlName="name" placeholder="Ex.: Vendas aprovadas" class="h-11 border-zinc-200 bg-white" type="text" />
-            @if (alertForm.controls.name.invalid && alertForm.controls.name.touched) {
-              <p class="text-sm text-red-600">Use pelo menos 3 caracteres.</p>
+
+            <label class="switch" [title]="alert.isActive ? 'Desativar alerta' : 'Ativar alerta'">
+              <input
+                type="checkbox"
+                [checked]="alert.isActive"
+                (change)="toggleAlertStatus(alert.id, $any($event.target).checked)"
+              />
+              <span class="switch-track"></span>
+              <span class="switch-label">{{ alert.isActive ? 'Ativo' : 'Pausado' }}</span>
+            </label>
+          </div>
+
+          <div class="panel-body">
+            <div class="events">
+              @for (event of alert.events; track event) {
+                <span class="chip chip-bare" data-tone="outline">{{ eventLabel(event) }}</span>
+              }
+            </div>
+
+            @if (alert.configPreview) {
+              <p class="preview mono">{{ alert.configPreview }}</p>
             }
-          </section>
+          </div>
 
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900">Canal de entrega</label>
-              <p class="mt-1 text-sm text-zinc-500">Discord está ativo agora. Email e WhatsApp aparecem como prévias desabilitadas e não entregam alertas.</p>
-            </div>
-            <div class="grid gap-3">
-              @for (channel of availableChannels; track channel.id) {
+          <div class="panel-foot">
+            <button type="button" class="btn btn-quiet btn-sm" (click)="openEditSheet(alert)">
+              <ng-icon name="lucidePencil" size="14px" strokeWidth="1.7" />
+              Editar
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-quiet btn-sm"
+              [disabled]="testingAlertId() === alert.id"
+              (click)="testAlert(alert)"
+            >
+              @if (testingAlertId() === alert.id) {
+                <span class="spinner spinner-sm"></span>
+              } @else {
+                <ng-icon name="lucideSend" size="14px" strokeWidth="1.7" />
+              }
+              Testar
+            </button>
+
+            <button type="button" class="btn btn-quiet btn-sm" (click)="openLogsSheet(alert)">
+              <ng-icon name="lucideHistory" size="14px" strokeWidth="1.7" />
+              Histórico
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-danger btn-sm btn-icon"
+              title="Remover alerta"
+              aria-label="Remover alerta"
+              (click)="openDeleteDialog(alert)"
+            >
+              <ng-icon name="lucideTrash2" size="14px" strokeWidth="1.7" />
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
+
+<!-- ─── Criar / editar ──────────────────────────────────────────────────── -->
+<app-sheet
+  [open]="sheetState() === 'open'"
+  (closed)="closeSheet()"
+  [eyebrow]="isEditing() ? 'Editar' : 'Novo alerta'"
+  [heading]="isEditing() ? 'Ajustar alerta' : 'Criar alerta'"
+  description="Escolha o canal, cole a URL do webhook e marque o que merece um aviso."
+>
+  <form id="alert-form" class="form-stack" [formGroup]="alertForm" (ngSubmit)="saveAlert()">
+    <label class="field">
+      <span class="field-label">Nome</span>
+      <input formControlName="name" placeholder="Vendas · time comercial" />
+      @if (alertForm.controls.name.invalid && alertForm.controls.name.touched) {
+        <span class="field-error">Pelo menos três caracteres.</span>
+      }
+    </label>
+
+    <div class="field">
+      <span class="field-label">Canal</span>
+      <div class="channels">
+        @for (channel of availableChannels; track channel.id) {
+          <button
+            type="button"
+            class="choice"
+            [attr.aria-pressed]="alertForm.controls.channel.value === channel.id"
+            [disabled]="!channel.enabled"
+            (click)="selectChannel(channel.id)"
+          >
+            <span class="choice-head">
+              <ng-icon [name]="channel.icon" size="15px" strokeWidth="1.7" />
+              <span class="choice-title">{{ channel.label }}</span>
+            </span>
+            <span class="choice-sub">{{ channel.summary }}</span>
+            @if (!channel.enabled) {
+              <span class="chip chip-bare" data-tone="outline">{{ channel.availability }}</span>
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Webhook do Discord</span>
+      <input
+        formControlName="webhookUrl"
+        placeholder="https://discord.com/api/webhooks/…"
+        [attr.disabled]="alertForm.controls.channel.value !== 'discord' ? '' : null"
+      />
+      @if (alertForm.controls.webhookUrl.hasError('discordWebhookUrl') && alertForm.controls.webhookUrl.touched) {
+        <span class="field-error">Precisa ser uma URL de webhook do Discord.</span>
+      } @else {
+        <span class="field-note">
+          No Discord: Configurações do canal → Integrações → Webhooks → Copiar URL.
+        </span>
+      }
+    </label>
+
+    <div class="field">
+      <span class="field-label">Eventos</span>
+      <div class="channels">
+        @for (event of eventOptions; track event.id) {
+          <button
+            type="button"
+            class="choice"
+            [attr.aria-pressed]="isEventSelected(event.id)"
+            (click)="toggleEvent(event.id, !isEventSelected(event.id))"
+          >
+            <span class="choice-head">
+              <span class="choice-title">{{ event.label }}</span>
+            </span>
+            <span class="choice-sub">{{ event.description }}</span>
+          </button>
+        }
+      </div>
+      @if (alertForm.controls.events.invalid && alertForm.controls.events.touched) {
+        <span class="field-error">Escolha pelo menos um evento.</span>
+      }
+    </div>
+
+    <label class="switch standalone">
+      <input type="checkbox" formControlName="isActive" />
+      <span class="switch-track"></span>
+      <span class="switch-label">Começar disparando</span>
+    </label>
+  </form>
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeSheet()" [disabled]="isSubmitting()">
+      Cancelar
+    </button>
+    <button type="submit" form="alert-form" class="btn btn-ink" [disabled]="isSubmitting()">
+      @if (isSubmitting()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      {{ isEditing() ? 'Salvar' : 'Criar alerta' }}
+    </button>
+  </ng-container>
+</app-sheet>
+
+<!-- ─── Histórico ───────────────────────────────────────────────────────── -->
+<app-sheet
+  size="wide"
+  [open]="logsSheetState() === 'open'"
+  (closed)="closeLogsSheet()"
+  eyebrow="Histórico"
+  heading="Envios"
+  [description]="alertForLogs()?.name"
+>
+  <div class="log-list">
+    <p class="count mono">{{ logsTotal() }} envio(s)</p>
+
+    @if (isLogsLoading()) {
+      <app-page-state variant="loading" frame="bare" message="Carregando envios…" />
+    } @else if (logsError(); as message) {
+      <app-page-state variant="error" frame="bare" [message]="message" />
+    } @else if (logs().length === 0) {
+      <app-page-state
+        variant="empty"
+        frame="bare"
+        icon="lucideHistory"
+        heading="Nada enviado ainda"
+        message="Dispare um teste ou espere o próximo evento para ver o primeiro registro."
+      />
+    } @else {
+      @for (log of logs(); track log.id) {
+        <article class="log">
+          <div class="log-head">
+            <span class="cell-stack">
+              <span class="cell-title mono">{{ log.eventType }}</span>
+              <span class="cell-sub mono">{{ log.createdAt | date: 'dd/MM/yy HH:mm:ss' }}</span>
+            </span>
+
+            <span class="log-status">
+              <app-status-chip [status]="log.status" [label]="statusLabel(log.status)" />
+              @if (canRetry(log)) {
                 <button
                   type="button"
-                  class="rounded-2xl border px-4 py-4 text-left transition-colors"
-                  [disabled]="!channel.enabled"
-                  [ngClass]="{
-                    'border-indigo-200 bg-indigo-50/70 shadow-sm': alertForm.controls.channel.value === channel.id,
-                    'border-zinc-200 bg-white hover:border-zinc-300': alertForm.controls.channel.value !== channel.id && channel.enabled,
-                    'cursor-not-allowed border-zinc-200 bg-zinc-50 text-zinc-400 opacity-70': !channel.enabled
-                  }"
-                  (click)="selectChannel(channel.id)"
+                  class="btn btn-quiet btn-sm"
+                  [disabled]="retryingLogId() === log.id"
+                  (click)="retryLog(log)"
                 >
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-3">
-                      <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white">
-                        <ng-icon hlm [name]="channel.icon" size="sm"></ng-icon>
-                      </div>
-                      <div>
-                        <p class="text-sm font-semibold text-zinc-900">{{ channel.label }}</p>
-                        <p class="mt-1 text-sm leading-6 text-zinc-500">{{ channel.summary }}</p>
-                      </div>
-                    </div>
-                    <span class="inline-flex rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                      {{ channel.availability }}
-                    </span>
-                  </div>
+                  @if (retryingLogId() === log.id) {
+                    <span class="spinner spinner-sm"></span>
+                  }
+                  Reenviar
                 </button>
               }
-            </div>
-          </section>
-
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900" for="alert-webhook-url">Webhook do Discord</label>
-              <p class="mt-1 text-sm text-zinc-500">
-                {{ isEditing() ? 'Deixe em branco para manter a URL atual.' : 'Cole a URL do webhook que receberá os alertas.' }}
-              </p>
-            </div>
-            <input
-              hlmInput
-              id="alert-webhook-url"
-              formControlName="webhookUrl"
-              placeholder="https://discord.com/api/webhooks/..."
-              class="h-11 border-zinc-200 bg-white"
-              type="url"
-            />
-            @if (alertForm.controls.webhookUrl.invalid && alertForm.controls.webhookUrl.touched) {
-              <p class="text-sm text-red-600">Informe uma URL válida de webhook do Discord.</p>
-            }
-          </section>
-
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900">Eventos monitorados</label>
-              <p class="mt-1 text-sm text-zinc-500">Escolha os eventos que precisam de acompanhamento humano.</p>
-            </div>
-            <div class="space-y-3">
-              @for (event of eventOptions; track event.id) {
-                <label
-                  class="flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-4 transition-colors"
-                  [for]="'event-' + event.id"
-                  [ngClass]="{
-                    'border-indigo-200 bg-indigo-50/60': isEventSelected(event.id),
-                    'border-zinc-200 bg-white hover:border-zinc-300': !isEventSelected(event.id)
-                  }"
-                >
-                  <hlm-checkbox [id]="'event-' + event.id" [checked]="isEventSelected(event.id)" (checkedChange)="toggleEvent(event.id, $event)" />
-                  <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <p class="text-sm font-semibold text-zinc-900">{{ event.label }}</p>
-                      <span class="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 font-mono text-xs text-zinc-500">{{ event.id }}</span>
-                    </div>
-                    <p class="mt-1 text-sm leading-6 text-zinc-500">{{ event.description }}</p>
-                  </div>
-                </label>
-              }
-            </div>
-            @if (alertForm.controls.events.invalid && alertForm.controls.events.touched) {
-              <p class="text-sm text-red-600">Selecione ao menos um evento.</p>
-            }
-          </section>
-
-          <section class="flex items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-zinc-50/70 px-4 py-4">
-            <div>
-              <p class="text-sm font-semibold text-zinc-900">Status</p>
-              <p class="mt-1 text-sm text-zinc-500">Define se o alerta fica ativo após salvar.</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="text-xs font-semibold uppercase tracking-widest" [ngClass]="{ 'text-emerald-700': alertForm.controls.isActive.value, 'text-zinc-500': !alertForm.controls.isActive.value }">
-                {{ alertForm.controls.isActive.value ? 'Ativo' : 'Inativo' }}
-              </span>
-              <hlm-switch formControlName="isActive" aria-label="Status do alerta" />
-            </div>
-          </section>
-
-          <div hlmSheetFooter class="border-t border-zinc-200 px-0 pt-6">
-            <div class="flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button hlmBtn type="button" variant="outline" class="border-zinc-200" (click)="ctx.close()" [disabled]="isSubmitting()">Cancelar</button>
-              <button hlmBtn type="submit" class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" [disabled]="isSubmitting()">
-                @if (isSubmitting()) { <hlm-spinner /> }
-                {{ isEditing() ? 'Salvar alterações' : 'Adicionar alerta' }}
-              </button>
-            </div>
+            </span>
           </div>
-        </form>
-      </div>
-    </hlm-sheet-content>
-  </hlm-sheet>
 
-  <hlm-sheet [side]="'right'" [state]="logsSheetState()" (stateChanged)="onLogsSheetStateChange($event)">
-    <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full overflow-y-auto border-l border-zinc-200 bg-white sm:max-w-2xl">
-      <div class="flex min-h-full flex-col">
-        <div hlmSheetHeader class="border-b border-zinc-200 px-6 py-6 pr-14">
-          <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">Histórico</p>
-          <h2 hlmSheetTitle class="mt-2 text-xl font-semibold tracking-tight text-zinc-950">{{ alertForLogs()?.name }}</h2>
-          <p hlmSheetDescription class="mt-2 text-sm leading-6 text-zinc-500">Últimas entregas, testes e retries deste alerta.</p>
-        </div>
-
-        <div class="flex-1 px-6 py-6">
-          @if (isLogsLoading()) {
-            <div class="flex items-center gap-3 text-sm text-zinc-500"><hlm-spinner /> Carregando histórico...</div>
-          } @else if (logsError()) {
-            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ logsError() }}</div>
-          } @else if (logs().length === 0) {
-            <div class="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">Nenhuma entrega registrada ainda.</div>
-          } @else {
-            <div class="space-y-3">
-              @for (log of logs(); track log.id) {
-                <article class="rounded-xl border border-zinc-200 bg-white px-4 py-4">
-                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <span
-                          class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium"
-                          [ngClass]="{
-                            'border-emerald-100 bg-emerald-50 text-emerald-700': log.status === 'DELIVERED',
-                            'border-red-100 bg-red-50 text-red-700': log.status === 'FAILED',
-                            'border-zinc-200 bg-zinc-100 text-zinc-600': log.status === 'PENDING'
-                          }"
-                        >
-                          {{ statusLabel(log.status) }}
-                        </span>
-                        <span class="font-mono text-xs text-zinc-500">{{ log.eventType }}</span>
-                      </div>
-                      <p class="mt-2 text-sm text-zinc-600">
-                        Tentativa {{ log.attempt }}/{{ log.maxAttempts }}
-                        @if (log.responseStatus !== undefined) { <span> - HTTP {{ log.responseStatus }}</span> }
-                      </p>
-                      @if (log.errorMessage || log.responseBody) {
-                        <p class="mt-2 max-h-10 overflow-hidden text-xs text-zinc-500">{{ log.errorMessage || log.responseBody }}</p>
-                      }
-                    </div>
-                    <div class="flex shrink-0 flex-col gap-2 sm:items-end">
-                      <span class="text-xs text-zinc-500">{{ log.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-                      @if (canRetry(log)) {
-                        <button hlmBtn size="sm" variant="outline" class="gap-2 border-zinc-200" (click)="retryLog(log)" [disabled]="retryingLogId() === log.id">
-                          @if (retryingLogId() === log.id) { <hlm-spinner /> } @else { <ng-icon hlm name="lucideRefreshCcw" size="sm"></ng-icon> }
-                          Reenviar
-                        </button>
-                      }
-                    </div>
-                  </div>
-                </article>
-              }
+          <dl class="facts facts-split log-facts">
+            <div class="fact fact-stacked">
+              <dt>Tentativa</dt>
+              <dd class="numeric">{{ log.attempt }}/{{ log.maxAttempts }}</dd>
             </div>
+            <div class="fact fact-stacked">
+              <dt>Resposta</dt>
+              <dd class="numeric">{{ log.responseStatus ?? '—' }}</dd>
+            </div>
+          </dl>
+
+          @if (log.errorMessage) {
+            <p class="log-detail">{{ log.errorMessage }}</p>
           }
-        </div>
 
-        <div hlmSheetFooter class="border-t border-zinc-200 px-6 py-4">
-          <button hlmBtn variant="outline" class="border-zinc-200" (click)="ctx.close()">Fechar</button>
-        </div>
-      </div>
-    </hlm-sheet-content>
-  </hlm-sheet>
-
-  <hlm-alert-dialog [state]="deleteDialogState()" (stateChanged)="onDeleteDialogStateChange($event)">
-    <hlm-alert-dialog-content *hlmAlertDialogPortal="let ctx" class="border-zinc-200 bg-white shadow-xl">
-      <div hlmAlertDialogHeader>
-        <h3 hlmAlertDialogTitle class="text-lg font-semibold text-zinc-950">Remover alerta</h3>
-        <p hlmAlertDialogDescription class="mt-2 text-sm leading-6 text-zinc-500">Esta ação remove a configuração e o histórico vinculado a ela.</p>
-      </div>
-      @if (alertToDelete(); as alert) {
-        <div class="rounded-2xl border border-zinc-200 bg-zinc-50/70 px-4 py-4">
-          <p class="text-sm font-semibold text-zinc-900">{{ alert.name }}</p>
-          <p class="mt-1 text-sm text-zinc-500">{{ alert.configPreview.webhookUrl }}</p>
-        </div>
+          @if (log.responseBody) {
+            <details class="payload">
+              <summary>Resposta do canal</summary>
+              <pre class="scroll-thin">{{ log.responseBody }}</pre>
+            </details>
+          }
+        </article>
       }
-      <div hlmAlertDialogFooter>
-        <button hlmBtn variant="outline" class="border-zinc-200" hlmAlertDialogCancel [disabled]="deletingAlertId() !== null">Cancelar</button>
-        <button hlmBtn class="gap-2 bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmDelete()" hlmAlertDialogAction [disabled]="deletingAlertId() !== null">
-          @if (deletingAlertId() !== null) { <hlm-spinner /> }
-          Remover
-        </button>
-      </div>
-    </hlm-alert-dialog-content>
-  </hlm-alert-dialog>
+    }
+  </div>
+</app-sheet>
 
-  <section class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-    <div class="space-y-3">
-      <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-        <ng-icon hlm name="lucideBellRing" size="sm"></ng-icon>
-        Discord disponível agora
-      </div>
-      <div class="space-y-2">
-        <h1 class="text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">Alertas</h1>
-        <p class="max-w-3xl text-sm leading-6 text-zinc-600 sm:text-base">Configure avisos operacionais para a equipe da loja acompanhar eventos importantes.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <span class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-          <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
-          {{ alerts().length }} alertas configurados
-        </span>
-        <span class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-          {{ activeAlertsCount() }} ativos
-        </span>
-        <span class="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
-          <span class="h-2 w-2 rounded-full bg-zinc-400"></span>
-          {{ configuredChannelsCount() }} canal em uso
-        </span>
-      </div>
+<!-- ─── Remover ─────────────────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="deleteDialogState() === 'open'"
+  (closed)="closeDeleteDialog()"
+  heading="Remover alerta"
+  description="O canal para de receber esses eventos. O histórico de envios some junto."
+>
+  @if (alertToDelete(); as alert) {
+    <div class="panel panel-quiet confirm-target">
+      <p class="cell-title">{{ alert.name }}</p>
+      <p class="cell-sub">{{ channelLabel(alert.channel) }}</p>
     </div>
+  }
 
-    <button hlmBtn class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" (click)="openCreateSheet()">
-      <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-      Novo alerta
+  <ng-container sheetActions>
+    <button
+      type="button"
+      class="btn btn-quiet"
+      (click)="closeDeleteDialog()"
+      [disabled]="deletingAlertId() !== null"
+    >
+      Cancelar
     </button>
-  </section>
-
-  <section class="grid gap-4 xl:grid-cols-3">
-    <article class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm xl:col-span-2">
-      <div class="border-b border-zinc-200 bg-zinc-50/80 px-5 py-4">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">Lista principal</p>
-            <h2 class="mt-1 text-lg font-semibold tracking-tight text-zinc-950">Alertas configurados</h2>
-            <p class="mt-1 text-sm text-zinc-500">Edite, teste, ative ou remova regras sem sair desta área.</p>
-          </div>
-          <button hlmBtn variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white" (click)="loadAlerts()" [disabled]="isLoading()">
-            @if (isLoading()) { <hlm-spinner /> } @else { <ng-icon hlm name="lucideRefreshCcw" size="sm"></ng-icon> }
-            Atualizar
-          </button>
-        </div>
-      </div>
-
-      @if (isLoading()) {
-        <div class="flex items-center justify-center gap-3 px-6 py-20 text-sm text-zinc-500"><hlm-spinner /> Carregando alertas...</div>
-      } @else if (error()) {
-        <div class="px-6 py-16 text-center">
-          <p class="text-sm text-red-600">{{ error() }}</p>
-          <button hlmBtn variant="outline" class="mt-4 border-zinc-200 bg-white" (click)="loadAlerts()">Tentar novamente</button>
-        </div>
-      } @else if (alerts().length === 0) {
-        <div class="flex flex-col items-center justify-center px-6 py-20 text-center">
-          <div class="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm">
-            <ng-icon hlm name="lucideBellOff" size="lg" class="text-zinc-400"></ng-icon>
-          </div>
-          <h3 class="mt-4 text-base font-semibold text-zinc-950">Nenhum alerta configurado</h3>
-          <p class="mt-2 max-w-sm text-sm leading-6 text-zinc-500">Adicione um alerta Discord para acompanhar eventos importantes da operação.</p>
-          <button hlmBtn variant="outline" class="mt-6 border-zinc-200 bg-white text-zinc-900" (click)="openCreateSheet()">Criar primeiro alerta</button>
-        </div>
-      } @else {
-        <div class="divide-y divide-zinc-100">
-          @for (alert of alerts(); track alert.id) {
-            <article class="px-5 py-5">
-              <div class="flex flex-col gap-5 xl:grid xl:grid-cols-3 xl:items-start">
-                <div class="min-w-0 flex-1 space-y-3 xl:col-span-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="text-sm font-semibold text-zinc-950">{{ alert.name }}</h3>
-                    <span class="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">{{ channelLabel(alert.channel) }}</span>
-                    <span
-                      class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
-                      [ngClass]="{
-                        'border-emerald-100 bg-emerald-50 text-emerald-700': alert.isActive,
-                        'border-zinc-200 bg-zinc-100 text-zinc-500': !alert.isActive
-                      }"
-                    >
-                      {{ alert.isActive ? 'Ativo' : 'Inativo' }}
-                    </span>
-                  </div>
-                  <p class="truncate text-sm text-zinc-500" [title]="alert.configPreview.webhookUrl">{{ alert.configPreview.webhookUrl }}</p>
-                  <div class="flex flex-wrap gap-2">
-                    @for (eventId of alert.events; track eventId) {
-                      <span class="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">{{ eventLabel(eventId) }}</span>
-                    }
-                  </div>
-                </div>
-                <div class="flex flex-col gap-3 xl:items-end">
-                  <div class="flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 xl:max-w-sm">
-                    <div class="min-w-0">
-                      <p class="text-xs font-medium text-zinc-500">Status</p>
-                      <p class="text-sm font-semibold text-zinc-900">{{ alert.isActive ? 'Ativo' : 'Inativo' }}</p>
-                    </div>
-                    <hlm-switch [checked]="alert.isActive" [aria-label]="'Alternar status do alerta ' + alert.name" (checkedChange)="toggleAlertStatus(alert.id, $event)" />
-                  </div>
-                  <div class="flex w-full flex-wrap items-center gap-2 xl:justify-end">
-                    <button hlmBtn type="button" variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white text-zinc-700" (click)="testAlert(alert)" [disabled]="testingAlertId() === alert.id">
-                      @if (testingAlertId() === alert.id) { <hlm-spinner /> } @else { <ng-icon hlm name="lucideTestTubeDiagonal" size="sm"></ng-icon> }
-                      Testar
-                    </button>
-                    <button hlmBtn type="button" variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white text-zinc-700" (click)="openLogsSheet(alert)">
-                      <ng-icon hlm name="lucideHistory" size="sm"></ng-icon>
-                      Histórico
-                    </button>
-                    <button hlmBtn type="button" variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white text-zinc-700" (click)="openEditSheet(alert)">
-                      <ng-icon hlm name="lucidePencil" size="sm"></ng-icon>
-                      Editar
-                    </button>
-                    <button hlmBtn type="button" variant="ghost" size="sm" class="gap-2 text-zinc-500 hover:bg-red-50 hover:text-red-600" (click)="openDeleteDialog(alert)">
-                      <ng-icon hlm name="lucideTrash2" size="sm"></ng-icon>
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="mt-4 flex flex-col gap-2 border-t border-zinc-100 pt-4 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-                <span>{{ alert.events.length }} {{ alert.events.length === 1 ? 'evento monitorado' : 'eventos monitorados' }}</span>
-                <span>Atualizado em {{ alert.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
-              </div>
-            </article>
-          }
-        </div>
+    <button
+      type="button"
+      class="btn btn-danger"
+      (click)="confirmDelete()"
+      [disabled]="deletingAlertId() !== null"
+    >
+      @if (deletingAlertId()) {
+        <span class="spinner spinner-sm"></span>
       }
-    </article>
-
-    <div class="space-y-4">
-      <article class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center gap-2 text-zinc-900">
-          <ng-icon hlm name="lucideShieldAlert" size="sm"></ng-icon>
-          <h2 class="text-sm font-semibold">Canais disponíveis</h2>
-        </div>
-        <div class="mt-4 space-y-3">
-          @for (channel of availableChannels; track channel.id) {
-            <div class="rounded-2xl border px-4 py-4" [ngClass]="{ 'border-indigo-100 bg-indigo-50/60': channel.enabled, 'border-zinc-200 bg-zinc-50/70': !channel.enabled }">
-              <div class="flex items-start gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white">
-                  <ng-icon hlm [name]="channel.icon" size="sm"></ng-icon>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <p class="text-sm font-semibold text-zinc-900">{{ channel.label }}</p>
-                    <span class="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-500">{{ channel.availability }}</span>
-                  </div>
-                  <p class="mt-2 text-sm leading-7 text-zinc-500">{{ channel.summary }}</p>
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      </article>
-
-      <article class="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-5 shadow-sm">
-        <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">Nesta fase</p>
-        <h2 class="mt-2 text-lg font-semibold tracking-tight text-zinc-950">Discord operacional</h2>
-        <p class="mt-3 text-sm leading-6 text-zinc-600">Alertas são internos para a equipe da loja. Notificações para clientes ficam fora desta tela.</p>
-      </article>
-    </div>
-  </section>
-</div>
+      Remover
+    </button>
+  </ng-container>
+</app-sheet>
