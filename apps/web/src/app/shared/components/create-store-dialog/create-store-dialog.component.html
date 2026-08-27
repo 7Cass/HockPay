@@ -1,53 +1,39 @@
-<brn-dialog [closeDelay]="150" [state]="dialogState()" (closed)="onDialogClosed()">
-    <ng-template brnDialogContent let-ctx>
-        <brn-dialog-overlay class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+<app-sheet
+  side="center"
+  [open]="dialogState() === 'open'"
+  (closed)="onDialogClosed()"
+  heading="Nova loja"
+  description="Cada loja tem saldo, chaves e webhooks próprios. O slug entra na URL do checkout."
+>
+  <form id="create-store-form" class="form-stack" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <label class="field">
+      <span class="field-label">Nome</span>
+      <input id="store-name" formControlName="name" (input)="onNameInput()" placeholder="Ateliê Corvo" />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <span class="field-error">Informe o nome da loja.</span>
+      }
+    </label>
 
-        <div
-            class="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-white rounded-xl border border-zinc-200 shadow-xl p-6">
-            <!-- Close button -->
-            <button (click)="ctx.close()"
-                class="absolute right-4 top-4 rounded-md p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
-                <ng-icon hlm name="lucideX" size="sm"></ng-icon>
-            </button>
+    <label class="field">
+      <span class="field-label">Slug</span>
+      <input id="store-slug" class="mono" formControlName="slug" placeholder="atelie-corvo" />
+      @if (form.controls.slug.invalid && form.controls.slug.touched) {
+        <span class="field-error">Minúsculas, números e hífens, de 3 a 50 caracteres.</span>
+      } @else {
+        <span class="field-note">Sugerido a partir do nome. Dá para trocar.</span>
+      }
+    </label>
+  </form>
 
-            <app-dialog-header title="Nova Loja"
-                description="Crie uma loja para começar a receber pagamentos simulados." />
-
-            <form [formGroup]="form" (ngSubmit)="onSubmit(ctx)">
-                <div class="grid gap-4">
-                    <hlm-form-field>
-                        <label hlmLabel for="store-name" class="text-zinc-700">Nome da Loja</label>
-                        <input hlmInput id="store-name" formControlName="name" (input)="onNameInput()"
-                            placeholder="Minha Loja"
-                            class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white placeholder:text-zinc-400 focus-visible:ring-indigo-500" />
-                        <hlm-error>Informe o nome da loja.</hlm-error>
-                    </hlm-form-field>
-
-                    <hlm-form-field>
-                        <label hlmLabel for="store-slug" class="text-zinc-700">Slug</label>
-                        <input hlmInput id="store-slug" formControlName="slug" placeholder="minha-loja"
-                            class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white placeholder:text-zinc-400 focus-visible:ring-indigo-500 font-mono text-sm" />
-                        <hlm-error>Slug deve conter apenas letras minúsculas, números e hífens (3-50
-                            caracteres).</hlm-error>
-                    </hlm-form-field>
-                </div>
-
-                <app-dialog-footer>
-                    <button hlmBtn variant="outline" type="button" (click)="ctx.close()"
-                        class="border-zinc-200 text-zinc-600 hover:bg-zinc-50">
-                        Cancelar
-                    </button>
-                    <button hlmBtn type="submit" [disabled]="isLoading()"
-                        class="bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
-                        @if (isLoading()) {
-                        <ng-icon hlm name="lucideLoader2" size="sm" class="mr-2 animate-spin"></ng-icon>
-                        Criando...
-                        } @else {
-                        Criar Loja
-                        }
-                    </button>
-                </app-dialog-footer>
-            </form>
-        </div>
-    </ng-template>
-</brn-dialog>
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="close()" [disabled]="isLoading()">
+      Cancelar
+    </button>
+    <button type="submit" form="create-store-form" class="btn btn-ink" [disabled]="isLoading()">
+      @if (isLoading()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      Criar loja
+    </button>
+  </ng-container>
+</app-sheet>
