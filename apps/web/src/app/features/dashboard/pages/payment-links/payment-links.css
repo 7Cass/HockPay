@@ -1,0 +1,112 @@
+/* Links de pagamento — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* Sete filtros não cabem num celular: o segmentado rola em vez de quebrar. */
+.filter-scroll {
+  overflow-x: auto;
+  margin: -0.25rem;
+  padding: 0.25rem;
+}
+
+.filter-scroll .seg {
+  width: max-content;
+}
+
+.links-table {
+  min-width: 52rem;
+}
+
+.chip-fail {
+  margin-top: 0.4rem;
+}
+
+/* ── Escolha de validade ──────────────────────────────────────────────── */
+.choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (min-width: 420px) {
+  .choices {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.choice:hover {
+  border-color: color-mix(in oklab, var(--color-ink) 30%, var(--color-hairline));
+}
+
+.choice[aria-pressed='true'] {
+  border-color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.choice-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.choice-sub {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--color-ink-faint);
+}
+
+.expiry {
+  margin-top: 0.6rem;
+}
+
+.confirm-target {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}
+
+.confirm-target .mono {
+  font-size: 11px;
+  color: var(--color-ink-faint);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .col-created,
+  .col-expiry {
+    display: none;
+  }
+}

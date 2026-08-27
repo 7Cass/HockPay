@@ -1,0 +1,39 @@
+/* Clientes — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.customers-table {
+  min-width: 44rem;
+}
+
+.arrow-cell {
+  display: inline-flex;
+  color: var(--color-ink-faint);
+  transition: color 0.2s;
+}
+
+tr:hover .arrow-cell {
+  color: var(--color-ink);
+}
+
+tr:hover .arrow-cell .arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 900px) {
+  .col-external {
+    display: none;
+  }
+}

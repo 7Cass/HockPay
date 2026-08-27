@@ -1,13 +1,17 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { lucideArchive, lucidePackagePlus, lucidePencil, lucideRefreshCw, lucideRotateCcw, lucideSave, lucideX } from '@ng-icons/lucide';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmTableImports } from '@spartan-ng/helm/table';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+    lucideArchive,
+    lucidePackagePlus,
+    lucidePencil,
+    lucideRefreshCw,
+    lucideRotateCcw,
+    lucideSave,
+} from '@ng-icons/lucide';
 import { ProductItem, ProductService } from '../../../../core/services/product.service';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
+import { PageHeader, PageState, Sheet, StatusChip } from '../../../../shared/ui';
 
 function parseBrlToCents(value: string | number | null | undefined): number {
     if (typeof value === 'number') return Math.round(value * 100);
@@ -25,15 +29,14 @@ function parseBrlToCents(value: string | number | null | undefined): number {
     selector: 'app-products',
     standalone: true,
     imports: [
-        CommonModule,
-        ReactiveFormsModule,
         CurrencyPipe,
         DatePipe,
-        NgIconComponent,
-        ...HlmButtonImports,
-        ...HlmInputImports,
-        ...HlmTableImports,
-        ...DialogImports,
+        NgIcon,
+        ReactiveFormsModule,
+        PageHeader,
+        PageState,
+        Sheet,
+        StatusChip,
     ],
     providers: [
         provideIcons({
@@ -43,10 +46,10 @@ function parseBrlToCents(value: string | number | null | undefined): number {
             lucideRefreshCw,
             lucideRotateCcw,
             lucideSave,
-            lucideX,
         }),
     ],
     templateUrl: './products.html',
+    styleUrl: './products.css',
 })
 export class Products implements OnInit {
     readonly service = inject(ProductService);
@@ -55,6 +58,7 @@ export class Products implements OnInit {
     readonly editingProduct = signal<ProductItem | null>(null);
     readonly productToArchive = signal<ProductItem | null>(null);
     readonly archiveDialogState = signal<'open' | 'closed'>('closed');
+    readonly formSheetOpen = signal(false);
     readonly activeFilter = signal<'active' | 'inactive' | 'all'>('active');
     readonly metadataError = signal<string | null>(null);
 
@@ -84,6 +88,23 @@ export class Products implements OnInit {
         this.load();
     }
 
+    emptyStateMessage(): string {
+        if (this.activeFilter() === 'inactive') return 'Nenhum produto arquivado até agora.';
+        if (this.activeFilter() === 'all') return 'O catálogo ainda não tem nenhum produto.';
+        return 'Nenhum produto ativo. Crie o primeiro para abrir checkout sessions pela API.';
+    }
+
+    openCreateSheet() {
+        this.resetForm();
+        this.formSheetOpen.set(true);
+    }
+
+    closeFormSheet() {
+        if (this.isSaving()) return;
+        this.formSheetOpen.set(false);
+        this.resetForm();
+    }
+
     edit(product: ProductItem) {
         this.editingProduct.set(product);
         this.metadataError.set(null);
@@ -95,6 +116,7 @@ export class Products implements OnInit {
             imageUrl: product.imageUrl ?? '',
             metadata: product.metadata ? JSON.stringify(product.metadata, null, 2) : '',
         });
+        this.formSheetOpen.set(true);
     }
 
     archive(product: ProductItem) {
@@ -173,6 +195,7 @@ export class Products implements OnInit {
         request.subscribe({
             next: () => {
                 this.isSaving.set(false);
+                this.formSheetOpen.set(false);
                 this.resetForm();
                 this.load();
             },

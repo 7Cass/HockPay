@@ -1,0 +1,51 @@
+/* Pagamentos — só o arranjo da tela; as peças vêm das primitivas. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.payments-table {
+  min-width: 46rem;
+}
+
+.cell-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* Taxa é detalhe: some antes de qualquer outra coluna. */
+@media (max-width: 720px) {
+  .col-fee {
+    display: none;
+  }
+}
+
+/* ── Esqueleto no formato das linhas ──────────────────────────────────── */
+.rows {
+  display: grid;
+}
+
+.row-skeleton {
+  display: grid;
+  grid-template-columns: 5rem 1fr 4.5rem 5.5rem;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.row-skeleton:last-child {
+  border-bottom: 0;
+}

@@ -1,22 +1,8 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { provideIcons } from '@ng-icons/core';
-import {
-    lucideArrowRight,
-    lucideArrowRightLeft,
-    lucideCalendar,
-    lucideClock,
-    lucideRefreshCcw,
-    lucideShield,
-    lucideWallet,
-    lucideXCircle,
-} from '@ng-icons/lucide';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
-import { HlmTableImports } from '@spartan-ng/helm/table';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowRight, lucideArrowRightLeft, lucideRefreshCcw } from '@ng-icons/lucide';
 import {
     AccountObject,
     FinancialService,
@@ -24,34 +10,15 @@ import {
     TransactionObject,
     TransactionType,
 } from '../../../../core/services/financial.service';
+import { PageHeader, PageState, Pagination } from '../../../../shared/ui';
 
 @Component({
     selector: 'app-financials',
     standalone: true,
-    imports: [
-        CommonModule,
-        RouterLink,
-        DatePipe,
-        CurrencyPipe,
-        HlmButtonImports,
-        HlmDatePickerImports,
-        HlmIconImports,
-        HlmSpinnerImports,
-        HlmTableImports,
-    ],
-    providers: [
-        provideIcons({
-            lucideArrowRight,
-            lucideArrowRightLeft,
-            lucideCalendar,
-            lucideClock,
-            lucideRefreshCcw,
-            lucideShield,
-            lucideWallet,
-            lucideXCircle,
-        }),
-    ],
+    imports: [CurrencyPipe, DatePipe, NgIcon, RouterLink, PageHeader, PageState, Pagination],
+    providers: [provideIcons({ lucideArrowRight, lucideArrowRightLeft, lucideRefreshCcw })],
     templateUrl: './financials.html',
+    styleUrl: './financials.css',
 })
 export class Financials implements OnInit {
     private readonly financialService = inject(FinancialService);
@@ -67,15 +34,12 @@ export class Financials implements OnInit {
     readonly isLoading = signal(true);
     readonly error = signal<string | null>(null);
     readonly typeFilter = signal<TransactionType | 'all'>('all');
-    readonly dateRange = signal<[Date, Date] | undefined>(undefined);
 
-    readonly formatDateRange = (dates: [Date | undefined, Date | undefined]): string => {
-        const [start, end] = dates;
-        if (start && end) return `${this.formatDisplayDate(start)} - ${this.formatDisplayDate(end)}`;
-        if (start) return `A partir de ${this.formatDisplayDate(start)}`;
-        if (end) return `Até ${this.formatDisplayDate(end)}`;
-        return '';
-    };
+    /** Datas em `yyyy-MM-dd`, como o input nativo e a API já falam. */
+    readonly startDate = signal('');
+    readonly endDate = signal('');
+
+    readonly currency = computed(() => this.account()?.currency || 'BRL');
 
     readonly transactionTypes: Array<{ value: TransactionType | 'all'; label: string }> = [
         { value: 'all', label: 'Todos os tipos' },
@@ -101,10 +65,7 @@ export class Financials implements OnInit {
 
         this.financialService.getAccount().subscribe({
             next: (response) => this.account.set(response.account),
-            error: (err) => {
-                console.error('Failed to load account:', err);
-                this.error.set(err.message || 'Erro ao carregar saldo');
-            },
+            error: (err) => this.error.set(err.message || 'Erro ao carregar saldo'),
         });
 
         this.financialService
@@ -112,8 +73,8 @@ export class Financials implements OnInit {
                 page,
                 limit: this.meta().limit,
                 type: selectedType === 'all' ? undefined : selectedType,
-                startDate: this.formatApiDate(this.dateRange()?.[0]),
-                endDate: this.formatApiDate(this.dateRange()?.[1]),
+                startDate: this.startDate() || undefined,
+                endDate: this.endDate() || undefined,
             })
             .subscribe({
                 next: (response) => {
@@ -122,7 +83,6 @@ export class Financials implements OnInit {
                     this.isLoading.set(false);
                 },
                 error: (err) => {
-                    console.error('Failed to load transactions:', err);
                     this.error.set(err.message || 'Erro ao carregar extrato');
                     this.isLoading.set(false);
                 },
@@ -135,22 +95,29 @@ export class Financials implements OnInit {
 
     clearFilters(): void {
         this.typeFilter.set('all');
-        this.dateRange.set(undefined);
+        this.startDate.set('');
+        this.endDate.set('');
         this.reload(1);
     }
 
-    changePage(delta: number): void {
-        const nextPage = this.meta().page + delta;
-        if (nextPage < 1 || nextPage > this.meta().totalPages) return;
-        this.reload(nextPage);
+    hasActiveFilters(): boolean {
+        return Boolean(this.typeFilter() !== 'all' || this.startDate() || this.endDate());
+    }
+
+    goToPage(page: number): void {
+        this.reload(page);
     }
 
     setType(value: string): void {
         this.typeFilter.set(value as TransactionType | 'all');
     }
 
-    setDateRange(value: [Date, Date] | null): void {
-        this.dateRange.set(value ?? undefined);
+    setStartDate(value: string): void {
+        this.startDate.set(value);
+    }
+
+    setEndDate(value: string): void {
+        this.endDate.set(value);
     }
 
     formatTransactionType(type: string): string {
@@ -159,8 +126,8 @@ export class Financials implements OnInit {
     }
 
     shortId(value?: string | null): string {
-        if (!value) return '-';
-        return value.length <= 12 ? value : `${value.slice(0, 8)}...`;
+        if (!value) return '—';
+        return value.length <= 12 ? value : `${value.slice(0, 8)}…`;
     }
 
     isPaymentReference(transaction: TransactionObject): boolean {
@@ -170,25 +137,10 @@ export class Financials implements OnInit {
         );
     }
 
-    getNetAmountClasses(transaction: TransactionObject): string {
-        if (transaction.netAmount < 0) return 'text-red-600';
-        if (transaction.netAmount > 0) return 'text-emerald-600';
-        return 'text-zinc-700';
-    }
-
-    private formatApiDate(date?: Date): string | undefined {
-        if (!date) return undefined;
-        const year = date.getFullYear();
-        const month = `${date.getMonth() + 1}`.padStart(2, '0');
-        const day = `${date.getDate()}`.padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    private formatDisplayDate(date: Date): string {
-        return new Intl.DateTimeFormat('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        }).format(date);
+    /** No extrato o sinal é a informação — é o único lugar onde valor ganha cor. */
+    amountSign(value: number): 'pos' | 'neg' | null {
+        if (value > 0) return 'pos';
+        if (value < 0) return 'neg';
+        return null;
     }
 }
