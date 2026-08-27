@@ -4,8 +4,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { ResilientThrottlerGuard } from './common/guards/resilient-throttler.guard';
+import { THROTTLE_LIMIT, THROTTLE_TTL_MS } from './common/throttle-config';
 import { PrismaModule } from './infra/database/prisma.module';
 import { InfrastructureModule } from './infra/infrastructure.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
@@ -74,8 +76,8 @@ import { getOrCreateRequestId } from './common/request-id';
         throttlers: [
           {
             name: 'default',
-            ttl: 60000,
-            limit: 100,
+            ttl: THROTTLE_TTL_MS,
+            limit: THROTTLE_LIMIT,
           },
         ],
         storage: new ThrottlerStorageRedisService({
@@ -120,7 +122,7 @@ import { getOrCreateRequestId } from './common/request-id';
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ResilientThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

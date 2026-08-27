@@ -386,6 +386,10 @@ async function runWithdrawalClaimConcurrency(ctx) {
   step('Claiming one withdrawal concurrently through WithdrawalRepository');
   const now = new Date();
   const amount = 5000;
+  // A fila e do worker inteiro, e as outras suites deixam saques pendentes nela.
+  // Datando o saque no passado ele vira o primeiro candidato do ORDER BY
+  // created_at, entao os dois claimers disputam esta linha e nao duas quaisquer.
+  const seededAt = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
   const withdrawal = await prisma.withdrawal.create({
     data: {
       accountId: ctx.accountId,
@@ -394,8 +398,8 @@ async function runWithdrawalClaimConcurrency(ctx) {
       fee: WITHDRAWAL_FEE,
       netAmount: amount - WITHDRAWAL_FEE,
       status: WithdrawalStatus.PENDING,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: seededAt,
+      updatedAt: seededAt,
     },
   });
 
@@ -423,13 +427,20 @@ async function runWithdrawalClaimConcurrency(ctx) {
   }
 
   const claimed = claims.flat();
-  assert(claimed.length === 1, 'Concurrent withdrawal claimers should claim the row once.', {
-    claims,
-  });
-  assert(claimed[0]?.id === withdrawal.id, 'Withdrawal claimer returned an unexpected id.', {
-    claimed,
-    withdrawalId: withdrawal.id,
-  });
+  const claimedIds = claimed.map((row) => row.id);
+  // SKIP LOCKED nao promete que o perdedor saia de maos vazias — ele pula para o
+  // proximo candidato. O que ele promete, e o que importa aqui, e que a mesma
+  // linha nunca sai para dois claimers.
+  assert(
+    new Set(claimedIds).size === claimedIds.length,
+    'No withdrawal should be claimed by both claimers.',
+    { claims },
+  );
+  assert(
+    claimedIds.filter((id) => id === withdrawal.id).length === 1,
+    'The seeded withdrawal should be claimed exactly once.',
+    { claims, withdrawalId: withdrawal.id },
+  );
 
   const row = await prisma.withdrawal.findUnique({
     where: { id: withdrawal.id },
@@ -547,20 +558,23 @@ async function runCheckoutRollbackWithTrigger(ctx) {
     await dropCheckoutRollbackTrigger(triggerNames);
   }
 
-  assert(response?.status === 422, 'Checkout rollback trigger should make fulfill fail with 422.', {
-    response: response ? summarizeHttpResponse(response) : undefined,
-  });
-  const rollbackMessage = response.body?.error?.message ?? response.text ?? '';
+  // Um trigger estourando e falha de servidor, nao regra de negocio: a API
+  // responde 500 com o envelope DATABASE_ERROR e guarda a mensagem do Postgres
+  // no log, sem devolve-la ao cliente.
   assert(
-    rollbackMessage.includes('checkout rollback smoke forced rollback') &&
-      rollbackMessage.includes('payment=1') &&
-      rollbackMessage.includes('pix_charge=1') &&
-      rollbackMessage.includes('outbox=1'),
-    'Checkout rollback trigger should prove payment, Pix charge and outbox rows existed before rollback.',
-    {
-      response: summarizeHttpResponse(response),
-    },
+    response?.status === 500 && response.body?.error?.code === 'DATABASE_ERROR',
+    'Checkout rollback trigger should make fulfill fail as a database error.',
+    { response: response ? summarizeHttpResponse(response) : undefined },
   );
+  assert(
+    typeof response.body?.error?.requestId === 'string',
+    'Database error response should carry the requestId that finds it in the log.',
+    { response: summarizeHttpResponse(response) },
+  );
+  // A prova de que payment, Pix charge e outbox existiam dentro da transacao
+  // fica no proprio trigger: ele so forca o rollback depois de conferir as tres
+  // linhas, e levanta uma mensagem diferente quando elas nao estao la. O que
+  // sobra para observar daqui e o estado depois do rollback.
 
   const session = await prisma.checkoutSession.findUnique({
     where: { checkoutToken: created.checkoutToken },
@@ -638,14 +652,19 @@ async function runConcurrentCheckoutFulfill(ctx) {
     }),
   ]);
   const successful = responses.filter((result) => result.status === 200 && result.body?.paymentId);
-  const failed = responses.filter((result) => result.status === 422);
 
-  assert(successful.length === 1, 'Exactly one concurrent checkout fulfill should succeed.', {
+  // Quem perde a corrida recebe o pagamento de quem ganhou, nao um erro: e o
+  // que faz o comprador que envia o checkout duas vezes ver a compra dele. O
+  // invariante nao e "uma resposta boa", e "um pagamento so".
+  assert(successful.length === responses.length, 'Concurrent checkout fulfill should answer every caller.', {
     responses: responses.map(summarizeHttpResponse),
   });
-  assert(failed.length === 1, 'Exactly one concurrent checkout fulfill should fail with 422.', {
-    responses: responses.map(summarizeHttpResponse),
-  });
+  const settledPaymentIds = new Set(successful.map((result) => result.body.paymentId));
+  assert(
+    settledPaymentIds.size === 1,
+    'Concurrent checkout fulfill should settle on a single payment.',
+    { responses: responses.map(summarizeHttpResponse) },
+  );
 
   const paymentId = successful[0].body.paymentId;
   assert(paymentId, 'Successful concurrent checkout fulfill did not return a paymentId.', {
@@ -745,6 +764,9 @@ async function createGuestCheckoutSession(ctx, input) {
     method: 'POST',
     cookieJar: ctx.cookieJar,
     jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `db-concurrency-${runId}-checkout-${input.label}`,
+    },
     body: jsonBody({
       amount: input.amount,
       description: `DB concurrency checkout ${input.label}`,

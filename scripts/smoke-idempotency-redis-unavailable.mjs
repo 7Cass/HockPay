@@ -309,11 +309,13 @@ async function assertPaymentPersistence(ctx, input, expectedBody) {
     `Expected one payment.created outbox event, got ${outboxCount}.`,
   );
 
+  // A reserva e unica por key + store + environment desde a isolacao TEST/LIVE.
   const record = await prisma.idempotencyKey.findUnique({
     where: {
-      key_storeId: {
+      key_storeId_environment: {
         key: input.idempotencyKey,
         storeId: ctx.storeId,
+        environment: "TEST",
       },
     },
   });

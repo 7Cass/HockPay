@@ -2,6 +2,7 @@ import { HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
+import { createIdempotencyKey } from '../http/idempotency-key';
 
 export type WithdrawalStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
@@ -118,7 +119,7 @@ export class WithdrawalService {
 
     create(input: CreateWithdrawalInput): Observable<WithdrawalResponse> {
         const headers = new HttpHeaders({
-            'Idempotency-Key': crypto.randomUUID(),
+            'Idempotency-Key': createIdempotencyKey('withdrawal'),
         });
 
         return this.apiClient.post<WithdrawalResponse>('/withdrawals', input, { headers });

@@ -1,6 +1,8 @@
+import { HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ApiClientService } from './api-client.service';
+import { createIdempotencyKey } from '../http/idempotency-key';
 import { toHttpParams } from '../http/list-query';
 import type { PaymentObject } from './payment.service';
 
@@ -130,7 +132,15 @@ export class PaymentLinkService {
         internalReference?: string;
         expiresAt?: string;
     }) {
-        return this.apiClient.post<{ paymentLink: PaymentLinkRecord }>('/payment-links', input);
+        const headers = new HttpHeaders({
+            'Idempotency-Key': createIdempotencyKey('payment-link'),
+        });
+
+        return this.apiClient.post<{ paymentLink: PaymentLinkRecord }>(
+            '/payment-links',
+            input,
+            { headers },
+        );
     }
 
     cancel(id: string) {

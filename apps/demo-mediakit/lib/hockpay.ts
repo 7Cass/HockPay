@@ -7,14 +7,17 @@ export async function createCheckoutSession(input: {
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, unknown>;
+  idempotencyKey: string;
 }): Promise<{ checkoutUrl: string }> {
+  const { idempotencyKey, ...payload } = input;
   const res = await fetch(`${BASE_URL}/api/v1/checkout-sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${API_KEY}`,
+      "Idempotency-Key": idempotencyKey,
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {

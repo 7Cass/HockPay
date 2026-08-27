@@ -46,6 +46,9 @@ Use `.env.example` como base local, sem copiar valores reais de `.env`. API e wo
 | `ENCRYPTION_KEY`            | Chave hex de 32 bytes para segredos sensíveis                             | 64 caracteres hex placeholder                                                    |
 | `REDIS_URL`                 | Redis operacional de API, worker, throttling, idempotência/cache e BullMQ | `redis://localhost:6379`                                                         |
 | `REDIS_HOST` / `REDIS_PORT` | Forma alternativa para o mesmo Redis operacional                          | `localhost` / `6379`                                                             |
+| `THROTTLE_LIMIT`            | Requisicoes por IP em cada janela do rate limit da API                    | `100`                                                                            |
+| `THROTTLE_TTL_MS`           | Tamanho da janela do rate limit da API, em ms                             | `60000`                                                                          |
+| `THROTTLE_LOGIN_LIMIT`      | Tentativas de `POST /auth/login` por IP na mesma janela                   | `5`                                                                              |
 
 API e worker aceitam `REDIS_URL` somente, `REDIS_HOST`/`REDIS_PORT` somente, ou os dois formatos quando apontam para o mesmo host e porta. Se `REDIS_URL` divergir de `REDIS_HOST`/`REDIS_PORT`, o processo falha no startup com erro de configuracao para evitar API, worker e filas em Redis diferentes.
 
@@ -214,6 +217,8 @@ Para evitar que o worker complete saques antes das assertions manuais, o runner 
 ```bash
 WORKER_CRON_WITHDRAWAL_PROCESSING="0 0 0 1 1 *" pnpm --filter @hockpay/worker dev
 ```
+
+O runner tambem acelera `WORKER_CRON_OUTBOX_DISPATCHER` para `* * * * * *`. O dispatcher default claim 50 eventos a cada 10 segundos — 300 por minuto — e o smoke `system` gera quase 500 webhooks que ele espera ver entregues em 60 segundos. Sem a aceleracao, a espera acaba antes de o outbox escoar. Ambas as variaveis continuam respeitando o valor do ambiente quando ele ja existe.
 
 ## Fluxos Manuais Uteis
 
