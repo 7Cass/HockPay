@@ -1,0 +1,77 @@
+/* Carregando, vazio e erro — a mesma coluna centrada, três tons. */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 18rem;
+  padding: 3rem 1.5rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 14px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+:host(.is-bare) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 999px;
+  color: var(--color-ink-faint);
+}
+
+:host([data-variant='error']) .state-icon {
+  border-color: transparent;
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}
+
+h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+:host([data-variant='error']) h3 {
+  color: var(--color-bad);
+}
+
+p {
+  max-width: 42ch;
+  margin: 0.5rem 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+:host([data-variant='loading']) p {
+  margin-top: 0.9rem;
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-faint);
+}
+
+.state-action {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.35rem;
+}
+
+.state-action:empty {
+  display: none;
+}

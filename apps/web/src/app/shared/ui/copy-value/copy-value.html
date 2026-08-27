@@ -1,0 +1,15 @@
+@if (value()) {
+  <button
+    type="button"
+    class="copy"
+    [attr.data-state]="copied() ? 'copied' : null"
+    [title]="copied() ? 'Copiado' : 'Copiar'"
+    [attr.aria-label]="copied() ? 'Copiado' : 'Copiar ' + value()"
+    (click)="copy()"
+  >
+    <span class="copy-text mono">{{ text() }}</span>
+    <ng-icon [name]="copied() ? 'lucideCheck' : 'lucideCopy'" size="12px" strokeWidth="1.8" />
+  </button>
+} @else {
+  <span class="copy-empty">—</span>
+}
