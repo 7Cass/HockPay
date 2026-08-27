@@ -177,6 +177,22 @@ function calculateCpfDigit(digits, startWeight) {
   return remainder < 2 ? 0 : 11 - remainder;
 }
 
+/**
+ * Pagar um link exige o documento do pagador desde que a API passou a
+ * registrar quem pagou. Um unico pagador por run: as corridas concorrentes
+ * precisam mandar o mesmo documento para simular a mesma pessoa clicando
+ * duas vezes.
+ */
+function payerBody() {
+  return JSON.stringify({
+    customer: {
+      document: buildCpf(runId),
+      name: `Payment Link Payer ${runId}`,
+      email: `payment-link-payer-${runId}@hockpay.local`,
+    },
+  });
+}
+
 function randomPassword() {
   return randomBytes(18).toString('base64url');
 }
@@ -342,6 +358,9 @@ async function run() {
   const created = await requestJson('/payment-links', {
     method: 'POST',
     jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `pl-smoke-${runId}`,
+    },
     body: JSON.stringify({
       amount: 2500,
       title: 'Payment Link Smoke',
@@ -380,6 +399,7 @@ async function run() {
   await requestJson(`/payment-links/${linkId}/pay`, {
     method: 'POST',
     jwtCookie: true,
+    body: payerBody(),
   });
   const paidDetail = await requestJson(`/payment-links/${linkId}`, {
     jwtCookie: true,
@@ -397,6 +417,9 @@ async function run() {
   const concurrentCreated = await requestJson('/payment-links', {
     method: 'POST',
     jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `pl-concurrent-${runId}`,
+    },
     body: JSON.stringify({
       amount: 3500,
       title: 'Concurrent Payment Link Smoke',
@@ -418,6 +441,7 @@ async function run() {
     Array.from({ length: 5 }, () =>
       requestMaybeJson(`/payment-links/public/${concurrentToken}/pay`, {
         method: 'POST',
+        body: payerBody(),
       }),
     ),
   );
@@ -428,9 +452,20 @@ async function run() {
     ),
     `Concurrent public pay returned an unexpected status set: ${concurrentResponses.map((response) => response.status).join(', ')}`,
   );
+  // Pagar um link ja pago devolve o pagamento existente em vez de erro — e o que
+  // faz o comprador que clica duas vezes ver a compra dele, nao uma falha. Entao
+  // a corrida pode terminar com varias respostas 200; o que nao pode variar e o
+  // pagamento por tras delas.
   assert(
-    successfulConcurrentPays.length === 1,
-    `Expected exactly one successful concurrent public pay, got ${successfulConcurrentPays.length}.`,
+    successfulConcurrentPays.length >= 1,
+    'Concurrent public pay did not succeed a single time.',
+  );
+  const concurrentPaymentIds = new Set(
+    successfulConcurrentPays.map((response) => response.body?.payment?.id),
+  );
+  assert(
+    concurrentPaymentIds.size === 1,
+    `Concurrent public pay should settle on one payment, got ${concurrentPaymentIds.size}: ${[...concurrentPaymentIds].join(', ')}.`,
   );
 
   const concurrentPayment = successfulConcurrentPays[0].body?.payment;
@@ -471,6 +506,9 @@ async function run() {
   const cancelRaceCreated = await requestJson('/payment-links', {
     method: 'POST',
     jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `pl-cancel-race-${runId}`,
+    },
     body: JSON.stringify({
       amount: 4100,
       title: 'Cancel Race Payment Link Smoke',
@@ -494,6 +532,7 @@ async function run() {
     }),
     requestMaybeJson(`/payment-links/public/${cancelRaceToken}/pay`, {
       method: 'POST',
+      body: payerBody(),
     }),
   ]);
   assert(
