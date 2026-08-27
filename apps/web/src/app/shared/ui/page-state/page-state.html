@@ -1,0 +1,19 @@
+@if (variant() === 'loading') {
+  <span class="spinner" aria-hidden="true"></span>
+} @else if (iconName(); as name) {
+  <span class="state-icon" aria-hidden="true">
+    <ng-icon [name]="name" size="19px" strokeWidth="1.5" />
+  </span>
+}
+
+@if (headingText(); as text) {
+  <h3>{{ text }}</h3>
+}
+
+@if (messageText(); as text) {
+  <p>{{ text }}</p>
+}
+
+<div class="state-action">
+  <ng-content select="[pageStateAction]" />
+</div>

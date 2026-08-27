@@ -1,0 +1,154 @@
+/* Charge state is the only place color is allowed on the landing. */
+
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.stage {
+  box-shadow: 0 40px 90px -60px rgb(20 20 15 / 0.55);
+}
+
+.progress-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  height: 2px;
+  width: 40%;
+  background: var(--color-ink);
+  animation: sweep 1.1s var(--ease) infinite;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+  font-size: 13.5px;
+  color: var(--color-ink-soft);
+}
+
+.row dd {
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.15rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 999px;
+  background: var(--color-paper);
+  font-size: 13px;
+  color: var(--color-ink-soft);
+  transition:
+    transform 0.2s var(--ease),
+    border-color 0.2s,
+    background 0.2s,
+    color 0.2s;
+}
+
+.outcome:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+.outcome:disabled {
+  opacity: 0.45;
+}
+
+.outcome.is-active[data-tone='confirmed'] {
+  border-color: var(--color-ok);
+  background: var(--color-ok-soft);
+  color: var(--color-ok);
+}
+
+.outcome.is-active[data-tone='failed'] {
+  border-color: var(--color-bad);
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+}
+
+.outcome.is-active[data-tone='expired'] {
+  border-color: var(--color-warn);
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.event {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  background: var(--color-paper);
+  animation: slide-in 0.45s var(--ease) both;
+}
+
+.event-mark {
+  margin-top: 0.42rem;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-ink-faint);
+}
+
+.event[data-tone='ok'] .event-mark {
+  background: var(--color-ok);
+}
+
+.event[data-tone='bad'] .event-mark {
+  background: var(--color-bad);
+}
+
+.event[data-tone='warn'] .event-mark {
+  background: var(--color-warn);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-line,
+  .event {
+    animation: none;
+  }
+
+  .outcome:hover:not(:disabled) {
+    transform: none;
+  }
+}

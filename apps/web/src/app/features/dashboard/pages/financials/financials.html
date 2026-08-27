@@ -1,245 +1,175 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Saldo e Extrato</h1>
-            <p class="mt-1 text-sm text-zinc-500">Saldo e extrato da loja inteira. TEST e LIVE compartilham a mesma conta.</p>
-        </div>
+<div class="page">
+  <app-page-header
+    heading="Saldo e Extrato"
+    description="A conta da loja inteira. TEST e LIVE dividem o mesmo saldo."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+      <a routerLink="/dashboard/withdrawals" class="btn btn-quiet group">
+        Saques
+        <ng-icon class="arrow" name="lucideArrowRight" size="15px" strokeWidth="1.7" />
+      </a>
+    </ng-container>
+  </app-page-header>
 
-        <div class="flex flex-col items-start gap-2 sm:items-end">
-            <div class="flex flex-wrap items-center gap-2">
-                <a
-                    routerLink="/dashboard/withdrawals"
-                    hlmBtn
-                    variant="outline"
-                    size="sm"
-                    class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                >
-                    Saques
-                    <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
-                </a>
-                <button
-                    hlmBtn
-                    variant="outline"
-                    size="sm"
-                    class="gap-2 border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                    (click)="reload()"
-                >
-                    <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
-                    Atualizar
-                </button>
-            </div>
-        </div>
-    </div>
+  <section class="balances">
+    <article class="stat">
+      <p class="stat-head">Disponível</p>
+      <p class="stat-value numeric">
+        {{ (account()?.available ?? 0) / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+      </p>
+      <p class="stat-context">Pronto para sacar</p>
+    </article>
 
-    @if (error()) {
-        <div class="flex items-start gap-3 rounded-xl border border-red-200/60 bg-red-50 p-4 text-red-700 shadow-sm">
-            <ng-icon hlm name="lucideXCircle" class="mt-0.5 text-red-500"></ng-icon>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold">Erro ao carregar saldo e extrato</h3>
-                <p class="mt-1 text-sm opacity-90">{{ error() }}</p>
-            </div>
-        </div>
-    }
+    <article class="stat">
+      <p class="stat-head">A receber</p>
+      <p class="stat-value numeric">
+        {{ (account()?.pending ?? 0) / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+      </p>
+      <p class="stat-context">Confirmado, esperando liberação</p>
+    </article>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Disponível</p>
-                <ng-icon hlm name="lucideWallet" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
-                {{ ((account()?.available ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
-            </p>
-            <p class="mt-2 text-xs text-zinc-500">Moeda {{ account()?.currency || 'BRL' }}</p>
-        </div>
+    <article class="stat">
+      <p class="stat-head">Bloqueado</p>
+      <p class="stat-value numeric">
+        {{ (account()?.blocked ?? 0) / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+      </p>
+      <p class="stat-context">Retido por operação financeira</p>
+    </article>
+  </section>
 
-        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">A receber</p>
-                <ng-icon hlm name="lucideClock" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
-                {{ ((account()?.pending ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
-            </p>
-            <p class="mt-2 text-xs text-zinc-500">Pagamentos confirmados aguardando liberação.</p>
-        </div>
-
-        <div class="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Bloqueado</p>
-                <ng-icon hlm name="lucideShield" class="text-zinc-400" size="sm"></ng-icon>
-            </div>
-            <p class="mt-3 text-2xl font-semibold tracking-tight text-zinc-900">
-                {{ ((account()?.blocked ?? 0) / 100) | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
-            </p>
-            <p class="mt-2 text-xs text-zinc-500">Valores temporariamente retidos por operação financeira.</p>
-        </div>
-    </div>
-
-    <div class="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-sm">
-        <div class="grid gap-3 lg:grid-cols-[1fr_minmax(18rem,24rem)_auto_auto] lg:items-end">
-            <label class="block">
-                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Tipo</span>
-                <select
-                    class="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 shadow-sm outline-none transition-colors focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                    [value]="typeFilter()"
-                    (change)="setType($any($event.target).value)"
-                >
-                    @for (type of transactionTypes; track type.value) {
-                        <option [value]="type.value">{{ type.label }}</option>
-                    }
-                </select>
-            </label>
-
-            <label class="block">
-                <span class="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Período</span>
-                <hlm-date-range-picker
-                    class="h-10 w-full border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50"
-                    captionLayout="dropdown"
-                    [autoCloseOnEndSelection]="true"
-                    [date]="dateRange()"
-                    [formatDates]="formatDateRange"
-                    (dateChange)="setDateRange($event)"
-                >
-                    Selecione o período
-                </hlm-date-range-picker>
-            </label>
-
-            <button
-                hlmBtn
-                variant="outline"
-                size="sm"
-                class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                (click)="clearFilters()"
-            >
-                Limpar
-            </button>
-
-            <button
-                hlmBtn
-                size="sm"
-                class="gap-2 bg-indigo-600 text-white shadow-sm hover:bg-indigo-700"
-                (click)="applyFilters()"
-            >
-                <ng-icon hlm name="lucideCalendar" size="xs"></ng-icon>
-                Filtrar
-            </button>
-        </div>
-    </div>
-
-    <div class="flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm">
-        @if (isLoading()) {
-            <div class="flex flex-1 flex-col items-center justify-center py-24">
-                <hlm-spinner class="h-6 w-6 animate-spin text-indigo-600" />
-                <p class="mt-4 text-sm font-medium text-zinc-500">Carregando extrato...</p>
-            </div>
+  <section class="filter-bar">
+    <label class="field field-grow">
+      <span class="field-label">Tipo</span>
+      <select [value]="typeFilter()" (change)="setType($any($event.target).value)">
+        @for (type of transactionTypes; track type.value) {
+          <option [value]="type.value">{{ type.label }}</option>
         }
+      </select>
+    </label>
 
-        @if (!isLoading() && !error() && transactions().length === 0) {
-            <div class="flex flex-1 flex-col items-center justify-center bg-zinc-50/30 px-6 py-24 text-center">
-                <div class="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 shadow-sm">
-                    <ng-icon hlm name="lucideArrowRightLeft" size="xl" class="text-indigo-600 opacity-80" strokeWidth="1.5"></ng-icon>
-                </div>
-                <h3 class="mb-1.5 text-base font-semibold text-zinc-900">Nenhum lançamento encontrado</h3>
-                <p class="mx-auto max-w-sm text-sm text-zinc-500">Quando houver pagamentos, liberações ou estornos, os lançamentos aparecerão aqui.</p>
-            </div>
-        }
+    <label class="field">
+      <span class="field-label">Início</span>
+      <input type="date" [value]="startDate()" (change)="setStartDate($any($event.target).value)" />
+    </label>
 
-        @if (!isLoading() && transactions().length > 0) {
-            <div class="flex-1 overflow-x-auto">
-                <table hlmTable class="w-full">
-                    <thead hlmTHead class="border-b border-zinc-200/80 bg-zinc-50/50">
-                        <tr hlmTr class="border-none hover:bg-transparent">
-                            <th hlmTh class="py-3.5 pl-6 text-xs font-semibold uppercase tracking-wider text-zinc-500">Data</th>
-                            <th hlmTh class="py-3.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">Tipo</th>
-                            <th hlmTh class="py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Bruto</th>
-                            <th hlmTh class="hidden py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500 sm:table-cell">Taxa</th>
-                            <th hlmTh class="py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Líquido</th>
-                            <th hlmTh class="hidden py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500 lg:table-cell">Saldo após</th>
-                            <th hlmTh class="py-3.5 pr-6 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Referência</th>
-                        </tr>
-                    </thead>
+    <label class="field">
+      <span class="field-label">Fim</span>
+      <input type="date" [value]="endDate()" (change)="setEndDate($any($event.target).value)" />
+    </label>
 
-                    <tbody hlmTBody class="divide-y divide-zinc-100">
-                        @for (transaction of transactions(); track transaction.id) {
-                            <tr hlmTr class="border-none transition-colors hover:bg-zinc-50/80">
-                                <td hlmTd class="py-3.5 pl-6">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-medium text-zinc-900">{{ transaction.createdAt | date:'dd/MM/yyyy' }}</span>
-                                        <span class="mt-0.5 text-xs text-zinc-400">{{ transaction.createdAt | date:'HH:mm:ss' }}</span>
-                                    </div>
-                                </td>
-                                <td hlmTd class="py-3.5">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-semibold text-zinc-900">{{ formatTransactionType(transaction.type) }}</span>
-                                        <span class="mt-0.5 max-w-[18rem] truncate text-xs text-zinc-400">{{ transaction.description || shortId(transaction.id) }}</span>
-                                    </div>
-                                </td>
-                                <td hlmTd class="py-3.5 text-right">
-                                    <span class="text-sm font-medium text-zinc-700">{{ transaction.amount / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
-                                </td>
-                                <td hlmTd class="hidden py-3.5 text-right sm:table-cell">
-                                    <span class="text-sm font-medium text-red-500">-{{ transaction.fee / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
-                                </td>
-                                <td hlmTd class="py-3.5 text-right">
-                                    <span class="text-sm font-semibold" [class]="getNetAmountClasses(transaction)">
-                                        {{ transaction.netAmount / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}
-                                    </span>
-                                </td>
-                                <td hlmTd class="hidden py-3.5 text-right lg:table-cell">
-                                    <span class="text-sm font-medium text-zinc-700">{{ transaction.balanceAfter / 100 | currency:(account()?.currency || 'BRL'):'symbol':'1.2-2' }}</span>
-                                </td>
-                                <td hlmTd class="py-3.5 pr-6 text-right">
-                                    @if (isPaymentReference(transaction)) {
-                                        <a
-                                            [routerLink]="['/dashboard/payments', transaction.referenceId]"
-                                            class="inline-flex items-center justify-end gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
-                                        >
-                                            {{ shortId(transaction.referenceId) }}
-                                            <ng-icon hlm name="lucideArrowRight" size="xs"></ng-icon>
-                                        </a>
-                                    } @else {
-                                        <span class="font-mono text-xs text-zinc-500">
-                                            {{ transaction.referenceType || '-' }} {{ shortId(transaction.referenceId) }}
-                                        </span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+    <div class="filter-actions">
+      @if (hasActiveFilters()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilters()">Limpar</button>
+      }
+      <button type="button" class="btn btn-ink btn-sm" (click)="applyFilters()">Filtrar</button>
+    </div>
+  </section>
 
-            <div class="flex flex-col gap-3 border-t border-zinc-200/80 bg-zinc-50/50 px-6 py-4 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-                <span>
-                    Exibindo <span class="font-semibold text-zinc-900">{{ transactions().length }}</span>
-                    de <span class="font-semibold text-zinc-900">{{ meta().total }}</span> lançamentos
-                </span>
+  @if (error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (isLoading()) {
+    <app-page-state variant="loading" message="Carregando extrato…" />
+  } @else if (transactions().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideArrowRightLeft"
+      heading="Nenhum lançamento"
+      [message]="
+        hasActiveFilters()
+          ? 'Nenhum lançamento no tipo ou período escolhido.'
+          : 'Pagamentos, liberações, taxas e saques aparecem aqui, um a um.'
+      "
+    >
+      @if (hasActiveFilters()) {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="clearFilters()">
+          Limpar filtros
+        </button>
+      }
+    </app-page-state>
+  } @else {
+    <section class="panel">
+      <div class="table-scroll scroll-thin">
+        <table class="table ledger">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Lançamento</th>
+              <th class="num">Bruto</th>
+              <th class="num col-fee">Taxa</th>
+              <th class="num">Líquido</th>
+              <th class="num col-balance">Saldo após</th>
+              <th class="num">Referência</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (transaction of transactions(); track transaction.id) {
+              <tr>
+                <td>
+                  <span class="cell-stack">
+                    <span class="cell-title numeric">{{ transaction.createdAt | date: 'dd/MM/yy' }}</span>
+                    <span class="cell-sub mono">{{ transaction.createdAt | date: 'HH:mm:ss' }}</span>
+                  </span>
+                </td>
 
-                <div class="flex items-center gap-3 self-end sm:self-auto">
-                    <button
-                        hlmBtn
-                        variant="outline"
-                        size="sm"
-                        class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                        [disabled]="meta().page <= 1"
-                        (click)="changePage(-1)"
+                <td>
+                  <span class="cell-stack">
+                    <span class="cell-title">{{ formatTransactionType(transaction.type) }}</span>
+                    <span class="cell-sub">{{ transaction.description || shortId(transaction.id) }}</span>
+                  </span>
+                </td>
+
+                <td class="num">
+                  {{ transaction.amount / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+                </td>
+
+                <td class="num num-quiet col-fee">
+                  −{{ transaction.fee / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+                </td>
+
+                <td class="num" [attr.data-sign]="amountSign(transaction.netAmount)">
+                  {{ transaction.netAmount / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+                </td>
+
+                <td class="num col-balance">
+                  {{ transaction.balanceAfter / 100 | currency: currency() : 'symbol' : '1.2-2' }}
+                </td>
+
+                <td class="num">
+                  @if (isPaymentReference(transaction)) {
+                    <a
+                      class="ref group"
+                      [routerLink]="['/dashboard/payments', transaction.referenceId]"
                     >
-                        Anterior
-                    </button>
-                    <span class="font-medium text-zinc-600">Página {{ meta().page }} de {{ meta().totalPages }}</span>
-                    <button
-                        hlmBtn
-                        variant="outline"
-                        size="sm"
-                        class="border-zinc-200/80 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:text-zinc-900"
-                        [disabled]="meta().page >= meta().totalPages"
-                        (click)="changePage(1)"
-                    >
-                        Próxima
-                    </button>
-                </div>
-            </div>
-        }
-    </div>
+                      <span class="mono">{{ shortId(transaction.referenceId) }}</span>
+                      <ng-icon class="arrow" name="lucideArrowRight" size="13px" strokeWidth="1.7" />
+                    </a>
+                  } @else {
+                    <span class="cell-sub mono">
+                      {{ transaction.referenceType || '—' }} {{ shortId(transaction.referenceId) }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="meta().page"
+        [totalPages]="meta().totalPages"
+        [total]="meta().total"
+        [shown]="transactions().length"
+        noun="lançamentos"
+        (pageChange)="goToPage($event)"
+      />
+    </section>
+  }
 </div>

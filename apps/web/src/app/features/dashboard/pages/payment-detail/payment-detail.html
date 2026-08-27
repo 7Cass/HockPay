@@ -1,0 +1,572 @@
+<div class="page">
+  <app-page-header
+    backTo="/dashboard/payments"
+    backLabel="Pagamentos"
+    [eyebrow]="paymentService.currentTimeline()?.payment?.description || 'Cobrança Pix'"
+    heading="Pagamento"
+    description="Tudo que aconteceu com esta cobrança: comprovante, ledger, webhooks e estornos."
+  >
+    @if (paymentService.currentTimeline(); as data) {
+      <app-status-chip pageStatus [status]="data.payment.status" />
+    }
+
+    @if (paymentService.currentTimeline(); as data) {
+      <ng-container pageActions>
+        <button
+          type="button"
+          class="btn btn-quiet"
+          [disabled]="!canRefund(data.payment)"
+          (click)="openRefundDialog(data.payment)"
+        >
+          <ng-icon name="lucideUndo2" size="15px" strokeWidth="1.7" />
+          Estornar
+        </button>
+      </ng-container>
+    }
+  </app-page-header>
+
+  @if (paymentService.isTimelineLoading()) {
+    <app-page-state variant="loading" message="Carregando pagamento…" />
+  } @else if (paymentService.timelineError(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <a pageStateAction class="btn btn-quiet btn-sm" routerLink="/dashboard/payments">
+        Voltar para a lista
+      </a>
+    </app-page-state>
+  } @else if (paymentService.currentTimeline(); as data) {
+    <section class="metrics">
+      <article class="stat">
+        <p class="stat-head">Bruto</p>
+        <p class="stat-value numeric">
+          {{ data.payment.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Taxa</p>
+        <p class="stat-value numeric">
+          −{{ data.payment.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Líquido</p>
+        <p class="stat-value numeric">
+          {{ data.payment.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Estornado</p>
+        <p class="stat-value numeric">
+          {{ (data.payment.totalRefunded || 0) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+        <p class="stat-context">
+          Restam {{ refundableAmount(data.payment) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+      </article>
+    </section>
+
+    <section class="panel state">
+      <div class="panel-body">
+        <p class="eyebrow">Estado atual</p>
+        <h2>{{ getStateTitle(data) }}</h2>
+        <p class="state-note">{{ getStateDescription(data) }}</p>
+      </div>
+
+      <dl class="state-facts">
+        @for (fact of getStateFacts(data); track fact.label) {
+          <div class="fact fact-stacked">
+            <dt>{{ fact.label }}</dt>
+            <dd>{{ fact.value }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Linha do tempo</h2>
+              <p>{{ data.timeline.length }} evento(s) registrados</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (data.timeline.length === 0) {
+              <p class="quiet">Nenhum evento registrado.</p>
+            } @else {
+              <ol class="timeline">
+                @for (event of data.timeline; track event.id) {
+                  <li [attr.data-tone]="timelineTone(event.status)">
+                    <div class="timeline-head">
+                      <span class="timeline-label">{{ event.title }}</span>
+                      <span class="timeline-when">
+                        {{ event.occurredAt | date: 'dd/MM/yy HH:mm:ss' }}
+                      </span>
+                    </div>
+
+                    @if (event.description) {
+                      <p class="timeline-note">{{ event.description }}</p>
+                    }
+
+                    <div class="timeline-meta">
+                      <span class="chip chip-bare" [attr.data-tone]="timelineTone(event.status) ?? 'outline'">
+                        {{ formatTimelineStatus(event.status) }}
+                      </span>
+
+                      @if (event.entityId) {
+                        <app-copy-value [value]="event.entityId" [truncate]="12" />
+                      }
+
+                      @if (timelineAmount(event); as amount) {
+                        <span class="numeric amount">
+                          {{ amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                        </span>
+                      }
+
+                      @if (isWebhookEvent(event)) {
+                        <a class="link" routerLink="/dashboard/webhooks">Webhooks</a>
+                      }
+                    </div>
+                  </li>
+                }
+              </ol>
+            }
+          </div>
+        </section>
+
+        @if (data.payment.items?.length) {
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Itens</h2>
+                <p>O que o comprador levou</p>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <ul class="items">
+                @for (item of data.payment.items; track item.name + item.quantity) {
+                  <li>
+                    <span class="cell-stack">
+                      <span class="cell-title">{{ item.name }}</span>
+                      <span class="cell-sub mono">
+                        {{ item.quantity }} × {{ item.unitPrice / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </span>
+                    </span>
+                    <span class="numeric">
+                      {{ item.totalPrice / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </section>
+        }
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Lançamentos</h2>
+              <p>Como este pagamento mexeu no saldo</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (data.transactions.length === 0) {
+              <p class="quiet">{{ getTransactionEmptyState(data.payment.status) }}</p>
+            } @else {
+              <ul class="records">
+                @for (transaction of data.transactions; track transaction.id) {
+                  <li>
+                    <div class="record-head">
+                      <span class="cell-title">{{ formatTransactionType(transaction.type) }}</span>
+                      <span class="numeric">
+                        {{ transaction.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </span>
+                    </div>
+                    <dl class="facts record-facts">
+                      <div class="fact">
+                        <dt>ID</dt>
+                        <dd><app-copy-value [value]="transaction.id" [truncate]="12" /></dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Taxa</dt>
+                        <dd class="numeric">
+                          −{{ transaction.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                        </dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Saldo após</dt>
+                        <dd class="numeric">
+                          {{ transaction.balanceAfter / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                        </dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Data</dt>
+                        <dd class="numeric">{{ transaction.createdAt | date: 'dd/MM/yy HH:mm' }}</dd>
+                      </div>
+                    </dl>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Webhooks</h2>
+              <p>O que saiu daqui para a sua integração</p>
+            </div>
+            <a class="btn btn-ghost btn-sm group" routerLink="/dashboard/webhooks">
+              Abrir
+              <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+            </a>
+          </div>
+
+          <div class="panel-body">
+            @if (data.webhookLogs.length === 0) {
+              <p class="quiet">{{ getWebhookEmptyState(data.payment.status) }}</p>
+            } @else {
+              <ul class="records">
+                @for (log of data.webhookLogs; track log.id) {
+                  <li>
+                    <div class="record-head">
+                      <span class="cell-title mono">{{ log.eventType }}</span>
+                      <span class="chip chip-bare" [attr.data-tone]="webhookTone(log)">
+                        {{ log.responseStatus || 'pendente' }}
+                      </span>
+                    </div>
+                    <dl class="facts record-facts">
+                      <div class="fact">
+                        <dt>deliveryId</dt>
+                        <dd><app-copy-value [value]="log.deliveryId" [truncate]="12" /></dd>
+                      </div>
+                      <div class="fact">
+                        <dt>requestId</dt>
+                        <dd><app-copy-value [value]="log.requestId" [truncate]="12" /></dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Tentativa</dt>
+                        <dd class="numeric">{{ log.attempt }}/{{ log.maxAttempts }}</dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Entregue</dt>
+                        <dd class="numeric">
+                          {{ log.deliveredAt ? (log.deliveredAt | date: 'dd/MM/yy HH:mm') : '—' }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Pagador</h2>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Nome</dt>
+              <dd>{{ data.payment.payerName || 'Não identificado' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>E-mail</dt>
+              <dd>{{ data.payment.payerEmail || 'Não informado' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Documento</dt>
+              <dd class="mono">{{ data.payment.payerDocument || 'Não informado' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>External ID</dt>
+              <dd><app-copy-value [value]="data.payment.externalId" [truncate]="14" /></dd>
+            </div>
+          </dl>
+
+          @if (data.payment.customerId) {
+            <div class="panel-foot">
+              <a class="btn btn-quiet btn-sm group" [routerLink]="['/dashboard/customers', data.payment.customerId]">
+                Ver cliente
+                <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+              </a>
+            </div>
+          }
+        </section>
+
+        @if (isPaymentLinkAttempt(data.payment) || data.payment.pixChargeId) {
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Cobrança de origem</h2>
+                <p>{{ formatAttempt(data.payment) }}</p>
+              </div>
+            </div>
+
+            <dl class="panel-body facts">
+              @if (data.payment.paymentLinkId) {
+                <div class="fact">
+                  <dt>Link</dt>
+                  <dd><app-copy-value [value]="data.payment.paymentLinkId" [truncate]="12" /></dd>
+                </div>
+              }
+              @if (data.payment.pixChargeId) {
+                <div class="fact">
+                  <dt>PixCharge</dt>
+                  <dd><app-copy-value [value]="data.payment.pixChargeId" [truncate]="12" /></dd>
+                </div>
+              }
+              @if (data.payment.pixCharge?.pixTxId) {
+                <div class="fact">
+                  <dt>TxID</dt>
+                  <dd><app-copy-value [value]="data.payment.pixCharge?.pixTxId" [truncate]="16" /></dd>
+                </div>
+              }
+              @if (data.payment.pixCharge?.status) {
+                <div class="fact">
+                  <dt>Situação</dt>
+                  <dd class="mono">{{ data.payment.pixCharge?.status }}</dd>
+                </div>
+              }
+            </dl>
+
+            @if (data.payment.paymentLinkId) {
+              <div class="panel-foot">
+                <a class="btn btn-quiet btn-sm group" [routerLink]="['/dashboard/payment-links', data.payment.paymentLinkId]">
+                  Ver o link
+                  <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+                </a>
+              </div>
+            }
+          </section>
+        }
+
+        @if (data.relatedAttempts && data.relatedAttempts.length > 1) {
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Outras tentativas</h2>
+                <p>{{ data.relatedAttempts.length }} pagamentos na mesma cobrança</p>
+              </div>
+            </div>
+
+            <div class="panel-body attempts">
+              @for (attempt of data.relatedAttempts; track attempt.id) {
+                <a
+                  class="attempt"
+                  [class.is-current]="attempt.id === data.payment.id"
+                  [routerLink]="['/dashboard/payments', attempt.id]"
+                >
+                  <span class="attempt-head">
+                    <span class="cell-title">{{ formatAttempt(attempt) }}</span>
+                    <app-status-chip [status]="attempt.status" />
+                  </span>
+                  <span class="cell-sub mono">
+                    {{ shortId(attempt.id) }} · {{ attempt.createdAt | date: 'dd/MM/yy HH:mm' }}
+                  </span>
+                  @if (attempt.failedReason) {
+                    <span class="cell-sub">{{ attempt.failedReason }}</span>
+                  }
+                </a>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Checkout</h2>
+            </div>
+          </div>
+
+          @if (data.checkoutSession; as session) {
+            <dl class="panel-body facts">
+              <div class="fact">
+                <dt>Situação</dt>
+                <dd class="mono">{{ session.status }}</dd>
+              </div>
+              <div class="fact">
+                <dt>Token</dt>
+                <dd><app-copy-value [value]="session.checkoutToken" [truncate]="12" /></dd>
+              </div>
+              <div class="fact">
+                <dt>Expira</dt>
+                <dd class="numeric">{{ session.expiresAt | date: 'dd/MM/yy HH:mm' }}</dd>
+              </div>
+              @if (data.payment.checkoutUrl) {
+                <div class="fact fact-stacked">
+                  <dt>URL</dt>
+                  <dd class="mono break">{{ data.payment.checkoutUrl }}</dd>
+                </div>
+              }
+            </dl>
+          } @else {
+            <div class="panel-body">
+              <p class="quiet">{{ getCheckoutEmptyState(data.payment.status) }}</p>
+            </div>
+          }
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Comprovante</h2>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (data.receipt; as receipt) {
+              <a class="btn btn-quiet group receipt-link" [routerLink]="['/dashboard/receipts', receipt.id]">
+                <span class="mono">{{ receipt.receiptNumber }}</span>
+                <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+              </a>
+            } @else {
+              <p class="quiet">{{ getReceiptEmptyState(data.payment.status) }}</p>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Estornos</h2>
+              <p>
+                Restam
+                {{ refundableAmount(data.payment) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              [disabled]="!canRefund(data.payment)"
+              (click)="openRefundDialog(data.payment)"
+            >
+              Iniciar
+            </button>
+          </div>
+
+          <div class="panel-body">
+            @if (data.refunds.length === 0) {
+              <p class="quiet">{{ getRefundEmptyState(data.payment.status) }}</p>
+            } @else {
+              <ul class="records">
+                @for (refund of data.refunds; track refund.id) {
+                  <li>
+                    <div class="record-head">
+                      <app-status-chip [status]="refund.status" />
+                      <span class="numeric">
+                        −{{ refund.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </span>
+                    </div>
+                    <dl class="facts record-facts">
+                      <div class="fact">
+                        <dt>ID</dt>
+                        <dd><app-copy-value [value]="refund.id" [truncate]="12" /></dd>
+                      </div>
+                      <div class="fact">
+                        <dt>Processado</dt>
+                        <dd class="numeric">
+                          {{ refund.processedAt ? (refund.processedAt | date: 'dd/MM/yy HH:mm') : 'pendente' }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Metadata</h2>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (!hasEntries(data.payment.metadata)) {
+              <p class="quiet">Sem metadata.</p>
+            } @else {
+              <dl class="facts">
+                @for (entry of entries(data.payment.metadata); track entry.key) {
+                  <div class="fact">
+                    <dt class="mono">{{ entry.key }}</dt>
+                    <dd class="mono break">{{ stringify(entry.value) }}</dd>
+                  </div>
+                }
+              </dl>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ─── Estorno ─────────────────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="refundDialogState() === 'open'"
+  (closed)="closeRefundDialog()"
+  heading="Iniciar estorno"
+  [description]="'Ainda dá para estornar ' + formatRefundRemaining() + ' desta cobrança.'"
+>
+  <form id="refund-form" class="form-stack" [formGroup]="refundForm" (ngSubmit)="submitRefund()">
+    <label class="field">
+      <span class="field-label">Valor</span>
+      <input id="refund-amount" formControlName="amount" inputmode="decimal" placeholder="129,90" />
+      @if (refundAmountError(); as message) {
+        <span class="field-error">{{ message }}</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="field-label">Motivo</span>
+      <textarea
+        id="refund-reason"
+        formControlName="reason"
+        rows="3"
+        placeholder="Pedido cancelado pelo cliente"
+      ></textarea>
+      <span class="field-note">Fica no registro do estorno. O comprador não vê.</span>
+    </label>
+
+    @if (refundError(); as message) {
+      <div class="notice" data-tone="bad">
+        <span class="notice-text">{{ message }}</span>
+      </div>
+    }
+  </form>
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeRefundDialog()" [disabled]="isRefundSubmitting()">
+      Cancelar
+    </button>
+    <button
+      type="submit"
+      form="refund-form"
+      class="btn btn-danger"
+      [disabled]="isRefundSubmitting() || !canSubmitRefund()"
+    >
+      @if (isRefundSubmitting()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      Confirmar estorno
+    </button>
+  </ng-container>
+</app-sheet>

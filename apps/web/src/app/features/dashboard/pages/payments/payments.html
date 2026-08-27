@@ -1,0 +1,149 @@
+<div class="page">
+  <app-page-header
+    heading="Pagamentos"
+    description="Toda cobrança Pix da loja, com a taxa e o líquido de cada uma."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <section class="filter-bar">
+    <label class="field field-grow">
+      <span class="field-label">Busca</span>
+      <span class="control with-icon">
+        <span class="control-icon">
+          <ng-icon name="lucideSearch" size="14px" strokeWidth="1.8" />
+        </span>
+        <input
+          type="search"
+          placeholder="External ID"
+          [value]="search()"
+          (input)="setSearch($event)"
+          (keydown.enter)="applyFilters()"
+        />
+      </span>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Status</span>
+      <select [value]="status()" (change)="setStatus($event)">
+        @for (option of statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Início</span>
+      <input type="date" [value]="startDate()" (input)="setStartDate($event)" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Fim</span>
+      <input type="date" [value]="endDate()" (input)="setEndDate($event)" />
+    </label>
+
+    <div class="filter-actions">
+      @if (hasActiveFilters()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilters()">Limpar</button>
+      }
+      <button type="button" class="btn btn-ink btn-sm" (click)="applyFilters()">Filtrar</button>
+    </div>
+  </section>
+
+  @if (paymentService.error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (paymentService.isLoading()) {
+    <section class="panel">
+      <div class="rows">
+        @for (row of skeletonRows; track row) {
+          <div class="row-skeleton">
+            <div class="skeleton" style="height: 0.85rem; width: 5rem"></div>
+            <div class="skeleton" style="height: 0.85rem; width: 40%"></div>
+            <div class="skeleton" style="height: 0.85rem; width: 4.5rem"></div>
+            <div class="skeleton" style="height: 1.5rem; width: 5.5rem; border-radius: 999px"></div>
+          </div>
+        }
+      </div>
+    </section>
+  } @else if (paymentService.payments().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideReceipt"
+      heading="Nenhum pagamento por aqui"
+      [message]="emptyStateMessage()"
+    >
+      @if (hasActiveFilters()) {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="clearFilters()">
+          Limpar filtros
+        </button>
+      }
+    </app-page-state>
+  } @else {
+    <section class="panel">
+      <div class="table-scroll scroll-thin">
+        <table class="table payments-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th class="num">Bruto</th>
+              <th class="num col-fee">Taxa</th>
+              <th class="num">Líquido</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of paymentService.payments(); track payment.id) {
+              <tr class="is-clickable" (click)="openPayment(payment.id)">
+                <td>
+                  <span class="cell-stack">
+                    <span class="cell-title numeric">{{ payment.createdAt | date: 'dd/MM/yy' }}</span>
+                    <span class="cell-sub mono">{{ payment.createdAt | date: 'HH:mm' }}</span>
+                  </span>
+                </td>
+
+                <td>
+                  <a class="cell-link" [routerLink]="['/dashboard/payments', payment.id]" (click)="$event.stopPropagation()">
+                    <span class="cell-title">{{ payment.description || 'Cobrança Pix' }}</span>
+                    <span class="cell-sub mono">{{ shortId(payment.id) }}</span>
+                  </a>
+
+                  @if (isPaymentLinkAttempt(payment)) {
+                    <span class="cell-tags">
+                      <span class="chip chip-bare" data-tone="outline">Link</span>
+                      <span class="cell-sub mono">{{ formatAttempt(payment) }}</span>
+                    </span>
+                  }
+                </td>
+
+                <td class="num">{{ payment.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</td>
+                <td class="num num-quiet col-fee">
+                  −{{ payment.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                </td>
+                <td class="num">{{ payment.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</td>
+                <td><app-status-chip [status]="payment.status" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="paymentService.page()"
+        [totalPages]="paymentService.totalPages()"
+        [total]="paymentService.total()"
+        [shown]="paymentService.payments().length"
+        noun="pagamentos"
+        (pageChange)="goToPage($event)"
+      />
+    </section>
+  }
+</div>

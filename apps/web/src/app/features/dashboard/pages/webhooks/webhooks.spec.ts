@@ -35,19 +35,19 @@ describe('Webhooks', () => {
   }
 
   it.each([
-    ['PENDING', 'Pendente', 'lucideClock', false],
-    ['DELIVERED', 'Entregue', 'lucideCheck', false],
-    ['FAILED_RETRYABLE', 'Falha temporária', 'lucideAlertTriangle', true],
-    ['FAILED_FINAL', 'Falha final', 'lucideXCircle', true],
+    ['PENDING', 'Pendente', 'neutral', false],
+    ['DELIVERED', 'Entregue', 'ok', false],
+    ['FAILED_RETRYABLE', 'Falha temporária', 'warn', true],
+    ['FAILED_FINAL', 'Falha final', 'bad', true],
   ] satisfies Array<[WebhookDeliveryStatus, string, string, boolean]>)(
     'maps canonical %s logs to status UI helpers',
-    (status, label, icon, canRetry) => {
+    (status, label, tone, canRetry) => {
       const component = createComponent();
       const log = createLog({ status });
 
       expect(component.resolveLogStatus(log)).toBe(status);
       expect(component.getLogStatusLabel(log)).toBe(label);
-      expect(component.getLogStatusIcon(log)).toBe(icon);
+      expect(component.getLogStatusTone(log)).toBe(tone);
       expect(component.canRetryLog(log)).toBe(canRetry);
     },
   );

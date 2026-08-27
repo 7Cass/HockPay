@@ -1,0 +1,151 @@
+<div class="aside" [class.is-collapsed]="collapsed()">
+  <!-- ─── Marca ──────────────────────────────────────────────────────────── -->
+  <div class="aside-head">
+    <a routerLink="/dashboard" (click)="onNavigate()" class="brand group">
+      <span class="mark" aria-hidden="true">
+        <span class="mark-bar"></span>
+        <span class="mark-bar"></span>
+        <span class="mark-dot"></span>
+      </span>
+      <span class="brand-name">hockpay</span>
+    </a>
+
+    @if (variant() === 'drawer') {
+      <button type="button" class="head-btn" (click)="shell.closeDrawer()" aria-label="Fechar menu">
+        <ng-icon name="lucideX" size="16px" strokeWidth="1.7" />
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="head-btn"
+        (click)="shell.toggleAside()"
+        [attr.aria-label]="collapsed() ? 'Expandir barra lateral' : 'Recolher barra lateral'"
+      >
+        <ng-icon name="lucidePanelLeft" size="16px" strokeWidth="1.7" />
+      </button>
+    }
+  </div>
+
+  <!-- ─── Seletor de loja ────────────────────────────────────────────────── -->
+  <div class="aside-store">
+    <button
+      type="button"
+      class="store"
+      (click)="toggleStoreMenu($event)"
+      [attr.aria-expanded]="storeMenuOpen()"
+      [title]="collapsed() ? (stores.currentStore()?.name ?? 'Selecionar loja') : ''"
+    >
+      <span class="store-badge" aria-hidden="true">{{ storeInitial() }}</span>
+      <span class="store-text">
+        <span class="store-name">{{ stores.currentStore()?.name ?? 'Selecionar loja' }}</span>
+        <span class="store-slug mono">{{ stores.currentStore()?.slug ?? 'nenhuma loja' }}</span>
+      </span>
+      <ng-icon class="store-caret" name="lucideChevronsUpDown" size="14px" strokeWidth="1.7" />
+    </button>
+
+    @if (storeMenuOpen()) {
+      <div class="menu menu-store scroll-thin" role="menu">
+        <p class="menu-title eyebrow">Lojas</p>
+
+        @for (store of stores.stores(); track store.id) {
+          <button type="button" class="menu-row" role="menuitem" (click)="selectStore(store)">
+            <span class="menu-check" aria-hidden="true">
+              @if (store.id === stores.currentStore()?.id) {
+                <ng-icon name="lucideCheck" size="13px" strokeWidth="2" />
+              }
+            </span>
+            <span class="menu-text">
+              <span class="menu-label">{{ store.name }}</span>
+              <span class="menu-sub mono">{{ store.slug }}</span>
+            </span>
+          </button>
+        } @empty {
+          <p class="menu-empty">Nenhuma loja ainda.</p>
+        }
+
+        <div class="menu-rule"></div>
+
+        <button type="button" class="menu-row" role="menuitem" (click)="openCreateStoreDialog()">
+          <span class="menu-check" aria-hidden="true">
+            <ng-icon name="lucidePlus" size="13px" strokeWidth="2" />
+          </span>
+          <span class="menu-text">
+            <span class="menu-label">Criar nova loja</span>
+          </span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- ─── Navegação ──────────────────────────────────────────────────────── -->
+  <nav class="aside-nav scroll-thin">
+    @for (group of groups; track group.label) {
+      <section class="nav-group">
+        <p class="eyebrow nav-group-label">{{ group.label }}</p>
+
+        @for (item of group.items; track item.route) {
+          <a
+            class="nav-item"
+            [routerLink]="item.route"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+            (click)="onNavigate()"
+            [title]="collapsed() ? item.label : ''"
+          >
+            <ng-icon class="nav-icon" [name]="item.icon" size="17px" strokeWidth="1.6" />
+            <span class="nav-text">{{ item.label }}</span>
+          </a>
+        }
+      </section>
+    }
+  </nav>
+
+  <!-- ─── Rodapé: conta ──────────────────────────────────────────────────── -->
+  <div class="aside-foot">
+    <button
+      type="button"
+      class="user"
+      (click)="toggleUserMenu($event)"
+      [attr.aria-expanded]="userMenuOpen()"
+      [title]="collapsed() ? (auth.currentUser()?.name ?? '') : ''"
+    >
+      <span class="user-badge" aria-hidden="true">{{ userInitials() }}</span>
+      <span class="user-text">
+        <span class="user-name">{{ auth.currentUser()?.name ?? '…' }}</span>
+        <span class="user-mail mono">{{ auth.currentUser()?.email ?? '' }}</span>
+      </span>
+      <ng-icon class="user-caret" name="lucideChevronsUpDown" size="14px" strokeWidth="1.7" />
+    </button>
+
+    @if (userMenuOpen()) {
+      <div class="menu menu-user" role="menu">
+        <p class="menu-title eyebrow">Conta</p>
+
+        <a class="menu-row" role="menuitem" routerLink="/dashboard/settings" (click)="onNavigate()">
+          <span class="menu-check" aria-hidden="true">
+            <ng-icon name="lucideSettings" size="13px" strokeWidth="1.7" />
+          </span>
+          <span class="menu-text">
+            <span class="menu-label">Configurações</span>
+          </span>
+        </a>
+
+        <div class="menu-rule"></div>
+
+        <button type="button" class="menu-row is-danger" role="menuitem" (click)="logout()">
+          <span class="menu-check" aria-hidden="true">
+            <ng-icon name="lucideLogOut" size="13px" strokeWidth="1.7" />
+          </span>
+          <span class="menu-text">
+            <span class="menu-label">Sair</span>
+          </span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <app-create-store-dialog
+    [dialogState]="createStoreDialogState"
+    (dialogClosed)="createStoreDialogState = 'closed'"
+  />
+</div>

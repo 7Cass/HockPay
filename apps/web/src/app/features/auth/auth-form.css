@@ -1,0 +1,228 @@
+/* Shared chrome for the auth forms (login + register).
+   Same paper/ink system as the landing: ink on paper, color only for state. */
+
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
+  width: 100%;
+}
+
+/* ── Type helpers ─────────────────────────────────────────────────────── */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-ok);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ok) 55%, transparent);
+  animation: pulse 2.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ── Fields ───────────────────────────────────────────────────────────── */
+.field {
+  display: block;
+}
+
+.field-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-ink-soft);
+}
+
+.control {
+  position: relative;
+}
+
+.field input {
+  display: block;
+  width: 100%;
+  height: 2.85rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  background: var(--color-paper);
+  font-size: 14.5px;
+  color: var(--color-ink);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.field input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.field input:hover:not(:focus) {
+  border-color: color-mix(in oklab, var(--color-ink) 25%, var(--color-hairline));
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 3px rgb(20 20 15 / 0.07);
+}
+
+.field input.is-invalid,
+.field input.ng-invalid.ng-touched {
+  border-color: var(--color-bad);
+}
+
+.field input.is-invalid:focus,
+.field input.ng-invalid.ng-touched:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-bad) 14%, transparent);
+}
+
+.control.with-toggle input {
+  padding-right: 3rem;
+}
+
+.toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  color: var(--color-ink-faint);
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+
+.toggle:hover {
+  color: var(--color-ink);
+  background: rgb(20 20 15 / 0.05);
+}
+
+.field-note,
+.field-error {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.field-note {
+  color: var(--color-ink-faint);
+}
+
+.field-error {
+  color: var(--color-bad);
+  animation: nudge 0.35s var(--ease) both;
+}
+
+@keyframes nudge {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+/* ── Submit ───────────────────────────────────────────────────────────── */
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 3rem;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-size: 15px;
+  font-weight: 500;
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s,
+    opacity 0.2s;
+}
+
+.btn-ink:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -14px rgb(20 20 15 / 0.55);
+}
+
+.btn-ink:disabled {
+  opacity: 0.5;
+}
+
+.arrow {
+  transition: transform 0.3s var(--ease);
+}
+
+.btn-ink:hover:not(:disabled) .arrow {
+  transform: translateX(3px);
+}
+
+/* ── Inline links ─────────────────────────────────────────────────────── */
+.link {
+  color: var(--color-ink);
+  font-weight: 500;
+  border-bottom: 1px solid var(--color-hairline);
+  transition: border-color 0.25s;
+}
+
+.link:hover {
+  border-color: var(--color-ink);
+}
+
+/* ── Scroll reveal ────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.75s var(--ease),
+    transform 0.75s var(--ease);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .pulse-dot,
+  .field-error {
+    animation: none;
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    transform: none;
+  }
+}

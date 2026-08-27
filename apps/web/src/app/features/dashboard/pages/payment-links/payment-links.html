@@ -1,297 +1,312 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10">
-  <hlm-sheet [side]="'right'" [state]="sheetState()" (stateChanged)="onSheetStateChange($event)">
-    <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full overflow-y-auto border-l border-zinc-200 bg-white sm:max-w-xl">
-      <div class="flex min-h-full flex-col">
-        <div hlmSheetHeader class="border-b border-zinc-200 px-6 py-6 pr-14">
-          <p class="text-xs font-bold uppercase tracking-widest text-zinc-500">Novo link</p>
-          <h2 hlmSheetTitle class="mt-2 text-xl font-semibold tracking-tight text-zinc-950">Criar link de pagamento</h2>
-          <p hlmSheetDescription class="mt-2 text-sm leading-6 text-zinc-500">
-            Gere uma cobrança Pix avulsa para enviar por WhatsApp, e-mail ou qualquer canal de atendimento.
-          </p>
-        </div>
-
-        <form class="flex-1 space-y-6 px-6 py-6" [formGroup]="form" (ngSubmit)="create()">
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900" for="payment-link-amount">Valor</label>
-              <p class="mt-1 text-sm text-zinc-500">Informe o valor da cobrança em reais.</p>
-            </div>
-            <input
-              hlmInput
-              id="payment-link-amount"
-              formControlName="amount"
-              mask="separator.2"
-              prefix="R$ "
-              thousandSeparator="."
-              decimalMarker=","
-              [dropSpecialCharacters]="false"
-              inputmode="decimal"
-              placeholder="R$ 129,90"
-              class="h-11 border-zinc-200 bg-white"
-            />
-            @if (form.controls.amount.invalid && form.controls.amount.touched) {
-              <p class="text-sm text-red-600">Informe um valor monetário maior que zero.</p>
-            }
-          </section>
-
-          <section class="space-y-3">
-            <label class="text-sm font-medium text-zinc-900" for="payment-link-title">Título</label>
-            <input hlmInput id="payment-link-title" formControlName="title" placeholder="Compra avulsa" class="h-11 border-zinc-200 bg-white" />
-          </section>
-
-          <section class="space-y-3">
-            <label class="text-sm font-medium text-zinc-900" for="payment-link-description">Descrição</label>
-            <textarea
-              id="payment-link-description"
-              formControlName="description"
-              rows="3"
-              placeholder="Detalhe breve da cobrança"
-              class="min-h-24 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-            ></textarea>
-          </section>
-
-          <section class="space-y-3">
-            <label class="text-sm font-medium text-zinc-900" for="payment-link-reference">Referência interna</label>
-            <input hlmInput id="payment-link-reference" formControlName="internalReference" placeholder="Pedido, orçamento ou nota" class="h-11 border-zinc-200 bg-white" />
-          </section>
-
-          <section class="space-y-3">
-            <div>
-              <label class="text-sm font-medium text-zinc-900">Validade</label>
-              <p class="mt-1 text-sm text-zinc-500">Escolha se o link expira automaticamente.</p>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                class="rounded-2xl border px-4 py-4 text-left transition-colors"
-                [ngClass]="{
-                  'border-indigo-200 bg-indigo-50/70 shadow-sm': form.controls.expirationMode.value === 'never',
-                  'border-zinc-200 bg-white hover:border-zinc-300': form.controls.expirationMode.value !== 'never'
-                }"
-                (click)="selectExpirationMode('never')"
-              >
-                <p class="text-sm font-semibold text-zinc-900">Sem expiração</p>
-                <p class="mt-1 text-xs leading-5 text-zinc-500">Permanece ativo até ser pago ou cancelado.</p>
-              </button>
-
-              <button
-                type="button"
-                class="rounded-2xl border px-4 py-4 text-left transition-colors"
-                [ngClass]="{
-                  'border-indigo-200 bg-indigo-50/70 shadow-sm': form.controls.expirationMode.value === 'datetime',
-                  'border-zinc-200 bg-white hover:border-zinc-300': form.controls.expirationMode.value !== 'datetime'
-                }"
-                (click)="selectExpirationMode('datetime')"
-              >
-                <p class="text-sm font-semibold text-zinc-900">Expira em data/hora</p>
-                <p class="mt-1 text-xs leading-5 text-zinc-500">Encerra automaticamente no prazo escolhido.</p>
-              </button>
-            </div>
-
-            @if (form.controls.expirationMode.value === 'datetime') {
-              <input hlmInput type="datetime-local" formControlName="expiresAt" class="h-11 border-zinc-200 bg-white" />
-            }
-            @if (hasExpirationError()) {
-              <p class="text-sm text-red-600">{{ expirationErrorMessage() }}</p>
-            }
-          </section>
-
-          <div hlmSheetFooter class="border-t border-zinc-200 px-0 pt-6">
-            <div class="flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button hlmBtn type="button" variant="outline" class="border-zinc-200" (click)="ctx.close()" [disabled]="isCreating()">Cancelar</button>
-              <button hlmBtn type="submit" class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" [disabled]="isCreating()">
-                <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-                {{ isCreating() ? 'Criando...' : 'Criar e copiar link' }}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </hlm-sheet-content>
-  </hlm-sheet>
-
-  <brn-dialog [closeDelay]="150" [state]="cancelDialogState()" (closed)="closeCancelDialog()">
-    <ng-template brnDialogContent let-ctx>
-      <app-dialog-overlay />
-      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
-        <app-dialog-close />
-        <app-dialog-header
-          title="Cancelar link"
-          description="O checkout público deixará de aceitar novas tentativas para esta cobrança."
-        />
-        @if (linkToCancel(); as link) {
-          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
-            <p class="font-semibold text-zinc-900">{{ paymentTitle(link) }}</p>
-            <p class="mt-1 font-mono text-xs text-zinc-500">{{ link.checkoutUrl }}</p>
-          </div>
-        }
-        <app-dialog-footer>
-          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="isCancelling()">Voltar</button>
-          <button hlmBtn type="button" class="bg-red-600 font-semibold text-white hover:bg-red-700" (click)="confirmCancel()" [disabled]="isCancelling()">
-            {{ isCancelling() ? 'Cancelando...' : 'Sim, cancelar link' }}
-          </button>
-        </app-dialog-footer>
-      </div>
-    </ng-template>
-  </brn-dialog>
-
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Links de pagamento</h1>
-      <p class="mt-1 text-sm text-zinc-500">Crie e acompanhe cobranças avulsas por Pix.</p>
-    </div>
-    <button hlmBtn class="gap-2 bg-indigo-600 font-semibold text-white hover:bg-indigo-700" (click)="openCreateSheet()">
-      <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
-      Novo link
-    </button>
-  </div>
-
-  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-medium text-zinc-500">Links ativos</p>
-      <p class="mt-1 text-xl font-semibold text-zinc-900">{{ activeLinksCount() }}</p>
-    </div>
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-medium text-zinc-500">Pagos</p>
-      <p class="mt-1 text-xl font-semibold text-zinc-900">{{ stats()?.paid ?? 0 }}</p>
-    </div>
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-medium text-zinc-500">Conversão</p>
-      <p class="mt-1 text-xl font-semibold text-zinc-900">{{ formatPercent(stats()?.conversionRate) }}</p>
-    </div>
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-medium text-zinc-500">Valor pago</p>
-      <p class="mt-1 text-xl font-semibold text-zinc-900">{{ ((stats()?.paidAmount ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</p>
-    </div>
-  </div>
-
-  <div class="flex flex-wrap gap-2">
-    @for (filter of filters; track filter.id) {
-      <button
-        type="button"
-        class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-        [ngClass]="{
-          'border-indigo-200 bg-indigo-50 text-indigo-700': activeFilter() === filter.id,
-          'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900': activeFilter() !== filter.id
-        }"
-        (click)="selectFilter(filter.id)"
-      >
-        {{ filter.label }}
+<div class="page">
+  <app-page-header
+    heading="Links de pagamento"
+    description="Cobranças Pix avulsas para mandar por WhatsApp, e-mail ou qualquer canal de atendimento."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-ink" (click)="openCreateSheet()">
+        <ng-icon name="lucidePlus" size="15px" strokeWidth="1.9" />
+        Novo link
       </button>
-    }
+    </ng-container>
+  </app-page-header>
+
+  <section class="metrics">
+    <article class="stat">
+      <p class="stat-head">Em aberto</p>
+      <p class="stat-value numeric">{{ activeLinksCount() }}</p>
+      <p class="stat-context">Ativos e abertos no checkout</p>
+    </article>
+
+    <article class="stat">
+      <p class="stat-head">Pagos</p>
+      <p class="stat-value numeric">{{ stats()?.paid ?? 0 }}</p>
+      <p class="stat-context">Cobranças concluídas</p>
+    </article>
+
+    <article class="stat">
+      <p class="stat-head">Conversão</p>
+      <p class="stat-value numeric">{{ formatPercent(stats()?.conversionRate) }}</p>
+      <p class="stat-context">Dos links criados</p>
+    </article>
+
+    <article class="stat">
+      <p class="stat-head">Valor pago</p>
+      <p class="stat-value numeric">
+        {{ (stats()?.paidAmount ?? 0) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+      </p>
+      <p class="stat-context">Somando tudo que entrou por link</p>
+    </article>
+  </section>
+
+  <div class="filter-scroll scroll-thin">
+    <div class="seg" role="group" aria-label="Filtrar por situação">
+      @for (filter of filters; track filter.id) {
+        <button
+          type="button"
+          [attr.aria-pressed]="activeFilter() === filter.id"
+          (click)="selectFilter(filter.id)"
+        >
+          {{ filter.label }}
+        </button>
+      }
+    </div>
   </div>
 
-  @if (service.error()) {
-    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-      {{ service.error() }}
+  @if (service.error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="loadLinks()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (service.isLoading()) {
+    <app-page-state variant="loading" message="Carregando links…" />
+  } @else if (service.links().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideLink"
+      heading="Nenhum link aqui"
+      [message]="emptyStateMessage()"
+    >
+      @if (activeFilter() === 'all') {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="openCreateSheet()">
+          Criar o primeiro
+        </button>
+      } @else {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="selectFilter('all')">
+          Ver todos
+        </button>
+      }
+    </app-page-state>
+  } @else {
+    <section class="panel">
+      <div class="table-scroll scroll-thin">
+        <table class="table links-table">
+          <thead>
+            <tr>
+              <th>Cobrança</th>
+              <th>Situação</th>
+              <th class="num">Valor</th>
+              <th class="col-created">Criado</th>
+              <th class="col-expiry">Expira</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (link of service.links(); track link.id) {
+              <tr class="is-clickable" (click)="openDetail(link)">
+                <td>
+                  <a
+                    class="cell-link"
+                    [routerLink]="['/dashboard/payment-links', link.id]"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <span class="cell-title">{{ paymentTitle(link) }}</span>
+                    <span class="cell-sub mono">{{ link.checkoutUrl }}</span>
+                  </a>
+
+                  @if (link.failedPaymentCount > 0) {
+                    <span class="chip chip-fail" data-tone="bad">
+                      {{ link.failedPaymentCount }} falha(s)
+                    </span>
+                  }
+                </td>
+
+                <td>
+                  <app-status-chip [status]="link.status" [tone]="linkTone(link.status)" />
+                </td>
+
+                <td class="num">{{ link.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</td>
+                <td class="col-created numeric">{{ link.createdAt | date: 'dd/MM HH:mm' }}</td>
+                <td class="col-expiry numeric">
+                  {{ link.expiresAt ? (link.expiresAt | date: 'dd/MM HH:mm') : 'Sem prazo' }}
+                </td>
+
+                <td>
+                  <div class="cell-actions">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-icon"
+                      [attr.aria-label]="copiedId() === link.id ? 'Link copiado' : 'Copiar link'"
+                      [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'"
+                      (click)="$event.stopPropagation(); copy(link)"
+                    >
+                      <ng-icon
+                        [name]="copiedId() === link.id ? 'lucideCheck' : 'lucideCopy'"
+                        size="14px"
+                        strokeWidth="1.7"
+                      />
+                    </button>
+
+                    <a
+                      class="btn btn-ghost btn-sm btn-icon"
+                      [href]="link.checkoutUrl"
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Abrir checkout público"
+                      title="Abrir checkout"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <ng-icon name="lucideExternalLink" size="14px" strokeWidth="1.7" />
+                    </a>
+
+                    @if (link.lastPaymentId) {
+                      <a
+                        class="btn btn-ghost btn-sm btn-icon"
+                        [routerLink]="['/dashboard/payments', link.lastPaymentId]"
+                        aria-label="Ver pagamento relacionado"
+                        title="Ver pagamento"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <ng-icon name="lucideReceipt" size="14px" strokeWidth="1.7" />
+                      </a>
+                    }
+
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-icon"
+                      aria-label="Cancelar link"
+                      title="Cancelar link"
+                      [disabled]="!canCancel(link)"
+                      (click)="$event.stopPropagation(); cancel(link)"
+                    >
+                      <ng-icon name="lucideBan" size="14px" strokeWidth="1.7" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="service.page()"
+        [totalPages]="service.totalPages()"
+        [total]="service.total()"
+        [shown]="service.links().length"
+        noun="links"
+        (pageChange)="goToPage($event)"
+      />
+    </section>
+  }
+</div>
+
+<!-- ─── Criar ───────────────────────────────────────────────────────────── -->
+<app-sheet
+  [open]="sheetState() === 'open'"
+  (closed)="onSheetClosed()"
+  eyebrow="Novo link"
+  heading="Criar link de pagamento"
+  description="Uma cobrança Pix avulsa. Ao criar, o link já vai para a área de transferência."
+>
+  <form id="payment-link-form" class="form-stack" [formGroup]="form" (ngSubmit)="create()">
+    <label class="field">
+      <span class="field-label">Valor</span>
+      <input
+        formControlName="amount"
+        mask="separator.2"
+        prefix="R$ "
+        thousandSeparator="."
+        decimalMarker=","
+        [dropSpecialCharacters]="false"
+        inputmode="decimal"
+        placeholder="R$ 129,90"
+      />
+      @if (form.controls.amount.invalid && form.controls.amount.touched) {
+        <span class="field-error">Informe um valor maior que zero.</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="field-label">Título</span>
+      <input formControlName="title" placeholder="Compra avulsa" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Descrição</span>
+      <textarea formControlName="description" rows="3" placeholder="Detalhe breve da cobrança"></textarea>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Referência interna</span>
+      <input formControlName="internalReference" placeholder="Pedido, orçamento ou nota" />
+      <span class="field-note">Só você vê. Não aparece no checkout.</span>
+    </label>
+
+    <div class="field">
+      <span class="field-label">Validade</span>
+      <div class="choices">
+        <button
+          type="button"
+          class="choice"
+          [attr.aria-pressed]="form.controls.expirationMode.value === 'never'"
+          (click)="selectExpirationMode('never')"
+        >
+          <span class="choice-title">Sem prazo</span>
+          <span class="choice-sub">Fica de pé até ser pago ou cancelado.</span>
+        </button>
+
+        <button
+          type="button"
+          class="choice"
+          [attr.aria-pressed]="form.controls.expirationMode.value === 'datetime'"
+          (click)="selectExpirationMode('datetime')"
+        >
+          <span class="choice-title">Expira em</span>
+          <span class="choice-sub">Encerra sozinho na data e hora escolhidas.</span>
+        </button>
+      </div>
+
+      @if (form.controls.expirationMode.value === 'datetime') {
+        <input class="expiry" type="datetime-local" formControlName="expiresAt" />
+      }
+
+      @if (hasExpirationError()) {
+        <span class="field-error">{{ expirationErrorMessage() }}</span>
+      }
+    </div>
+  </form>
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeCreateSheet()" [disabled]="isCreating()">
+      Cancelar
+    </button>
+    <button type="submit" form="payment-link-form" class="btn btn-ink" [disabled]="isCreating()">
+      @if (isCreating()) {
+        <span class="spinner spinner-sm"></span>
+      } @else {
+        <ng-icon name="lucidePlus" size="15px" strokeWidth="1.9" />
+      }
+      Criar e copiar
+    </button>
+  </ng-container>
+</app-sheet>
+
+<!-- ─── Cancelar ────────────────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="cancelDialogState() === 'open'"
+  (closed)="closeCancelDialog()"
+  heading="Cancelar link"
+  description="O checkout público para de aceitar novas tentativas nesta cobrança."
+>
+  @if (linkToCancel(); as link) {
+    <div class="panel panel-quiet confirm-target">
+      <p class="cell-title">{{ paymentTitle(link) }}</p>
+      <p class="mono">{{ link.checkoutUrl }}</p>
     </div>
   }
 
-  <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
-    <div class="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-4">
-      <div>
-        <h2 class="text-base font-semibold text-zinc-900">Links gerados</h2>
-        <p class="mt-1 text-xs text-zinc-500">{{ service.total() }} registro(s)</p>
-      </div>
-      @if (service.isLoading()) {
-        <span class="text-xs font-medium text-zinc-500">Atualizando...</span>
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeCancelDialog()" [disabled]="isCancelling()">
+      Voltar
+    </button>
+    <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="isCancelling()">
+      @if (isCancelling()) {
+        <span class="spinner spinner-sm"></span>
       }
-    </div>
-
-    <div class="overflow-x-auto">
-      <table hlmTable class="w-full min-w-[760px]">
-        <thead hlmTHead class="bg-zinc-50">
-          <tr hlmTr>
-            <th hlmTh class="w-[40%] px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Cobrança</th>
-            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Status</th>
-            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Valor</th>
-            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Criado</th>
-            <th hlmTh class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Expiração</th>
-            <th hlmTh class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Ações</th>
-          </tr>
-        </thead>
-        <tbody hlmTBody class="divide-y divide-zinc-100 bg-white">
-          @for (link of service.links(); track link.id) {
-            <tr hlmTr class="cursor-pointer hover:bg-zinc-50/70" role="button" tabindex="0" (click)="openDetail(link)" (keydown.enter)="openDetail(link)">
-              <td hlmTd class="px-5 py-4">
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold text-zinc-900">{{ paymentTitle(link) }}</p>
-                  <p class="mt-1 truncate font-mono text-xs text-zinc-500">{{ link.checkoutUrl }}</p>
-                  @if (link.failedPaymentCount > 0) {
-                    <p class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-red-600">
-                      <ng-icon hlm name="lucideAlertTriangle" size="xs"></ng-icon>
-                      {{ link.failedPaymentCount }} falha(s)
-                    </p>
-                  }
-                </div>
-              </td>
-              <td hlmTd class="px-5 py-4">
-                <span class="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold" [ngClass]="statusClass(link.status)">
-                  <ng-icon hlm [name]="statusIcon(link.status)" size="xs"></ng-icon>
-                  {{ statusLabel(link.status) }}
-                </span>
-              </td>
-              <td hlmTd class="px-5 py-4 text-sm font-semibold text-zinc-900">{{ (link.amount / 100) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</td>
-              <td hlmTd class="px-5 py-4 text-sm text-zinc-600">{{ link.createdAt | date:'dd/MM HH:mm' }}</td>
-              <td hlmTd class="px-5 py-4 text-sm text-zinc-600">
-                {{ link.expiresAt ? (link.expiresAt | date:'dd/MM HH:mm') : 'Sem expiração' }}
-              </td>
-              <td hlmTd class="px-5 py-4">
-                <div class="flex justify-end gap-2">
-                  <a hlmBtn variant="outline" size="sm" class="h-8 gap-2 border-zinc-200" [routerLink]="['/dashboard/payment-links', link.id]" title="Ver detalhes" (click)="$event.stopPropagation()">
-                    Ver detalhes
-                  </a>
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [attr.aria-label]="copiedId() === link.id ? 'Link copiado' : 'Copiar link'" [title]="copiedId() === link.id ? 'Copiado' : 'Copiar link'" (click)="$event.stopPropagation(); copy(link)">
-                    <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                  </button>
-                  <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [href]="link.checkoutUrl" target="_blank" rel="noreferrer" aria-label="Abrir link público" title="Abrir link" (click)="$event.stopPropagation()">
-                    <ng-icon hlm name="lucideExternalLink" size="xs"></ng-icon>
-                  </a>
-                  @if (link.lastPaymentId) {
-                    <a hlmBtn variant="outline" size="icon" class="h-8 w-8 border-zinc-200" [routerLink]="['/dashboard/payments', link.lastPaymentId]" aria-label="Ver pagamento relacionado" title="Ver pagamento" (click)="$event.stopPropagation()">
-                      <ng-icon hlm name="lucideReceipt" size="xs"></ng-icon>
-                    </a>
-                  }
-                  <button hlmBtn type="button" variant="outline" size="icon" class="h-8 w-8 border-red-200 text-red-700 hover:bg-red-50" aria-label="Cancelar link" title="Cancelar link" [disabled]="!canCancel(link)" (click)="$event.stopPropagation(); cancel(link)">
-                    <ng-icon hlm name="lucideXCircle" size="xs"></ng-icon>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr hlmTr>
-              <td hlmTd colspan="6" class="px-5 py-14 text-center text-sm text-zinc-500">{{ emptyStateMessage() }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <div class="flex flex-col gap-3 border-t border-zinc-200 bg-zinc-50 px-5 py-4 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-      <span>
-        Exibindo <span class="font-semibold text-zinc-800">{{ service.links().length }}</span>
-        de <span class="font-semibold text-zinc-800">{{ service.total() }}</span> link(s)
-      </span>
-      <div class="flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-2">
-          <span>Por página</span>
-          <select class="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs" [value]="limit()" (change)="setLimit($event)">
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-        </label>
-        <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="service.page() <= 1" (click)="changePage(-1)">
-          <ng-icon hlm name="lucideChevronLeft" size="xs"></ng-icon>
-          Anterior
-        </button>
-        <span class="font-medium text-zinc-600">Página {{ service.page() }} de {{ service.totalPages() }}</span>
-        <button hlmBtn type="button" variant="outline" size="sm" class="h-8 border-zinc-200 bg-white" [disabled]="service.page() >= service.totalPages()" (click)="changePage(1)">
-          Próxima
-          <ng-icon hlm name="lucideChevronRight" size="xs"></ng-icon>
-        </button>
-      </div>
-    </div>
-  </section>
-</div>
+      Cancelar link
+    </button>
+  </ng-container>
+</app-sheet>

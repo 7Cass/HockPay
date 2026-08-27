@@ -1,306 +1,344 @@
-<div class="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10">
-  <brn-dialog [closeDelay]="150" [state]="confirmDialogState()" (closed)="closeConfirmDialog()">
-    <ng-template brnDialogContent let-ctx>
-      <app-dialog-overlay />
-      <div class="fixed left-[50%] top-[50%] z-50 w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
-        <app-dialog-close />
-        <app-dialog-header [title]="confirmActionTitle()" [description]="confirmActionDescription()" />
-        @if (withdrawal(); as item) {
-          <div class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
-            <p class="font-mono font-semibold text-zinc-900">{{ shortId(item.id) }}</p>
-            <p class="mt-1 text-zinc-600">{{ item.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
-          </div>
-        }
-        <app-dialog-footer>
-          <button hlmBtn type="button" variant="ghost" class="text-zinc-500 hover:bg-zinc-100" (click)="ctx.close()" [disabled]="actionLoading() !== null">Voltar</button>
-          <button hlmBtn type="button" class="font-semibold text-white" [ngClass]="pendingDevAction() === 'complete' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'" (click)="confirmDevAction()" [disabled]="actionLoading() !== null">
-            {{ actionLoading() ? 'Executando...' : 'Confirmar' }}
-          </button>
-        </app-dialog-footer>
-      </div>
-    </ng-template>
-  </brn-dialog>
+<div class="page">
+  <app-page-header
+    backTo="/dashboard/withdrawals"
+    backLabel="Saques"
+    eyebrow="Saque Pix"
+    heading="Detalhe do saque"
+    description="Para onde foi, quanto custou, e o que o processamento fez até agora."
+  >
+    @if (withdrawal(); as item) {
+      <app-status-chip pageStatus [status]="item.status" />
+    }
 
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div>
-      <a routerLink="/dashboard/withdrawals" class="mb-3 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900">
-        <ng-icon hlm name="lucideArrowLeft" size="sm"></ng-icon>
-        Voltar para saques
-      </a>
-      <h1 class="text-2xl font-bold tracking-tight text-zinc-900">Detalhes do saque</h1>
-      <p class="mt-1 text-sm text-zinc-500">Status, destino Pix, processamento e impacto no saldo.</p>
-    </div>
-
-    <button hlmBtn variant="outline" size="sm" class="gap-2 border-zinc-200 bg-white text-zinc-700" (click)="reload()">
-      <ng-icon hlm name="lucideRefreshCcw" size="xs"></ng-icon>
-      Atualizar
-    </button>
-  </div>
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
 
   @if (isLoading()) {
-    <div class="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-zinc-200 bg-white py-24 shadow-sm">
-      <hlm-spinner class="h-6 w-6 animate-spin text-indigo-600" />
-      <p class="mt-4 text-sm font-medium text-zinc-500">Carregando saque...</p>
-    </div>
-  }
-
-  @if (!isLoading() && error()) {
-    <div class="flex min-h-[320px] flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 px-6 py-24 text-center shadow-sm">
-      <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
-        <ng-icon hlm name="lucideXCircle" class="text-red-500" size="lg"></ng-icon>
-      </div>
-      <h3 class="text-base font-semibold text-red-700">Não foi possível carregar o saque</h3>
-      <p class="mt-2 max-w-md text-sm text-red-700/90">{{ error() }}</p>
-      <a routerLink="/dashboard/withdrawals" hlmBtn class="mt-6 bg-white text-red-700 shadow-sm hover:bg-red-100">Voltar para a lista</a>
-    </div>
-  }
-
-  @if (!isLoading() && withdrawal(); as item) {
-    <div class="grid gap-6 lg:grid-cols-[1.25fr_0.9fr]">
-      <div class="space-y-6">
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <div class="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Referência</p>
-              <p class="mt-2 font-mono text-lg font-semibold text-zinc-900">{{ item.id }}</p>
-            </div>
-            <span class="inline-flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold" [class]="statusClasses(item.status)">
-              <ng-icon hlm [name]="statusIcon(item.status)" size="xs"></ng-icon>
-              {{ statusLabel(item.status) }}
-            </span>
-          </div>
-
-          <div class="mt-6 grid gap-4 sm:grid-cols-3">
-            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Bruto</p>
-              <p class="mt-2 text-lg font-semibold text-zinc-900">{{ item.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
-            </div>
-            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Taxa</p>
-              <p class="mt-2 text-lg font-semibold text-red-600">-{{ item.fee / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
-            </div>
-            <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-              <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Líquido</p>
-              <p class="mt-2 text-lg font-semibold text-emerald-600">{{ item.netAmount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-              <ng-icon hlm name="lucideBadgeCheck" size="sm"></ng-icon>
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-zinc-900">Destino Pix</h2>
-              <p class="text-sm text-zinc-500">Conta usada para envio do saque.</p>
+    <app-page-state variant="loading" message="Carregando saque…" />
+  } @else if (error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <a pageStateAction class="btn btn-quiet btn-sm" routerLink="/dashboard/withdrawals">
+        Voltar para a lista
+      </a>
+    </app-page-state>
+  } @else if (withdrawal(); as item) {
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Valores</h2>
+              <p>Bruto, taxa fixa e o que chega do outro lado</p>
             </div>
           </div>
 
-          @if (bankAccount(); as account) {
-            <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt class="text-zinc-500">Chave Pix</dt>
-                <dd class="mt-1 font-mono font-semibold text-zinc-900">{{ account.pixKeyType }} {{ maskDocument(account.pixKey) }}</dd>
-              </div>
-              <div>
-                <dt class="text-zinc-500">Titular</dt>
-                <dd class="mt-1 font-semibold text-zinc-900">{{ account.holderName }}</dd>
-              </div>
-              <div>
-                <dt class="text-zinc-500">Documento</dt>
-                <dd class="mt-1 font-medium text-zinc-900">{{ maskDocument(account.holderDocument) }}</dd>
-              </div>
-              <div>
-                <dt class="text-zinc-500">Verificação</dt>
-                <dd class="mt-1 font-medium" [ngClass]="account.isVerified ? 'text-emerald-700' : 'text-zinc-600'">{{ account.isVerified ? 'Verificada' : 'Não verificada' }}</dd>
-              </div>
-            </dl>
-          } @else {
-            <p class="mt-6 text-sm text-zinc-500">Conta Pix não encontrada na listagem atual.</p>
-          }
-        </section>
-
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 class="text-base font-semibold text-zinc-900">Timeline</h2>
-          <div class="mt-5 space-y-4">
-            @for (event of timeline(); track event.type + event.occurredAt + event.transactionId) {
-              <div class="flex gap-3">
-                <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500">
-                  <ng-icon hlm [name]="event.type === 'SENT' ? 'lucideCheckCircle2' : event.type === 'FAILED' ? 'lucideXCircle' : event.type === 'PROCESSING' ? 'lucideSend' : 'lucideClock'" size="xs"></ng-icon>
-                </div>
-                <div class="min-w-0 flex-1 border-b border-zinc-100 pb-4 last:border-b-0 last:pb-0">
-                  <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p class="text-sm font-semibold text-zinc-900">{{ event.label }}</p>
-                      @if (event.description) {
-                        <p class="mt-1 text-sm text-zinc-500">{{ event.description }}</p>
-                      }
-                    </div>
-                    <span class="text-xs font-medium text-zinc-400">{{ event.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}</span>
-                  </div>
-                  @if (event.amount || event.transactionId) {
-                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                      @if (event.amount) {
-                        <span class="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1">{{ event.amount / 100 | currency:'BRL':'symbol':'1.2-2' }}</span>
-                      }
-                      @if (event.transactionId) {
-                        <button hlmBtn type="button" variant="ghost" size="sm" class="h-7 gap-1 px-2 font-mono text-xs text-indigo-600" (click)="copy(event.transactionId)">
-                          {{ shortId(event.transactionId) }}
-                          <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </section>
-
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 class="text-base font-semibold text-zinc-900">Suporte</h2>
-          <dl class="mt-5 space-y-4 text-sm">
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">ID do saque</dt>
-              <dd class="text-right font-mono font-medium text-zinc-900">
-                <button hlmBtn type="button" variant="ghost" size="sm" class="h-7 gap-1 px-2 font-mono text-xs" (click)="copy(item.id)">
-                  {{ shortId(item.id) }}
-                  <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                </button>
-              </dd>
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Bruto</dt>
+              <dd class="numeric">{{ item.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</dd>
             </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Pix E2E ID</dt>
-              <dd class="text-right font-mono font-medium text-zinc-900">
-                @if (item.pixE2eId) {
-                  <button hlmBtn type="button" variant="ghost" size="sm" class="h-7 gap-1 px-2 font-mono text-xs" (click)="copy(item.pixE2eId)">
-                    {{ item.pixE2eId }}
-                    <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                  </button>
-                } @else {
-                  -
-                }
-              </dd>
+            <div class="fact">
+              <dt>Taxa</dt>
+              <dd class="numeric">−{{ item.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</dd>
             </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Pago em</dt>
-              <dd class="text-right font-medium text-zinc-900">{{ item.paidAt ? (item.paidAt | date:'dd/MM/yyyy HH:mm:ss') : '-' }}</dd>
-            </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Tentativas</dt>
-              <dd class="text-right font-medium text-zinc-900">{{ item.processingAttempts }}</dd>
-            </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Próxima tentativa</dt>
-              <dd class="text-right font-medium text-zinc-900">{{ item.nextProcessAt ? (item.nextProcessAt | date:'dd/MM/yyyy HH:mm:ss') : '-' }}</dd>
-            </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Motivo da falha</dt>
-              <dd class="max-w-sm text-right font-medium text-zinc-900">{{ item.failedReason || '-' }}</dd>
-            </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Último erro</dt>
-              <dd class="max-w-sm text-right font-medium text-zinc-900">{{ item.lastProcessingError || '-' }}</dd>
+            <div class="fact fact-total">
+              <dt>Líquido</dt>
+              <dd class="numeric">{{ item.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</dd>
             </div>
           </dl>
         </section>
 
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 class="text-base font-semibold text-zinc-900">Lançamentos no extrato</h2>
-          @if (transactions().length === 0) {
-            <p class="mt-4 text-sm text-zinc-500">Nenhum lançamento encontrado para este saque.</p>
-          } @else {
-            <div class="mt-5 divide-y divide-zinc-100">
-              @for (transaction of transactions(); track transaction.id) {
-                <div class="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-zinc-900">{{ transactionTypeLabel(transaction.type) }}</p>
-                    <p class="mt-0.5 text-xs text-zinc-400">{{ transaction.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</p>
-                  </div>
-                  <div class="text-left sm:text-right">
-                    <p class="text-sm font-semibold text-zinc-900">{{ transaction.netAmount / 100 | currency:'BRL':'symbol':'1.2-2' }}</p>
-                    <button hlmBtn type="button" variant="ghost" size="sm" class="h-7 gap-1 px-2 font-mono text-xs text-indigo-600" (click)="copy(transaction.id)">
-                      {{ shortId(transaction.id) }}
-                      <ng-icon hlm name="lucideCopy" size="xs"></ng-icon>
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </section>
-      </div>
-
-      <aside class="space-y-6">
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-50 text-zinc-600">
-              <ng-icon hlm name="lucideWallet" size="sm"></ng-icon>
-            </div>
-            <div>
-              <h2 class="text-base font-semibold text-zinc-900">Saldo atual</h2>
-              <p class="text-sm text-zinc-500">Depois do último carregamento.</p>
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Destino Pix</h2>
+              <p>A conta que recebeu o envio</p>
             </div>
           </div>
 
-          <dl class="mt-5 space-y-4 text-sm">
-            <div class="flex items-center justify-between">
-              <dt class="text-zinc-500">Disponível</dt>
-              <dd class="font-semibold text-zinc-900">{{ ((account()?.available ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+          @if (bankAccount(); as bank) {
+            <dl class="panel-body facts facts-split">
+              <div class="fact fact-stacked">
+                <dt>Chave</dt>
+                <dd class="mono">{{ bank.pixKeyType }} {{ maskDocument(bank.pixKey) }}</dd>
+              </div>
+              <div class="fact fact-stacked">
+                <dt>Titular</dt>
+                <dd>{{ bank.holderName }}</dd>
+              </div>
+              <div class="fact fact-stacked">
+                <dt>Documento</dt>
+                <dd class="mono">{{ maskDocument(bank.holderDocument) }}</dd>
+              </div>
+              <div class="fact fact-stacked">
+                <dt>Verificação</dt>
+                <dd>
+                  <app-status-chip
+                    [status]="bank.isVerified ? 'ACTIVE' : 'INACTIVE'"
+                    [label]="bank.isVerified ? 'Verificada' : 'Não verificada'"
+                  />
+                </dd>
+              </div>
+            </dl>
+          } @else {
+            <app-page-state
+              variant="empty"
+              frame="bare"
+              icon="lucideBuilding2"
+              heading="Conta não encontrada"
+              message="A conta Pix deste saque não aparece na listagem atual."
+            />
+          }
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Linha do tempo</h2>
+              <p>O que o processamento fez, em ordem</p>
             </div>
-            <div class="flex items-center justify-between">
-              <dt class="text-zinc-500">Bloqueado</dt>
-              <dd class="font-semibold text-zinc-900">{{ ((account()?.blocked ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+          </div>
+
+          <div class="panel-body">
+            @if (timeline().length === 0) {
+              <p class="quiet">Nenhum evento registrado ainda.</p>
+            } @else {
+              <ol class="timeline">
+                @for (event of timeline(); track event.type + event.occurredAt + event.transactionId) {
+                  <li [attr.data-tone]="timelineTone(event.type)">
+                    <div class="timeline-head">
+                      <span class="timeline-label">{{ event.label }}</span>
+                      <span class="timeline-when">
+                        {{ event.occurredAt | date: 'dd/MM/yy HH:mm:ss' }}
+                      </span>
+                    </div>
+
+                    @if (event.description) {
+                      <p class="timeline-note">{{ event.description }}</p>
+                    }
+
+                    @if (event.amount || event.transactionId) {
+                      <div class="timeline-meta">
+                        @if (event.amount) {
+                          <span class="chip chip-bare" data-tone="outline">
+                            {{ event.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                          </span>
+                        }
+                        @if (event.transactionId) {
+                          <app-copy-value [value]="event.transactionId" [truncate]="12" />
+                        }
+                      </div>
+                    }
+                  </li>
+                }
+              </ol>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Lançamentos no extrato</h2>
+              <p>Como este saque mexeu no saldo</p>
             </div>
-            <div class="flex items-center justify-between">
-              <dt class="text-zinc-500">A receber</dt>
-              <dd class="font-semibold text-zinc-900">{{ ((account()?.pending ?? 0) / 100) | currency:'BRL':'symbol':'1.2-2' }}</dd>
+          </div>
+
+          <div class="panel-body">
+            @if (transactions().length === 0) {
+              <p class="quiet">Nenhum lançamento vinculado.</p>
+            } @else {
+              <ul class="entries">
+                @for (transaction of transactions(); track transaction.id) {
+                  <li>
+                    <span class="cell-stack">
+                      <span class="cell-title">{{ transactionTypeLabel(transaction.type) }}</span>
+                      <span class="cell-sub mono">
+                        {{ transaction.createdAt | date: 'dd/MM/yy HH:mm:ss' }}
+                      </span>
+                    </span>
+                    <span class="entry-value">
+                      <span class="numeric">
+                        {{ transaction.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </span>
+                      <app-copy-value [value]="transaction.id" [truncate]="12" />
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Suporte</h2>
+              <p>O que você manda junto ao abrir um chamado</p>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>ID do saque</dt>
+              <dd><app-copy-value [value]="item.id" [truncate]="16" /></dd>
+            </div>
+            <div class="fact">
+              <dt>Pix E2E</dt>
+              <dd><app-copy-value [value]="item.pixE2eId" /></dd>
+            </div>
+            <div class="fact">
+              <dt>Pago em</dt>
+              <dd class="numeric">
+                {{ item.paidAt ? (item.paidAt | date: 'dd/MM/yyyy HH:mm:ss') : '—' }}
+              </dd>
+            </div>
+            <div class="fact">
+              <dt>Tentativas</dt>
+              <dd class="numeric">{{ item.processingAttempts }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Próxima tentativa</dt>
+              <dd class="numeric">
+                {{ item.nextProcessAt ? (item.nextProcessAt | date: 'dd/MM/yyyy HH:mm:ss') : '—' }}
+              </dd>
+            </div>
+
+            @if (item.failedReason) {
+              <div class="fact fact-stacked">
+                <dt>Motivo da falha</dt>
+                <dd>{{ item.failedReason }}</dd>
+              </div>
+            }
+
+            @if (item.lastProcessingError) {
+              <div class="fact fact-stacked">
+                <dt>Último erro</dt>
+                <dd class="mono">{{ item.lastProcessingError }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Saldo agora</h2>
+              <p>Depois do último carregamento</p>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Disponível</dt>
+              <dd class="numeric">
+                {{ (account()?.available ?? 0) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
+            </div>
+            <div class="fact">
+              <dt>Bloqueado</dt>
+              <dd class="numeric">
+                {{ (account()?.blocked ?? 0) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
+            </div>
+            <div class="fact">
+              <dt>A receber</dt>
+              <dd class="numeric">
+                {{ (account()?.pending ?? 0) / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
             </div>
           </dl>
         </section>
 
         @if (canSimulate()) {
-          <section class="rounded-lg border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <div class="flex items-start gap-3">
-              <ng-icon hlm name="lucideCircleAlert" class="mt-0.5 text-amber-600" size="sm"></ng-icon>
-              <div>
-                <h2 class="text-base font-semibold text-amber-950">Simulações TEST</h2>
-                <p class="mt-1 text-sm leading-6 text-amber-800">Use estas ações para concluir ou falhar um saque não terminal no ambiente de teste.</p>
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Simulações TEST</h2>
+                <p>Escolha o desfecho deste saque</p>
               </div>
+              <span class="chip chip-bare" data-tone="outline">TEST</span>
             </div>
 
-            @if (actionError()) {
-              <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ actionError() }}</div>
-            }
+            <div class="panel-body simulate">
+              @if (actionError(); as message) {
+                <div class="notice" data-tone="bad">
+                  <span class="notice-text">{{ message }}</span>
+                </div>
+              }
 
-            <div class="mt-5 grid gap-3">
-              <button hlmBtn class="gap-2 bg-emerald-600 text-white hover:bg-emerald-700" (click)="complete()" [disabled]="actionLoading() !== null">
-                <ng-icon hlm name="lucideCheckCircle2" size="sm"></ng-icon>
-                {{ actionLoading() === 'complete' ? 'Completando...' : 'Completar' }}
+              <button type="button" class="btn btn-ink" (click)="complete()" [disabled]="actionLoading() !== null">
+                <ng-icon name="lucideCircleCheck" size="15px" strokeWidth="1.8" />
+                Completar
               </button>
-              <button hlmBtn variant="outline" class="gap-2 border-red-200 bg-white text-red-700 hover:bg-red-50" (click)="fail()" [disabled]="actionLoading() !== null">
-                <ng-icon hlm name="lucideXCircle" size="sm"></ng-icon>
-                {{ actionLoading() === 'fail' ? 'Falhando...' : 'Falhar' }}
+
+              <button type="button" class="btn btn-quiet" (click)="fail()" [disabled]="actionLoading() !== null">
+                <ng-icon name="lucideCircleX" size="15px" strokeWidth="1.8" />
+                Falhar
               </button>
             </div>
           </section>
         }
 
-        <section class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 class="text-base font-semibold text-zinc-900">Datas</h2>
-          <dl class="mt-5 space-y-4 text-sm">
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Criado em</dt>
-              <dd class="text-right font-medium text-zinc-900">{{ item.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd>
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Datas</h2>
             </div>
-            <div class="flex items-start justify-between gap-4">
-              <dt class="text-zinc-500">Atualizado em</dt>
-              <dd class="text-right font-medium text-zinc-900">{{ item.updatedAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Criado em</dt>
+              <dd class="numeric">{{ item.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Atualizado em</dt>
+              <dd class="numeric">{{ item.updatedAt | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
             </div>
           </dl>
         </section>
-      </aside>
+      </div>
     </div>
   }
 </div>
+
+<!-- ─── Confirmar simulação ─────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="confirmDialogState() === 'open'"
+  (closed)="closeConfirmDialog()"
+  eyebrow="Ambiente TEST"
+  [heading]="confirmActionTitle()"
+  [description]="confirmActionDescription()"
+>
+  @if (withdrawal(); as item) {
+    <div class="panel panel-quiet confirm-target">
+      <p class="cell-title mono">{{ shortId(item.id) }}</p>
+      <p class="numeric">{{ item.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</p>
+    </div>
+  }
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeConfirmDialog()" [disabled]="actionLoading() !== null">
+      Voltar
+    </button>
+    <button
+      type="button"
+      [class]="pendingDevAction() === 'fail' ? 'btn btn-danger' : 'btn btn-ink'"
+      (click)="confirmDevAction()"
+      [disabled]="actionLoading() !== null"
+    >
+      @if (actionLoading()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      Confirmar
+    </button>
+  </ng-container>
+</app-sheet>

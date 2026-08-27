@@ -1,47 +1,33 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-    lucideArrowRight,
-    lucideBadgeCheck,
     lucideBanknoteArrowDown,
     lucideBuilding2,
-    lucideCalendar,
-    lucideCheckCircle2,
+    lucideCheck,
     lucideCircleAlert,
-    lucideClock,
+    lucideCircleCheck,
     lucideCopy,
     lucidePlus,
     lucideRefreshCcw,
     lucideSearch,
     lucideSend,
-    lucideShield,
     lucideTrash2,
-    lucideWallet,
-    lucideXCircle,
 } from '@ng-icons/lucide';
-import { HlmBadgeImports } from '@spartan-ng/helm/badge';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmSheetImports } from '@spartan-ng/helm/sheet';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
-import { HlmTableImports } from '@spartan-ng/helm/table';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { BankAccount, BankAccountService } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
     ListWithdrawalsResponse,
     Withdrawal,
     WithdrawalService,
-    WithdrawalSummary,
     WithdrawalStatus,
+    WithdrawalSummary,
 } from '../../../../core/services/withdrawal.service';
+import { PageHeader, PageState, Pagination, Sheet, StatusChip } from '../../../../shared/ui';
 
 const WITHDRAWAL_FEE_CENTS = 199;
 const MIN_WITHDRAWAL_CENTS = 1000;
@@ -79,44 +65,34 @@ function parseBrlToCents(value: string | number | null | undefined): number {
     selector: 'app-withdrawals',
     standalone: true,
     imports: [
-        CommonModule,
         CurrencyPipe,
         DatePipe,
-        NgIconComponent,
+        NgIcon,
         NgxMaskDirective,
-        ...HlmBadgeImports,
-        ...HlmButtonImports,
-        ...HlmDatePickerImports,
-        HlmIconImports,
-        ...HlmInputImports,
-        ...HlmSheetImports,
-        ...HlmSpinnerImports,
-        ...HlmTableImports,
-        ...DialogImports,
+        PageHeader,
+        PageState,
+        Pagination,
+        Sheet,
+        StatusChip,
     ],
     providers: [
         provideIcons({
-            lucideArrowRight,
-            lucideBadgeCheck,
             lucideBanknoteArrowDown,
             lucideBuilding2,
-            lucideCalendar,
-            lucideCheckCircle2,
+            lucideCheck,
             lucideCircleAlert,
-            lucideClock,
+            lucideCircleCheck,
             lucideCopy,
             lucidePlus,
             lucideRefreshCcw,
             lucideSearch,
             lucideSend,
-            lucideShield,
             lucideTrash2,
-            lucideWallet,
-            lucideXCircle,
         }),
         provideNgxMask(),
     ],
     templateUrl: './withdrawals.html',
+    styleUrl: './withdrawals.css',
 })
 export class Withdrawals implements OnInit {
     private readonly withdrawalService = inject(WithdrawalService);
@@ -154,7 +130,8 @@ export class Withdrawals implements OnInit {
     readonly statusFilter = signal<WithdrawalStatus | 'all'>('all');
     readonly bankAccountFilter = signal('all');
     readonly qFilter = signal('');
-    readonly dateRange = signal<[Date, Date] | undefined>(undefined);
+    readonly startDate = signal('');
+    readonly endDate = signal('');
     readonly selectedBankAccountId = signal('');
     readonly withdrawalAmountInput = signal('');
     readonly isConfirmingWithdrawal = signal(false);
@@ -196,14 +173,6 @@ export class Withdrawals implements OnInit {
         return this.cleanDocument(user?.document || user?.formattedDocument);
     });
     readonly merchantName = computed(() => this.authService.currentUser()?.name ?? '');
-
-    readonly formatDateRange = (dates: [Date | undefined, Date | undefined]): string => {
-        const [start, end] = dates;
-        if (start && end) return `${this.formatDisplayDate(start)} - ${this.formatDisplayDate(end)}`;
-        if (start) return `A partir de ${this.formatDisplayDate(start)}`;
-        if (end) return `Até ${this.formatDisplayDate(end)}`;
-        return '';
-    };
 
     ngOnInit(): void {
         this.reload();
@@ -247,8 +216,8 @@ export class Withdrawals implements OnInit {
                 limit: this.meta().limit,
                 status: selectedStatus === 'all' ? undefined : selectedStatus,
                 bankAccountId: selectedBankAccountId === 'all' ? undefined : selectedBankAccountId,
-                startDate: this.formatApiDate(this.dateRange()?.[0]),
-                endDate: this.formatApiDate(this.dateRange()?.[1]),
+                startDate: this.startDate() || undefined,
+                endDate: this.endDate() || undefined,
                 q: this.qFilter().trim() || undefined,
             })
             .pipe(finalize(() => this.isLoading.set(false)))
@@ -271,13 +240,17 @@ export class Withdrawals implements OnInit {
         this.withdrawalSheetState.set('open');
     }
 
-    onWithdrawalSheetStateChange(state: string): void {
-        this.withdrawalSheetState.set(state === 'open' ? 'open' : 'closed');
-        if (state !== 'open') {
-            this.withdrawalFormError.set(null);
-            this.withdrawalAmountInput.set('');
-            this.isConfirmingWithdrawal.set(false);
-        }
+    closeWithdrawalSheet(): void {
+        if (this.isCreatingWithdrawal()) return;
+        this.withdrawalSheetState.set('closed');
+    }
+
+    /** Também chega por Escape ou clique no fundo — o rascunho some junto. */
+    onWithdrawalSheetClosed(): void {
+        this.withdrawalSheetState.set('closed');
+        this.withdrawalFormError.set(null);
+        this.withdrawalAmountInput.set('');
+        this.isConfirmingWithdrawal.set(false);
     }
 
     openAccountsSheet(): void {
@@ -285,8 +258,8 @@ export class Withdrawals implements OnInit {
         this.accountsSheetState.set('open');
     }
 
-    onAccountsSheetStateChange(state: string): void {
-        this.accountsSheetState.set(state === 'open' ? 'open' : 'closed');
+    closeAccountsSheet(): void {
+        this.accountsSheetState.set('closed');
     }
 
     setStatus(value: string): void {
@@ -301,8 +274,12 @@ export class Withdrawals implements OnInit {
         this.qFilter.set(value);
     }
 
-    setDateRange(value: [Date, Date] | null): void {
-        this.dateRange.set(value ?? undefined);
+    setStartDate(value: string): void {
+        this.startDate.set(value);
+    }
+
+    setEndDate(value: string): void {
+        this.endDate.set(value);
     }
 
     setSelectedBankAccount(value: string): void {
@@ -323,14 +300,13 @@ export class Withdrawals implements OnInit {
         this.statusFilter.set('all');
         this.bankAccountFilter.set('all');
         this.qFilter.set('');
-        this.dateRange.set(undefined);
+        this.startDate.set('');
+        this.endDate.set('');
         this.loadWithdrawals(1);
     }
 
-    changePage(delta: number): void {
-        const nextPage = this.meta().page + delta;
-        if (nextPage < 1 || nextPage > this.meta().totalPages) return;
-        this.loadWithdrawals(nextPage);
+    goToPage(page: number): void {
+        this.loadWithdrawals(page);
     }
 
     submitWithdrawal(event: Event): void {
@@ -481,61 +457,21 @@ export class Withdrawals implements OnInit {
         return `${account.pixKeyType} ${this.maskDocument(account.pixKey)}`;
     }
 
-    statusLabel(status: WithdrawalStatus): string {
-        const labels: Record<WithdrawalStatus, string> = {
-            PENDING: 'Pendente',
-            PROCESSING: 'Processando',
-            COMPLETED: 'Concluído',
-            FAILED: 'Falhou',
-        };
-        return labels[status];
-    }
-
-    selectedStatusLabel(): string {
-        const status = this.statusFilter();
-        return status === 'all' ? 'Todos' : this.statusLabel(status);
-    }
-
-    statusIcon(status: WithdrawalStatus): string {
-        const icons: Record<WithdrawalStatus, string> = {
-            PENDING: 'lucideClock',
-            PROCESSING: 'lucideSend',
-            COMPLETED: 'lucideCheckCircle2',
-            FAILED: 'lucideXCircle',
-        };
-        return icons[status];
-    }
-
-    statusClasses(status: WithdrawalStatus): string {
-        const classes: Record<WithdrawalStatus, string> = {
-            PENDING: 'border-amber-200 bg-amber-50 text-amber-700',
-            PROCESSING: 'border-blue-200 bg-blue-50 text-blue-700',
-            COMPLETED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            FAILED: 'border-red-200 bg-red-50 text-red-700',
-        };
-        return classes[status];
-    }
-
-    accountStatusClasses(account: BankAccount): string {
-        return account.isVerified
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-zinc-200 bg-zinc-100 text-zinc-600';
-    }
-
     accountStatusLabel(account: BankAccount): string {
         return account.isVerified ? 'Verificada' : 'Não verificada';
     }
 
     shortId(value?: string | null): string {
-        if (!value) return '-';
-        return value.length <= 12 ? value : `${value.slice(0, 8)}...`;
+        if (!value) return '—';
+        return value.length <= 12 ? value : `${value.slice(0, 8)}…`;
     }
 
     activeFilterCount(): number {
         let count = 0;
         if (this.statusFilter() !== 'all') count += 1;
         if (this.bankAccountFilter() !== 'all') count += 1;
-        if (this.dateRange()) count += 1;
+        if (this.startDate()) count += 1;
+        if (this.endDate()) count += 1;
         if (this.qFilter().trim()) count += 1;
         return count;
     }
@@ -553,7 +489,7 @@ export class Withdrawals implements OnInit {
         if (clean.length === 14) {
             return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}/${clean.slice(8, 12)}-${clean.slice(12)}`;
         }
-        return value || '-';
+        return value || '—';
     }
 
     private withdrawalValidationMessage(): string | null {
@@ -569,22 +505,6 @@ export class Withdrawals implements OnInit {
         if (amount <= this.feeCents) return 'O valor líquido precisa ser maior que zero.';
 
         return null;
-    }
-
-    private formatApiDate(date?: Date): string | undefined {
-        if (!date) return undefined;
-        const year = date.getFullYear();
-        const month = `${date.getMonth() + 1}`.padStart(2, '0');
-        const day = `${date.getDate()}`.padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    private formatDisplayDate(date: Date): string {
-        return new Intl.DateTimeFormat('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        }).format(date);
     }
 
     private formatCurrencyInput(cents: number): string {

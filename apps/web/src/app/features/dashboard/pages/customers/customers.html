@@ -1,0 +1,129 @@
+<div class="page">
+  <app-page-header
+    heading="Clientes"
+    description="Pagadores identificados nas cobranças e no checkout, agrupados por documento."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <section class="filter-bar">
+    <label class="field field-grow">
+      <span class="field-label">Buscar cliente</span>
+      <span class="control with-icon">
+        <span class="control-icon">
+          <ng-icon name="lucideSearch" size="14px" strokeWidth="1.8" />
+        </span>
+        <input
+          type="search"
+          placeholder="Nome, e-mail, documento ou external ID"
+          [value]="search()"
+          (input)="onSearchInput($any($event.target).value)"
+          (keydown.enter)="applySearch()"
+        />
+      </span>
+    </label>
+
+    <div class="filter-actions">
+      @if (hasActiveSearch()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearSearch()">Limpar</button>
+      }
+      <button type="button" class="btn btn-ink btn-sm" (click)="applySearch()">Buscar</button>
+    </div>
+  </section>
+
+  @if (customerService.error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (customerService.isLoading()) {
+    <app-page-state variant="loading" message="Buscando clientes…" />
+  } @else if (customerService.customers().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideUsers"
+      heading="Nenhum cliente por aqui"
+      [message]="
+        hasActiveSearch()
+          ? 'Nenhum cliente corresponde à busca.'
+          : 'Um cliente nasce na primeira cobrança identificada — com documento, e-mail ou external ID.'
+      "
+    >
+      @if (hasActiveSearch()) {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="clearSearch()">
+          Limpar busca
+        </button>
+      }
+    </app-page-state>
+  } @else {
+    <section class="panel">
+      <div class="table-scroll scroll-thin">
+        <table class="table customers-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Documento</th>
+              <th class="col-external">External ID</th>
+              <th>Desde</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (customer of customerService.customers(); track customer.id) {
+              <tr class="is-clickable" (click)="openCustomer(customer.id)">
+                <td>
+                  <a
+                    class="cell-link"
+                    [routerLink]="['/dashboard/customers', customer.id]"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <span class="cell-title">{{ displayName(customer) }}</span>
+                    <span class="cell-sub">{{
+                      customer.email || customer.phone || 'Sem contato adicional'
+                    }}</span>
+                  </a>
+                </td>
+
+                <td>
+                  <span class="cell-stack">
+                    <span class="cell-title mono">{{ customer.formattedDocument }}</span>
+                    <span class="cell-sub">{{ customer.documentType }}</span>
+                  </span>
+                </td>
+
+                <td class="col-external mono">{{ customer.externalId || '—' }}</td>
+
+                <td>
+                  <span class="cell-stack">
+                    <span class="cell-title numeric">{{ customer.createdAt | date: 'dd/MM/yy' }}</span>
+                    <span class="cell-sub mono">{{ customer.createdAt | date: 'HH:mm' }}</span>
+                  </span>
+                </td>
+
+                <td class="num">
+                  <span class="arrow-cell group">
+                    <ng-icon class="arrow" name="lucideArrowRight" size="15px" strokeWidth="1.7" />
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="customerService.page()"
+        [totalPages]="customerService.totalPages()"
+        [total]="customerService.total()"
+        [shown]="customerService.customers().length"
+        noun="clientes"
+        (pageChange)="goToPage($event)"
+      />
+    </section>
+  }
+</div>

@@ -1,0 +1,30 @@
+<dialog
+  #dlg
+  class="sheet-dialog"
+  [attr.data-side]="side()"
+  [attr.data-size]="size()"
+  (close)="closed.emit()"
+  (click)="onBackdrop($event)"
+>
+  <div class="sheet">
+    <header class="sheet-head">
+      <div class="sheet-head-text">
+        @if (eyebrow(); as label) {
+          <p class="eyebrow">{{ label }}</p>
+        }
+        <h2>{{ heading() }}</h2>
+        @if (description(); as text) {
+          <p class="sheet-desc">{{ text }}</p>
+        }
+      </div>
+
+      <button type="button" class="btn btn-ghost btn-icon btn-sm" (click)="dismiss()" aria-label="Fechar">
+        <ng-icon name="lucideX" size="16px" strokeWidth="1.8" />
+      </button>
+    </header>
+
+    <div class="sheet-body scroll-thin"><ng-content /></div>
+
+    <footer class="sheet-foot"><ng-content select="[sheetActions]" /></footer>
+  </div>
+</dialog>

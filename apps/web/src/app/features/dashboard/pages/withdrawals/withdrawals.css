@@ -1,0 +1,128 @@
+/* Saques — arranjo da tela e dos dois painéis. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.withdrawals-table {
+  min-width: 62rem;
+}
+
+.withdrawals-table .cell-actions {
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+/* ── Resumo do saque ──────────────────────────────────────────────────── */
+.breakdown {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.95rem 1.05rem;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.line .numeric,
+.line .mono {
+  color: var(--color-ink);
+}
+
+.line-total {
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-hairline);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.line-total .numeric {
+  font-size: 15px;
+}
+
+/* ── Contas Pix ───────────────────────────────────────────────────────── */
+.new-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.95rem 1.05rem;
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.95rem 1.05rem;
+}
+
+.account-main {
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.account-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account-holder {
+  margin: 0.5rem 0 0.2rem;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.account p {
+  margin: 0;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.confirm-target {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .col-fee,
+  .col-attempts {
+    display: none;
+  }
+}

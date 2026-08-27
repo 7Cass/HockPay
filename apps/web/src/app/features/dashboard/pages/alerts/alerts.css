@@ -1,0 +1,225 @@
+/* Alertas — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.alert {
+  display: flex;
+  flex-direction: column;
+}
+
+.alert .panel-body {
+  flex: 1;
+}
+
+.events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.preview {
+  margin: 0.9rem 0 0;
+  font-size: 10.5px;
+  color: var(--color-ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.panel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1.15rem 1.15rem;
+}
+
+.panel-foot .btn-icon {
+  margin-left: auto;
+}
+
+/* ── Escolhas do formulário ───────────────────────────────────────────── */
+.channels {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choice {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    opacity 0.2s;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--color-ink) 30%, var(--color-hairline));
+}
+
+.choice[aria-pressed='true'] {
+  border-color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.choice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.choice-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ink-faint);
+}
+
+.choice-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.choice-sub {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--color-ink-faint);
+}
+
+.choice .chip {
+  justify-self: start;
+  margin-top: 0.25rem;
+}
+
+.switch.standalone {
+  padding-top: 0.25rem;
+}
+
+/* ── Histórico ────────────────────────────────────────────────────────── */
+.log-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.count {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-ink-faint);
+}
+
+.log {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+}
+
+.log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.log-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.log-detail {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-bad);
+  overflow-wrap: anywhere;
+}
+
+.log-facts {
+  gap: 0.6rem 1.25rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.log-facts .fact {
+  font-size: 11.5px;
+}
+
+.payload summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  list-style: none;
+}
+
+.payload summary::-webkit-details-marker {
+  display: none;
+}
+
+.payload summary::before {
+  content: '▸';
+  transition: transform 0.2s var(--ease-brand);
+}
+
+.payload[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.payload pre {
+  max-height: 18rem;
+  margin: 0.6rem 0 0;
+  padding: 0.8rem 0.9rem;
+  overflow: auto;
+  border: 1px solid var(--color-hairline);
+  border-radius: 10px;
+  background: var(--color-paper);
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+.confirm-target {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}

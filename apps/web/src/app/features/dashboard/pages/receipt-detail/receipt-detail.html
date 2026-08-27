@@ -1,0 +1,164 @@
+<div class="page">
+  <app-page-header
+    backTo="/dashboard/receipts"
+    backLabel="Comprovantes"
+    [eyebrow]="receiptService.currentReceipt()?.receiptNumber"
+    heading="Comprovante"
+    description="O retrato financeiro salvo no instante em que o pagamento foi confirmado."
+  >
+    @if (receiptService.currentReceipt(); as receipt) {
+      <app-status-chip pageStatus [status]="receipt.status" />
+    }
+  </app-page-header>
+
+  @if (receiptService.isDetailLoading()) {
+    <app-page-state variant="loading" message="Carregando comprovante…" />
+  } @else if (receiptService.detailError(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <a pageStateAction class="btn btn-quiet btn-sm" routerLink="/dashboard/receipts">
+        Voltar para a lista
+      </a>
+    </app-page-state>
+  } @else if (receiptService.currentReceipt(); as receipt) {
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Partes</h2>
+              <p>Quem pagou e quem recebeu, como constava na emissão</p>
+            </div>
+          </div>
+
+          <div class="panel-body parties">
+            <section>
+              <p class="eyebrow">Pagador</p>
+              <p class="party-name">{{ receipt.payerName || 'Não identificado' }}</p>
+              <p class="party-line">{{ receipt.payerEmail || 'E-mail não informado' }}</p>
+              <p class="party-line mono">{{ receipt.payerDocument || 'Documento não informado' }}</p>
+
+              @if (receipt.customerId) {
+                <a
+                  class="btn btn-quiet btn-sm group"
+                  [routerLink]="['/dashboard/customers', receipt.customerId]"
+                >
+                  Ver cliente
+                  <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+                </a>
+              }
+            </section>
+
+            <section>
+              <p class="eyebrow">Recebedor</p>
+              <p class="party-name">{{ receipt.payeeName }}</p>
+              <p class="party-line mono">{{ receipt.payeeDocument || 'Documento não informado' }}</p>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Cobrança</h2>
+              <p>Descrição e itens registrados</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            <p class="description">{{ receipt.description || 'Sem descrição registrada.' }}</p>
+
+            @if (receipt.items?.length) {
+              <ul class="items">
+                @for (item of receipt.items; track item.name + item.quantity) {
+                  <li>
+                    <span class="item-name">
+                      <span class="mono">{{ item.quantity }}×</span>
+                      {{ item.name }}
+                    </span>
+                    <span class="numeric">
+                      {{ item.totalPrice / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Valores</h2>
+              <p>Congelados na confirmação</p>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Bruto</dt>
+              <dd class="numeric">
+                {{ receipt.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
+            </div>
+            <div class="fact">
+              <dt>Taxa</dt>
+              <dd class="numeric">
+                −{{ receipt.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
+            </div>
+            <div class="fact fact-total">
+              <dt>Líquido</dt>
+              <dd class="numeric">
+                {{ receipt.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Registro</h2>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Número</dt>
+              <dd><app-copy-value [value]="receipt.receiptNumber" /></dd>
+            </div>
+            <div class="fact">
+              <dt>Pagamento</dt>
+              <dd><app-copy-value [value]="receipt.paymentId" [truncate]="12" /></dd>
+            </div>
+            <div class="fact">
+              <dt>Emitido em</dt>
+              <dd class="numeric">{{ receipt.issuedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Criado em</dt>
+              <dd class="numeric">{{ receipt.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Atualizado em</dt>
+              <dd class="numeric">{{ receipt.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Moeda</dt>
+              <dd class="mono">{{ receipt.currency }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        @if (receipt.paymentId) {
+          <a class="btn btn-quiet group see-payment" [routerLink]="['/dashboard/payments', receipt.paymentId]">
+            Ver o pagamento
+            <ng-icon class="arrow" name="lucideArrowRight" size="15px" strokeWidth="1.7" />
+          </a>
+        }
+      </div>
+    </div>
+  }
+</div>

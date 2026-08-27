@@ -1,54 +1,48 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-
-// Spartan UI
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmLabelImports } from '@spartan-ng/helm/label';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmFormFieldImports } from '@spartan-ng/helm/form-field';
-import { provideIcons } from '@ng-icons/core';
-import { lucideGithub, lucideLoader2 } from '@ng-icons/lucide';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArrowRight, lucideEye, lucideEyeOff, lucideLoader2 } from '@ng-icons/lucide';
 import { toast } from 'ngx-sonner';
 
-// Services
 import { AuthService } from '../../../../core/services/auth.service';
+import { Reveal } from '../../../../shared/directives/reveal';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
-  imports: [
-    RouterLink,
-    ReactiveFormsModule,
-    HlmInputImports,
-    HlmLabelImports,
-    HlmButtonImports,
-    HlmIconImports,
-    HlmFormFieldImports,
-  ],
-  providers: [provideIcons({ lucideGithub, lucideLoader2 })],
+  imports: [RouterLink, ReactiveFormsModule, NgIcon, Reveal],
+  providers: [provideIcons({ lucideArrowRight, lucideEye, lucideEyeOff, lucideLoader2 })],
   templateUrl: './login.html',
+  styleUrl: '../../auth-form.css',
 })
 export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  // State
-  isLoading = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly showPassword = signal(false);
 
-  // Form
-  loginForm = this.fb.group({
+  protected readonly loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 
-  async onSubmit() {
+  /** A field only turns red once the visitor has left it (or tried to submit). */
+  protected showError(name: 'email' | 'password'): boolean {
+    const control = this.loginForm.get(name);
+    return !!control && control.invalid && control.touched;
+  }
+
+  protected togglePassword(): void {
+    this.showPassword.update((visible) => !visible);
+  }
+
+  protected onSubmit(): void {
     if (this.loginForm.invalid) {
-      toast.error('Preencha os campos corretamente.');
       this.loginForm.markAllAsTouched();
+      toast.error('Preencha os campos corretamente.');
       return;
     }
 
@@ -58,12 +52,11 @@ export class Login {
     this.authService.login({ email: email!, password: password! }).subscribe({
       next: () => {
         toast.success('Login efetuado com sucesso!');
-        this.router.navigate(['/dashboard']); // Redirect to dashboard
+        this.router.navigate(['/dashboard']);
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
-        const errorMessage = err.error?.error?.message || 'Erro ao conectar com o servidor.';
-        toast.error(errorMessage);
+        toast.error(err.error?.error?.message || 'Erro ao conectar com o servidor.');
       },
     });
   }

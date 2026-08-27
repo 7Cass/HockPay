@@ -1,0 +1,27 @@
+<nav class="pagination" aria-label="Paginação">
+  <p class="count mono">Exibindo {{ shown() | number }} de {{ total() | number }} {{ noun() }}</p>
+
+  <div class="controls">
+    <span class="page mono">{{ page() | number }} / {{ lastPage() | number }}</span>
+
+    <button
+      type="button"
+      class="btn btn-quiet btn-sm btn-icon"
+      [disabled]="!hasPrevious()"
+      (click)="previous()"
+      aria-label="Página anterior"
+    >
+      <ng-icon name="lucideChevronLeft" size="15px" strokeWidth="1.8" />
+    </button>
+
+    <button
+      type="button"
+      class="btn btn-quiet btn-sm btn-icon"
+      [disabled]="!hasNext()"
+      (click)="next()"
+      aria-label="Próxima página"
+    >
+      <ng-icon name="lucideChevronRight" size="15px" strokeWidth="1.8" />
+    </button>
+  </div>
+</nav>

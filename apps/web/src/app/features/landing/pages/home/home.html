@@ -1,427 +1,489 @@
-<main class="landing-shell min-h-screen bg-zinc-950 text-zinc-50">
-  <div class="landing-grid" aria-hidden="true"></div>
-  <div class="landing-glow landing-glow-a" aria-hidden="true"></div>
-  <div class="landing-glow landing-glow-b" aria-hidden="true"></div>
-
-  <header class="relative z-20 border-b border-white/10 bg-zinc-950/75 backdrop-blur-xl">
-    <nav class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Principal">
-      <a href="#top" class="flex items-center gap-3" aria-label="Hockpay inicio">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-300">
-          <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" aria-hidden="true"></ng-icon>
+<div class="relative">
+  <!-- ─── Nav ──────────────────────────────────────────────────────────── -->
+  <header
+    class="fixed inset-x-0 top-0 z-50 transition-all duration-500"
+    [class.is-stuck]="scrolled()"
+  >
+    <div
+      class="nav-bar mx-auto flex w-full max-w-6xl items-center justify-between px-5 transition-all duration-500 sm:px-8"
+    >
+      <a href="#top" class="group flex items-center gap-2.5" aria-label="HockPay, início">
+        <span class="mark" aria-hidden="true">
+          <span class="mark-bar"></span>
+          <span class="mark-bar"></span>
+          <span class="mark-dot"></span>
         </span>
-        <span class="text-sm font-black uppercase tracking-[0.28em] text-white">Hockpay</span>
+        <span class="text-[15px] font-semibold tracking-[-0.02em] text-ink">hockpay</span>
+        <span
+          class="hidden rounded-full border border-hairline px-2 py-[3px] font-code text-[9px] font-medium tracking-[0.18em] text-ink-faint sm:inline-block"
+        >
+          TEST
+        </span>
       </a>
 
-      <div class="hidden items-center gap-6 text-sm font-medium text-zinc-400 md:flex">
-        <a href="#simulacao" class="transition-colors hover:text-white">Simulação</a>
-        <a href="#cenarios" class="transition-colors hover:text-white">Cenários</a>
-        <a href="#comparativo" class="transition-colors hover:text-white">Comparativo</a>
-        <a href="#fluxo" class="transition-colors hover:text-white">Fluxo</a>
-      </div>
+      <nav class="hidden items-center gap-8 md:flex" aria-label="Seções">
+        @for (link of navLinks; track link.href) {
+          <a [href]="link.href" class="nav-link text-[13.5px] text-ink-soft">{{ link.label }}</a>
+        }
+      </nav>
 
-      <div class="flex items-center gap-3">
-        <a routerLink="/login" class="hidden text-sm font-semibold text-zinc-400 transition-colors hover:text-white sm:inline-flex">
-          Login
+      <div class="flex items-center gap-1.5">
+        <a
+          routerLink="/login"
+          class="hidden rounded-full px-3.5 py-2 text-[13.5px] text-ink-soft transition-colors hover:text-ink sm:inline-flex"
+        >
+          Entrar
         </a>
         <a
           routerLink="/register"
-          class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 text-sm font-bold text-zinc-950 shadow-[0_0_30px_rgba(52,211,153,0.22)] transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 font-medium transition-[transform,background,box-shadow,border-color] duration-200 btn-ink group h-[2.4rem] text-[13.5px]"
         >
           Criar conta
-          <ng-icon hlm name="lucideArrowRight" size="xs" aria-hidden="true"></ng-icon>
+          <ng-icon name="lucideArrowRight" size="13px" class="arrow" aria-hidden="true" />
         </a>
+        <button
+          type="button"
+          class="ml-1 grid size-9 place-items-center rounded-full border border-hairline text-ink md:hidden"
+          [attr.aria-expanded]="menuOpen()"
+          aria-label="Abrir menu"
+          (click)="toggleMenu()"
+        >
+          <ng-icon
+            hlm
+            [name]="menuOpen() ? 'lucideX' : 'lucideMenu'"
+            size="16px"
+            aria-hidden="true"
+          />
+        </button>
       </div>
-    </nav>
+    </div>
+
+    @if (menuOpen()) {
+      <div
+        class="mx-4 mt-2 rounded-2xl border border-hairline bg-paper/95 p-2 shadow-lg backdrop-blur-xl md:hidden"
+      >
+        @for (link of navLinks; track link.href) {
+          <a
+            [href]="link.href"
+            class="block rounded-xl px-4 py-3 text-sm text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
+            (click)="toggleMenu()"
+          >
+            {{ link.label }}
+          </a>
+        }
+      </div>
+    }
   </header>
 
-  <section id="top" class="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[0.94fr_1.06fr] lg:px-8 lg:pb-28 lg:pt-24">
-    <div class="min-w-0">
-      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.24em] text-emerald-200">
-        <span class="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.9)]"></span>
-        Sandbox para devs
+  <main id="top" class="relative">
+    <!-- ─── Hero ───────────────────────────────────────────────────────── -->
+    <section class="relative overflow-hidden px-5 pb-16 pt-32 sm:px-8 sm:pt-40">
+      <div class="hero-field" aria-hidden="true"></div>
+
+      <div class="relative mx-auto max-w-6xl">
+        <div class="mx-auto max-w-3xl text-center">
+          <p appReveal class="eyebrow justify-center">
+            <span class="pulse-dot"></span>
+            Ambiente TEST · nenhum centavo real
+          </p>
+
+          <h1
+            [appReveal]="80"
+            class="mt-7 font-display text-[clamp(2.9rem,8.2vw,5.6rem)] leading-[0.92] tracking-[-0.02em] text-ink"
+          >
+            Todo pagamento termina<br class="hidden sm:block" />
+            <em class="italic">exatamente como você mandar.</em>
+          </h1>
+
+          <p
+            [appReveal]="160"
+            class="mx-auto mt-7 max-w-xl text-[17px] leading-[1.65] text-ink-soft"
+          >
+            HockPay é um gateway Pix simulado. Você cria a cobrança e escolhe o desfecho —
+            confirmada, recusada ou expirada. Webhook, idempotência, taxa e ledger se comportam como
+            em produção. O dinheiro é que não existe.
+          </p>
+
+          <div
+            [appReveal]="220"
+            class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+          >
+            <a
+              routerLink="/register"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 font-medium transition-[transform,background,box-shadow,border-color] duration-200 btn-ink group h-12 px-6 text-[15px]"
+            >
+              Criar minha sandbox
+              <ng-icon name="lucideArrowRight" size="16px" class="arrow" aria-hidden="true" />
+            </a>
+            <a
+              href="#api"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 font-medium transition-[transform,background,box-shadow,border-color] duration-200 btn-quiet group h-12 px-6 text-[15px]"
+            >
+              Ver a API
+              <ng-icon
+                hlm
+                name="lucideArrowUpRight"
+                size="16px"
+                class="arrow-diag"
+                aria-hidden="true"
+              />
+            </a>
+          </div>
+
+          <p [appReveal]="280" class="mt-6 font-code text-[11px] tracking-[0.08em] text-ink-faint">
+            sem cartão · sem contrato com adquirente · primeira cobrança em 2 minutos
+          </p>
+        </div>
+
+        <!-- ─── Simulator stage ─────────────────────────────────────────── -->
+        <app-payment-simulator
+          id="simulador"
+          [appReveal]="120"
+          class="mt-16 block scroll-mt-28 sm:mt-20"
+        />
       </div>
+    </section>
 
-      <h1 class="mt-7 max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl lg:text-7xl">
-        Simule gateways de pagamento sem tocar em dinheiro real.
-      </h1>
-
-      <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 sm:text-xl">
-        Hockpay replica a jornada de um gateway: cria cobranças Pix fake, força sucesso, falha e expiração, entrega webhooks e valida idempotência antes do seu checkout ir para produção.
-      </p>
-
-      <div class="mt-9 flex flex-col gap-3 sm:flex-row">
-        <a
-          routerLink="/register"
-          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-base font-extrabold text-zinc-950 shadow-[0_0_40px_rgba(52,211,153,0.28)] transition hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-        >
-          Começar simulação
-          <ng-icon hlm name="lucideArrowRight" size="sm" aria-hidden="true"></ng-icon>
-        </a>
-        <a
-          href="#simulacao"
-          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/5 px-6 text-base font-bold text-white transition hover:border-cyan-300/40 hover:bg-cyan-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-        >
-          Ver exemplo
-          <ng-icon hlm name="lucideCode2" size="sm" aria-hidden="true"></ng-icon>
-        </a>
+    <!-- ─── Ticker ─────────────────────────────────────────────────────── -->
+    <div class="ticker border-y border-hairline bg-paper-2/50 py-3" aria-hidden="true">
+      <div class="ticker-track">
+        @for (pass of [0, 1]; track pass) {
+          <div class="flex items-center gap-6 pr-6">
+            @for (item of ticker; track item) {
+              <span class="font-code text-[11px] tracking-[0.1em] text-ink-faint">{{ item }}</span>
+              <span class="text-ink-faint/40">·</span>
+            }
+          </div>
+        }
       </div>
-
-      <dl class="mt-10 grid max-w-2xl grid-cols-3 gap-3 text-left">
-        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-          <dt class="text-2xl font-black text-white">3</dt>
-          <dd class="mt-1 text-xs font-medium text-zinc-400">estados de pagamento</dd>
-        </div>
-        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-          <dt class="text-2xl font-black text-white">0</dt>
-          <dd class="mt-1 text-xs font-medium text-zinc-400">dinheiro real</dd>
-        </div>
-        <div class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-          <dt class="text-2xl font-black text-white">API</dt>
-          <dd class="mt-1 text-xs font-medium text-zinc-400">REST + webhooks</dd>
-        </div>
-      </dl>
     </div>
 
-    <div id="simulacao" class="relative min-w-0 scroll-mt-24">
-      <div class="mock-console relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/90 shadow-2xl shadow-emerald-950/30">
-        <div class="flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3">
-          <div class="flex items-center gap-2">
-            <span class="h-2.5 w-2.5 rounded-full bg-red-400/80"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-amber-300/80"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-emerald-300/80"></span>
+    <!-- ─── Cenários ───────────────────────────────────────────────────── -->
+    <section id="cenarios" class="scroll-mt-24 px-5 py-24 sm:px-8 sm:py-32">
+      <div class="mx-auto max-w-6xl">
+        <div class="max-w-2xl">
+          <p appReveal class="eyebrow">Cenários</p>
+          <h2
+            [appReveal]="60"
+            class="mt-5 font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-[-0.02em] text-ink"
+          >
+            Os finais que quebram checkout,<br class="hidden sm:block" />
+            <em class="italic">sob demanda.</em>
+          </h2>
+          <p [appReveal]="120" class="mt-5 max-w-lg text-[16px] leading-[1.65] text-ink-soft">
+            Cada ação TEST dispara exatamente o mesmo evento que a sua aplicação vai receber quando
+            o gateway for de verdade.
+          </p>
+        </div>
+
+        <div [appReveal]="80" class="mt-12 overflow-x-auto">
+          <table class="w-full min-w-[46rem] border-collapse text-left">
+            <thead>
+              <tr class="border-b border-ink/15">
+                <th
+                  class="w-[9rem] pb-3.5 font-code text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-faint"
+                >
+                  Ação
+                </th>
+                <th
+                  class="w-[10rem] pb-3.5 font-code text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-faint"
+                >
+                  Estado final
+                </th>
+                <th
+                  class="w-[13rem] pb-3.5 font-code text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-faint"
+                >
+                  Evento
+                </th>
+                <th
+                  class="pb-3.5 font-code text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-faint"
+                >
+                  O que você valida
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of scenarios; track row.action; let i = $index) {
+                <tr
+                  [appReveal]="i * 70"
+                  class="border-b border-hairline transition-colors duration-200 hover:bg-ink/[0.02]"
+                >
+                  <td class="py-[1.15rem] pr-4 align-middle">
+                    <span class="font-code text-[13px] font-medium text-ink">{{ row.action }}</span>
+                  </td>
+                  <td class="py-[1.15rem] pr-4 align-middle">
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-1.5 font-code text-[10.5px] font-medium tracking-[0.08em]"
+                      [class]="row.chip"
+                      >{{ row.state }}</span
+                    >
+                  </td>
+                  <td class="py-[1.15rem] pr-4 align-middle">
+                    <span class="font-code text-[12.5px] text-ink-soft">{{ row.event }}</span>
+                  </td>
+                  <td class="py-[1.15rem] pr-4 align-middle text-[14px] text-ink-soft">
+                    {{ row.validates }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── API ────────────────────────────────────────────────────────── -->
+    <section id="api" class="scroll-mt-24 bg-ink px-5 py-24 text-paper sm:px-8 sm:py-32">
+      <div class="mx-auto max-w-6xl">
+        <div class="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-16">
+          <div>
+            <p appReveal class="eyebrow text-paper/45">Integração</p>
+            <h2
+              [appReveal]="60"
+              class="mt-5 font-display text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.02] tracking-[-0.02em] text-paper"
+            >
+              Uma chave, um POST,<br class="hidden sm:block" />
+              <em class="italic">o final que você quiser.</em>
+            </h2>
+            <p [appReveal]="120" class="mt-5 max-w-md text-[16px] leading-[1.65] text-paper/60">
+              REST, JSON e cabeçalhos que você já conhece. Se sua integração funciona aqui, ela
+              funciona no gateway real — porque o contrato é o mesmo.
+            </p>
+
+            <ul [appReveal]="180" class="mt-8 space-y-3.5">
+              @for (
+                item of [
+                  'Idempotency-Key nativo em toda escrita',
+                  'Webhooks assinados com HMAC, retry e backoff',
+                  'Chaves TEST e LIVE isoladas por loja',
+                ];
+                track item
+              ) {
+                <li class="flex items-start gap-3 text-[14.5px] text-paper/75">
+                  <ng-icon
+                    hlm
+                    name="lucideCheck"
+                    size="13px"
+                    class="mt-1 shrink-0 text-paper/40"
+                    aria-hidden="true"
+                  />
+                  {{ item }}
+                </li>
+              }
+            </ul>
           </div>
-          <span class="font-mono text-xs text-zinc-500">sandbox.hockpay.dev</span>
-        </div>
 
-        <div class="grid gap-4 p-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <section class="min-w-0 rounded-xl border border-cyan-300/15 bg-black/40 p-4">
-            <div class="mb-4 flex items-center justify-between gap-3">
-              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">
-                <ng-icon hlm name="lucideCode2" size="xs" aria-hidden="true"></ng-icon>
-                Request
+          <div [appReveal]="100" class="min-w-0">
+            <div class="overflow-hidden rounded-[18px] border border-paper/12 bg-paper/[0.04]">
+              <div class="flex items-center gap-1 border-b border-paper/10 p-2">
+                @for (tab of tabs; track tab.id) {
+                  <button
+                    type="button"
+                    class="tab inline-flex h-[1.9rem] items-center rounded-full px-3 text-[12.5px] text-paper/55 transition-colors duration-200 hover:text-paper/90"
+                    [class.is-active]="activeTab() === tab.id"
+                    (click)="selectTab(tab.id)"
+                  >
+                    {{ tab.label }}
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="ml-auto inline-flex h-[1.9rem] items-center gap-1.5 rounded-full px-3 font-code text-[11px] text-paper/55 transition-colors duration-200 hover:text-paper/90"
+                  (click)="copyCode()"
+                >
+                  <ng-icon
+                    hlm
+                    [name]="copied() ? 'lucideCheck' : 'lucideCopy'"
+                    size="13px"
+                    aria-hidden="true"
+                  />
+                  {{ copied() ? 'copiado' : 'copiar' }}
+                </button>
               </div>
-              <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 font-mono text-[10px] font-bold text-emerald-200">POST /api/v1/payments</span>
-            </div>
 
-            <pre class="code-sample overflow-x-auto rounded-lg bg-zinc-950 p-4 text-[12px] leading-6 text-zinc-300"><code>curl -X POST <span class="text-emerald-300">https://api.hockpay.dev/api/v1/payments</span> \
-  -H <span class="text-emerald-300">"Authorization: Bearer hk_test_xxx"</span> \
-  -H <span class="text-emerald-300">"Content-Type: application/json"</span> \
-  -H <span class="text-emerald-300">"Idempotency-Key: order-123"</span> \
-  -d '&#123;
-    "amount": <span class="text-amber-200">25000</span>,
-    "paymentMethod": <span class="text-emerald-300">"PIX"</span>,
-    "customer": &#123;
-      "email": <span class="text-emerald-300">"dev&#64;app.com"</span>,
-      "document": <span class="text-emerald-300">"12345678909"</span>
-    &#125;
-  &#125;'</code></pre>
-          </section>
-
-          <section class="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">Resultado</p>
-                <h2 class="mt-1 text-lg font-black text-white">Pagamento simulado</h2>
-              </div>
-              <span class="rounded-full bg-emerald-400/15 p-2 text-emerald-300">
-                <ng-icon hlm name="lucideCheckCircle2" size="sm" aria-hidden="true"></ng-icon>
-              </span>
-            </div>
-
-            <div class="space-y-3">
-              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
-                <span class="text-sm text-zinc-400">Status</span>
-                <span class="rounded-full bg-emerald-400/15 px-2 py-1 text-xs font-bold text-emerald-200">CONFIRMED</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
-                <span class="text-sm text-zinc-400">Valor líquido</span>
-                <span class="font-mono text-sm font-bold text-white">R$ 248,50</span>
-              </div>
-              <div class="flex items-center justify-between rounded-lg border border-white/10 bg-zinc-950/70 px-3 py-2">
-                <span class="text-sm text-zinc-400">Webhook</span>
-                <span class="rounded-full bg-cyan-400/15 px-2 py-1 text-xs font-bold text-cyan-200">DELIVERED</span>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div class="border-t border-white/10 p-4">
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="event-card border-emerald-300/20">
-              <ng-icon hlm name="lucideCheckCircle2" class="text-emerald-300" size="sm" aria-hidden="true"></ng-icon>
-              <div>
-                <p class="font-mono text-xs font-bold text-white">payment.created</p>
-                <p class="text-xs text-zinc-500">Cobrança Pix fake criada</p>
-              </div>
-            </div>
-            <div class="event-card border-cyan-300/20">
-              <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="sm" aria-hidden="true"></ng-icon>
-              <div>
-                <p class="font-mono text-xs font-bold text-white">payment.confirmed</p>
-                <p class="text-xs text-zinc-500">Payload assinado entregue</p>
-              </div>
-            </div>
-            <div class="event-card border-amber-300/20">
-              <ng-icon hlm name="lucideRefreshCcw" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
-              <div>
-                <p class="font-mono text-xs font-bold text-white">payment.failed</p>
-                <p class="text-xs text-zinc-500">Falha simulada sob demanda</p>
-              </div>
+              <pre
+                class="code"
+              ><code>@for (line of activeLines(); track $index) {<span class="code-line">{{ line }}</span>}</code></pre>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="cenarios" class="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-4 pb-20 sm:px-6 lg:px-8">
-    <div class="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
-      <div class="max-w-2xl">
-        <p class="text-sm font-black uppercase tracking-[0.28em] text-cyan-300">Cenários controlados</p>
-        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Teste as respostas que quebram checkouts reais.</h2>
-        <p class="mt-4 text-lg leading-8 text-zinc-400">
-          Crie a cobrança e depois simule confirm, fail ou expire para validar como sua aplicação reage a cada evento.
+    <!-- ─── Fluxo ──────────────────────────────────────────────────────── -->
+    <section class="px-5 py-24 sm:px-8 sm:py-32">
+      <div class="mx-auto max-w-6xl">
+        <div class="max-w-2xl">
+          <p appReveal class="eyebrow">Como funciona</p>
+          <h2
+            [appReveal]="60"
+            class="mt-5 font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-[-0.02em] text-ink"
+          >
+            Do zero ao webhook entregue.
+          </h2>
+        </div>
+
+        <div class="mt-14 grid gap-px border-y border-hairline bg-hairline md:grid-cols-3">
+          @for (step of steps; track step.n; let i = $index) {
+            <article [appReveal]="i * 90" class="step bg-paper p-7 sm:p-9">
+              <span class="font-display text-[2.6rem] leading-none text-ink-faint/50">{{
+                step.n
+              }}</span>
+              <h3 class="mt-6 text-[17px] font-semibold tracking-[-0.01em] text-ink">
+                {{ step.title }}
+              </h3>
+              <p class="mt-2.5 text-[14.5px] leading-[1.65] text-ink-soft">{{ step.body }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Recursos ───────────────────────────────────────────────────── -->
+    <section id="recursos" class="scroll-mt-24 px-5 pb-24 sm:px-8 sm:pb-32">
+      <div class="mx-auto max-w-6xl">
+        <div class="flex flex-wrap items-end justify-between gap-6">
+          <div class="max-w-xl">
+            <p appReveal class="eyebrow">Recursos</p>
+            <h2
+              [appReveal]="60"
+              class="mt-5 font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-[-0.02em] text-ink"
+            >
+              Um gateway inteiro,<br class="hidden sm:block" />
+              <em class="italic">em modo laboratório.</em>
+            </h2>
+          </div>
+          <p [appReveal]="120" class="max-w-xs text-[14.5px] leading-[1.65] text-ink-soft">
+            Tudo que costuma dar errado em produção, disponível para dar errado na sua máquina
+            primeiro.
+          </p>
+        </div>
+
+        <div
+          class="mt-12 grid gap-px border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-3"
+        >
+          @for (feature of features; track feature.title; let i = $index) {
+            <article [appReveal]="(i % 3) * 70" class="feature bg-paper p-7">
+              <ng-icon
+                hlm
+                [name]="feature.icon"
+                size="16px"
+                class="text-ink-faint"
+                aria-hidden="true"
+              />
+              <h3 class="mt-5 text-[16px] font-semibold tracking-[-0.01em] text-ink">
+                {{ feature.title }}
+              </h3>
+              <p class="mt-2 text-[14px] leading-[1.6] text-ink-soft">{{ feature.body }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── CTA final ──────────────────────────────────────────────────── -->
+    <section class="px-5 pb-24 sm:px-8 sm:pb-32">
+      <div
+        [appReveal]="0"
+        class="relative mx-auto max-w-6xl overflow-hidden rounded-[26px] bg-ink px-7 py-20 text-center sm:px-12 sm:py-28"
+      >
+        <div class="cta-field" aria-hidden="true"></div>
+        <div class="relative">
+          <p class="eyebrow justify-center text-paper/45">Sua vez</p>
+          <h2
+            class="mx-auto mt-6 max-w-3xl font-display text-[clamp(2.2rem,5.4vw,4.2rem)] leading-[1] tracking-[-0.02em] text-paper"
+          >
+            Quebre seu checkout agora —<br class="hidden sm:block" />
+            <em class="italic">de propósito.</em>
+          </h2>
+          <p class="mx-auto mt-6 max-w-md text-[16px] leading-[1.65] text-paper/60">
+            É melhor descobrir o comportamento estranho no seu simulador do que no extrato de um
+            cliente.
+          </p>
+          <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a
+              routerLink="/register"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 font-medium transition-[transform,background,box-shadow,border-color] duration-200 btn-paper group h-12 px-6 text-[15px]"
+            >
+              Criar minha sandbox
+              <ng-icon name="lucideArrowRight" size="16px" class="arrow" aria-hidden="true" />
+            </a>
+            <a
+              routerLink="/login"
+              class="h-12 px-4 text-[15px] leading-[3rem] text-paper/60 transition-colors hover:text-paper"
+            >
+              Já tenho conta
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────────── -->
+  <footer class="border-t border-hairline px-5 py-14 sm:px-8">
+    <div class="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1.4fr_1fr_1fr] md:gap-16">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="mark" aria-hidden="true">
+            <span class="mark-bar"></span>
+            <span class="mark-bar"></span>
+            <span class="mark-dot"></span>
+          </span>
+          <span class="text-[15px] font-semibold tracking-[-0.02em] text-ink">hockpay</span>
+        </div>
+        <p class="mt-4 max-w-sm text-[13.5px] leading-[1.65] text-ink-soft">
+          HockPay não processa dinheiro real. Pix, Payment Links, checkout e saques existem como
+          simulação local para desenvolvimento, demonstração e estudo.
         </p>
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <article class="state-card">
-          <div class="flex items-start justify-between gap-4">
-            <span class="state-icon bg-emerald-400/15 text-emerald-300">
-              <ng-icon hlm name="lucideCheckCircle2" size="sm" aria-hidden="true"></ng-icon>
-            </span>
-            <span class="status-pill bg-emerald-400/15 text-emerald-200">CONFIRMED</span>
-          </div>
-          <h3>Pagamento aprovado</h3>
-          <p>Confirme liberação de acesso, emissão de recibo, saldo e fechamento do pedido.</p>
-          <dl>
-            <div>
-              <dt>Ação TEST</dt>
-              <dd>confirm</dd>
-            </div>
-            <div>
-              <dt>Evento</dt>
-              <dd>payment.confirmed</dd>
-            </div>
-          </dl>
-        </article>
+      <div>
+        <p class="label">Produto</p>
+        <ul class="mt-4 space-y-2.5">
+          @for (link of navLinks; track link.href) {
+            <li>
+              <a
+                [href]="link.href"
+                class="text-[13.5px] text-ink-soft transition-colors hover:text-ink"
+              >
+                {{ link.label }}
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
 
-        <article class="state-card">
-          <div class="flex items-start justify-between gap-4">
-            <span class="state-icon bg-red-400/15 text-red-300">
-              <ng-icon hlm name="lucideXCircle" size="sm" aria-hidden="true"></ng-icon>
-            </span>
-            <span class="status-pill bg-red-400/15 text-red-200">FAILED</span>
-          </div>
-          <h3>Pagamento recusado</h3>
-          <p>Valide mensagens de erro, nova tentativa e comportamento de carrinho sem cobrança.</p>
-          <dl>
-            <div>
-              <dt>Ação TEST</dt>
-              <dd>fail</dd>
-            </div>
-            <div>
-              <dt>Evento</dt>
-              <dd>payment.failed</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article class="state-card">
-          <div class="flex items-start justify-between gap-4">
-            <span class="state-icon bg-amber-300/15 text-amber-200">
-              <ng-icon hlm name="lucideClock" size="sm" aria-hidden="true"></ng-icon>
-            </span>
-            <span class="status-pill bg-amber-300/15 text-amber-100">EXPIRED</span>
-          </div>
-          <h3>Pix expirado</h3>
-          <p>Teste timer, tela de expiração e o retorno ao checkout para gerar uma nova cobrança simulada.</p>
-          <dl>
-            <div>
-              <dt>Ação TEST</dt>
-              <dd>expire</dd>
-            </div>
-            <div>
-              <dt>Evento</dt>
-              <dd>payment.expired</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article class="state-card">
-          <div class="flex items-start justify-between gap-4">
-            <span class="state-icon bg-cyan-400/15 text-cyan-300">
-              <ng-icon hlm name="lucideRefreshCcw" size="sm" aria-hidden="true"></ng-icon>
-            </span>
-            <span class="status-pill bg-cyan-400/15 text-cyan-100">IDEMPOTENT</span>
-          </div>
-          <h3>Request duplicado</h3>
-          <p>Repita chamadas com a mesma chave e garanta que o pedido não vira duas cobranças.</p>
-          <dl>
-            <div>
-              <dt>Header</dt>
-              <dd>Idempotency-Key</dd>
-            </div>
-            <div>
-              <dt>Resultado</dt>
-              <dd>Mesmo Payment</dd>
-            </div>
-          </dl>
-        </article>
+      <div>
+        <p class="label">Conta</p>
+        <ul class="mt-4 space-y-2.5">
+          <li>
+            <a
+              routerLink="/register"
+              class="text-[13.5px] text-ink-soft transition-colors hover:text-ink"
+            >
+              Criar conta
+            </a>
+          </li>
+          <li>
+            <a
+              routerLink="/login"
+              class="text-[13.5px] text-ink-soft transition-colors hover:text-ink"
+            >
+              Entrar
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
-  </section>
 
-  <section id="features" class="relative z-10 border-y border-white/10 bg-white/[0.03] px-4 py-20 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-7xl">
-      <div class="max-w-3xl">
-        <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">O que você simula</p>
-        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Um gateway inteiro em modo laboratório.</h2>
-        <p class="mt-4 text-lg leading-8 text-zinc-400">Use Hockpay para testar a parte ruim dos pagamentos antes dos seus clientes reais encontrarem esses cenários.</p>
-      </div>
-
-      <div class="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <article class="feature-card">
-          <ng-icon hlm name="lucideCreditCard" class="text-emerald-300" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Pix e checkout fake</h3>
-          <p>Crie cobranças, links de pagamento e recibos simulados sem processar dinheiro real.</p>
-        </article>
-        <article class="feature-card">
-          <ng-icon hlm name="lucideXCircle" class="text-red-300" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Falhas previsíveis</h3>
-          <p>Force pagamentos recusados, expirados e pendentes para validar UX, logs e suporte.</p>
-        </article>
-        <article class="feature-card">
-          <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Webhooks resilientes</h3>
-          <p>Receba eventos assíncronos, retries e payloads assinados como em produção.</p>
-        </article>
-        <article class="feature-card">
-          <ng-icon hlm name="lucideKey" class="text-amber-200" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Chaves sandbox</h3>
-          <p>Separe credenciais de teste e valide permissões antes de expor integrações reais.</p>
-        </article>
-        <article class="feature-card">
-          <ng-icon hlm name="lucideShieldCheck" class="text-emerald-300" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Idempotência nativa</h3>
-          <p>Repita requests com segurança e confirme que nenhuma cobrança duplica no seu fluxo.</p>
-        </article>
-        <article class="feature-card">
-          <ng-icon hlm name="lucideNetwork" class="text-cyan-300" size="lg" aria-hidden="true"></ng-icon>
-          <h3>Arquitetura realista</h3>
-          <p>Teste integração com API, filas, banco e eventos em um ambiente controlado.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section id="comparativo" class="relative z-10 mx-auto w-full max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:px-8">
-    <div class="max-w-3xl">
-      <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">Por que não testar direto no gateway?</p>
-      <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Hockpay troca dependência externa por previsibilidade.</h2>
-      <p class="mt-4 text-lg leading-8 text-zinc-400">
-        A proposta não é substituir o gateway real. É chegar nele com os fluxos ruins já testados.
+    <div
+      class="mx-auto mt-12 flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-hairline pt-6"
+    >
+      <p class="font-code text-[11px] tracking-[0.06em] text-ink-faint">© 2026 hockpay · MIT</p>
+      <p class="font-code text-[11px] tracking-[0.06em] text-ink-faint">
+        simulação · sem dinheiro real
       </p>
     </div>
-
-    <div class="mt-10 grid gap-4 lg:grid-cols-3">
-      <article class="comparison-card">
-        <div class="comparison-card-header">
-          <span class="rounded-lg border border-white/10 bg-white/5 p-2 text-zinc-400">
-            <ng-icon hlm name="lucideCreditCard" size="sm" aria-hidden="true"></ng-icon>
-          </span>
-          <h3>Gateway real</h3>
-        </div>
-        <ul>
-          <li>Depende de credenciais e regras do provedor.</li>
-          <li>Falhas são difíceis de reproduzir sob demanda.</li>
-          <li>Teste ruim pode misturar dados reais e ambiente produtivo.</li>
-        </ul>
-      </article>
-
-      <article class="comparison-card">
-        <div class="comparison-card-header">
-          <span class="rounded-lg border border-white/10 bg-white/5 p-2 text-zinc-400">
-            <ng-icon hlm name="lucideTestTubeDiagonal" size="sm" aria-hidden="true"></ng-icon>
-          </span>
-          <h3>Sandbox genérico</h3>
-        </div>
-        <ul>
-          <li>Ajuda no happy path, mas limita cenários de erro.</li>
-          <li>Webhooks podem ser opacos ou pouco configuráveis.</li>
-          <li>Nem sempre cobre idempotência, retries e expiração.</li>
-        </ul>
-      </article>
-
-      <article class="comparison-card comparison-card-highlight">
-        <div class="comparison-card-header">
-          <span class="rounded-lg border border-emerald-300/25 bg-emerald-300/15 p-2 text-emerald-300">
-            <ng-icon hlm name="lucideShieldCheck" size="sm" aria-hidden="true"></ng-icon>
-          </span>
-          <h3>Hockpay</h3>
-        </div>
-        <ul>
-          <li>Você escolhe sucesso, falha, expiração e duplicidade.</li>
-          <li>Eventos e webhooks são previsíveis para automação.</li>
-          <li>Zero dinheiro real, setup rápido e foco no fluxo do dev.</li>
-        </ul>
-      </article>
-    </div>
-  </section>
-
-  <section id="fluxo" class="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-    <div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-      <div>
-        <p class="text-sm font-black uppercase tracking-[0.28em] text-cyan-300">Fluxo de uso</p>
-        <h2 class="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Da primeira chave ao webhook entregue.</h2>
-        <p class="mt-4 text-lg leading-8 text-zinc-400">A landing vende uma promessa simples: integrar, simular e validar sem depender de gateway externo, cartão real ou Pix verdadeiro.</p>
-      </div>
-
-      <div class="grid gap-4">
-        <article class="step-card">
-          <span>01</span>
-          <ng-icon hlm name="lucideKey" class="text-amber-200" size="sm" aria-hidden="true"></ng-icon>
-          <div>
-            <h3>Crie uma chave sandbox</h3>
-            <p>O dev entra, gera credenciais e isola o ambiente TEST das chaves LIVE — os dois continuam simulados.</p>
-          </div>
-        </article>
-        <article class="step-card">
-          <span>02</span>
-          <ng-icon hlm name="lucideSend" class="text-emerald-300" size="sm" aria-hidden="true"></ng-icon>
-          <div>
-            <h3>Dispare pagamentos simulados</h3>
-            <p>Escolha cenários de sucesso, falha ou expiração e valide a UI do checkout.</p>
-          </div>
-        </article>
-        <article class="step-card">
-          <span>03</span>
-          <ng-icon hlm name="lucideWebhook" class="text-cyan-300" size="sm" aria-hidden="true"></ng-icon>
-          <div>
-            <h3>Confirme eventos e retries</h3>
-            <p>Receba webhooks, teste idempotência e acompanhe cada evento na dashboard.</p>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="relative z-10 px-4 pb-24 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-emerald-300/20 bg-emerald-300/[0.08] p-8 shadow-2xl shadow-emerald-950/30 sm:p-12">
-      <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div>
-          <p class="text-sm font-black uppercase tracking-[0.28em] text-emerald-300">Pronto para testar?</p>
-          <h2 class="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">Crie uma conta e simule seu primeiro pagamento em minutos.</h2>
-          <p class="mt-4 max-w-2xl text-lg leading-8 text-zinc-300">Sem cartão, sem dinheiro real e sem esperar aprovação de provedor para validar sua integração.</p>
-        </div>
-        <a
-          routerLink="/register"
-          class="inline-flex h-13 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-extrabold text-zinc-950 transition hover:-translate-y-0.5 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          Criar conta gratuita
-          <ng-icon hlm name="lucideArrowRight" size="sm" aria-hidden="true"></ng-icon>
-        </a>
-      </div>
-    </div>
-  </section>
-</main>
+  </footer>
+</div>

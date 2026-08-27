@@ -1,0 +1,61 @@
+/* Identificador copiável: o ícone só aparece quando alguém se aproxima. */
+
+:host {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.1rem 0.35rem;
+  margin: -0.1rem -0.35rem;
+  border-radius: 7px;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.copy:hover {
+  background: rgb(20 20 15 / 0.05);
+  color: var(--color-ink);
+}
+
+.copy:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-ink);
+}
+
+.copy-text {
+  font-size: 11.5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+ng-icon {
+  flex: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.copy:hover ng-icon,
+.copy:focus-visible ng-icon {
+  opacity: 1;
+}
+
+/* Depois de copiar, o visto fica visível sozinho — é a única confirmação. */
+.copy[data-state='copied'] ng-icon {
+  opacity: 1;
+  color: var(--color-ok);
+}
+
+.copy-empty {
+  color: var(--color-ink-faint);
+}
