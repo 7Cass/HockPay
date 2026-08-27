@@ -1,0 +1,174 @@
+/* Paleta ⌘K — uma folha de papel flutuando sobre o dashboard. */
+
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: clamp(3rem, 14vh, 8rem) 1rem 2rem;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(20 20 15 / 0.32);
+  backdrop-filter: blur(3px);
+  animation: scrim-in 0.18s ease both;
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.palette {
+  position: relative;
+  width: min(34rem, 100%);
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 40px 80px -32px rgb(20 20 15 / 0.55);
+  animation: palette-in 0.2s var(--ease-brand) both;
+}
+
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+}
+
+/* ── Campo ────────────────────────────────────────────────────────────── */
+.palette-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.9rem;
+  height: 3.1rem;
+  border-bottom: 1px solid var(--color-hairline);
+  color: var(--color-ink-faint);
+}
+
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.palette-search input::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.palette-key {
+  padding: 2px 6px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 6px;
+  font-family: var(--font-code);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+}
+
+/* ── Lista ────────────────────────────────────────────────────────────── */
+.palette-list {
+  max-height: min(24rem, 50vh);
+  overflow-y: auto;
+  padding: 0.35rem;
+}
+
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--color-ink-soft);
+  transition:
+    background 0.14s,
+    color 0.14s;
+}
+
+.palette-row.is-cursor {
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+}
+
+.row-icon {
+  flex: none;
+  color: var(--color-ink-faint);
+}
+
+.palette-row.is-cursor .row-icon {
+  color: var(--color-ink);
+}
+
+.row-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.row-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.row-hint {
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row-enter {
+  flex: none;
+  opacity: 0;
+  color: var(--color-ink-faint);
+  transition: opacity 0.14s;
+}
+
+.palette-row.is-cursor .row-enter {
+  opacity: 1;
+}
+
+.palette-empty {
+  padding: 1.4rem 0.75rem;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-ink-faint);
+}
+
+/* ── Rodapé ───────────────────────────────────────────────────────────── */
+.palette-foot {
+  display: flex;
+  gap: 1rem;
+  padding: 0.55rem 0.9rem;
+  border-top: 1px solid var(--color-hairline);
+  background: var(--color-paper);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .palette {
+    animation: none;
+  }
+}

@@ -1,0 +1,46 @@
+<div class="scrim" (click)="shell.closeCommand()"></div>
+
+<div class="palette" role="dialog" aria-modal="true" aria-label="Ir para">
+  <label class="palette-search">
+    <ng-icon name="lucideSearch" size="16px" strokeWidth="1.7" />
+    <input
+      #input
+      type="text"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="Ir para uma tela…"
+      [value]="query()"
+      (input)="onQuery($any($event.target).value)"
+    />
+    <kbd class="palette-key">esc</kbd>
+  </label>
+
+  <div class="palette-list scroll-thin" role="listbox">
+    @for (item of results(); track item.route; let i = $index) {
+      <button
+        type="button"
+        role="option"
+        class="palette-row"
+        [class.is-cursor]="i === cursor()"
+        [attr.aria-selected]="i === cursor()"
+        (mouseenter)="cursor.set(i)"
+        (click)="go(item)"
+      >
+        <ng-icon class="row-icon" [name]="item.icon" size="16px" strokeWidth="1.6" />
+        <span class="row-text">
+          <span class="row-label">{{ item.label }}</span>
+          <span class="row-hint">{{ item.hint }}</span>
+        </span>
+        <ng-icon class="row-enter" name="lucideCornerDownLeft" size="13px" strokeWidth="1.7" />
+      </button>
+    } @empty {
+      <p class="palette-empty">Nada com esse nome por aqui.</p>
+    }
+  </div>
+
+  <footer class="palette-foot">
+    <span class="mono">↑↓ navegar</span>
+    <span class="mono">↵ abrir</span>
+    <span class="mono">esc fechar</span>
+  </footer>
+</div>

@@ -1,49 +1,89 @@
-<div class="min-h-screen bg-white text-zinc-900 flex flex-col lg:grid lg:grid-cols-2">
-    <!-- Left Side: Dark Glassmorphic Background -->
-    <div
-        class="hidden lg:flex flex-col justify-between p-10 relative overflow-hidden text-zinc-50 border-r border-zinc-200/20">
-        <!-- Abstract Glass Background Image -->
-        <div class="absolute inset-0 bg-[url('/backgrounds/auth_bg_glass.png')] bg-cover bg-center bg-no-repeat z-0">
-        </div>
+<div class="min-h-screen bg-paper text-ink antialiased lg:grid lg:grid-cols-[0.92fr_1.08fr]">
+  <!-- ─── Ink panel ─────────────────────────────────────────────────────── -->
+  <aside
+    class="relative hidden overflow-hidden bg-ink px-10 py-12 text-paper lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between xl:px-14"
+  >
+    <div class="ink-field" aria-hidden="true"></div>
 
-        <!-- Premium Glass Filter Layer (Blur + Indigo/Dark tint) -->
-        <div class="absolute inset-0 bg-zinc-950/60 backdrop-blur-xl z-0 pointer-events-none"></div>
+    <a routerLink="/" class="group relative flex items-center gap-2.5 self-start">
+      <span class="mark mark-inverse" aria-hidden="true">
+        <span class="mark-bar"></span>
+        <span class="mark-bar"></span>
+        <span class="mark-dot"></span>
+      </span>
+      <span class="text-[15px] font-semibold tracking-[-0.02em] text-paper">hockpay</span>
+      <span
+        class="rounded-full border border-paper/20 px-2 py-[3px] font-code text-[9px] font-medium tracking-[0.18em] text-paper/50"
+      >
+        TEST
+      </span>
+    </a>
 
-        <!-- Subtle Radial Glow on top of the blur for depth -->
-        <div
-            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/30 via-transparent to-transparent z-0 pointer-events-none">
-        </div>
+    <div class="relative max-w-md py-10">
+      <p class="eyebrow text-paper/45">
+        <span class="pulse-dot"></span>
+        Ambiente TEST
+      </p>
 
-        <div class="relative z-10 flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div
-                class="w-8 h-8 rounded-lg bg-indigo-600/80 backdrop-blur-md flex items-center justify-center text-white shadow-lg border border-indigo-400/30 ring-1 ring-white/10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v20" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-            </div>
-            Hockpay
-        </div>
+      <p
+        class="mt-6 font-display text-[clamp(2rem,3.2vw,2.9rem)] leading-[1.02] tracking-[-0.02em] text-paper"
+      >
+        Uma conta, duas chaves,<br />
+        <em class="italic">todos os finais.</em>
+      </p>
 
-        <div class="relative z-10 mt-auto">
-            <blockquote class="space-y-4 max-w-lg">
-                <p class="text-xl lg:text-3xl font-bold tracking-tight text-white leading-[1.2]">
-                    "Simule tudo. Lance rápido."
-                </p>
-                <p class="text-sm font-medium text-indigo-200">
-                    Infraestrutura de pagamentos simulada em poucas linhas de código. Feito para desenvolvedores, indie
-                    hackers e startups.
-                </p>
-            </blockquote>
-        </div>
+      <p class="mt-5 text-[14.5px] leading-[1.65] text-paper/60">
+        Sua sandbox nasce com chaves TEST e LIVE isoladas, webhooks assinados e um ledger que fecha.
+        O dinheiro é que não existe.
+      </p>
+
+      <ol class="mt-9 space-y-2">
+        @for (row of proof; track row.event) {
+          <li class="log" [attr.data-tone]="row.tone">
+            <span class="log-mark" aria-hidden="true"></span>
+            <span class="font-code text-[12px] text-paper/85">{{ row.event }}</span>
+            <span class="ml-auto font-code text-[11px] text-paper/40">{{ row.note }}</span>
+          </li>
+        }
+      </ol>
     </div>
 
-    <!-- Right Side: Content Area (Form) -->
-    <div class="flex-1 flex flex-col p-8 lg:p-14 justify-center relative bg-white">
+    <p class="relative font-code text-[11px] tracking-[0.06em] text-paper/35">
+      sem cartão · sem contrato com adquirente · primeira cobrança em 2 minutos
+    </p>
+  </aside>
+
+  <!-- ─── Form side ─────────────────────────────────────────────────────── -->
+  <div class="flex min-h-screen flex-col px-5 py-6 sm:px-8 lg:px-12 xl:px-20">
+    <header class="flex items-center justify-between gap-4">
+      <a routerLink="/" class="group flex items-center gap-2.5 lg:hidden">
+        <span class="mark" aria-hidden="true">
+          <span class="mark-bar"></span>
+          <span class="mark-bar"></span>
+          <span class="mark-dot"></span>
+        </span>
+        <span class="text-[15px] font-semibold tracking-[-0.02em] text-ink">hockpay</span>
+      </a>
+
+      <a routerLink="/" class="back group ml-auto">
+        <ng-icon name="lucideArrowLeft" size="13px" class="arrow-back" aria-hidden="true" />
+        voltar ao site
+      </a>
+    </header>
+
+    <main class="flex flex-1 items-center justify-center py-12">
+      <div class="w-full max-w-[25rem]">
         <router-outlet />
-    </div>
+      </div>
+    </main>
+
+    <footer
+      class="flex flex-wrap items-center justify-between gap-2 font-code text-[11px] tracking-[0.06em] text-ink-faint"
+    >
+      <span>© 2026 hockpay · MIT</span>
+      <span>simulação · sem dinheiro real</span>
+    </footer>
+  </div>
 </div>
 
-<!-- Sonner Toaster -->
 <hlm-toaster position="bottom-right" richColors="true" />

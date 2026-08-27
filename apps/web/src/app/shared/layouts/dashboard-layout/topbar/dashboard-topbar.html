@@ -1,0 +1,48 @@
+<header class="topbar">
+  <button
+    type="button"
+    class="icon-btn topbar-menu"
+    (click)="shell.openDrawer()"
+    aria-label="Abrir menu"
+  >
+    <ng-icon name="lucideMenu" size="18px" strokeWidth="1.7" />
+  </button>
+
+  <nav class="crumbs" aria-label="Trilha">
+    @for (crumb of crumbs(); track crumb.path; let first = $first) {
+      @if (!first) {
+        <span class="crumb-sep" aria-hidden="true">/</span>
+      }
+      @if (crumb.isLast) {
+        <span class="crumb is-current" aria-current="page">{{ crumb.label }}</span>
+      } @else {
+        <a class="crumb" [routerLink]="crumb.path">{{ crumb.label }}</a>
+      }
+    }
+  </nav>
+
+  <div class="topbar-actions">
+    <button type="button" class="search" (click)="shell.openCommand()">
+      <ng-icon name="lucideSearch" size="14px" strokeWidth="1.7" />
+      <span class="search-text">Ir para…</span>
+      <kbd class="search-key">{{ shortcut }}</kbd>
+    </button>
+
+    <button
+      type="button"
+      class="icon-btn search-mini"
+      (click)="shell.openCommand()"
+      aria-label="Buscar"
+    >
+      <ng-icon name="lucideSearch" size="17px" strokeWidth="1.7" />
+    </button>
+
+    <span class="chip env" data-tone="warn" title="Sua sessão do dashboard opera no ambiente TEST">
+      TEST
+    </span>
+
+    <a routerLink="/dashboard/alerts" class="icon-btn" aria-label="Alertas">
+      <ng-icon name="lucideBellRing" size="17px" strokeWidth="1.6" />
+    </a>
+  </div>
+</header>
