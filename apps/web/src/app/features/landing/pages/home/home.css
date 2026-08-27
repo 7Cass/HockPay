@@ -1,243 +1,271 @@
-.landing-shell {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
+/* HockPay landing — paper/ink system.
+   Color is reserved for payment state; everything else is ink on paper. */
+
+:host {
+  --line: var(--color-hairline);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
 }
 
-.landing-grid {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-  background-size: 52px 52px;
-  mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
-}
-
-.landing-glow {
-  position: absolute;
-  z-index: 0;
-  width: 38rem;
-  height: 38rem;
-  border-radius: 9999px;
-  filter: blur(120px);
-  opacity: 0.34;
-  pointer-events: none;
-}
-
-.landing-glow-a {
-  top: 4rem;
-  right: -12rem;
-  background: #22d3ee;
-}
-
-.landing-glow-b {
-  top: 22rem;
-  left: -16rem;
-  background: #34d399;
-}
-
-.mock-console::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.16), transparent 34%, rgba(34, 211, 238, 0.14));
-  pointer-events: none;
-}
-
-.code-sample {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(52, 211, 153, 0.45) rgba(24, 24, 27, 0.9);
-}
-
-.event-card {
+/* ── Type helpers ─────────────────────────────────────────────────────── */
+.eyebrow,
+.label {
   display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  gap: 0.75rem;
-  border-width: 1px;
-  border-radius: 0.875rem;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 0.875rem;
-}
-
-.feature-card,
-.state-card,
-.comparison-card {
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.045);
-  padding: 1.5rem;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-
-.feature-card:hover,
-.state-card:hover,
-.comparison-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(255, 255, 255, 0.065);
-}
-
-.feature-card h3,
-.step-card h3,
-.state-card h3,
-.comparison-card h3 {
-  margin-top: 1rem;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-}
-
-.feature-card p,
-.step-card p,
-.state-card p {
-  margin-top: 0.5rem;
-  color: #a1a1aa;
-  line-height: 1.7;
-}
-
-.state-card dl {
-  display: grid;
+  align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.state-card dl > div {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border-radius: 0.75rem;
-  background: rgba(9, 9, 11, 0.72);
-  padding: 0.65rem 0.75rem;
-}
-
-.state-card dt {
-  color: #71717a;
-  font-size: 0.75rem;
-  font-weight: 800;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  color: var(--color-ink-faint);
 }
 
-.state-card dd {
-  overflow: hidden;
-  color: #e4e4e7;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.state-icon {
+/* ── Brand mark ───────────────────────────────────────────────────────── */
+.mark {
   display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
-  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  border-radius: 0.875rem;
+  gap: 2px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: var(--color-ink);
 }
 
-.status-pill {
-  border-radius: 9999px;
-  padding: 0.35rem 0.65rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.mark-bar {
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--color-paper);
+  transition: height 0.35s var(--ease);
 }
 
-.comparison-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.mark-bar:last-of-type {
+  height: 7px;
 }
 
-.comparison-card-highlight {
-  border-color: rgba(52, 211, 153, 0.35);
-  background:
-    linear-gradient(135deg, rgba(52, 211, 153, 0.13), transparent 42%),
-    rgba(255, 255, 255, 0.055);
+.mark-dot {
+  width: 2.5px;
+  height: 2.5px;
+  margin-left: 2px;
+  align-self: flex-end;
+  margin-bottom: 7px;
+  border-radius: 50%;
+  background: var(--color-paper);
 }
 
-.comparison-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
+.group:hover .mark-bar:last-of-type {
+  height: 11px;
 }
 
-.comparison-card h3 {
-  margin-top: 0;
+/* ── Nav ──────────────────────────────────────────────────────────────── */
+.nav-bar {
+  height: 4.75rem;
 }
 
-.comparison-card ul {
-  display: grid;
-  gap: 0.8rem;
-  color: #a1a1aa;
-  line-height: 1.65;
+.is-stuck .nav-bar {
+  height: 3.75rem;
+  max-width: 60rem;
+  margin-top: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-paper) 78%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 34px -22px rgb(20 20 15 / 0.4);
 }
 
-.comparison-card li {
+.nav-link {
   position: relative;
-  padding-left: 1rem;
+  transition: color 0.25s;
 }
 
-.comparison-card li::before {
+.nav-link::after {
   content: '';
   position: absolute;
-  top: 0.72em;
   left: 0;
-  width: 0.38rem;
-  height: 0.38rem;
-  border-radius: 9999px;
-  background: rgba(52, 211, 153, 0.75);
+  bottom: -5px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s var(--ease);
 }
 
-.step-card {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  gap: 1rem;
-  align-items: flex-start;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.045);
-  padding: 1.25rem;
+.nav-link:hover {
+  color: var(--color-ink);
 }
 
-.step-card > span {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  color: #71717a;
-  font-size: 0.875rem;
-  font-weight: 900;
+.nav-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
-.step-card h3 {
-  margin-top: 0;
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn-ink {
+  background: var(--color-ink);
+  color: var(--color-paper);
 }
 
-@media (max-width: 640px) {
-  .landing-glow {
-    width: 22rem;
-    height: 22rem;
-    filter: blur(90px);
+.btn-paper {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.btn-quiet {
+  border: 1px solid var(--line);
+  color: var(--color-ink);
+}
+
+.btn-ink:hover,
+.btn-paper:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -14px rgb(20 20 15 / 0.55);
+}
+
+.btn-quiet:hover {
+  border-color: var(--color-ink);
+  transform: translateY(-1px);
+}
+
+.arrow,
+.arrow-diag {
+  transition: transform 0.3s var(--ease);
+}
+
+.group:hover .arrow {
+  transform: translateX(3px);
+}
+
+.group:hover .arrow-diag {
+  transform: translate(2px, -2px);
+}
+
+/* ── Hero texture ─────────────────────────────────────────────────────── */
+.hero-field,
+.cta-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 26px 26px;
+  color: rgb(20 20 15 / 0.16);
+  mask-image: radial-gradient(120% 62% at 50% 0%, #000 0%, transparent 72%);
+}
+
+.cta-field {
+  color: rgb(250 249 246 / 0.18);
+  mask-image: radial-gradient(90% 90% at 50% 0%, #000 0%, transparent 70%);
+}
+
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-ok);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ok) 55%, transparent);
+  animation: pulse 2.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ── Ticker ───────────────────────────────────────────────────────────── */
+.ticker {
+  overflow: hidden;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 42s linear infinite;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── Code panel ───────────────────────────────────────────────────────── */
+.tab.is-active {
+  background: rgb(250 249 246 / 0.1);
+  color: var(--color-paper);
+}
+
+.code {
+  counter-reset: line;
+  overflow-x: auto;
+  padding: 1.25rem 1.25rem 1.5rem;
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: rgb(250 249 246 / 0.82);
+  scrollbar-width: thin;
+}
+
+.code-line {
+  display: block;
+  min-height: 1.75em;
+  white-space: pre;
+}
+
+.code-line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1.4ch;
+  text-align: right;
+  color: rgb(250 249 246 / 0.22);
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────── */
+.feature,
+.step {
+  transition: background 0.3s;
+}
+
+.feature:hover,
+.step:hover {
+  background: color-mix(in oklab, var(--color-paper-2) 60%, var(--color-paper));
+}
+
+/* ── Scroll reveal ────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.75s var(--ease),
+    transform 0.75s var(--ease);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
-  .step-card {
-    grid-template-columns: auto minmax(0, 1fr);
+  .ticker-track,
+  .pulse-dot {
+    animation: none;
   }
 
-  .step-card > ng-icon {
-    display: none;
+  .btn-ink:hover,
+  .btn-paper:hover,
+  .btn-quiet:hover {
+    transform: none;
   }
 }
