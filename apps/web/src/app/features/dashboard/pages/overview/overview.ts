@@ -1,32 +1,24 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideAlertTriangle,
   lucideArrowUpRight,
-  lucideBadgeCheck,
-  lucideCalendarDays,
-  lucideCheckCircle2,
+  lucideChartLine,
+  lucideCircleCheck,
   lucideClock3,
-  lucideCreditCard,
   lucideExternalLink,
-  lucideLineChart,
   lucideLink,
-  lucideLoader2,
   lucidePlus,
+  lucideQrCode,
   lucideRefreshCcw,
-  lucideShieldCheck,
+  lucideTrendingDown,
   lucideTrendingUp,
+  lucideTriangleAlert,
   lucideWallet,
-  lucideXCircle,
 } from '@ng-icons/lucide';
-import { DashboardOverviewResponse, DashboardService } from '../../../../core/services/dashboard.service';
-import { StoreService } from '../../../../core/services/store.service';
-import {
+import type {
   ApexAxisChartSeries,
   ApexChart,
   ApexDataLabels,
@@ -39,6 +31,13 @@ import {
   ApexXAxis,
   ApexYAxis,
 } from 'ng-apexcharts';
+
+import {
+  DashboardOverviewResponse,
+  DashboardService,
+} from '../../../../core/services/dashboard.service';
+import { StoreService } from '../../../../core/services/store.service';
+import { PageHeader, PageState, StatusChip, type Tone } from '../../../../shared/ui';
 
 type PeriodFilter = 'today' | '7days' | '30days' | 'custom';
 
@@ -57,32 +56,45 @@ export type ChartOptions = {
   legend: ApexLegend;
 };
 
+/** Tokens do sistema paper/ink que o Apex precisa receber como valor literal. */
+const INK = '#14140f';
+const INK_FAINT = '#8d8b81';
+const HAIRLINE = '#e2dfd6';
+const PAPER = '#faf9f6';
+const MONO = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgApexchartsModule, CurrencyPipe, NgIconComponent, HlmDatePickerImports, HlmIconImports],
+  imports: [
+    RouterLink,
+    NgApexchartsModule,
+    CurrencyPipe,
+    DecimalPipe,
+    NgIcon,
+    PageHeader,
+    PageState,
+    StatusChip,
+  ],
   viewProviders: [
     provideIcons({
-      lucideAlertTriangle,
       lucideArrowUpRight,
-      lucideBadgeCheck,
-      lucideCalendarDays,
-      lucideCheckCircle2,
+      lucideChartLine,
+      lucideCircleCheck,
       lucideClock3,
-      lucideCreditCard,
       lucideExternalLink,
-      lucideLineChart,
       lucideLink,
-      lucideLoader2,
       lucidePlus,
+      lucideQrCode,
       lucideRefreshCcw,
-      lucideShieldCheck,
+      lucideTrendingDown,
       lucideTrendingUp,
+      lucideTriangleAlert,
       lucideWallet,
-      lucideXCircle,
     }),
   ],
   templateUrl: './overview.html',
+  styleUrl: './overview.css',
 })
 export class Overview {
   private readonly dashboardService = inject(DashboardService);
@@ -92,22 +104,17 @@ export class Overview {
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly activeFilter = signal<PeriodFilter>('30days');
-  readonly customDateRange = signal<[Date, Date] | undefined>([this.addDays(new Date(), -29), new Date()]);
+
+  /** Período customizado em `yyyy-MM-dd`, o formato que o input date fala. */
+  readonly customStart = signal(this.toInputDate(this.addDays(new Date(), -29)));
+  readonly customEnd = signal(this.toInputDate(new Date()));
 
   readonly periodFilters: Array<{ label: string; value: PeriodFilter }> = [
     { label: 'Hoje', value: 'today' },
     { label: '7D', value: '7days' },
     { label: '30D', value: '30days' },
-    { label: 'Custom', value: 'custom' },
+    { label: 'Período', value: 'custom' },
   ];
-
-  readonly formatDateRange = (dates: [Date | undefined, Date | undefined]): string => {
-    const [start, end] = dates;
-    if (start && end) return `${this.formatDisplayDate(start)} - ${this.formatDisplayDate(end)}`;
-    if (start) return `A partir de ${this.formatDisplayDate(start)}`;
-    if (end) return `Até ${this.formatDisplayDate(end)}`;
-    return '';
-  };
 
   readonly selectedRange = computed(() => {
     const today = new Date();
@@ -116,23 +123,32 @@ export class Overview {
       case 'today':
         return { startDate: this.toInputDate(today), endDate: this.toInputDate(today) };
       case '7days':
-        return { startDate: this.toInputDate(this.addDays(today, -6)), endDate: this.toInputDate(today) };
-      case 'custom': {
-        const [start, end] = this.customDateRange() ?? [];
-        return { startDate: this.toInputDate(start), endDate: this.toInputDate(end) };
-      }
+        return {
+          startDate: this.toInputDate(this.addDays(today, -6)),
+          endDate: this.toInputDate(today),
+        };
+      case 'custom':
+        return { startDate: this.customStart(), endDate: this.customEnd() };
       case '30days':
       default:
-        return { startDate: this.toInputDate(this.addDays(today, -29)), endDate: this.toInputDate(today) };
+        return {
+          startDate: this.toInputDate(this.addDays(today, -29)),
+          endDate: this.toInputDate(today),
+        };
     }
   });
 
   readonly periodCaption = computed(() => {
-    const filter = this.activeFilter();
-    if (filter === 'today') return 'Hoje';
-    if (filter === '7days') return 'Últimos 7 dias';
-    if (filter === 'custom') return 'Período customizado';
-    return 'Últimos 30 dias';
+    switch (this.activeFilter()) {
+      case 'today':
+        return 'Hoje';
+      case '7days':
+        return 'Últimos 7 dias';
+      case 'custom':
+        return this.formattedPeriodRange();
+      default:
+        return 'Últimos 30 dias';
+    }
   });
 
   readonly metricCards = computed(() => {
@@ -156,17 +172,17 @@ export class Overview {
       },
       {
         label: 'Volume líquido',
-        context: 'Após taxas',
+        context: 'Depois das taxas',
         value: this.formatMoney(data.performance.netVolume, data.balance.currency),
         delta: data.performance.netVolumeDelta,
-        icon: 'lucideLineChart',
+        icon: 'lucideChartLine',
       },
       {
         label: 'Vendas',
         context: 'Pagamentos aprovados',
         value: new Intl.NumberFormat('pt-BR').format(data.performance.salesCount),
         delta: data.performance.salesCountDelta,
-        icon: 'lucideCreditCard',
+        icon: 'lucideQrCode',
       },
       {
         label: 'Ticket médio',
@@ -195,78 +211,61 @@ export class Overview {
         height: 300,
         toolbar: { show: false },
         zoom: { enabled: false },
-        fontFamily: 'Inter, sans-serif',
+        fontFamily: MONO,
         sparkline: { enabled: false },
       },
-      colors: ['#4f46e5'],
+      colors: [INK],
       dataLabels: { enabled: false },
       fill: {
         type: 'gradient',
-        gradient: {
-          shadeIntensity: 0.45,
-          opacityFrom: 0.42,
-          opacityTo: 0.04,
-          stops: [0, 90, 100],
-        },
+        gradient: { shadeIntensity: 0, opacityFrom: 0.14, opacityTo: 0.01, stops: [0, 92, 100] },
       },
       grid: {
-        borderColor: '#eef2ff',
-        strokeDashArray: 4,
+        borderColor: HAIRLINE,
+        strokeDashArray: 3,
         padding: { top: 12, right: 12, bottom: 0, left: 8 },
       },
-      legend: {
-        show: false,
-      },
-      markers: {
-        size: 0,
-        strokeColors: '#ffffff',
-        strokeWidth: 2,
-        hover: { size: 5 },
-      },
-      stroke: { width: 3, curve: 'smooth', lineCap: 'round' },
+      legend: { show: false },
+      markers: { size: 0, strokeColors: PAPER, strokeWidth: 2, hover: { size: 4 } },
+      stroke: { width: 1.75, curve: 'smooth', lineCap: 'round' },
       xaxis: {
         categories: data.chart.map((item) => this.formatChartDate(item.date)),
         axisBorder: { show: false },
         axisTicks: { show: false },
-        labels: { style: { colors: '#71717a', fontSize: '12px' } },
+        labels: { style: { colors: INK_FAINT, fontSize: '10px', fontFamily: MONO } },
         tooltip: { enabled: false },
       },
       yaxis: {
         labels: {
           formatter: (value) => this.formatCompactMoney(value * 100, data.balance.currency),
-          style: { colors: '#71717a', fontSize: '12px' },
+          style: { colors: INK_FAINT, fontSize: '10px', fontFamily: MONO },
         },
       },
       tooltip: {
         shared: false,
         intersect: false,
         theme: 'light',
-        custom: ({ series, dataPointIndex, w }: { series: number[][]; dataPointIndex: number; w: { globals: { categoryLabels?: string[]; labels?: string[] } } }) => {
+        custom: ({ series, dataPointIndex }: { series: number[][]; dataPointIndex: number }) => {
           const point = data.chart[dataPointIndex];
-          const label = w.globals.categoryLabels?.[dataPointIndex] ?? w.globals.labels?.[dataPointIndex] ?? this.formatChartDate(point.date);
           const volume = series[0]?.[dataPointIndex] ?? 0;
+          const sales = new Intl.NumberFormat('pt-BR').format(point.salesCount);
 
+          // Renderizado fora do template: estilo inline, não classe do componente.
           return `
-            <div class="rounded-md border border-zinc-200 bg-white px-3 py-2 shadow-lg">
-              <div class="text-xs font-medium text-zinc-500">${label}</div>
-              <div class="mt-1 text-sm font-semibold text-zinc-950">${this.formatMoney(volume * 100, data.balance.currency)}</div>
-              <div class="mt-0.5 text-xs text-zinc-500">${new Intl.NumberFormat('pt-BR').format(point.salesCount)} vendas aprovadas</div>
-            </div>
-          `;
+            <div style="border:1px solid ${HAIRLINE};border-radius:11px;background:#fff;padding:0.6rem 0.75rem;box-shadow:0 18px 36px -22px rgb(20 20 15 / 0.45)">
+              <div style="font-family:${MONO};font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:${INK_FAINT}">${this.formatChartDate(point.date)}</div>
+              <div style="margin-top:0.35rem;font-size:14px;font-variant-numeric:tabular-nums;color:${INK}">${this.formatMoney(volume * 100, data.balance.currency)}</div>
+              <div style="margin-top:0.15rem;font-family:${MONO};font-size:10.5px;color:${INK_FAINT}">${sales} vendas aprovadas</div>
+            </div>`;
         },
       },
     };
   });
 
-  readonly linkConversionSummary = computed(() => {
+  readonly linkConversion = computed(() => {
     const conversion = this.overview()?.conversion;
     if (!conversion) {
-      return {
-        linksCreated: 0,
-        linksPaid: 0,
-        conversionRate: 0,
-        conversionPercent: 0,
-      };
+      return { linksCreated: 0, linksPaid: 0, conversionRate: 0, conversionPercent: 0 };
     }
 
     return {
@@ -291,37 +290,14 @@ export class Overview {
     const other = Math.max(0, attempts - approved - failed - expired - refunded);
 
     return [
-      {
-        label: 'Aprovadas',
-        value: approved,
-        colorClass: 'bg-emerald-500',
-      },
-      {
-        label: 'Falhas',
-        value: failed,
-        colorClass: 'bg-red-500',
-      },
-      {
-        label: 'Expiradas',
-        value: expired,
-        colorClass: 'bg-amber-500',
-      },
-      {
-        label: 'Estornadas',
-        value: refunded,
-        colorClass: 'bg-indigo-500',
-      },
-      {
-        label: 'Outros',
-        value: other,
-        colorClass: 'bg-zinc-400',
-      },
+      { label: 'Aprovadas', value: approved, tone: 'ok' as Tone },
+      { label: 'Falhas', value: failed, tone: 'bad' as Tone },
+      { label: 'Expiradas', value: expired, tone: 'warn' as Tone },
+      { label: 'Estornadas', value: refunded, tone: 'neutral' as Tone },
+      { label: 'Outros', value: other, tone: 'neutral' as Tone },
     ]
       .filter((item) => item.value > 0)
-      .map((item) => ({
-        ...item,
-        percent: (item.value / attempts) * 100,
-      }));
+      .map((item) => ({ ...item, percent: (item.value / attempts) * 100 }));
   });
 
   readonly attentionItems = computed(() => {
@@ -329,19 +305,42 @@ export class Overview {
     if (!attention) return [];
 
     return [
-      { label: 'Webhooks falhos', value: attention.failedWebhookDeliveries, route: '/dashboard/webhooks' },
-      { label: 'Webhooks pendentes', value: attention.pendingWebhookDeliveries, route: '/dashboard/webhooks' },
-      { label: 'Alertas falhos', value: attention.failedAlertDeliveries, route: '/dashboard/alerts' },
-      { label: 'Alertas pendentes', value: attention.pendingAlertDeliveries, route: '/dashboard/alerts' },
+      {
+        label: 'Webhooks falhos',
+        value: attention.failedWebhookDeliveries,
+        route: '/dashboard/webhooks',
+      },
+      {
+        label: 'Webhooks pendentes',
+        value: attention.pendingWebhookDeliveries,
+        route: '/dashboard/webhooks',
+      },
+      {
+        label: 'Alertas falhos',
+        value: attention.failedAlertDeliveries,
+        route: '/dashboard/alerts',
+      },
+      {
+        label: 'Alertas pendentes',
+        value: attention.pendingAlertDeliveries,
+        route: '/dashboard/alerts',
+      },
     ].filter((item) => item.value > 0);
   });
 
-  readonly attentionTotal = computed(() => this.attentionItems().reduce((total, item) => total + item.value, 0));
+  readonly attentionTotal = computed(() =>
+    this.attentionItems().reduce((total, item) => total + item.value, 0),
+  );
+
   readonly isEmptyPeriod = computed(() => {
     const data = this.overview();
     if (!data) return false;
 
-    return data.performance.salesCount === 0 && data.performance.netVolume === 0 && data.chart.every((item) => item.netVolume === 0 && item.salesCount === 0);
+    return (
+      data.performance.salesCount === 0 &&
+      data.performance.netVolume === 0 &&
+      data.chart.every((item) => item.netVolume === 0 && item.salesCount === 0)
+    );
   });
 
   private requestId = 0;
@@ -354,16 +353,20 @@ export class Overview {
       if (store && range.startDate && range.endDate) {
         this.loadOverview(range.startDate, range.endDate);
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   setFilter(filter: PeriodFilter) {
     this.activeFilter.set(filter);
   }
 
-  setCustomDateRange(value: [Date | undefined, Date | undefined] | null) {
-    const [start, end] = value ?? [];
-    this.customDateRange.set(start && end ? [start, end] : undefined);
+  setCustomStart(value: string) {
+    this.customStart.set(value);
+    this.activeFilter.set('custom');
+  }
+
+  setCustomEnd(value: string) {
+    this.customEnd.set(value);
     this.activeFilter.set('custom');
   }
 
@@ -375,29 +378,44 @@ export class Overview {
 
   formattedPeriodRange(): string {
     const period = this.overview()?.period;
-    const range = period ? { startDate: period.startDate, endDate: period.endDate } : this.selectedRange();
+    const range = period
+      ? { startDate: period.startDate, endDate: period.endDate }
+      : this.selectedRange();
 
-    return `${this.formatDate(range.startDate)} - ${this.formatDate(range.endDate)}`;
+    return `${this.formatDate(range.startDate)} – ${this.formatDate(range.endDate)}`;
   }
 
   defaultCurrency(): string {
     return this.overview()?.balance.currency || 'BRL';
   }
 
-  deltaClass(delta: number | null): string {
-    if (delta === null) return 'text-zinc-400';
-    if (delta > 0) return 'text-emerald-600';
-    if (delta < 0) return 'text-red-600';
-    return 'text-zinc-500';
+  /** Variação positiva é `ok`, negativa é `bad`, ausente não tem tom. */
+  deltaTone(delta: number | null): Tone | null {
+    if (delta === null || delta === 0) return null;
+    return delta > 0 ? 'ok' : 'bad';
+  }
+
+  deltaIcon(delta: number | null): string {
+    return delta !== null && delta < 0 ? 'lucideTrendingDown' : 'lucideTrendingUp';
   }
 
   formatDelta(delta: number): string {
     const prefix = delta > 0 ? '+' : '';
-    return `${prefix}${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(delta * 100)}%`;
+    const value = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(delta * 100);
+
+    return `${prefix}${value}%`;
   }
 
   formatRate(value: number): string {
-    return `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(this.ratePercent(value))}%`;
+    const percent = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(this.ratePercent(value));
+
+    return `${percent}%`;
   }
 
   ratePercent(value: number): number {
@@ -407,35 +425,11 @@ export class Overview {
   private paymentStatusCount(statuses: string[]): number {
     const normalized = new Set(statuses.map((status) => status.toUpperCase()));
 
-    return this.overview()?.paymentStatusBreakdown
-      .filter((item) => normalized.has(item.status.toUpperCase()))
-      .reduce((total, item) => total + item.count, 0) ?? 0;
-  }
-
-  statusLabel(status: string): string {
-    const normalized = status.toUpperCase();
-    const labels: Record<string, string> = {
-      PAID: 'Pago',
-      APPROVED: 'Aprovado',
-      PENDING: 'Pendente',
-      PROCESSING: 'Processando',
-      FAILED: 'Falhou',
-      EXPIRED: 'Expirado',
-      REFUNDED: 'Estornado',
-      CANCELLED: 'Cancelado',
-      CANCELED: 'Cancelado',
-    };
-
-    return labels[normalized] ?? status;
-  }
-
-  statusClass(status: string): string {
-    const normalized = status.toUpperCase();
-    if (['PAID', 'APPROVED'].includes(normalized)) return 'bg-emerald-50 text-emerald-700';
-    if (['PENDING', 'PROCESSING'].includes(normalized)) return 'bg-amber-50 text-amber-700';
-    if (['FAILED', 'EXPIRED', 'CANCELLED', 'CANCELED'].includes(normalized)) return 'bg-red-50 text-red-700';
-    if (normalized === 'REFUNDED') return 'bg-indigo-50 text-indigo-700';
-    return 'bg-zinc-100 text-zinc-700';
+    return (
+      this.overview()
+        ?.paymentStatusBreakdown.filter((item) => normalized.has(item.status.toUpperCase()))
+        .reduce((total, item) => total + item.count, 0) ?? 0
+    );
   }
 
   originLabel(origin: DashboardOverviewResponse['recentPayments'][number]['origin']): string {
@@ -443,7 +437,7 @@ export class Overview {
       api: 'API',
       checkout: 'Checkout',
       payment_link: 'Link',
-      unknown: 'Origem desconhecida',
+      unknown: 'Desconhecida',
     };
 
     return labels[origin] ?? labels.unknown;
@@ -463,20 +457,22 @@ export class Overview {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.dashboardService.getOverview(this.startOfDayIso(startDate), this.endOfDayIso(endDate)).subscribe({
-      next: (data) => {
-        if (currentRequest !== this.requestId) return;
-        this.overview.set(data);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        if (currentRequest !== this.requestId) return;
-        console.error('Failed to load dashboard overview', err);
-        this.errorMessage.set('Confira sua conexão e tente novamente em alguns instantes.');
-        this.overview.set(null);
-        this.isLoading.set(false);
-      },
-    });
+    this.dashboardService
+      .getOverview(this.startOfDayIso(startDate), this.endOfDayIso(endDate))
+      .subscribe({
+        next: (data) => {
+          if (currentRequest !== this.requestId) return;
+          this.overview.set(data);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          if (currentRequest !== this.requestId) return;
+          console.error('Failed to load dashboard overview', err);
+          this.errorMessage.set('Confira sua conexão e tente novamente em alguns instantes.');
+          this.overview.set(null);
+          this.isLoading.set(false);
+        },
+      });
   }
 
   private formatMoney(value: number, currency = 'BRL'): string {
@@ -498,19 +494,15 @@ export class Overview {
   }
 
   private formatDate(value: string): string {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(this.parseDate(value));
-  }
-
-  private formatDisplayDate(date: Date): string {
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(date);
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(
+      this.parseDate(value),
+    );
   }
 
   private formatChartDate(value: string): string {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(this.parseDate(value));
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(
+      this.parseDate(value),
+    );
   }
 
   private toInputDate(date?: Date): string {
