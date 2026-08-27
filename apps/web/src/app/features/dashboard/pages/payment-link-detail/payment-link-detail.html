@@ -1,0 +1,345 @@
+<div class="page">
+  <app-page-header
+    backTo="/dashboard/payment-links"
+    backLabel="Links"
+    [eyebrow]="link() ? title(link()!) : undefined"
+    heading="Link de pagamento"
+    description="Uma cobrança Pix e todas as tentativas que passaram por ela."
+  >
+    @if (link(); as paymentLink) {
+      <app-status-chip pageStatus [status]="paymentLink.status" [tone]="linkTone(paymentLink.status)" />
+    }
+
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="load()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+
+      @if (link(); as paymentLink) {
+        <button type="button" class="btn btn-quiet" (click)="copy(paymentLink)">
+          <ng-icon [name]="copied() ? 'lucideCheck' : 'lucideCopy'" size="15px" strokeWidth="1.7" />
+          {{ copied() ? 'Copiado' : 'Copiar link' }}
+        </button>
+
+        <a class="btn btn-ink group" [href]="paymentLink.checkoutUrl" target="_blank" rel="noreferrer">
+          Abrir checkout
+          <ng-icon class="arrow-diag" name="lucideExternalLink" size="15px" strokeWidth="1.7" />
+        </a>
+      }
+    </ng-container>
+  </app-page-header>
+
+  @if (isLoading()) {
+    <app-page-state variant="loading" message="Carregando link…" />
+  } @else if (error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <a pageStateAction class="btn btn-quiet btn-sm" routerLink="/dashboard/payment-links">
+        Voltar para a lista
+      </a>
+    </app-page-state>
+  } @else if (link(); as paymentLink) {
+    <section class="panel state">
+      <div class="panel-body">
+        <p class="eyebrow">Estado atual</p>
+        <h2>{{ stateTitle(paymentLink) }}</h2>
+        <p class="state-note">{{ stateDescription(paymentLink) }}</p>
+      </div>
+
+      <dl class="state-facts">
+        <div class="fact fact-stacked">
+          <dt>Valor</dt>
+          <dd class="numeric strong">
+            {{ paymentLink.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+          </dd>
+        </div>
+        <div class="fact fact-stacked">
+          <dt>Criado em</dt>
+          <dd class="numeric">{{ paymentLink.createdAt | date: 'dd/MM/yy HH:mm' }}</dd>
+        </div>
+        <div class="fact fact-stacked">
+          <dt>Expira</dt>
+          <dd class="numeric">
+            {{ paymentLink.expiresAt ? (paymentLink.expiresAt | date: 'dd/MM/yy HH:mm') : 'Sem prazo' }}
+          </dd>
+        </div>
+        <div class="fact fact-stacked">
+          <dt>Falhas</dt>
+          <dd class="numeric" [attr.data-tone]="paymentLink.failedPaymentCount > 0 ? 'bad' : null">
+            {{ paymentLink.failedPaymentCount }}
+          </dd>
+        </div>
+        <div class="fact fact-stacked">
+          <dt>Referência</dt>
+          <dd>{{ paymentLink.internalReference || '—' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Tentativas</h2>
+              <p>{{ attempts(paymentLink).length }} pagamento(s) contra a mesma cobrança Pix</p>
+            </div>
+          </div>
+
+          @if (attempts(paymentLink).length === 0) {
+            <app-page-state
+              variant="empty"
+              frame="bare"
+              icon="lucideReceipt"
+              heading="Nenhuma tentativa"
+              message="A primeira aparece quando alguém abrir o checkout."
+            />
+          } @else {
+            <div class="table-scroll scroll-thin">
+              <table class="table attempts">
+                <thead>
+                  <tr>
+                    <th>Tentativa</th>
+                    <th>Status</th>
+                    <th class="num">Valor</th>
+                    <th class="col-when">Criada</th>
+                    <th>Motivo</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (attempt of attempts(paymentLink); track attempt.id) {
+                    <tr>
+                      <td>
+                        <span class="cell-stack">
+                          <span class="cell-title">
+                            {{ formatAttempt(attempt) }}
+                            @if (attempt.isLatestAttempt) {
+                              <span class="chip chip-bare" data-tone="outline">atual</span>
+                            }
+                          </span>
+                          <span class="cell-sub mono">{{ shortId(attempt.id) }}</span>
+                        </span>
+                      </td>
+                      <td><app-status-chip [status]="attempt.status" /></td>
+                      <td class="num">
+                        {{ attempt.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                      </td>
+                      <td class="col-when numeric">{{ attempt.createdAt | date: 'dd/MM/yy HH:mm' }}</td>
+                      <td class="reason">{{ attempt.failedReason || '—' }}</td>
+                      <td class="num">
+                        <a
+                          class="btn btn-ghost btn-sm btn-icon"
+                          [routerLink]="['/dashboard/payments', attempt.id]"
+                          aria-label="Ver pagamento"
+                          title="Ver pagamento"
+                        >
+                          <ng-icon name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Cobrança Pix</h2>
+              <p>Uma PixCharge, reaproveitada por todas as tentativas</p>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>PixCharge</dt>
+              <dd><app-copy-value [value]="paymentLink.pixCharge.id" [truncate]="12" /></dd>
+            </div>
+            <div class="fact">
+              <dt>TxID</dt>
+              <dd><app-copy-value [value]="paymentLink.pixCharge.pixTxId" [truncate]="16" /></dd>
+            </div>
+            <div class="fact">
+              <dt>Situação</dt>
+              <dd class="mono">{{ paymentLink.pixCharge.status }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Expira</dt>
+              <dd class="numeric">
+                {{
+                  paymentLink.pixCharge.expiresAt
+                    ? (paymentLink.pixCharge.expiresAt | date: 'dd/MM/yy HH:mm')
+                    : 'Sem prazo'
+                }}
+              </dd>
+            </div>
+            @if (paymentLink.pixCharge.paidAt) {
+              <div class="fact">
+                <dt>Pago em</dt>
+                <dd class="numeric">{{ paymentLink.pixCharge.paidAt | date: 'dd/MM/yy HH:mm' }}</dd>
+              </div>
+            }
+            <div class="fact">
+              <dt>Pagamento atual</dt>
+              <dd><app-copy-value [value]="paymentLink.lastPaymentId" [truncate]="12" /></dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Simulações</h2>
+              <p>Escolha o desfecho da próxima tentativa</p>
+            </div>
+            <span class="chip chip-bare" data-tone="outline">TEST</span>
+          </div>
+
+          <div class="panel-body simulate">
+            @if (actionError(); as message) {
+              <div class="notice" data-tone="bad">
+                <span class="notice-text">{{ message }}</span>
+              </div>
+            }
+
+            <div class="simulate-pair">
+              <button
+                type="button"
+                class="btn btn-ink"
+                [disabled]="!canSimulate(paymentLink)"
+                (click)="simulatePay(paymentLink)"
+              >
+                <ng-icon name="lucideCircleCheck" size="15px" strokeWidth="1.8" />
+                Pagar
+              </button>
+              <button
+                type="button"
+                class="btn btn-quiet"
+                [disabled]="!canSimulate(paymentLink)"
+                (click)="simulateFail(paymentLink)"
+              >
+                <ng-icon name="lucideCircleX" size="15px" strokeWidth="1.8" />
+                Falhar
+              </button>
+            </div>
+
+            <p class="hint">{{ devModeHint(paymentLink) }}</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Ações</h2>
+            </div>
+          </div>
+
+          <div class="panel-body actions">
+            <button type="button" class="btn btn-quiet" (click)="copy(paymentLink)">
+              <ng-icon [name]="copied() ? 'lucideCheck' : 'lucideCopy'" size="15px" strokeWidth="1.7" />
+              Copiar URL pública
+            </button>
+
+            <a class="btn btn-quiet group" [href]="paymentLink.checkoutUrl" target="_blank" rel="noreferrer">
+              <ng-icon class="arrow-diag" name="lucideExternalLink" size="15px" strokeWidth="1.7" />
+              Abrir checkout público
+            </a>
+
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="!canCancel(paymentLink)"
+              (click)="cancel(paymentLink)"
+            >
+              <ng-icon name="lucideBan" size="15px" strokeWidth="1.7" />
+              Cancelar link
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ─── Cancelar ────────────────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="cancelDialogState() === 'open'"
+  (closed)="closeCancelDialog()"
+  heading="Cancelar link"
+  description="O checkout público para de aceitar novas tentativas nesta cobrança."
+>
+  @if (linkToCancel(); as paymentLink) {
+    <div class="panel panel-quiet confirm-target">
+      <p class="cell-title">{{ title(paymentLink) }}</p>
+      <p class="mono">{{ paymentLink.checkoutUrl }}</p>
+    </div>
+  }
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closeCancelDialog()" [disabled]="actionInProgress()">
+      Voltar
+    </button>
+    <button type="button" class="btn btn-danger" (click)="confirmCancel()" [disabled]="actionInProgress()">
+      @if (actionInProgress()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      Cancelar link
+    </button>
+  </ng-container>
+</app-sheet>
+
+<!-- ─── Simular pagamento ───────────────────────────────────────────────── -->
+<app-sheet
+  side="center"
+  [open]="payDialogState() === 'open'"
+  (closed)="closePayDialog()"
+  eyebrow="Ambiente TEST"
+  heading="Simular pagamento"
+  description="Quem paga precisa de documento — sem ele a API recusa a simulação."
+>
+  <div class="form-stack">
+    <label class="field">
+      <span class="field-label">CPF / CNPJ</span>
+      <input
+        id="simulate-document"
+        inputmode="numeric"
+        placeholder="Somente números"
+        [value]="simulateDocument()"
+        (input)="simulateDocument.set($any($event.target).value)"
+      />
+    </label>
+
+    <label class="field">
+      <span class="field-label">Nome</span>
+      <input
+        id="simulate-name"
+        placeholder="Pagador de teste"
+        [value]="simulateName()"
+        (input)="simulateName.set($any($event.target).value)"
+      />
+      <span class="field-note">Opcional. Aparece no comprovante gerado.</span>
+    </label>
+  </div>
+
+  <ng-container sheetActions>
+    <button type="button" class="btn btn-quiet" (click)="closePayDialog()" [disabled]="actionInProgress()">
+      Voltar
+    </button>
+    <button
+      type="button"
+      class="btn btn-ink"
+      (click)="confirmSimulatePay()"
+      [disabled]="actionInProgress() || !simulateDocument().trim()"
+    >
+      @if (actionInProgress()) {
+        <span class="spinner spinner-sm"></span>
+      }
+      Confirmar pagamento
+    </button>
+  </ng-container>
+</app-sheet>

@@ -1,0 +1,105 @@
+/* Detalhe do comprovante — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.parties {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 560px) {
+  .parties {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.parties .eyebrow {
+  margin: 0 0 0.6rem;
+}
+
+.party-name {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.party-line {
+  margin: 0.3rem 0 0;
+  font-size: 12.5px;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.parties .btn {
+  margin-top: 0.9rem;
+}
+
+.description {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+.items {
+  display: grid;
+  margin: 1.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-hairline);
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.items li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.item-name .mono {
+  margin-right: 0.35rem;
+  color: var(--color-ink-faint);
+}
+
+.items .numeric {
+  color: var(--color-ink);
+}
+
+.fact-total {
+  margin-top: 0.2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.fact-total dt {
+  color: var(--color-ink);
+}
+
+.fact-total dd {
+  font-size: 15px;
+}
+
+.see-payment {
+  justify-self: start;
+}

@@ -1,0 +1,70 @@
+/* Detalhe do cliente — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.quiet {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-ink-faint);
+}
+
+/* ── Identidade ───────────────────────────────────────────────────────── */
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.15rem;
+  margin-top: -0.5rem;
+}
+
+.doc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-value-sm {
+  font-size: 1.05rem;
+}
+
+.linked {
+  min-width: 38rem;
+}
+
+.place {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+}
+
+.facts code {
+  display: block;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 9px;
+  background: var(--color-paper);
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}

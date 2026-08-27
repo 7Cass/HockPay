@@ -1,0 +1,279 @@
+<div class="page">
+  <app-page-header
+    backTo="/dashboard/customers"
+    backLabel="Clientes"
+    [eyebrow]="customerService.currentCustomer()?.documentType"
+    [heading]="customerService.currentCustomer() ? displayName(customerService.currentCustomer()!) : 'Cliente'"
+    description="Tudo que a loja sabe sobre este pagador, e tudo que ele já pagou."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  @if (customerService.isDetailLoading()) {
+    <app-page-state variant="loading" message="Carregando cliente…" />
+  } @else if (customerService.detailError(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <a pageStateAction class="btn btn-quiet btn-sm" routerLink="/dashboard/customers">
+        Voltar para a lista
+      </a>
+    </app-page-state>
+  } @else if (customerService.currentCustomer(); as customer) {
+    <section class="identity">
+      <p class="mono doc">{{ customer.formattedDocument }}</p>
+      <app-copy-value [value]="customer.id" [truncate]="14" />
+      @if (customer.externalId) {
+        <app-copy-value [value]="customer.externalId" />
+      }
+    </section>
+
+    <section class="metrics">
+      <article class="stat">
+        <p class="stat-head">Total pago</p>
+        <p class="stat-value numeric">
+          {{ totalPaidAmount() / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+        <p class="stat-context">
+          {{ summaryScopeLabel(paymentService.payments().length, paymentService.total()) }}
+        </p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Pagamentos</p>
+        <p class="stat-value numeric">{{ paymentService.total() }}</p>
+        <p class="stat-context">Cobranças vinculadas</p>
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Último pagamento</p>
+        @if (lastPayment(); as payment) {
+          <p class="stat-value numeric stat-value-sm">
+            {{ payment.createdAt | date: 'dd/MM/yy HH:mm' }}
+          </p>
+          <p class="stat-context">
+            {{ payment.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+          </p>
+        } @else {
+          <p class="stat-value stat-value-sm">Nenhum</p>
+          <p class="stat-context">Sem registro carregado</p>
+        }
+      </article>
+
+      <article class="stat">
+        <p class="stat-head">Comprovantes</p>
+        <p class="stat-value numeric">
+          {{ totalReceiptsAmount() / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+        </p>
+        <p class="stat-context">
+          {{ summaryScopeLabel(receiptService.receipts().length, receiptService.total()) }}
+        </p>
+      </article>
+    </section>
+
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Pagamentos</h2>
+              <p>{{ paymentService.total() }} vinculados · dez mais recentes</p>
+            </div>
+            <a class="btn btn-ghost btn-sm group" routerLink="/dashboard/payments">
+              Ver todos
+              <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+            </a>
+          </div>
+
+          @if (paymentService.isLoading()) {
+            <app-page-state variant="loading" frame="bare" message="Buscando pagamentos…" />
+          } @else if (paymentService.error(); as message) {
+            <app-page-state variant="error" frame="bare" [message]="message" />
+          } @else if (paymentService.payments().length === 0) {
+            <app-page-state
+              variant="empty"
+              frame="bare"
+              icon="lucideCreditCard"
+              heading="Nenhum pagamento"
+              message="Este cliente ainda não aparece em nenhuma cobrança."
+            />
+          } @else {
+            <div class="table-scroll scroll-thin">
+              <table class="table linked">
+                <thead>
+                  <tr>
+                    <th>Cobrança</th>
+                    <th class="num">Valor</th>
+                    <th>Status</th>
+                    <th class="num">Criado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (payment of paymentService.payments(); track payment.id) {
+                    <tr class="is-clickable" (click)="openPayment(payment.id)">
+                      <td>
+                        <a
+                          class="cell-link"
+                          [routerLink]="['/dashboard/payments', payment.id]"
+                          (click)="$event.stopPropagation()"
+                        >
+                          <span class="cell-title">{{ payment.description || 'Cobrança Pix' }}</span>
+                          <span class="cell-sub mono">{{ payment.id.slice(0, 8) }}…</span>
+                        </a>
+                      </td>
+                      <td class="num">
+                        {{ payment.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </td>
+                      <td><app-status-chip [status]="payment.status" /></td>
+                      <td class="num numeric">{{ payment.createdAt | date: 'dd/MM/yy HH:mm' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Comprovantes</h2>
+              <p>{{ receiptService.total() }} vinculados · dez mais recentes</p>
+            </div>
+            <a class="btn btn-ghost btn-sm group" routerLink="/dashboard/receipts">
+              Ver todos
+              <ng-icon class="arrow" name="lucideArrowRight" size="14px" strokeWidth="1.7" />
+            </a>
+          </div>
+
+          @if (receiptService.isLoading()) {
+            <app-page-state variant="loading" frame="bare" message="Buscando comprovantes…" />
+          } @else if (receiptService.error(); as message) {
+            <app-page-state variant="error" frame="bare" [message]="message" />
+          } @else if (receiptService.receipts().length === 0) {
+            <app-page-state
+              variant="empty"
+              frame="bare"
+              icon="lucideReceipt"
+              heading="Nenhum comprovante"
+              message="Comprovantes nascem junto com a confirmação do pagamento."
+            />
+          } @else {
+            <div class="table-scroll scroll-thin">
+              <table class="table linked">
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th class="num">Valor</th>
+                    <th>Status</th>
+                    <th class="num">Emitido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (receipt of receiptService.receipts(); track receipt.id) {
+                    <tr class="is-clickable" (click)="openReceipt(receipt.id)">
+                      <td>
+                        <a
+                          class="cell-link"
+                          [routerLink]="['/dashboard/receipts', receipt.id]"
+                          (click)="$event.stopPropagation()"
+                        >
+                          <span class="cell-title mono">{{ receipt.receiptNumber }}</span>
+                          <span class="cell-sub mono">pgto {{ receipt.paymentId.slice(0, 8) }}…</span>
+                        </a>
+                      </td>
+                      <td class="num">
+                        {{ receipt.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                      </td>
+                      <td><app-status-chip [status]="receipt.status" /></td>
+                      <td class="num numeric">{{ receipt.issuedAt | date: 'dd/MM/yy HH:mm' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Contato</h2>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact fact-stacked">
+              <dt>E-mail</dt>
+              <dd>{{ customer.email || 'Não informado' }}</dd>
+            </div>
+            <div class="fact fact-stacked">
+              <dt>Telefone</dt>
+              <dd>{{ customer.phone || 'Não informado' }}</dd>
+            </div>
+            <div class="fact fact-stacked">
+              <dt>Endereço</dt>
+              <dd>
+                {{ addressLine(customer) }}
+                @if (customer.city || customer.state || customer.zipCode) {
+                  <span class="place">{{ locationLine(customer) }}</span>
+                }
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Cadastro</h2>
+            </div>
+          </div>
+
+          <dl class="panel-body facts">
+            <div class="fact">
+              <dt>Criado em</dt>
+              <dd class="numeric">{{ customer.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>Atualizado em</dt>
+              <dd class="numeric">{{ customer.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div class="fact">
+              <dt>País</dt>
+              <dd class="mono">{{ customer.country || 'BR' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Metadata</h2>
+              <p>O que sua integração anexou a este cliente</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (metadataEntries(customer).length === 0) {
+              <p class="quiet">Sem metadata registrada.</p>
+            } @else {
+              <dl class="facts">
+                @for (entry of metadataEntries(customer); track entry[0]) {
+                  <div class="fact fact-stacked">
+                    <dt class="mono">{{ entry[0] }}</dt>
+                    <dd><code>{{ entry[1] | json }}</code></dd>
+                  </div>
+                }
+              </dl>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  }
+</div>
