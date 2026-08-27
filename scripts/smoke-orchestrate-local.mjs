@@ -147,6 +147,19 @@ function smokeEnv(ports = smokePorts()) {
       `http://localhost:${ports.api}`,
       `http://localhost:${ports.studycase}`,
     ].join(","),
+    // O smoke de volume dispara centenas de escritas do mesmo IP em segundos.
+    // Com o teto de producao (100/min) ele bate 429 antes de terminar.
+    THROTTLE_LIMIT: process.env.THROTTLE_LIMIT ?? "100000",
+    THROTTLE_TTL_MS: process.env.THROTTLE_TTL_MS ?? "60000",
+    // Cada suite faz seu proprio login, e agora a cadeia inteira roda em menos
+    // de um minuto — seis logins contra o teto de cinco da protecao de forca
+    // bruta.
+    THROTTLE_LOGIN_LIMIT: process.env.THROTTLE_LOGIN_LIMIT ?? "1000",
+    // O dispatcher default claim 50 eventos a cada 10s — 300/min. O smoke de
+    // volume gera quase 500 webhooks e espera 60s por eles. De segundo em
+    // segundo o outbox escoa antes de a espera acabar.
+    WORKER_CRON_OUTBOX_DISPATCHER:
+      process.env.WORKER_CRON_OUTBOX_DISPATCHER ?? "* * * * * *",
     WORKER_CRON_WITHDRAWAL_PROCESSING:
       process.env.WORKER_CRON_WITHDRAWAL_PROCESSING ?? "0 0 0 1 1 *",
   };
