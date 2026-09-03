@@ -1,25 +1,27 @@
 import { PaymentLink, PaymentLinkListItem } from '../../domain/entities/payment-link.entity';
+import { CreateLineItemInput } from '../../domain/entities/line-item.entity';
 import { PixCharge } from '../../domain/entities/pix-charge.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
 import { IPixChargeRepository } from '../../domain/repositories/pix-charge.repository.interface';
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
+import { IProductRepository } from '../../domain/repositories/product.repository.interface';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
 import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
-import { InvalidLineItemsError } from '../../domain/errors/invalid-line-items.error';
 export { PaymentLinkInvalidExpirationError } from '../../domain/errors/payment-link-invalid-expiration.error';
 import { PaymentLinkInvalidExpirationError } from '../../domain/errors/payment-link-invalid-expiration.error';
 import { resolvePixMerchantCity } from '../services/pix-merchant-city';
+import { LineItemResolverService } from '../services/line-item-resolver.service';
 
 export interface ICreatePaymentLinkInput {
   storeId: string;
   environment?: Environment;
   amount?: number;
-  items?: unknown[];
+  items?: CreateLineItemInput[];
   title?: string;
   description?: string;
   internalReference?: string;
@@ -40,6 +42,7 @@ export class CreatePaymentLinkUseCase {
     private readonly checkoutBaseUrl: string,
     private readonly pixKey: string,
     private readonly unitOfWork?: IUnitOfWork,
+    private readonly productRepository?: IProductRepository,
   ) {}
 
   async execute(input: ICreatePaymentLinkInput): Promise<ICreatePaymentLinkOutput> {
@@ -51,6 +54,7 @@ export class CreatePaymentLinkUseCase {
       storeRepository: this.storeRepository,
       pixChargeRepository: this.pixChargeRepository,
       paymentLinkRepository: this.paymentLinkRepository,
+      productRepository: this.productRepository ?? unwiredProductRepository(),
     });
   }
 
@@ -58,7 +62,7 @@ export class CreatePaymentLinkUseCase {
     input: ICreatePaymentLinkInput,
     repos: Pick<
       import('../../domain/repositories/unit-of-work.interface').ITransactedRepositories,
-      'storeRepository' | 'pixChargeRepository' | 'paymentLinkRepository'
+      'storeRepository' | 'pixChargeRepository' | 'paymentLinkRepository' | 'productRepository'
     >,
   ): Promise<ICreatePaymentLinkOutput> {
     const store = await repos.storeRepository.findById(input.storeId);
@@ -69,7 +73,17 @@ export class CreatePaymentLinkUseCase {
     const publicToken = this.tokenGenerator.generateBase64(32);
     const linkId = crypto.randomUUID();
     const environment = input.environment ?? Environment.TEST;
-    const amount = this.validateAmount(input);
+
+    // Mesmo contrato de checkout sessions: exatamente um de amount ou items.
+    // O resolver valida produto, ambiente e disponibilidade, e devolve o
+    // snapshot que sera congelado junto com a PixCharge.
+    const resolver = new LineItemResolverService(repos.productRepository);
+    const { amount, items } = await resolver.resolve({
+      storeId: input.storeId,
+      environment,
+      amount: input.amount,
+      items: input.items,
+    });
 
     const txId = this.generateTxId();
     const expiresAt = this.validateExpiresAt(input.expiresAt);
@@ -100,6 +114,7 @@ export class CreatePaymentLinkUseCase {
       title: input.title,
       description: input.description,
       internalReference: input.internalReference,
+      items,
       expiresAt,
     });
 
@@ -135,17 +150,19 @@ export class CreatePaymentLinkUseCase {
     }
     return expiresAt;
   }
+}
 
-  private validateAmount(input: ICreatePaymentLinkInput): number {
-    if (input.items !== undefined) {
-      throw new InvalidLineItemsError('Payment links do not support items; provide amount');
-    }
-    if (!Number.isInteger(input.amount) || (input.amount ?? 0) < 1) {
-      throw new InvalidLineItemsError('Amount must be at least 1 cent');
-    }
-    if ((input.amount ?? 0) > 9999999999) {
-      throw new InvalidLineItemsError('Amount cannot exceed 99,999,999.99 BRL');
-    }
-    return input.amount!;
-  }
+/**
+ * O caminho sem UnitOfWork existe para wiring legado/tests. Se alguem chamar
+ * com `items` por esse caminho sem ter injetado um IProductRepository, isso e
+ * erro de configuracao e nao de entrada do usuario -- falha alto em vez de
+ * criar um link com itens vazios.
+ */
+function unwiredProductRepository(): IProductRepository {
+  const fail = (): never => {
+    throw new Error(
+      'CreatePaymentLinkUseCase: items require a productRepository (inject IUnitOfWork or IProductRepository)',
+    );
+  };
+  return new Proxy({} as IProductRepository, { get: () => fail });
 }

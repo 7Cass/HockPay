@@ -126,7 +126,8 @@ export class PaymentLinkService {
     }
 
     create(input: {
-        amount: number;
+        amount?: number;
+        items?: { productId: string; quantity?: number }[];
         title?: string;
         description?: string;
         internalReference?: string;

@@ -1,6 +1,7 @@
 import { PaymentLinkListItem, PaymentLinkStatus } from '../../domain/entities/payment-link.entity';
 import { PixChargeObject } from '../../domain/entities/pix-charge.entity';
 import { PaymentObject } from '../../domain/entities/payment.entity';
+import { PublicLineItem, toPublicLineItem } from '../../domain/entities/line-item.entity';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { PaymentLinkNotFoundError } from '../../domain/errors/payment-link-not-found.error';
@@ -15,6 +16,7 @@ export interface IOpenPaymentLinkOutput {
     currency: string;
     title: string | null;
     description: string | null;
+    items: PublicLineItem[];
     status: PaymentLinkStatus;
     expiresAt: Date | null;
     cancelledAt: Date | null;
@@ -49,6 +51,7 @@ export class OpenPaymentLinkUseCase {
         currency: item.currency,
         title: item.title,
         description: item.description,
+        items: item.items.map(toPublicLineItem),
         status: item.status,
         expiresAt: item.expiresAt,
         cancelledAt: item.cancelledAt,

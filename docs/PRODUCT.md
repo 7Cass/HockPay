@@ -37,8 +37,8 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 
 ### Payment Link
 
-1. Merchant cria um link de cobranca com valor direto.
-2. Comprador acessa `/pay/:token`.
+1. Merchant cria um link de cobranca com valor direto ou escolhendo produtos do catalogo.
+2. Comprador acessa `/pay/:token` e ve o resumo dos itens quando o link foi montado a partir do catalogo.
 3. Cada falha/pagamento vira uma tentativa `Payment` ligada a uma `PixCharge`.
 4. Dashboard permite acompanhar o link, tentativas e conversao.
 

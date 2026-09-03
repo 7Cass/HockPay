@@ -41,6 +41,19 @@ export class ProductService {
     readonly isLoading = computed(() => this.loadingState());
     readonly error = computed(() => this.errorState());
 
+    /**
+     * Busca produtos sem tocar no estado compartilhado da tela de Products.
+     * Usado por seletores embutidos em outras telas (ex.: criacao de Payment
+     * Link), que precisam da lista sem sequestrar a listagem do catalogo.
+     */
+    search(query: { search?: string; limit?: number } = {}) {
+        let params = new HttpParams().set('isActive', 'true');
+        params = params.set('limit', query.limit ?? 20);
+        if (query.search) params = params.set('search', query.search);
+
+        return this.apiClient.get<ListProductsResponse>('/products', { params });
+    }
+
     load(query: { page?: number; limit?: number; search?: string; isActive?: boolean } = {}) {
         this.loadingState.set(true);
         this.errorState.set(null);

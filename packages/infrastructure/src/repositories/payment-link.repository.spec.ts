@@ -18,6 +18,7 @@ describe('PaymentLinkRepository', () => {
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(prisma.paymentLink.findFirst).toHaveBeenCalledWith({
       where: { id: row.id, storeId: row.storeId },
+      include: { items: { orderBy: { createdAt: 'asc' } } },
     });
     expect(link?.id).toBe(row.id);
   });

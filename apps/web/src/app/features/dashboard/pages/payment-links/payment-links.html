@@ -198,25 +198,125 @@
   (closed)="onSheetClosed()"
   eyebrow="Novo link"
   heading="Criar link de pagamento"
-  description="Uma cobrança Pix avulsa. Ao criar, o link já vai para a área de transferência."
+  description="Uma cobrança Pix por valor avulso ou por produtos do catálogo. Ao criar, o link já vai para a área de transferência."
 >
   <form id="payment-link-form" class="form-stack" [formGroup]="form" (ngSubmit)="create()">
-    <label class="field">
-      <span class="field-label">Valor</span>
-      <input
-        formControlName="amount"
-        mask="separator.2"
-        prefix="R$ "
-        thousandSeparator="."
-        decimalMarker=","
-        [dropSpecialCharacters]="false"
-        inputmode="decimal"
-        placeholder="R$ 129,90"
-      />
-      @if (form.controls.amount.invalid && form.controls.amount.touched) {
-        <span class="field-error">Informe um valor maior que zero.</span>
-      }
-    </label>
+    <div class="field">
+      <span class="field-label">Cobrança</span>
+      <div class="choices">
+        <button
+          type="button"
+          class="choice"
+          [attr.aria-pressed]="chargeMode() === 'amount'"
+          (click)="selectChargeMode('amount')"
+        >
+          <span class="choice-title">Valor avulso</span>
+          <span class="choice-sub">Você digita quanto cobrar.</span>
+        </button>
+
+        <button
+          type="button"
+          class="choice"
+          [attr.aria-pressed]="chargeMode() === 'items'"
+          (click)="selectChargeMode('items')"
+        >
+          <span class="choice-title">Produtos</span>
+          <span class="choice-sub">O total vem do catálogo.</span>
+        </button>
+      </div>
+    </div>
+
+    @if (chargeMode() === 'amount') {
+      <label class="field">
+        <span class="field-label">Valor</span>
+        <input
+          formControlName="amount"
+          mask="separator.2"
+          prefix="R$ "
+          thousandSeparator="."
+          decimalMarker=","
+          [dropSpecialCharacters]="false"
+          inputmode="decimal"
+          placeholder="R$ 129,90"
+        />
+        @if (form.controls.amount.invalid && form.controls.amount.touched) {
+          <span class="field-error">Informe um valor maior que zero.</span>
+        }
+      </label>
+    } @else {
+      <div class="field">
+        <span class="field-label">Produtos</span>
+        <input
+          type="search"
+          [value]="productQuery()"
+          (input)="onProductQueryInput($any($event.target).value)"
+          placeholder="Buscar no catálogo"
+          aria-label="Buscar produtos"
+        />
+
+        @if (isSearchingProducts()) {
+          <span class="field-note">Buscando…</span>
+        } @else if (productResults().length === 0) {
+          <span class="field-note">
+            Nenhum produto ativo encontrado. Cadastre em Produtos ou use valor avulso.
+          </span>
+        } @else {
+          <ul class="picker">
+            @for (product of productResults(); track product.id) {
+              <li>
+                <button type="button" class="picker-row" (click)="addProduct(product)">
+                  <span class="picker-name">{{ product.name }}</span>
+                  <span class="picker-price num">
+                    {{ product.price / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (selectedProducts().length > 0) {
+          <ul class="chosen">
+            @for (entry of selectedProducts(); track entry.product.id) {
+              <li class="chosen-row">
+                <span class="chosen-name">{{ entry.product.name }}</span>
+                <input
+                  class="chosen-qty"
+                  type="number"
+                  min="1"
+                  step="1"
+                  [value]="entry.quantity"
+                  (input)="changeQuantity(entry.product.id, +$any($event.target).value)"
+                  [attr.aria-label]="'Quantidade de ' + entry.product.name"
+                />
+                <span class="chosen-total num">
+                  {{ entry.product.price * entry.quantity / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-quiet btn-sm"
+                  (click)="removeProduct(entry.product.id)"
+                  [attr.aria-label]="'Remover ' + entry.product.name"
+                >
+                  <ng-icon name="lucideTrash2" size="14px" strokeWidth="1.9" />
+                </button>
+              </li>
+            }
+          </ul>
+
+          <div class="chosen-sum">
+            <span>Total</span>
+            <span class="num">{{ itemsTotal() / 100 | currency: 'BRL' : 'symbol' : '1.2-2' : 'pt-BR' }}</span>
+          </div>
+
+          <span class="field-note">
+            Nome, preço e imagem são congelados agora. Editar o produto depois não muda este link.
+          </span>
+        } @else {
+          <span class="field-error">Escolha ao menos um produto.</span>
+        }
+      </div>
+    }
 
     <label class="field">
       <span class="field-label">Título</span>
@@ -272,7 +372,12 @@
     <button type="button" class="btn btn-quiet" (click)="closeCreateSheet()" [disabled]="isCreating()">
       Cancelar
     </button>
-    <button type="submit" form="payment-link-form" class="btn btn-ink" [disabled]="isCreating()">
+    <button
+      type="submit"
+      form="payment-link-form"
+      class="btn btn-ink"
+      [disabled]="isCreating() || (chargeMode() === 'items' && selectedProducts().length === 0)"
+    >
       @if (isCreating()) {
         <span class="spinner spinner-sm"></span>
       } @else {

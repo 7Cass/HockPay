@@ -2,6 +2,7 @@ import { PaymentStatus } from '../enums/payment-status.enum';
 import { Environment } from '../value-objects/environment.vo';
 import { PixChargeObject, PixChargeStatus } from './pix-charge.entity';
 import { PaymentObject } from './payment.entity';
+import { LineItemObject } from './line-item.entity';
 
 export type PaymentLinkStatus = 'ACTIVE' | 'OPENED' | 'PAID' | 'EXPIRED' | 'CANCELLED';
 
@@ -19,6 +20,7 @@ export interface PaymentLinkProps {
   expiresAt?: Date | null;
   openedAt?: Date | null;
   cancelledAt?: Date | null;
+  items?: LineItemObject[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -37,6 +39,7 @@ export interface PaymentLinkObject {
   expiresAt: Date | null;
   openedAt: Date | null;
   cancelledAt: Date | null;
+  items: LineItemObject[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,6 +101,7 @@ export class PaymentLink {
       expiresAt: props.expiresAt ?? null,
       openedAt: props.openedAt ?? null,
       cancelledAt: props.cancelledAt ?? null,
+      items: props.items ?? [],
       createdAt: props.createdAt ?? now,
       updatedAt: props.updatedAt ?? now,
     };
@@ -149,6 +153,9 @@ export class PaymentLink {
   }
   get cancelledAt(): Date | null {
     return this.props.cancelledAt;
+  }
+  get items(): LineItemObject[] {
+    return this.props.items;
   }
   get createdAt(): Date {
     return this.props.createdAt;

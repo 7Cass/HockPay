@@ -321,6 +321,7 @@ model Product {
   store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   paymentItems  PaymentItem[]
   checkoutSessionItems CheckoutSessionItem[]
+  paymentLinkItems     PaymentLinkItem[]
 
   @@unique([storeId, environment, externalId])
   @@index([storeId, environment, isActive])
@@ -502,11 +503,39 @@ model PaymentLink {
 
   store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   pixCharge         PixCharge       @relation(fields: [pixChargeId], references: [id], onDelete: Restrict)
+  items             PaymentLinkItem[]
 
   @@index([storeId, createdAt(sort: Desc)])
   @@index([storeId, openedAt])
   @@index([storeId, cancelledAt])
   @@map("payment_links")
+}
+
+// Snapshot dos itens no momento da criacao do link. O valor do link e a
+// PixCharge/BR Code EMV sao congelados na criacao, entao o item guarda nome,
+// preco e imagem daquele instante e nao acompanha edicoes posteriores do
+// produto -- mesma regra de CheckoutSessionItem.
+model PaymentLinkItem {
+  id                String          @id @default(uuid())
+  paymentLinkId     String          @map("payment_link_id")
+  productId         String?         @map("product_id")
+  productExternalId String?         @map("product_external_id")
+  name              String
+  description       String?
+  quantity          Int             @default(1)
+  unitPrice         Int             @map("unit_price")
+  totalPrice        Int             @map("total_price")
+  imageUrl          String?         @map("image_url")
+  metadata          Json?
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  paymentLink       PaymentLink     @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  product           Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([paymentLinkId])
+  @@index([productId])
+  @@map("payment_link_items")
 }
 
 // ============================================================================

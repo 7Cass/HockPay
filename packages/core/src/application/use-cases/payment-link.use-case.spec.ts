@@ -4,6 +4,7 @@ import { Payment, PaymentMethod } from '../../domain/entities/payment.entity';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { InvalidLineItemsError } from '../../domain/errors/invalid-line-items.error';
+import { ProductUnavailableError } from '../../domain/errors/product-unavailable.error';
 import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { CancelPaymentLinkUseCase } from './cancel-payment-link.use-case';
 import {
@@ -136,7 +137,7 @@ describe('PaymentLink use cases', () => {
     expect(directPaymentLinkRepository.save).not.toHaveBeenCalled();
   });
 
-  it('rejects items in payment link creation', async () => {
+  it('rejects a payment link that provides both amount and items', async () => {
     const pixQrCodeGenerator = {
       generate: vi.fn(),
     };
@@ -155,6 +156,8 @@ describe('PaymentLink use cases', () => {
       pixQrCodeGenerator as any,
       'http://localhost:3333',
       'test@hockpay.com',
+      undefined,
+      { findByIdAndStoreId: vi.fn() } as any,
     );
 
     await expect(
@@ -164,6 +167,110 @@ describe('PaymentLink use cases', () => {
         items: [{ productId: 'prod-1' }],
       }),
     ).rejects.toBeInstanceOf(InvalidLineItemsError);
+    expect(pixQrCodeGenerator.generate).not.toHaveBeenCalled();
+  });
+
+  it('prices a payment link from catalog items and snapshots them on the link', async () => {
+    const paymentLinkRepository = { save: vi.fn() };
+    const pixChargeRepository = { save: vi.fn() };
+    const productRepository = {
+      findByIdAndStoreId: vi.fn().mockResolvedValue({
+        id: 'prod-1',
+        externalId: 'sku-1',
+        name: 'Camiseta',
+        description: 'Algodao',
+        price: 4500,
+        imageUrl: 'https://cdn.example/camiseta.png',
+        isActive: true,
+      }),
+    };
+    const pixQrCodeGenerator = {
+      generate: vi.fn().mockResolvedValue({
+        qrCodeBase64: 'qr-code',
+        copyPaste: 'pix-copy-paste',
+        txId: 'pix-tx-id',
+      }),
+    };
+
+    const useCase = new CreatePaymentLinkUseCase(
+      paymentLinkRepository as any,
+      pixChargeRepository as any,
+      {
+        findById: vi.fn().mockResolvedValue({
+          id: 'store-1',
+          name: 'Hockpay Store',
+          isActive: true,
+          isApproved: true,
+        }),
+      } as any,
+      { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
+      pixQrCodeGenerator as any,
+      'http://localhost:3333',
+      'test@hockpay.com',
+      undefined,
+      productRepository as any,
+    );
+
+    const result = await useCase.execute({
+      storeId: 'store-1',
+      items: [{ productId: 'prod-1', quantity: 3 }],
+    });
+
+    // O valor do link vem da soma dos itens, nunca do cliente.
+    expect(result.paymentLink.amount).toBe(13500);
+    expect(pixQrCodeGenerator.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ amountInCents: 13500 }),
+    );
+
+    const savedLink = paymentLinkRepository.save.mock.calls[0][0];
+    expect(savedLink.amount).toBe(13500);
+    expect(savedLink.items).toEqual([
+      expect.objectContaining({
+        productId: 'prod-1',
+        productExternalId: 'sku-1',
+        name: 'Camiseta',
+        quantity: 3,
+        unitPrice: 4500,
+        totalPrice: 13500,
+      }),
+    ]);
+    // A PixCharge congela o mesmo valor: o BR Code nao acompanha o catalogo.
+    expect(pixChargeRepository.save.mock.calls[0][0].amount).toBe(13500);
+  });
+
+  it('refuses a payment link that references an archived product', async () => {
+    const pixQrCodeGenerator = { generate: vi.fn() };
+    const productRepository = {
+      findByIdAndStoreId: vi.fn().mockResolvedValue({
+        id: 'prod-1',
+        name: 'Camiseta',
+        price: 4500,
+        isActive: false,
+      }),
+    };
+
+    const useCase = new CreatePaymentLinkUseCase(
+      { save: vi.fn() } as any,
+      { save: vi.fn() } as any,
+      {
+        findById: vi.fn().mockResolvedValue({
+          id: 'store-1',
+          name: 'Hockpay Store',
+          isActive: true,
+          isApproved: true,
+        }),
+      } as any,
+      { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
+      pixQrCodeGenerator as any,
+      'http://localhost:3333',
+      'test@hockpay.com',
+      undefined,
+      productRepository as any,
+    );
+
+    await expect(
+      useCase.execute({ storeId: 'store-1', items: [{ productId: 'prod-1' }] }),
+    ).rejects.toBeInstanceOf(ProductUnavailableError);
     expect(pixQrCodeGenerator.generate).not.toHaveBeenCalled();
   });
 
@@ -329,6 +436,7 @@ describe('PaymentLink use cases', () => {
         expiresAt: null,
         openedAt: null,
         cancelledAt: null,
+        items: [],
         createdAt: new Date(),
         updatedAt: new Date(),
         checkoutUrl: 'http://localhost:3333/pay/public-token',
@@ -386,6 +494,7 @@ describe('PaymentLink use cases', () => {
         expiresAt: null,
         openedAt: null,
         cancelledAt: null,
+        items: [],
         createdAt: new Date(),
         updatedAt: new Date(),
         checkoutUrl: 'http://localhost:3333/pay/public-token',
@@ -913,6 +1022,7 @@ function makePaymentLinkListItem() {
     expiresAt: null,
     openedAt: null,
     cancelledAt: null,
+    items: [],
     createdAt: now,
     updatedAt: now,
     checkoutUrl: 'http://localhost:3333/pay/public-token',

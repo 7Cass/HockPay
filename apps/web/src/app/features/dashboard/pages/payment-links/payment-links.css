@@ -110,3 +110,105 @@ ng-icon {
     display: none;
   }
 }
+
+/* ─── Seletor de produtos do catálogo ──────────────────────────────────── */
+
+.picker {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+}
+
+.picker li + li {
+  border-top: 1px solid var(--color-hairline);
+}
+
+.picker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.picker-row:hover {
+  background: var(--color-paper-2);
+}
+
+.picker-name {
+  font-size: 13px;
+  color: var(--color-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-price {
+  font-size: 12.5px;
+  color: var(--color-ink-faint);
+  flex: none;
+}
+
+.chosen {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.chosen-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.25rem auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 10px;
+  background: var(--color-paper-2);
+}
+
+.chosen-name {
+  font-size: 13px;
+  color: var(--color-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chosen-qty {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.chosen-total {
+  font-size: 12.5px;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.chosen-sum {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}

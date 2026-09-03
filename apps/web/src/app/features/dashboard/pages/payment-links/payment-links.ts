@@ -17,6 +17,7 @@ import {
     lucideLink,
     lucidePlus,
     lucideReceipt,
+    lucideTrash2,
 } from '@ng-icons/lucide';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { Subscription } from 'rxjs';
@@ -25,6 +26,7 @@ import {
     PaymentLinkService,
     PaymentLinkStatus,
 } from '../../../../core/services/payment-link.service';
+import { ProductItem, ProductService } from '../../../../core/services/product.service';
 import {
     PageHeader,
     PageState,
@@ -36,6 +38,13 @@ import { linkTone } from './link-tone';
 
 type PaymentLinkFilterId = 'all' | 'active' | 'opened' | 'paid' | 'failed' | 'expired' | 'cancelled';
 type ExpirationMode = 'never' | 'datetime';
+/** Um link cobra um valor avulso OU itens do catalogo -- nunca os dois. */
+type ChargeMode = 'amount' | 'items';
+
+interface SelectedProduct {
+    product: ProductItem;
+    quantity: number;
+}
 
 interface PaymentLinkFilter {
     id: PaymentLinkFilterId;
@@ -113,6 +122,7 @@ function expirationValidator(control: AbstractControl): ValidationErrors | null 
             lucideLink,
             lucidePlus,
             lucideReceipt,
+            lucideTrash2,
         }),
         provideNgxMask(),
     ],
@@ -121,6 +131,7 @@ function expirationValidator(control: AbstractControl): ValidationErrors | null 
 })
 export class PaymentLinks implements OnInit, OnDestroy {
     readonly service = inject(PaymentLinkService);
+    private readonly products = inject(ProductService);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private routeSub?: Subscription;
@@ -134,6 +145,18 @@ export class PaymentLinks implements OnInit, OnDestroy {
     readonly page = signal(1);
     readonly limit = signal(20);
     readonly filters = FILTERS;
+
+    // --- Cobranca por catalogo -------------------------------------------
+    readonly chargeMode = signal<ChargeMode>('amount');
+    readonly productQuery = signal('');
+    readonly productResults = signal<ProductItem[]>([]);
+    readonly isSearchingProducts = signal(false);
+    readonly selectedProducts = signal<SelectedProduct[]>([]);
+
+    /** Total do link quando a cobranca vem do catalogo. */
+    readonly itemsTotal = computed(() =>
+        this.selectedProducts().reduce((sum, entry) => sum + entry.product.price * entry.quantity, 0)
+    );
 
     readonly form = new FormGroup(
         {
@@ -208,10 +231,86 @@ export class PaymentLinks implements OnInit, OnDestroy {
         });
     }
 
+    selectChargeMode(mode: ChargeMode) {
+        this.chargeMode.set(mode);
+        if (mode === 'amount') {
+            this.clearProductSelection();
+        } else {
+            this.form.controls.amount.setValue('');
+            if (this.productResults().length === 0) this.searchProducts();
+        }
+    }
+
+    searchProducts() {
+        this.isSearchingProducts.set(true);
+        this.products.search({ search: this.productQuery().trim() || undefined }).subscribe({
+            next: response => {
+                this.productResults.set(response.products);
+                this.isSearchingProducts.set(false);
+            },
+            error: () => {
+                this.productResults.set([]);
+                this.isSearchingProducts.set(false);
+            },
+        });
+    }
+
+    onProductQueryInput(value: string) {
+        this.productQuery.set(value);
+        this.searchProducts();
+    }
+
+    /** Somar quantidade em vez de duplicar a linha do mesmo produto. */
+    addProduct(product: ProductItem) {
+        this.selectedProducts.update(current => {
+            const existing = current.find(entry => entry.product.id === product.id);
+            if (existing) {
+                return current.map(entry =>
+                    entry.product.id === product.id
+                        ? { ...entry, quantity: entry.quantity + 1 }
+                        : entry
+                );
+            }
+            return [...current, { product, quantity: 1 }];
+        });
+    }
+
+    changeQuantity(productId: string, quantity: number) {
+        if (!Number.isInteger(quantity) || quantity < 1) return;
+        this.selectedProducts.update(current =>
+            current.map(entry =>
+                entry.product.id === productId ? { ...entry, quantity } : entry
+            )
+        );
+    }
+
+    removeProduct(productId: string) {
+        this.selectedProducts.update(current =>
+            current.filter(entry => entry.product.id !== productId)
+        );
+    }
+
+    private clearProductSelection() {
+        this.selectedProducts.set([]);
+        this.productQuery.set('');
+    }
+
     create() {
+        const isItemsMode = this.chargeMode() === 'items';
         const amount = parseBrlToCents(this.form.controls.amount.value);
 
-        if (this.form.invalid || this.isCreating() || amount < 1) {
+        if (this.isCreating()) return;
+
+        // Cada modo tem sua propria condicao de validade: valor avulso exige
+        // um amount valido, catalogo exige ao menos um item selecionado.
+        if (isItemsMode) {
+            if (this.selectedProducts().length === 0) return;
+        } else if (this.form.controls.amount.invalid || amount < 1) {
+            this.form.markAllAsTouched();
+            return;
+        }
+
+        if (this.form.controls.expiresAt.invalid || this.form.errors) {
             this.form.markAllAsTouched();
             return;
         }
@@ -223,7 +322,14 @@ export class PaymentLinks implements OnInit, OnDestroy {
 
         this.isCreating.set(true);
         this.service.create({
-            amount,
+            // A API exige exatamente um de amount ou items.
+            amount: isItemsMode ? undefined : amount,
+            items: isItemsMode
+                ? this.selectedProducts().map(entry => ({
+                    productId: entry.product.id,
+                    quantity: entry.quantity,
+                }))
+                : undefined,
             title: value.title?.trim() || undefined,
             description: value.description?.trim() || undefined,
             internalReference: value.internalReference?.trim() || undefined,
@@ -313,6 +419,8 @@ export class PaymentLinks implements OnInit, OnDestroy {
         });
         this.form.markAsPristine();
         this.form.markAsUntouched();
+        this.chargeMode.set('amount');
+        this.clearProductSelection();
     }
 
     paymentTitle(link: PaymentLinkRecord): string {
