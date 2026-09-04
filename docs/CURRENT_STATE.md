@@ -25,7 +25,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Metodos card/boleto/debito        | Modelado/parcial     | O enum/schema aceita `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas nao ha processador, adquirente ou fluxo real para esses metodos.                    |
 | Dev simulation                    | Implementado         | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos.                                                                                 |
 | Checkout session                  | Implementado         | API cria sessao, checkout coleta pagador, `fulfill` gera/submete pagamento simulado.                                                                 |
-| Payment Link                      | Implementado         | Modelo `PaymentLink -> PixCharge -> Payment attempts`; falhas criam tentativas sem fechar a cobranca, pagamento confirmado fecha o link como `PAID`. |
+| Payment Link                      | Implementado         | Modelo `PaymentLink -> PixCharge -> Payment attempts`, por valor avulso ou por itens do catalogo; falhas criam tentativas sem fechar a cobranca, pagamento confirmado fecha o link como `PAID`. |
 | Webhooks                          | Implementado         | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais.                                                                                          |
 | Alerts                            | Implementado         | Configs e entregas para Discord operacional com logs e retry.                                                                                        |
 | Receipts                          | Implementado         | Recibo emitido para pagamento confirmado, consultavel por API e dashboard.                                                                           |
@@ -43,9 +43,9 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Feature           | Controller/API               | Schema                                                      | Dashboard/Checkout                               | Smoke                                                          | Limites atuais                                                           |
 | ----------------- | ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | Payments Pix      | `payment`, `dev`             | `Payment`, `PixCharge`, `PaymentItem`                       | dashboard payments/detail e checkout status      | `smoke:p0`, `smoke:system`                                     | Pix simulado; card/boleto/debito sem processador real.                   |
-| Payment Links     | `payment-link`               | `PaymentLink`, `PixCharge`, `Payment`                       | dashboard Payment Links e checkout `/pay/:token` | `smoke:payment-link`                                           | Amount-only; nao aceita `items`/Products.                                |
+| Payment Links     | `payment-link`               | `PaymentLink`, `PaymentLinkItem`, `PixCharge`, `Payment`    | dashboard Payment Links e checkout `/pay/:token` | `smoke:payment-link`                                           | Exige exatamente um de `amount` ou `items`; quantidade fixa na criacao.  |
 | Checkout sessions | `checkout-session`           | `CheckoutSession`, `CheckoutSessionItem`, `PaymentItem`     | checkout hosted e demo Media Kit                 | `smoke:studycase:mediakit`                                     | Exige exatamente um de `amount` ou `items`; metadata publica e limitada. |
-| Products/catalog  | `product`                    | `Product`, snapshots em `CheckoutSessionItem`/`PaymentItem` | dashboard Products e checkout sessions com items | coberto por testes/builds focados, sem smoke dedicado separado | Catalogo opcional por store/environment; nao alimenta Payment Links.     |
+| Products/catalog  | `product`                    | `Product`, snapshots em `CheckoutSessionItem`/`PaymentLinkItem`/`PaymentItem` | dashboard Products, checkout sessions e Payment Links com items | coberto por testes/builds focados e por `smoke:payment-link`    | Catalogo opcional por store/environment.                                 |
 | Webhooks/alerts   | `webhook`, `alert`           | `OutboxEvent`, `WebhookLog`, `AlertDeliveryLog`             | dashboard webhooks/alerts                        | `smoke:system`                                                 | Entrega depende do worker/Redis e politica de URL.                       |
 | Withdrawals       | `withdrawal`, `bank-account` | `Withdrawal`, `BankAccount`, `Transaction`                  | dashboard withdrawals/list/detail                | `smoke:withdrawals`                                            | Saque simulado; sem payout bancario real.                                |
 
@@ -61,10 +61,10 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 ### Payment Link
 
-1. Merchant cria link autenticado em `POST /api/v1/payment-links`, sempre com `amount`.
+1. Merchant cria link autenticado em `POST /api/v1/payment-links`, com exatamente um de `amount` ou `items`.
 2. Comprador abre `apps/checkout` em `/pay/:token`, que consulta `GET /api/v1/payment-links/public/:token`.
 3. Checkout publico `/pay/:token` coleta documento do pagador; `pay` associa um `Customer` a tentativa.
-4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` sem items.
+4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` que herdam o snapshot de items do link, quando ele tem items.
 5. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
 
 ### Checkout Session
@@ -79,7 +79,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 1. Merchant ou integrador cria produto em `POST /api/v1/products`.
 2. Produtos sao separados por store e environment; `externalId` e unico dentro de `storeId + environment`.
 3. Produtos arquivados usam `isActive=false` e nao entram em novas cobrancas.
-4. Checkout sessions podem referenciar produtos por `productId`; Payment Links seguem como cobranca avulsa por `amount`.
+4. Checkout sessions e Payment Links podem referenciar produtos por `productId`; o valor da cobranca vem da soma dos itens, nunca do cliente.
 5. Produto referenciado gera snapshot de nome, descricao, preco, imagem, `productId` e `productExternalId`; metadata do produto nao e copiada automaticamente.
 
 ### Withdrawals

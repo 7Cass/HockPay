@@ -1,0 +1,144 @@
+<div class="page">
+  <app-page-header
+    heading="Comprovantes"
+    description="O documento que a loja emite quando um pagamento é confirmado."
+  >
+    <ng-container pageActions>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  <section class="filter-bar">
+    <label class="field field-grow">
+      <span class="field-label">Buscar por número</span>
+      <span class="control with-icon">
+        <span class="control-icon">
+          <ng-icon name="lucideSearch" size="14px" strokeWidth="1.8" />
+        </span>
+        <input
+          type="search"
+          placeholder="RCP-20260419-STORE1-00001"
+          [value]="receiptNumber()"
+          (input)="onReceiptNumberInput($any($event.target).value)"
+          (keydown.enter)="applySearch()"
+        />
+      </span>
+    </label>
+
+    <div class="filter-actions">
+      @if (hasActiveSearch()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearSearch()">Limpar</button>
+      }
+      <button type="button" class="btn btn-ink btn-sm" (click)="applySearch()">Buscar</button>
+    </div>
+  </section>
+
+  @if (receiptService.error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else if (receiptService.isLoading()) {
+    <app-page-state variant="loading" message="Buscando comprovantes…" />
+  } @else if (receiptService.receipts().length === 0) {
+    <app-page-state
+      variant="empty"
+      icon="lucideReceipt"
+      heading="Nenhum comprovante emitido"
+      [message]="
+        hasActiveSearch()
+          ? 'Nenhum comprovante corresponde a esse número.'
+          : 'O comprovante é emitido junto com a confirmação do pagamento.'
+      "
+    >
+      @if (hasActiveSearch()) {
+        <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="clearSearch()">
+          Limpar busca
+        </button>
+      }
+    </app-page-state>
+  } @else {
+    <section class="panel">
+      <div class="table-scroll scroll-thin">
+        <table class="table receipts-table">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Pagador</th>
+              <th class="num">Valor</th>
+              <th>Status</th>
+              <th class="col-issued">Emitido</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (receipt of receiptService.receipts(); track receipt.id) {
+              <tr class="is-clickable" (click)="openReceipt(receipt.id)">
+                <td>
+                  <a
+                    class="cell-link"
+                    [routerLink]="['/dashboard/receipts', receipt.id]"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <span class="cell-title mono">{{ receipt.receiptNumber }}</span>
+                    <span class="cell-sub mono">pgto {{ receipt.paymentId.slice(0, 8) }}…</span>
+                  </a>
+                </td>
+
+                <td>
+                  @if (receipt.customerId) {
+                    <a
+                      class="cell-link"
+                      [routerLink]="['/dashboard/customers', receipt.customerId]"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <span class="cell-title">{{ receipt.payerName || 'Não identificado' }}</span>
+                      <span class="cell-sub">{{
+                        receipt.payerEmail || receipt.payerDocument || 'Sem dados adicionais'
+                      }}</span>
+                    </a>
+                  } @else {
+                    <span class="cell-stack">
+                      <span class="cell-title">{{ receipt.payerName || 'Não identificado' }}</span>
+                      <span class="cell-sub">{{
+                        receipt.payerEmail || receipt.payerDocument || 'Sem dados adicionais'
+                      }}</span>
+                    </span>
+                  }
+                </td>
+
+                <td class="num">{{ receipt.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}</td>
+                <td><app-status-chip [status]="receipt.status" /></td>
+
+                <td class="col-issued">
+                  <span class="cell-stack">
+                    <span class="cell-title numeric">{{ receipt.issuedAt | date: 'dd/MM/yy' }}</span>
+                    <span class="cell-sub mono">{{ receipt.issuedAt | date: 'HH:mm' }}</span>
+                  </span>
+                </td>
+
+                <td class="num">
+                  <span class="arrow-cell group">
+                    <ng-icon class="arrow" name="lucideArrowRight" size="15px" strokeWidth="1.7" />
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <app-pagination
+        [page]="receiptService.page()"
+        [totalPages]="receiptService.totalPages()"
+        [total]="receiptService.total()"
+        [shown]="receiptService.receipts().length"
+        noun="comprovantes"
+        (pageChange)="goToPage($event)"
+      />
+    </section>
+  }
+</div>

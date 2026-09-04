@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import {
     AbstractControl,
@@ -8,37 +8,43 @@ import {
     ValidationErrors,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-    lucideAlertTriangle,
-    lucideCheckCircle2,
-    lucideClock,
+    lucideBan,
+    lucideCheck,
     lucideCopy,
     lucideExternalLink,
     lucideLink,
     lucidePlus,
     lucideReceipt,
-    lucideChevronLeft,
-    lucideChevronRight,
-    lucideXCircle,
+    lucideTrash2,
 } from '@ng-icons/lucide';
-import { HlmBadgeImports } from '@spartan-ng/helm/badge';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmSheetImports } from '@spartan-ng/helm/sheet';
-import { HlmTableImports } from '@spartan-ng/helm/table';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { Subscription } from 'rxjs';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
     PaymentLinkRecord,
     PaymentLinkService,
     PaymentLinkStatus,
 } from '../../../../core/services/payment-link.service';
+import { ProductItem, ProductService } from '../../../../core/services/product.service';
+import {
+    PageHeader,
+    PageState,
+    Pagination,
+    Sheet,
+    StatusChip,
+} from '../../../../shared/ui';
+import { linkTone } from './link-tone';
 
 type PaymentLinkFilterId = 'all' | 'active' | 'opened' | 'paid' | 'failed' | 'expired' | 'cancelled';
 type ExpirationMode = 'never' | 'datetime';
+/** Um link cobra um valor avulso OU itens do catalogo -- nunca os dois. */
+type ChargeMode = 'amount' | 'items';
+
+interface SelectedProduct {
+    product: ProductItem;
+    quantity: number;
+}
 
 interface PaymentLinkFilter {
     id: PaymentLinkFilterId;
@@ -95,41 +101,37 @@ function expirationValidator(control: AbstractControl): ValidationErrors | null 
     selector: 'app-payment-links',
     standalone: true,
     imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        RouterLink,
         CurrencyPipe,
         DatePipe,
-        NgIconComponent,
+        NgIcon,
         NgxMaskDirective,
-        ...HlmBadgeImports,
-        ...HlmButtonImports,
-        ...HlmInputImports,
-        ...HlmSheetImports,
-        ...HlmTableImports,
-        HlmIconImports,
-        ...DialogImports,
+        ReactiveFormsModule,
+        RouterLink,
+        PageHeader,
+        PageState,
+        Pagination,
+        Sheet,
+        StatusChip,
     ],
     providers: [
         provideIcons({
-            lucideAlertTriangle,
-            lucideCheckCircle2,
-            lucideClock,
+            lucideBan,
+            lucideCheck,
             lucideCopy,
             lucideExternalLink,
             lucideLink,
             lucidePlus,
             lucideReceipt,
-            lucideChevronLeft,
-            lucideChevronRight,
-            lucideXCircle,
+            lucideTrash2,
         }),
         provideNgxMask(),
     ],
     templateUrl: './payment-links.html',
+    styleUrl: './payment-links.css',
 })
 export class PaymentLinks implements OnInit, OnDestroy {
     readonly service = inject(PaymentLinkService);
+    private readonly products = inject(ProductService);
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private routeSub?: Subscription;
@@ -143,6 +145,18 @@ export class PaymentLinks implements OnInit, OnDestroy {
     readonly page = signal(1);
     readonly limit = signal(20);
     readonly filters = FILTERS;
+
+    // --- Cobranca por catalogo -------------------------------------------
+    readonly chargeMode = signal<ChargeMode>('amount');
+    readonly productQuery = signal('');
+    readonly productResults = signal<ProductItem[]>([]);
+    readonly isSearchingProducts = signal(false);
+    readonly selectedProducts = signal<SelectedProduct[]>([]);
+
+    /** Total do link quando a cobranca vem do catalogo. */
+    readonly itemsTotal = computed(() =>
+        this.selectedProducts().reduce((sum, entry) => sum + entry.product.price * entry.quantity, 0)
+    );
 
     readonly form = new FormGroup(
         {
@@ -183,12 +197,15 @@ export class PaymentLinks implements OnInit, OnDestroy {
         this.sheetState.set('open');
     }
 
-    onSheetStateChange(state: string) {
-        this.sheetState.set(state === 'open' ? 'open' : 'closed');
+    closeCreateSheet() {
+        if (this.isCreating()) return;
+        this.sheetState.set('closed');
+    }
 
-        if (state !== 'open') {
-            this.resetForm();
-        }
+    /** O painel também fecha por Escape ou pelo fundo — o formulário limpa junto. */
+    onSheetClosed() {
+        this.sheetState.set('closed');
+        this.resetForm();
     }
 
     selectFilter(filter: PaymentLinkFilterId) {
@@ -214,10 +231,86 @@ export class PaymentLinks implements OnInit, OnDestroy {
         });
     }
 
+    selectChargeMode(mode: ChargeMode) {
+        this.chargeMode.set(mode);
+        if (mode === 'amount') {
+            this.clearProductSelection();
+        } else {
+            this.form.controls.amount.setValue('');
+            if (this.productResults().length === 0) this.searchProducts();
+        }
+    }
+
+    searchProducts() {
+        this.isSearchingProducts.set(true);
+        this.products.search({ search: this.productQuery().trim() || undefined }).subscribe({
+            next: response => {
+                this.productResults.set(response.products);
+                this.isSearchingProducts.set(false);
+            },
+            error: () => {
+                this.productResults.set([]);
+                this.isSearchingProducts.set(false);
+            },
+        });
+    }
+
+    onProductQueryInput(value: string) {
+        this.productQuery.set(value);
+        this.searchProducts();
+    }
+
+    /** Somar quantidade em vez de duplicar a linha do mesmo produto. */
+    addProduct(product: ProductItem) {
+        this.selectedProducts.update(current => {
+            const existing = current.find(entry => entry.product.id === product.id);
+            if (existing) {
+                return current.map(entry =>
+                    entry.product.id === product.id
+                        ? { ...entry, quantity: entry.quantity + 1 }
+                        : entry
+                );
+            }
+            return [...current, { product, quantity: 1 }];
+        });
+    }
+
+    changeQuantity(productId: string, quantity: number) {
+        if (!Number.isInteger(quantity) || quantity < 1) return;
+        this.selectedProducts.update(current =>
+            current.map(entry =>
+                entry.product.id === productId ? { ...entry, quantity } : entry
+            )
+        );
+    }
+
+    removeProduct(productId: string) {
+        this.selectedProducts.update(current =>
+            current.filter(entry => entry.product.id !== productId)
+        );
+    }
+
+    private clearProductSelection() {
+        this.selectedProducts.set([]);
+        this.productQuery.set('');
+    }
+
     create() {
+        const isItemsMode = this.chargeMode() === 'items';
         const amount = parseBrlToCents(this.form.controls.amount.value);
 
-        if (this.form.invalid || this.isCreating() || amount < 1) {
+        if (this.isCreating()) return;
+
+        // Cada modo tem sua propria condicao de validade: valor avulso exige
+        // um amount valido, catalogo exige ao menos um item selecionado.
+        if (isItemsMode) {
+            if (this.selectedProducts().length === 0) return;
+        } else if (this.form.controls.amount.invalid || amount < 1) {
+            this.form.markAllAsTouched();
+            return;
+        }
+
+        if (this.form.controls.expiresAt.invalid || this.form.errors) {
             this.form.markAllAsTouched();
             return;
         }
@@ -229,7 +322,14 @@ export class PaymentLinks implements OnInit, OnDestroy {
 
         this.isCreating.set(true);
         this.service.create({
-            amount,
+            // A API exige exatamente um de amount ou items.
+            amount: isItemsMode ? undefined : amount,
+            items: isItemsMode
+                ? this.selectedProducts().map(entry => ({
+                    productId: entry.product.id,
+                    quantity: entry.quantity,
+                }))
+                : undefined,
             title: value.title?.trim() || undefined,
             description: value.description?.trim() || undefined,
             internalReference: value.internalReference?.trim() || undefined,
@@ -276,19 +376,12 @@ export class PaymentLinks implements OnInit, OnDestroy {
         });
     }
 
-    setLimit(event: Event) {
-        this.limit.set(this.parsePositiveInt(this.eventValue(event), 20));
-        this.updateQueryParams(1);
-    }
-
-    changePage(delta: number) {
-        const nextPage = this.page() + delta;
-        if (nextPage < 1 || nextPage > this.service.totalPages()) return;
-        this.updateQueryParams(nextPage);
+    goToPage(page: number) {
+        this.updateQueryParams(page);
     }
 
     openDetail(link: PaymentLinkRecord) {
-        this.router.navigate(['/dashboard/payment-links', link.id]);
+        void this.router.navigate(['/dashboard/payment-links', link.id]);
     }
 
     copy(link: PaymentLinkRecord) {
@@ -299,38 +392,7 @@ export class PaymentLinks implements OnInit, OnDestroy {
         }, 1800);
     }
 
-    statusLabel(status: string): string {
-        const labels: Record<string, string> = {
-            ACTIVE: 'Ativo',
-            OPENED: 'Aberto',
-            PAID: 'Pago',
-            EXPIRED: 'Expirado',
-            CANCELLED: 'Cancelado',
-        };
-        return labels[status] ?? status;
-    }
-
-    statusClass(status: string): string {
-        const classes: Record<string, string> = {
-            ACTIVE: 'border-blue-200 bg-blue-50 text-blue-700',
-            OPENED: 'border-amber-200 bg-amber-50 text-amber-700',
-            PAID: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            EXPIRED: 'border-zinc-200 bg-zinc-100 text-zinc-700',
-            CANCELLED: 'border-red-200 bg-red-50 text-red-700',
-        };
-        return classes[status] ?? 'border-zinc-200 bg-zinc-100 text-zinc-700';
-    }
-
-    statusIcon(status: string): string {
-        const icons: Record<string, string> = {
-            ACTIVE: 'lucideLink',
-            OPENED: 'lucideClock',
-            PAID: 'lucideCheckCircle2',
-            EXPIRED: 'lucideXCircle',
-            CANCELLED: 'lucideXCircle',
-        };
-        return icons[status] ?? 'lucideClock';
-    }
+    readonly linkTone = linkTone;
 
     canCancel(link: PaymentLinkRecord): boolean {
         return link.status !== 'PAID' && link.status !== 'CANCELLED' && link.status !== 'EXPIRED';
@@ -357,6 +419,8 @@ export class PaymentLinks implements OnInit, OnDestroy {
         });
         this.form.markAsPristine();
         this.form.markAsUntouched();
+        this.chargeMode.set('amount');
+        this.clearProductSelection();
     }
 
     paymentTitle(link: PaymentLinkRecord): string {
@@ -368,9 +432,11 @@ export class PaymentLinks implements OnInit, OnDestroy {
     }
 
     emptyStateMessage(): string {
-        if (this.activeFilter() === 'all') return 'Nenhum link de pagamento encontrado.';
+        if (this.activeFilter() === 'all') {
+            return 'Crie o primeiro link e mande a cobrança por onde o cliente estiver.';
+        }
         const filter = this.filters.find(item => item.id === this.activeFilter());
-        return `Nenhum link encontrado para o filtro "${filter?.label ?? 'selecionado'}".`;
+        return `Nenhum link no filtro "${filter?.label ?? 'selecionado'}".`;
     }
 
     private updateQueryParams(page: number) {
@@ -391,9 +457,5 @@ export class PaymentLinks implements OnInit, OnDestroy {
     private parsePositiveInt(value: string | null, fallback: number): number {
         const parsed = Number(value);
         return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-    }
-
-    private eventValue(event: Event): string {
-        return (event.target as HTMLSelectElement | null)?.value ?? '';
     }
 }

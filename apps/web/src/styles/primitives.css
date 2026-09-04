@@ -1,0 +1,1329 @@
+/* HockPay — primitivas do sistema paper/ink.
+   ---------------------------------------------------------------------------
+   Fonte única das peças que se repetem em landing, auth e dashboard: marca,
+   eyebrow, botões, painéis, chips de estado, campos e reveal.
+
+   Regras da casa:
+   - a marca é monocromática: papel e tinta. Cor só existe para estado de
+     pagamento (ok / bad / warn).
+   - tudo aqui vive em `@layer components`, então:
+       utilitário Tailwind no template  > primitiva global
+       CSS do componente (sem layer)    > tudo
+     ou seja: dá para sobrescrever qualquer coisa daqui sem `!important`.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  /* ── Tipografia utilitária ──────────────────────────────────────────── */
+  .eyebrow,
+  .label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  .mono {
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  /* Números de dinheiro: sempre tabulares para as colunas alinharem. */
+  .numeric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Marca ──────────────────────────────────────────────────────────── */
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 26px;
+    padding: 0 7px;
+    border-radius: 8px;
+    background: var(--color-ink);
+  }
+
+  .mark-bar {
+    width: 2px;
+    height: 11px;
+    border-radius: 1px;
+    background: var(--color-paper);
+    transition: height 0.35s var(--ease-brand);
+  }
+
+  .mark-bar:last-of-type {
+    height: 7px;
+  }
+
+  .mark-dot {
+    width: 2.5px;
+    height: 2.5px;
+    margin-left: 2px;
+    align-self: flex-end;
+    margin-bottom: 7px;
+    border-radius: 50%;
+    background: var(--color-paper);
+  }
+
+  .mark-inverse {
+    background: var(--color-paper);
+  }
+
+  .mark-inverse .mark-bar,
+  .mark-inverse .mark-dot {
+    background: var(--color-ink);
+  }
+
+  .group:hover .mark-bar:last-of-type {
+    height: 11px;
+  }
+
+  /* ── Sinal de vida ──────────────────────────────────────────────────── */
+  .pulse-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--color-ok);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ok) 55%, transparent);
+    animation: pulse 2.6s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    70% {
+      box-shadow: 0 0 0 7px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  /* ── Botões ─────────────────────────────────────────────────────────────
+     `.btn` dá a caixa; `.btn-*` dá a pele. Tamanho via `.btn-sm/.btn-lg`
+     ou utilitário Tailwind no template. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.375rem;
+    padding: 0 0.95rem;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform 0.2s var(--ease-brand),
+      background 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
+  }
+
+  .btn-sm {
+    height: 2rem;
+    padding: 0 0.75rem;
+    font-size: 12.5px;
+  }
+
+  .btn-lg {
+    height: 3rem;
+    padding: 0 1.4rem;
+    font-size: 15px;
+  }
+
+  .btn-icon {
+    width: 2.375rem;
+    padding: 0;
+  }
+
+  .btn-icon.btn-sm {
+    width: 2rem;
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(20 20 15 / 0.12);
+  }
+
+  .btn-ink {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  .btn-paper {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  .btn-ink:hover,
+  .btn-paper:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -14px rgb(20 20 15 / 0.55);
+  }
+
+  .btn-quiet {
+    border: 1px solid var(--color-hairline);
+    background: transparent;
+    color: var(--color-ink);
+  }
+
+  .btn-quiet:hover {
+    border-color: var(--color-ink);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-soft);
+  }
+
+  .btn-ghost:hover {
+    background: rgb(20 20 15 / 0.05);
+    color: var(--color-ink);
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--color-bad);
+  }
+
+  .btn-danger:hover {
+    background: var(--color-bad-soft);
+  }
+
+  /* Setinha que anda no hover do grupo. */
+  .arrow,
+  .arrow-diag,
+  .arrow-back {
+    transition: transform 0.3s var(--ease-brand);
+  }
+
+  .group:hover .arrow {
+    transform: translateX(3px);
+  }
+
+  .group:hover .arrow-diag {
+    transform: translate(2px, -2px);
+  }
+
+  .group:hover .arrow-back {
+    transform: translateX(-3px);
+  }
+
+  /* ── Links inline ───────────────────────────────────────────────────── */
+  .link {
+    color: var(--color-ink);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-hairline);
+    transition: border-color 0.25s;
+  }
+
+  .link:hover {
+    border-color: var(--color-ink);
+  }
+
+  /* ── Superfícies ────────────────────────────────────────────────────────
+     `.panel` é a única caixa do dashboard. Sem sombra por padrão: o que
+     separa o conteúdo é o fio de cabelo, não a elevação. */
+  .panel {
+    border: 1px solid var(--color-hairline);
+    border-radius: 14px;
+    background: var(--color-surface);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--color-hairline);
+  }
+
+  .panel-body {
+    padding: 1.15rem;
+  }
+
+  .panel-quiet {
+    background: transparent;
+  }
+
+  /* Textura de pontinhos usada nos painéis de tinta. */
+  .ink-field {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+    background-size: 26px 26px;
+    color: rgb(250 249 246 / 0.16);
+    mask-image: radial-gradient(85% 60% at 15% 0%, #000 0%, transparent 74%);
+  }
+
+  /* ── Chips de estado ────────────────────────────────────────────────────
+     Aqui mora a única cor do produto. `data-tone` decide o par. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 1.5rem;
+    padding: 0 0.6rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .chip::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+  }
+
+  .chip-bare::before {
+    display: none;
+  }
+
+  .chip[data-tone='ok'] {
+    background: var(--color-ok-soft);
+    color: var(--color-ok);
+  }
+
+  .chip[data-tone='bad'] {
+    background: var(--color-bad-soft);
+    color: var(--color-bad);
+  }
+
+  .chip[data-tone='warn'] {
+    background: var(--color-warn-soft);
+    color: var(--color-warn);
+  }
+
+  .chip[data-tone='neutral'],
+  .chip:not([data-tone]) {
+    background: var(--color-paper-2);
+    color: var(--color-ink-soft);
+  }
+
+  .chip[data-tone='outline'] {
+    border-color: var(--color-hairline);
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Menus flutuantes ───────────────────────────────────────────────────
+     Chrome de dropdown: quem usa só decide onde ancorar (top/left/bottom). */
+  .menu {
+    position: absolute;
+    z-index: 60;
+    display: grid;
+    padding: 0.35rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 13px;
+    background: var(--color-surface);
+    box-shadow: 0 22px 48px -26px rgb(20 20 15 / 0.5);
+    animation: menu-in 0.16s var(--ease-brand) both;
+  }
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.985);
+    }
+  }
+
+  .menu-title {
+    padding: 0.35rem 0.55rem 0.3rem;
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 9px;
+    text-align: left;
+    color: var(--color-ink);
+    transition:
+      background 0.16s,
+      color 0.16s;
+  }
+
+  .menu-row:hover {
+    background: var(--color-paper-2);
+  }
+
+  .menu-row.is-danger {
+    color: var(--color-bad);
+  }
+
+  .menu-row.is-danger:hover {
+    background: var(--color-bad-soft);
+  }
+
+  .menu-check {
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: none;
+    color: var(--color-ink-faint);
+  }
+
+  .menu-row.is-danger .menu-check,
+  .menu-row:hover .menu-check {
+    color: inherit;
+  }
+
+  .menu-text {
+    display: grid;
+    min-width: 0;
+  }
+
+  .menu-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .menu-sub {
+    font-size: 10px;
+    color: var(--color-ink-faint);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .menu-empty {
+    padding: 0.75rem 0.55rem;
+    font-size: 12px;
+    color: var(--color-ink-faint);
+  }
+
+  .menu-rule {
+    height: 1px;
+    margin: 0.3rem 0.25rem;
+    background: var(--color-hairline);
+  }
+
+  /* ── Segmentado ─────────────────────────────────────────────────────────
+     Filtro de período, de status, de ambiente. Um trilho, a opção ativa
+     entintada. */
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-hairline);
+    border-radius: 999px;
+    background: var(--color-surface);
+  }
+
+  .seg > button {
+    height: 1.75rem;
+    padding: 0 0.8rem;
+    border-radius: 999px;
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-ink-faint);
+    cursor: pointer;
+    transition:
+      background 0.18s,
+      color 0.18s;
+  }
+
+  .seg > button:hover {
+    color: var(--color-ink);
+  }
+
+  .seg > button[aria-pressed='true'] {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  /* ── Cartão de métrica ──────────────────────────────────────────────────
+     Rótulo em mono, número grande em tabular, variação com tom de estado. */
+  .stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.25rem;
+    min-height: 8.5rem;
+    padding: 1.05rem 1.15rem 1.15rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 14px;
+    background: var(--color-surface);
+    transition: border-color 0.2s;
+  }
+
+  .stat:hover {
+    border-color: color-mix(in oklab, var(--color-ink) 22%, var(--color-hairline));
+  }
+
+  .stat-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .stat-context {
+    margin-top: 0.3rem;
+    font-size: 11.5px;
+    color: var(--color-ink-faint);
+  }
+
+  .stat-value {
+    font-size: clamp(1.35rem, 2.2vw, 1.6rem);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+    color: var(--color-ink);
+  }
+
+  .stat-delta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+    min-height: 1.1rem;
+    font-family: var(--font-code);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--color-ink-faint);
+  }
+
+  .stat-delta[data-tone='ok'] {
+    color: var(--color-ok);
+  }
+
+  .stat-delta[data-tone='bad'] {
+    color: var(--color-bad);
+  }
+
+  /* ── Tabela ─────────────────────────────────────────────────────────────
+     Sem zebra e sem borda vertical: o que separa linha é o fio de cabelo. */
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .table thead th {
+    padding: 0.7rem 1.15rem;
+    border-bottom: 1px solid var(--color-hairline);
+    background: var(--color-paper);
+    font-family: var(--font-code);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+    white-space: nowrap;
+  }
+
+  .table tbody td {
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid var(--color-hairline);
+    font-size: 13.5px;
+    color: var(--color-ink-soft);
+    vertical-align: middle;
+  }
+
+  .table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .table tbody tr {
+    transition: background 0.15s;
+  }
+
+  .table tbody tr:hover {
+    background: color-mix(in oklab, var(--color-paper-2) 55%, transparent);
+  }
+
+  .table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+  }
+
+  /* ── Medidor ────────────────────────────────────────────────────────────
+     Barra de proporção: conversão de link, quebra de status de pagamento. */
+  .meter {
+    display: flex;
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-paper-2);
+  }
+
+  .meter > span {
+    flex: none;
+    height: 100%;
+    background: var(--color-ink);
+  }
+
+  .meter > span[data-tone='ok'] {
+    background: var(--color-ok);
+  }
+
+  .meter > span[data-tone='bad'] {
+    background: var(--color-bad);
+  }
+
+  .meter > span[data-tone='warn'] {
+    background: var(--color-warn);
+  }
+
+  .meter > span[data-tone='neutral'] {
+    background: var(--color-ink-faint);
+  }
+
+  /* ── ApexCharts ─────────────────────────────────────────────────────────
+     O gráfico é montado fora do template, então a encapsulação do componente
+     não o alcança — o tema mora aqui. O tooltip é nosso; o do Apex só some. */
+  .apexcharts-tooltip {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .apexcharts-tooltip.apexcharts-theme-light {
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .apexcharts-xaxistooltip,
+  .apexcharts-yaxistooltip {
+    display: none !important;
+  }
+
+  /* ── Campos ─────────────────────────────────────────────────────────── */
+  .field {
+    display: block;
+  }
+
+  .field-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-soft);
+  }
+
+  .control {
+    position: relative;
+  }
+
+  .field input,
+  .field textarea,
+  .field select,
+  .input {
+    display: block;
+    width: 100%;
+    height: 2.85rem;
+    padding: 0 0.95rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 12px;
+    background: var(--color-paper);
+    font-size: 14.5px;
+    color: var(--color-ink);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .field textarea {
+    height: auto;
+    padding: 0.7rem 0.95rem;
+    line-height: 1.6;
+    resize: vertical;
+  }
+
+  .field input::placeholder,
+  .field textarea::placeholder,
+  .input::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  .field input:hover:not(:focus),
+  .field textarea:hover:not(:focus),
+  .input:hover:not(:focus) {
+    border-color: color-mix(in oklab, var(--color-ink) 25%, var(--color-hairline));
+  }
+
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus,
+  .input:focus {
+    outline: none;
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 3px rgb(20 20 15 / 0.07);
+  }
+
+  .field input.is-invalid,
+  .field input.ng-invalid.ng-touched,
+  .field textarea.ng-invalid.ng-touched {
+    border-color: var(--color-bad);
+  }
+
+  .field input.is-invalid:focus,
+  .field input.ng-invalid.ng-touched:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-bad) 14%, transparent);
+  }
+
+  .control.with-toggle input {
+    padding-right: 3rem;
+  }
+
+  .toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    color: var(--color-ink-faint);
+    transition:
+      color 0.2s,
+      background 0.2s;
+  }
+
+  .toggle:hover {
+    color: var(--color-ink);
+    background: rgb(20 20 15 / 0.05);
+  }
+
+  .field-note,
+  .field-error {
+    display: block;
+    margin-top: 0.5rem;
+    font-family: var(--font-code);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .field-note {
+    color: var(--color-ink-faint);
+  }
+
+  .field-error {
+    color: var(--color-bad);
+    animation: nudge 0.35s var(--ease-brand) both;
+  }
+
+  @keyframes nudge {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+  }
+
+  /* ── Barra de filtros ───────────────────────────────────────────────────
+     Sete listas abrem com a mesma linha: busca larga, uns poucos controles
+     estreitos, e as ações encostadas à direita. É layout, não comportamento —
+     por isso é classe, não componente. */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 14px;
+    background: var(--color-surface);
+  }
+
+  .filter-bar > .field {
+    flex: 1 1 9rem;
+    min-width: 0;
+  }
+
+  /* A busca é o campo que cresce; o resto fica no tamanho que couber. */
+  .filter-bar > .field-grow {
+    flex: 3 1 15rem;
+  }
+
+  .filter-bar .field input,
+  .filter-bar .field select {
+    height: 2.5rem;
+    font-size: 13.5px;
+  }
+
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+
+  /* ── Campo com ícone ────────────────────────────────────────────────── */
+  .control.with-icon input {
+    padding-left: 2.5rem;
+  }
+
+  .control-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.85rem;
+    display: grid;
+    place-items: center;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Scroll discreto ────────────────────────────────────────────────── */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-hairline) transparent;
+  }
+
+  .scroll-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scroll-thin::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--color-hairline);
+    background-clip: content-box;
+  }
+
+  .scroll-thin:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--color-ink) 22%, var(--color-hairline));
+    background-clip: content-box;
+  }
+
+  /* ── Reveal no scroll (ver diretiva `appReveal`) ────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.75s var(--ease-brand),
+      transform 0.75s var(--ease-brand);
+  }
+
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── Spinner ────────────────────────────────────────────────────────────
+     Um anel de fio de cabelo com um quarto entintado. Herda `currentColor`
+     no topo, então funciona dentro de um botão de tinta também. */
+  .spinner {
+    display: inline-block;
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: none;
+    border: 1.5px solid var(--color-hairline);
+    border-top-color: var(--color-ink);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  .spinner-sm {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-width: 1.5px;
+  }
+
+  .btn-ink .spinner,
+  .btn-paper .spinner {
+    border-color: color-mix(in oklab, currentColor 30%, transparent);
+    border-top-color: currentColor;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  /* ── Esqueleto de carregamento ──────────────────────────────────────── */
+  .skeleton {
+    border-radius: 8px;
+    background: linear-gradient(
+      90deg,
+      var(--color-paper-2) 25%,
+      color-mix(in oklab, var(--color-paper-2) 45%, var(--color-paper)) 37%,
+      var(--color-paper-2) 63%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 100% 50%;
+    }
+    to {
+      background-position: 0 50%;
+    }
+  }
+
+  /* ── Células de tabela ──────────────────────────────────────────────────
+     As sete listas repetem a mesma célula de duas linhas: o que a coisa é,
+     e o identificador embaixo em mono. */
+  .cell-stack,
+  .cell-link {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .cell-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--color-ink);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s;
+  }
+
+  .cell-link:hover .cell-title {
+    opacity: 0.65;
+  }
+
+  .cell-sub {
+    font-size: 10.5px;
+    color: var(--color-ink-faint);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .cell-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+
+  /* A linha inteira é o link; os botões da última coluna param o clique. */
+  .table tbody tr.is-clickable {
+    cursor: pointer;
+  }
+
+  .table tbody tr.is-clickable:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+  }
+
+  /* Sinal só onde o sinal é a informação — o extrato. Em outras listas o
+     valor é tinta, e quem carrega a cor é o chip de estado. */
+  .table .num[data-sign='pos'] {
+    color: var(--color-ok);
+  }
+
+  .table .num[data-sign='neg'] {
+    color: var(--color-bad);
+  }
+
+  .table .num-quiet {
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Aviso em linha ─────────────────────────────────────────────────────
+     Uma tira acima do conteúdo: erro que não impede a tela, confirmação de
+     algo que acabou de acontecer. */
+  .notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: 12px;
+    background: var(--color-surface);
+    font-size: 13px;
+    color: var(--color-ink-soft);
+  }
+
+  .notice > ng-icon,
+  .notice > .notice-mark {
+    flex: none;
+    color: var(--color-ink-faint);
+  }
+
+  .notice-text {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+
+  .notice-text strong {
+    display: block;
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+
+  .notice[data-tone='ok'] {
+    border-color: color-mix(in oklab, var(--color-ok) 30%, var(--color-hairline));
+    background: var(--color-ok-soft);
+  }
+
+  .notice[data-tone='ok'] > ng-icon,
+  .notice[data-tone='ok'] .notice-text strong {
+    color: var(--color-ok);
+  }
+
+  .notice[data-tone='bad'] {
+    border-color: color-mix(in oklab, var(--color-bad) 30%, var(--color-hairline));
+    background: var(--color-bad-soft);
+  }
+
+  .notice[data-tone='bad'] > ng-icon,
+  .notice[data-tone='bad'] .notice-text strong {
+    color: var(--color-bad);
+  }
+
+  .notice[data-tone='warn'] {
+    border-color: color-mix(in oklab, var(--color-warn) 30%, var(--color-hairline));
+    background: var(--color-warn-soft);
+  }
+
+  .notice[data-tone='warn'] > ng-icon,
+  .notice[data-tone='warn'] .notice-text strong {
+    color: var(--color-warn);
+  }
+
+  /* ── Ritmo de formulário ────────────────────────────────────────────── */
+  .form-stack {
+    display: grid;
+    gap: 1.15rem;
+  }
+
+  .form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .form-row > .field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Título de painel ───────────────────────────────────────────────── */
+  .panel-title h2,
+  .panel-title h3 {
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  .panel-title p {
+    margin: 0.25rem 0 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Ficha ──────────────────────────────────────────────────────────────
+     Rótulo à esquerda, valor à direita. É como toda tela de detalhe conta o
+     que sabe sobre um registro. */
+  .facts {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .fact {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 13px;
+  }
+
+  .fact dt,
+  .fact > :first-child {
+    flex: none;
+    color: var(--color-ink-faint);
+  }
+
+  .fact dd,
+  .fact > :last-child {
+    margin: 0;
+    min-width: 0;
+    text-align: right;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+
+  /* Valor longo (URL, chave, erro) respira melhor embaixo do rótulo. */
+  .fact-stacked {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .fact-stacked dd,
+  .fact-stacked > :last-child {
+    text-align: left;
+  }
+
+  .facts-split {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1rem 1.5rem;
+  }
+
+  /* ── Linha do tempo ─────────────────────────────────────────────────────
+     Um fio vertical com marcadores. O que aconteceu, em ordem. */
+  .timeline {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .timeline > li {
+    position: relative;
+    display: grid;
+    gap: 0.25rem;
+    padding: 0 0 1.15rem 1.6rem;
+  }
+
+  .timeline > li::before {
+    content: '';
+    position: absolute;
+    top: 0.35rem;
+    left: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-ink-faint);
+  }
+
+  /* O fio liga um marcador ao próximo; o último não puxa nada. */
+  .timeline > li::after {
+    content: '';
+    position: absolute;
+    top: 0.95rem;
+    bottom: 0.1rem;
+    left: 3px;
+    width: 1px;
+    background: var(--color-hairline);
+  }
+
+  .timeline > li:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline > li:last-child::after {
+    display: none;
+  }
+
+  .timeline > li[data-tone='ok']::before {
+    background: var(--color-ok);
+  }
+
+  .timeline > li[data-tone='bad']::before {
+    background: var(--color-bad);
+  }
+
+  .timeline > li[data-tone='warn']::before {
+    background: var(--color-warn);
+  }
+
+  .timeline-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 1rem;
+  }
+
+  .timeline-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+
+  .timeline-when {
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    color: var(--color-ink-faint);
+    white-space: nowrap;
+  }
+
+  .timeline-note {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+  }
+
+  .timeline-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+  }
+
+  /* ── Grade de detalhe ─────────────────────────────────────────────────── */
+  .detail-grid {
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 1040px) {
+    .detail-grid {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.85fr);
+    }
+  }
+
+  .detail-column {
+    display: grid;
+    gap: 1.25rem;
+    align-content: start;
+    min-width: 0;
+  }
+
+  /* ── Interruptor ────────────────────────────────────────────────────────
+     Um checkbox nativo com outra pele: o estado é do input, não de um script. */
+  .switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+  }
+
+  .switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .switch-track {
+    position: relative;
+    flex: none;
+    width: 2.2rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--color-paper-2);
+    border: 1px solid var(--color-hairline);
+    transition:
+      background 0.2s,
+      border-color 0.2s;
+  }
+
+  .switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 50%;
+    background: var(--color-ink-faint);
+    transition:
+      transform 0.2s var(--ease-brand),
+      background 0.2s;
+  }
+
+  .switch input:checked + .switch-track {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+
+  .switch input:checked + .switch-track::after {
+    transform: translateX(0.95rem);
+    background: var(--color-paper);
+  }
+
+  .switch input:focus-visible + .switch-track {
+    box-shadow: 0 0 0 3px rgb(20 20 15 / 0.12);
+  }
+
+  .switch input:disabled + .switch-track {
+    opacity: 0.45;
+  }
+
+  .switch-label {
+    font-size: 12.5px;
+    color: var(--color-ink-soft);
+  }
+
+  /* ── Movimento reduzido ─────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
+    .pulse-dot,
+    .field-error,
+    .skeleton,
+    .menu {
+      animation: none;
+    }
+
+    /* Parar o spinner esconderia que algo está acontecendo; só desacelera. */
+    .spinner {
+      animation-duration: 2.4s;
+    }
+
+    .btn:hover,
+    .btn-ink:hover,
+    .btn-paper:hover,
+    .btn-quiet:hover {
+      transform: none;
+    }
+
+    .arrow,
+    .arrow-diag,
+    .arrow-back,
+    .mark-bar {
+      transition: none;
+    }
+  }
+}

@@ -1,0 +1,190 @@
+/* Detalhe do pagamento — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.quiet {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-ink-faint);
+}
+
+.break {
+  overflow-wrap: anywhere;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* ── Estado atual ─────────────────────────────────────────────────────── */
+.state .panel-body {
+  padding-bottom: 1rem;
+}
+
+.state .eyebrow {
+  margin: 0 0 0.6rem;
+}
+
+.state h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+
+.state-note {
+  max-width: 68ch;
+  margin: 0.55rem 0 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-ink-soft);
+}
+
+.state-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+  padding: 1.15rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+/* ── Linha do tempo ───────────────────────────────────────────────────── */
+.timeline .amount {
+  font-size: 12px;
+  color: var(--color-ink);
+}
+
+/* ── Itens ────────────────────────────────────────────────────────────── */
+.items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.items li:first-child {
+  padding-top: 0;
+}
+
+.items li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.items .numeric {
+  font-size: 13.5px;
+  color: var(--color-ink);
+}
+
+/* ── Registros (lançamentos, webhooks, estornos) ──────────────────────── */
+.records {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.records li {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 11px;
+  background: var(--color-paper);
+}
+
+.record-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.record-head .numeric {
+  font-size: 13.5px;
+  color: var(--color-ink);
+}
+
+.record-facts {
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.record-facts .fact {
+  font-size: 11.5px;
+}
+
+/* ── Tentativas irmãs ─────────────────────────────────────────────────── */
+.attempts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.attempt {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 11px;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.attempt:hover {
+  border-color: color-mix(in oklab, var(--color-ink) 30%, var(--color-hairline));
+}
+
+/* A tentativa que você está vendo não é um link para lugar nenhum novo. */
+.attempt.is-current {
+  border-color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.attempt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+/* ── Rodapé de painel ─────────────────────────────────────────────────── */
+.panel-foot {
+  padding: 0 1.15rem 1.15rem;
+}
+
+.receipt-link {
+  width: 100%;
+  justify-content: space-between;
+}

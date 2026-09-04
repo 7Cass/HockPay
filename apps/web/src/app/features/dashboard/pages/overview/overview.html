@@ -1,144 +1,136 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 pb-10 font-sans">
-  <header class="flex flex-col gap-4 border-b border-zinc-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
-    <div class="min-w-0">
-      <div class="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-        <span>Dashboard</span>
-        <span class="h-1 w-1 rounded-full bg-zinc-300"></span>
-        <span>{{ periodCaption() }}</span>
-      </div>
-      <h1 class="text-3xl font-semibold tracking-tight text-zinc-950">Visão Geral</h1>
-      <p class="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">
-        Liquidez e métricas da loja inteira: TEST e LIVE compartilham a mesma conta. Pagamentos listados no restante do dashboard seguem o ambiente TEST da sessão.
-      </p>
-    </div>
-
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div class="flex flex-wrap items-center gap-2">
+<div class="overview">
+  <app-page-header
+    [eyebrow]="periodCaption()"
+    heading="Visão Geral"
+    description="Liquidez e desempenho da loja inteira — TEST e LIVE dividem a mesma conta. O restante do dashboard segue o ambiente TEST da sessão."
+  >
+    <ng-container pageActions>
+      <div class="seg" role="group" aria-label="Período">
         @for (filter of periodFilters; track filter.value) {
           <button
             type="button"
             (click)="setFilter(filter.value)"
-            [class.border-indigo-200]="activeFilter() === filter.value"
-            [class.bg-indigo-50]="activeFilter() === filter.value"
-            [class.text-indigo-700]="activeFilter() === filter.value"
-            [class.border-zinc-200]="activeFilter() !== filter.value"
-            [class.bg-white]="activeFilter() !== filter.value"
-            [class.text-zinc-600]="activeFilter() !== filter.value"
-            class="h-9 rounded-md border px-3 text-sm font-medium transition hover:border-indigo-200 hover:text-indigo-700"
+            [attr.aria-pressed]="activeFilter() === filter.value"
           >
             {{ filter.label }}
           </button>
         }
       </div>
 
-      <a
-        routerLink="/dashboard/payment-links"
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-      >
-        <ng-icon hlm name="lucidePlus" size="sm"></ng-icon>
+      <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+
+      <a routerLink="/dashboard/payment-links" class="btn btn-ink">
+        <ng-icon name="lucidePlus" size="15px" strokeWidth="1.9" />
         Criar link
       </a>
-    </div>
-  </header>
+    </ng-container>
+  </app-page-header>
 
   @if (activeFilter() === 'custom') {
-    <section class="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-4 sm:max-w-md">
-      <span class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Período customizado</span>
-      <hlm-date-range-picker
-        class="h-10 w-full border-zinc-200 bg-white text-zinc-900 shadow-sm hover:bg-zinc-50"
-        captionLayout="dropdown"
-        [autoCloseOnEndSelection]="true"
-        [date]="customDateRange()"
-        [formatDates]="formatDateRange"
-        (dateChange)="setCustomDateRange($event)"
-      >
-        Selecione o período
-      </hlm-date-range-picker>
+    <section class="range">
+      <label class="field">
+        <span class="field-label">Início</span>
+        <input
+          type="date"
+          [value]="customStart()"
+          (change)="setCustomStart($any($event.target).value)"
+        />
+      </label>
+      <label class="field">
+        <span class="field-label">Fim</span>
+        <input
+          type="date"
+          [value]="customEnd()"
+          (change)="setCustomEnd($any($event.target).value)"
+        />
+      </label>
     </section>
   }
 
   @if (isLoading()) {
-    <section class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-      @for (item of [1, 2, 3, 4, 5]; track item) {
-        <div class="min-h-[148px] rounded-lg border border-zinc-200 bg-white p-5">
-          <div class="mb-8 h-4 w-24 animate-pulse rounded bg-zinc-100"></div>
-          <div class="h-8 w-32 animate-pulse rounded bg-zinc-100"></div>
-          <div class="mt-4 h-4 w-20 animate-pulse rounded bg-zinc-100"></div>
+    <!-- Esqueleto no formato do conteúdo: a página não pula quando os dados chegam. -->
+    <section class="metrics">
+      @for (slot of [1, 2, 3, 4, 5]; track slot) {
+        <div class="stat">
+          <div class="skeleton" style="height: 0.7rem; width: 5.5rem"></div>
+          <div>
+            <div class="skeleton" style="height: 1.5rem; width: 7.5rem"></div>
+            <div class="skeleton" style="height: 0.7rem; width: 4.5rem; margin-top: 0.7rem"></div>
+          </div>
         </div>
       }
     </section>
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.8fr)]">
-      <div class="h-[388px] rounded-lg border border-zinc-200 bg-white p-5">
-        <div class="h-full animate-pulse rounded-md bg-zinc-50"></div>
-      </div>
-      <div class="h-[388px] rounded-lg border border-zinc-200 bg-white p-5">
-        <div class="h-full animate-pulse rounded-md bg-zinc-50"></div>
+    <section class="split">
+      <div class="panel" style="min-height: 26rem"></div>
+      <div class="side">
+        <div class="panel" style="min-height: 12.5rem"></div>
+        <div class="panel" style="min-height: 12.5rem"></div>
       </div>
     </section>
-  } @else if (errorMessage()) {
-    <section class="flex min-h-[360px] flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 px-6 text-center">
-      <ng-icon hlm name="lucideXCircle" size="xl" class="mb-4 text-red-500"></ng-icon>
-      <h2 class="text-lg font-semibold text-red-950">Não foi possível carregar a visão geral</h2>
-      <p class="mt-2 max-w-md text-sm leading-6 text-red-700">{{ errorMessage() }}</p>
-      <button
-        type="button"
-        (click)="reload()"
-        class="mt-5 inline-flex h-10 items-center gap-2 rounded-md border border-red-200 bg-white px-4 text-sm font-medium text-red-700 transition hover:bg-red-100"
-      >
-        <ng-icon hlm name="lucideRefreshCcw" size="sm"></ng-icon>
-        Tentar novamente
+  } @else if (errorMessage(); as message) {
+    <app-page-state
+      variant="error"
+      heading="Não foi possível carregar a visão geral"
+      [message]="message"
+    >
+      <button pageStateAction type="button" class="btn btn-quiet" (click)="reload()">
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+        Tentar de novo
       </button>
-    </section>
-  } @else if (overview()) {
-    <section class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+    </app-page-state>
+  } @else if (overview(); as data) {
+    <!-- ─── Métricas ────────────────────────────────────────────────────── -->
+    <section class="metrics">
       @for (card of metricCards(); track card.label) {
-        <div class="flex min-h-[148px] flex-col justify-between rounded-lg border border-zinc-200 bg-white p-5 transition hover:border-indigo-200">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="truncate text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">{{ card.label }}</p>
-              <p class="mt-1 text-xs text-zinc-400">{{ card.context }}</p>
+        <article class="stat">
+          <div class="stat-head">
+            <div>
+              <p class="eyebrow">{{ card.label }}</p>
+              <p class="stat-context">{{ card.context }}</p>
             </div>
-            <ng-icon hlm [name]="card.icon" size="sm" class="shrink-0 text-zinc-400"></ng-icon>
+            <ng-icon [name]="card.icon" size="15px" strokeWidth="1.6" class="stat-icon" />
           </div>
+
           <div>
-            <p class="truncate text-2xl font-semibold tracking-tight text-zinc-950">{{ card.value }}</p>
-            <div class="mt-2 flex min-h-5 items-center gap-1.5 text-xs font-medium" [ngClass]="deltaClass(card.delta)">
+            <p class="stat-value">{{ card.value }}</p>
+            <p class="stat-delta" [attr.data-tone]="deltaTone(card.delta)">
               @if (card.delta !== null) {
-                <ng-icon hlm name="lucideTrendingUp" size="xs"></ng-icon>
-                <span>{{ formatDelta(card.delta) }} vs anterior</span>
+                <ng-icon [name]="deltaIcon(card.delta)" size="12px" strokeWidth="1.9" />
+                {{ formatDelta(card.delta) }} vs anterior
               } @else {
-                <span>Sem comparativo</span>
+                sem comparativo
               }
-            </div>
+            </p>
           </div>
-        </div>
+        </article>
       }
     </section>
 
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.8fr)] xl:items-stretch">
-      <div class="flex min-h-[420px] flex-col rounded-lg border border-zinc-200 bg-white">
-        <div class="flex flex-col gap-1 border-b border-zinc-100 p-5 sm:flex-row sm:items-start sm:justify-between">
+    <!-- ─── Gráfico + conversão ─────────────────────────────────────────── -->
+    <section class="split">
+      <div class="panel chart-panel">
+        <header class="panel-head">
           <div>
-            <h2 class="text-base font-semibold tracking-tight text-zinc-950">Volume e vendas</h2>
-            <p class="text-sm text-zinc-500">Volume líquido com vendas aprovadas no detalhe.</p>
+            <h2>Volume e vendas</h2>
+            <p class="panel-sub">Volume líquido por dia, vendas aprovadas no detalhe.</p>
           </div>
-          <div class="flex items-center gap-2 text-xs font-medium text-zinc-500">
-            <ng-icon hlm name="lucideCalendarDays" size="xs"></ng-icon>
-            {{ formattedPeriodRange() }}
-          </div>
-        </div>
+          <span class="mono panel-meta">{{ formattedPeriodRange() }}</span>
+        </header>
 
-        <div class="flex min-h-0 flex-1 p-4">
+        <div class="chart-body">
           @if (isEmptyPeriod()) {
-            <div class="flex min-h-[300px] w-full flex-col items-center justify-center text-center">
-              <ng-icon hlm name="lucideLineChart" size="xl" class="mb-3 text-zinc-300"></ng-icon>
-              <p class="text-sm font-medium text-zinc-700">Sem atividade no período</p>
-              <p class="mt-1 max-w-sm text-sm text-zinc-500">Nenhum volume ou venda aprovada foi encontrado para o filtro selecionado.</p>
-            </div>
-          } @else if (chartOptions().series?.length) {
+            <app-page-state
+              frame="bare"
+              variant="empty"
+              icon="lucideChartLine"
+              heading="Sem atividade no período"
+              message="Nenhum volume ou venda aprovada para o filtro selecionado."
+            />
+          } @else if (chartOptions().series; as series) {
             <apx-chart
-              class="block min-h-[300px] w-full"
-              [series]="chartOptions().series!"
+              [series]="series"
               [chart]="chartOptions().chart!"
               [xaxis]="chartOptions().xaxis!"
               [yaxis]="chartOptions().yaxis!"
@@ -150,172 +142,157 @@
               [fill]="chartOptions().fill!"
               [markers]="chartOptions().markers!"
               [legend]="chartOptions().legend!"
-            ></apx-chart>
+            />
           }
         </div>
       </div>
 
-      <div class="flex flex-col gap-4 xl:h-full xl:min-h-[420px]">
-        <div class="flex min-h-[202px] flex-col rounded-lg border border-zinc-200 bg-white p-5 xl:flex-1">
-          <div class="mb-5 flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <h2 class="text-base font-semibold tracking-tight text-zinc-950">Links</h2>
-              <p class="text-sm text-zinc-500">Conversão de links criados em pagamentos.</p>
+      <div class="side">
+        <!-- Conversão de links -->
+        <div class="panel panel-body rate">
+          <header class="rate-head">
+            <div>
+              <h2>Links</h2>
+              <p class="panel-sub">Criados que viraram pagamento.</p>
             </div>
-            <div class="flex shrink-0 items-center justify-end gap-2 text-right">
-              <span class="text-2xl font-semibold tracking-tight text-zinc-950">{{ formatRate(linkConversionSummary().conversionRate) }}</span>
-              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600">
-                <ng-icon hlm name="lucideLink" size="sm"></ng-icon>
-              </span>
-            </div>
-          </div>
+            <p class="rate-value">{{ formatRate(linkConversion().conversionRate) }}</p>
+          </header>
 
-          @if (linkConversionSummary().linksCreated === 0) {
-            <div class="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p class="text-sm font-medium text-zinc-700">Nenhum link criado no período.</p>
-              <p class="mt-1 text-xs text-zinc-500">A conversão aparece quando houver links com pagamentos.</p>
-            </div>
+          @if (linkConversion().linksCreated === 0) {
+            <p class="quiet-note">
+              Nenhum link criado no período. A conversão aparece quando houver links pagos.
+            </p>
           } @else {
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-3">
-              <div class="min-w-0 rounded-md border border-zinc-100 bg-zinc-50/70 px-3 py-2">
-                <p class="truncate text-xs font-medium text-zinc-500">Criados</p>
-                <p class="mt-1 text-base font-semibold text-zinc-950">{{ linkConversionSummary().linksCreated | number }}</p>
+            <dl class="pairs">
+              <div>
+                <dt>Criados</dt>
+                <dd>{{ linkConversion().linksCreated | number }}</dd>
               </div>
-              <div class="min-w-0 rounded-md border border-zinc-100 bg-zinc-50/70 px-3 py-2">
-                <p class="truncate text-xs font-medium text-zinc-500">Pagos</p>
-                <p class="mt-1 text-base font-semibold text-zinc-950">{{ linkConversionSummary().linksPaid | number }}</p>
+              <div>
+                <dt>Pagos</dt>
+                <dd>{{ linkConversion().linksPaid | number }}</dd>
               </div>
-              <div class="min-w-0 rounded-md border border-zinc-100 bg-zinc-50/70 px-3 py-2">
-                <p class="truncate text-xs font-medium text-zinc-500">Conversão</p>
-                <p class="mt-1 text-base font-semibold text-zinc-950">{{ formatRate(linkConversionSummary().conversionRate) }}</p>
-              </div>
-            </div>
+            </dl>
 
-            <div class="mt-4">
-              <div class="mb-2 flex items-center justify-between gap-3 text-xs font-medium text-zinc-500">
-                <span>Pagos sobre criados</span>
-                <span>{{ linkConversionSummary().linksPaid | number }} / {{ linkConversionSummary().linksCreated | number }}</span>
-              </div>
-              <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
-                <div
-                  class="h-full rounded-full bg-indigo-600 transition-all"
-                  [style.width.%]="linkConversionSummary().conversionPercent"
-                ></div>
-              </div>
+            <div
+              class="meter"
+              role="img"
+              [attr.aria-label]="'Conversão de ' + formatRate(linkConversion().conversionRate)"
+            >
+              <span [style.width.%]="linkConversion().conversionPercent"></span>
             </div>
           }
         </div>
 
-        <div class="flex min-h-[202px] flex-col rounded-lg border border-zinc-200 bg-white p-5 xl:flex-1">
-          <div class="mb-4 flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <h2 class="text-base font-semibold tracking-tight text-zinc-950">Pagamentos</h2>
-              <p class="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">
-                {{ formatRate(overview()!.conversion.paymentApprovalRate) }}
+        <!-- Aprovação de pagamentos -->
+        <div class="panel panel-body rate">
+          <header class="rate-head">
+            <div>
+              <h2>Pagamentos</h2>
+              <p class="panel-sub">
+                {{ data.conversion.paymentAttempts | number }} tentativas no período.
               </p>
             </div>
-            <div class="shrink-0 text-right">
-              <div class="flex items-center justify-end gap-1.5 text-xs text-zinc-500">
-                <ng-icon hlm name="lucideBadgeCheck" size="xs" class="text-emerald-600"></ng-icon>
-                <span>Tentativas</span>
-              </div>
-              <p class="mt-1 text-sm font-semibold text-zinc-950">{{ overview()!.conversion.paymentAttempts | number }}</p>
-            </div>
-          </div>
+            <p class="rate-value">{{ formatRate(data.conversion.paymentApprovalRate) }}</p>
+          </header>
 
-          @if (overview()!.conversion.paymentAttempts === 0) {
-            <div class="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <p class="text-sm font-medium text-zinc-700">Sem tentativas no período.</p>
-              <p class="mt-1 text-xs text-zinc-500">O diagnóstico aparece quando houver pagamentos iniciados.</p>
-            </div>
+          @if (data.conversion.paymentAttempts === 0) {
+            <p class="quiet-note">
+              Sem tentativas no período. O diagnóstico aparece quando houver pagamentos iniciados.
+            </p>
           } @else {
-            <div class="flex h-2 overflow-hidden rounded-full bg-zinc-100">
+            <div class="meter">
               @for (segment of paymentStatusSegments(); track segment.label) {
-                <div
-                  class="h-full flex-none"
-                  [ngClass]="segment.colorClass"
-                  [style.width.%]="segment.percent"
-                ></div>
+                <span [attr.data-tone]="segment.tone" [style.width.%]="segment.percent"></span>
               }
             </div>
 
-            <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <ul class="legend">
               @for (segment of paymentStatusSegments(); track segment.label) {
-                <div class="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50/70 px-3 py-2">
-                  <span class="flex min-w-0 items-center gap-2 text-xs font-medium text-zinc-600">
-                    <span class="h-2 w-2 shrink-0 rounded-full" [ngClass]="segment.colorClass"></span>
-                    <span class="truncate">{{ segment.label }}</span>
-                  </span>
-                  <span class="text-xs font-semibold text-zinc-950">{{ segment.value | number }}</span>
-                </div>
+                <li>
+                  <span class="chip chip-legend" [attr.data-tone]="segment.tone">{{
+                    segment.label
+                  }}</span>
+                  <b>{{ segment.value | number }}</b>
+                </li>
               }
-            </div>
+            </ul>
           }
         </div>
       </div>
     </section>
 
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
-      <div class="rounded-lg border border-zinc-200 bg-white">
-        <div class="flex items-start justify-between gap-3 border-b border-zinc-100 p-5">
+    <!-- ─── Recentes + operação ─────────────────────────────────────────── -->
+    <section class="split split-lower">
+      <div class="panel">
+        <header class="panel-head">
           <div>
-            <h2 class="text-base font-semibold tracking-tight text-zinc-950">Pagamentos recentes</h2>
-            <p class="text-sm text-zinc-500">Últimas movimentações com origem e status operacional.</p>
+            <h2>Pagamentos recentes</h2>
+            <p class="panel-sub">Últimas movimentações, com origem e desfecho.</p>
           </div>
-          <a routerLink="/dashboard/payments" class="hidden items-center gap-1 text-sm font-medium text-indigo-700 hover:text-indigo-800 sm:flex">
+          <a routerLink="/dashboard/payments" class="see-all group">
             Ver todos
-            <ng-icon hlm name="lucideArrowUpRight" size="xs"></ng-icon>
+            <ng-icon class="arrow" name="lucideArrowUpRight" size="13px" strokeWidth="1.8" />
           </a>
-        </div>
+        </header>
 
-        @if (overview()!.recentPayments.length === 0) {
-          <div class="flex min-h-[260px] flex-col items-center justify-center px-6 text-center">
-            <ng-icon hlm name="lucideCreditCard" size="xl" class="mb-3 text-zinc-300"></ng-icon>
-            <p class="text-sm font-medium text-zinc-700">Nenhum pagamento recente</p>
-            <p class="mt-1 max-w-sm text-sm text-zinc-500">Quando houver atividade, as transações mais recentes aparecem aqui.</p>
-          </div>
+        @if (data.recentPayments.length === 0) {
+          <app-page-state
+            frame="bare"
+            variant="empty"
+            icon="lucideQrCode"
+            heading="Nenhum pagamento recente"
+            message="Quando houver atividade, as cobranças mais recentes aparecem aqui."
+          />
         } @else {
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[720px] text-left">
-              <thead class="border-b border-zinc-100 bg-zinc-50/70">
-                <tr class="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
-                  <th class="px-5 py-3">Pagamento</th>
-                  <th class="px-5 py-3">Origem</th>
-                  <th class="px-5 py-3">Status</th>
-                  <th class="px-5 py-3 text-right">Valor</th>
+          <div class="table-scroll">
+            <table class="table recent">
+              <thead>
+                <tr>
+                  <th>Pagamento</th>
+                  <th>Origem</th>
+                  <th>Status</th>
+                  <th class="num">Valor</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-zinc-100">
-                @for (payment of overview()!.recentPayments; track payment.id) {
-                  <tr class="transition hover:bg-zinc-50/70">
-                    <td class="px-5 py-4">
-                      <a [routerLink]="['/dashboard/payments', payment.id]" class="group flex min-w-0 flex-col gap-1">
-                        <span class="truncate text-sm font-medium text-zinc-950 group-hover:text-indigo-700">
-                          {{ payment.payerName || payment.description || payment.payerEmail || payment.id }}
+              <tbody>
+                @for (payment of data.recentPayments; track payment.id) {
+                  <tr>
+                    <td>
+                      <a [routerLink]="['/dashboard/payments', payment.id]" class="cell-link">
+                        <span class="cell-title">
+                          {{
+                            payment.payerName ||
+                              payment.description ||
+                              payment.payerEmail ||
+                              payment.id
+                          }}
                         </span>
-                        <span class="truncate text-xs text-zinc-500">
+                        <span class="cell-sub mono">
                           {{ formatDateTime(payment.createdAt) }}
                           @if (payment.description && payment.payerName) {
-                            <span> · {{ payment.description }}</span>
+                            · {{ payment.description }}
                           }
                         </span>
                       </a>
                     </td>
-                    <td class="px-5 py-4">
-                      <span class="inline-flex items-center rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-600">
-                        {{ originLabel(payment.origin) }}
-                      </span>
+                    <td>
+                      <span class="chip chip-bare" data-tone="outline">{{
+                        originLabel(payment.origin)
+                      }}</span>
                     </td>
-                    <td class="px-5 py-4">
-                      <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" [ngClass]="statusClass(payment.status)">
-                        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-                        {{ statusLabel(payment.status) }}
-                      </span>
+                    <td>
+                      <app-status-chip [status]="payment.status" />
                     </td>
-                    <td class="px-5 py-4 text-right">
-                      <span class="text-sm font-semibold text-zinc-950">
-                        {{ payment.amount / 100 | currency:(payment.currency || defaultCurrency()):'symbol':'1.2-2':'pt-BR' }}
-                      </span>
+                    <td class="num">
+                      {{
+                        payment.amount / 100
+                          | currency
+                            : payment.currency || defaultCurrency()
+                            : 'symbol'
+                            : '1.2-2'
+                            : 'pt-BR'
+                      }}
                     </td>
                   </tr>
                 }
@@ -325,85 +302,99 @@
         }
       </div>
 
-      <div class="flex flex-col gap-4">
-        <div
-          class="rounded-lg border bg-white p-5"
-          [ngClass]="attentionTotal() > 0 ? 'border-amber-200 bg-amber-50/40' : 'border-zinc-200'"
-        >
-          <div class="mb-4 flex items-start justify-between gap-3">
+      <div class="side">
+        <!-- Atenção -->
+        <div class="panel panel-body">
+          <header class="rate-head">
             <div>
-              <h2 class="text-base font-semibold tracking-tight text-zinc-950">Atenção</h2>
-              <p class="text-sm text-zinc-500">
-                {{ attentionTotal() > 0 ? 'Itens que podem exigir ação operacional.' : 'Nenhum ponto crítico no período.' }}
+              <h2>Atenção</h2>
+              <p class="panel-sub">
+                {{
+                  attentionTotal() > 0
+                    ? 'Itens que podem exigir ação.'
+                    : 'Nada pendente no período.'
+                }}
               </p>
             </div>
-            <ng-icon
-              hlm
-              [name]="attentionTotal() > 0 ? 'lucideAlertTriangle' : 'lucideCheckCircle2'"
-              size="sm"
-              [ngClass]="attentionTotal() > 0 ? 'text-amber-600' : 'text-emerald-600'"
-            ></ng-icon>
-          </div>
+            <span class="attention-mark" [attr.data-tone]="attentionTotal() > 0 ? 'warn' : 'ok'">
+              <ng-icon
+                [name]="attentionTotal() > 0 ? 'lucideTriangleAlert' : 'lucideCircleCheck'"
+                size="15px"
+                strokeWidth="1.7"
+              />
+            </span>
+          </header>
 
           @if (attentionItems().length === 0) {
-            <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3">
-              <p class="text-sm font-medium text-emerald-800">Integrações sem ação pendente.</p>
-              <p class="mt-1 text-xs leading-5 text-emerald-700">Falhas e filas técnicas aparecem aqui quando exigirem revisão.</p>
-            </div>
+            <p class="quiet-note">
+              Integrações sem ação pendente. Falhas e filas técnicas aparecem aqui quando exigirem
+              revisão.
+            </p>
           } @else {
-            <div class="divide-y divide-amber-100">
+            <ul class="attention">
               @for (item of attentionItems(); track item.label) {
-                <a
-                  [routerLink]="item.route"
-                  class="flex items-center justify-between gap-3 py-2.5 text-sm transition hover:text-amber-800"
-                >
-                  <span class="text-zinc-700">{{ item.label }}</span>
-                  <span class="inline-flex items-center gap-1.5 font-semibold text-amber-800">
-                    {{ item.value | number }}
-                    <ng-icon hlm name="lucideExternalLink" size="xs"></ng-icon>
-                  </span>
-                </a>
+                <li>
+                  <a [routerLink]="item.route" class="group">
+                    <span>{{ item.label }}</span>
+                    <b>
+                      {{ item.value | number }}
+                      <ng-icon
+                        class="arrow-diag"
+                        name="lucideExternalLink"
+                        size="12px"
+                        strokeWidth="1.7"
+                      />
+                    </b>
+                  </a>
+                </li>
               }
-            </div>
+            </ul>
           }
         </div>
 
-        <div class="rounded-lg border border-zinc-200 bg-white p-5">
-          <div class="mb-4 flex items-start justify-between gap-3">
+        <!-- Integrações -->
+        <div class="panel panel-body">
+          <header class="rate-head">
             <div>
-              <h2 class="text-base font-semibold tracking-tight text-zinc-950">Integrações</h2>
-              <p class="text-sm text-zinc-500">Saúde compacta de webhooks e alertas.</p>
+              <h2>Integrações</h2>
+              <p class="panel-sub">Saúde de webhooks e alertas.</p>
             </div>
             <span
-              class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-              [ngClass]="overview()!.integrationsHealth.environment === 'LIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'"
+              class="chip"
+              [attr.data-tone]="data.integrationsHealth.environment === 'LIVE' ? 'ok' : 'warn'"
             >
-              {{ overview()!.integrationsHealth.environment }}
+              {{ data.integrationsHealth.environment }}
             </span>
-          </div>
+          </header>
 
-          <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-            <div class="border-b border-zinc-100 pb-3">
-              <p class="text-xs text-zinc-500">Webhooks ativos</p>
-              <p class="mt-1 text-xl font-semibold text-zinc-950">{{ overview()!.integrationsHealth.activeWebhooks | number }}</p>
-            </div>
-            <div class="border-b border-zinc-100 pb-3">
-              <p class="text-xs text-zinc-500">Alertas ativos</p>
-              <p class="mt-1 text-xl font-semibold text-zinc-950">{{ overview()!.integrationsHealth.activeAlerts | number }}</p>
+          <dl class="pairs pairs-grid">
+            <div>
+              <dt>Webhooks ativos</dt>
+              <dd>{{ data.integrationsHealth.activeWebhooks | number }}</dd>
             </div>
             <div>
-              <p class="text-xs text-zinc-500">Falhas webhook</p>
-              <p class="mt-1 text-xl font-semibold" [ngClass]="overview()!.integrationsHealth.failedWebhookDeliveries > 0 ? 'text-red-600' : 'text-zinc-950'">
-                {{ overview()!.integrationsHealth.failedWebhookDeliveries | number }}
-              </p>
+              <dt>Alertas ativos</dt>
+              <dd>{{ data.integrationsHealth.activeAlerts | number }}</dd>
             </div>
             <div>
-              <p class="text-xs text-zinc-500">Falhas alertas</p>
-              <p class="mt-1 text-xl font-semibold" [ngClass]="overview()!.integrationsHealth.failedAlertDeliveries > 0 ? 'text-red-600' : 'text-zinc-950'">
-                {{ overview()!.integrationsHealth.failedAlertDeliveries | number }}
-              </p>
+              <dt>Falhas webhook</dt>
+              <dd
+                [attr.data-tone]="
+                  data.integrationsHealth.failedWebhookDeliveries > 0 ? 'bad' : null
+                "
+              >
+                {{ data.integrationsHealth.failedWebhookDeliveries | number }}
+              </dd>
             </div>
-          </div>
+            <div>
+              <dt>Falhas alerta</dt>
+              <dd
+                [attr.data-tone]="data.integrationsHealth.failedAlertDeliveries > 0 ? 'bad' : null"
+              >
+                {{ data.integrationsHealth.failedAlertDeliveries | number }}
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
     </section>

@@ -18,6 +18,7 @@ import { CustomerDocumentRequiredError } from '../../domain/errors/customer-docu
 import { Customer } from '../../domain/entities/customer.entity';
 import { Document } from '../../domain/value-objects/document.vo';
 import { PaymentCustomerInput } from './create-payment.use-case';
+import { forkLineItemSnapshot } from '../../domain/entities/line-item.entity';
 
 export interface IPayPaymentLinkInput {
   publicToken: string;
@@ -83,6 +84,11 @@ export class PayPaymentLinkUseCase {
       const payment = this.createAttempt(input, item, pixCharge.toObject(), store, customer);
 
       await repos.paymentRepository.save(payment);
+      // Os itens sao uma tabela propria: save() nao os persiste (mesmo
+      // contrato usado em CreatePaymentUseCase).
+      if (payment.items.length > 0) {
+        await repos.paymentRepository.saveItems(payment.id, payment.items);
+      }
       const createdPayload = await this.buildPaymentPayload(repos, payment, pixCharge.toObject());
 
       const createdOutboxEvent = OutboxEvent.create({
@@ -164,6 +170,10 @@ export class PayPaymentLinkUseCase {
       environment: item.environment ?? input.environment,
       paymentMethod: PaymentMethod.PIX,
       pixCharge,
+      // Snapshot ja congelado na criacao do link: a tentativa copia os itens
+      // como estavam, nao como o produto esta hoje, e com identidade propria
+      // para nao colidir com as outras tentativas do mesmo link.
+      items: item.items.map(forkLineItemSnapshot),
       expiresAt: paymentExpiresAt,
       metadata: {
         origin: 'payment_link',

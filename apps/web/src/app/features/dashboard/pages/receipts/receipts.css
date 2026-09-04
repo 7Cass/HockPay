@@ -1,0 +1,39 @@
+/* Comprovantes — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.receipts-table {
+  min-width: 48rem;
+}
+
+.arrow-cell {
+  display: inline-flex;
+  color: var(--color-ink-faint);
+  transition: color 0.2s;
+}
+
+tr:hover .arrow-cell {
+  color: var(--color-ink);
+}
+
+tr:hover .arrow-cell .arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 860px) {
+  .col-issued {
+    display: none;
+  }
+}

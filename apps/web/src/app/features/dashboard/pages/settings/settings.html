@@ -1,0 +1,189 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="currentStore()?.name"
+    heading="Configurações"
+    description="Sua conta, a loja aberta no seletor e as condições comerciais que a HockPay aplica."
+  >
+    <ng-container pageActions>
+      <button
+        type="button"
+        class="btn btn-quiet btn-icon"
+        (click)="reload()"
+        [disabled]="isLoading()"
+        title="Atualizar"
+      >
+        <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+      </button>
+    </ng-container>
+  </app-page-header>
+
+  @if (isLoading()) {
+    <app-page-state variant="loading" message="Carregando configurações…" />
+  } @else if (error(); as message) {
+    <app-page-state variant="error" [message]="message">
+      <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+        Tentar de novo
+      </button>
+    </app-page-state>
+  } @else {
+    <div class="detail-grid">
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Conta</h2>
+              <p>{{ currentUser()?.name || 'Conta HockPay' }}</p>
+            </div>
+            <app-status-chip
+              [status]="currentUser()?.isActive ? 'ACTIVE' : 'INACTIVE'"
+              [label]="currentUser()?.isActive ? 'Ativa' : 'Inativa'"
+            />
+          </div>
+
+          <dl class="panel-body facts facts-split">
+            <div class="fact fact-stacked">
+              <dt>E-mail</dt>
+              <dd>{{ currentUser()?.email || '—' }}</dd>
+            </div>
+            <div class="fact fact-stacked">
+              <dt>Documento</dt>
+              <dd class="mono">
+                {{ currentUser()?.formattedDocument || currentUser()?.document || '—' }}
+              </dd>
+            </div>
+            <div class="fact fact-stacked">
+              <dt>Tipo</dt>
+              <dd class="mono">{{ currentUser()?.documentType || '—' }}</dd>
+            </div>
+            <div class="fact fact-stacked">
+              <dt>Criada em</dt>
+              <dd class="numeric">{{ currentUser()?.createdAt | date: 'dd/MM/yyyy' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        @if (currentStore(); as store) {
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Loja</h2>
+                <p class="mono">{{ store.slug }}</p>
+              </div>
+              <div class="chips">
+                <app-status-chip
+                  [status]="store.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  [label]="store.isActive ? 'Ativa' : 'Inativa'"
+                />
+                <app-status-chip
+                  [status]="store.isApproved ? 'APPROVED' : 'PENDING'"
+                  [label]="store.isApproved ? 'Aprovada' : 'Pendente'"
+                />
+              </div>
+            </div>
+
+            <div class="panel-body form-stack">
+              <label class="field">
+                <span class="field-label">Nome público</span>
+                <input
+                  [value]="profileName()"
+                  (input)="profileName.set($any($event.target).value)"
+                  placeholder="Ateliê Corvo"
+                />
+                <span class="field-note">É o que o comprador lê no checkout.</span>
+              </label>
+
+              <label class="field">
+                <span class="field-label">Cidade do EMV</span>
+                <input
+                  [value]="profileCity()"
+                  (input)="profileCity.set($any($event.target).value)"
+                  placeholder="SAO PAULO"
+                />
+                <span class="field-note">Vai dentro do código Pix copia-e-cola.</span>
+              </label>
+
+              <dl class="facts facts-split">
+                <div class="fact fact-stacked">
+                  <dt>Criada em</dt>
+                  <dd class="numeric">{{ store.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+                <div class="fact fact-stacked">
+                  <dt>Atualizada em</dt>
+                  <dd class="numeric">{{ store.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="panel-foot">
+              <button type="button" class="btn btn-ink" [disabled]="isSavingProfile()" (click)="saveProfile()">
+                @if (isSavingProfile()) {
+                  <span class="spinner spinner-sm"></span>
+                }
+                Salvar
+              </button>
+            </div>
+          </section>
+        }
+      </div>
+
+      <div class="detail-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2>Contexto</h2>
+              <p>{{ storesCount() }} {{ storesCount() === 1 ? 'loja' : 'lojas' }} nesta conta</p>
+            </div>
+          </div>
+
+          <div class="panel-body">
+            @if (currentStore(); as store) {
+              <p class="note">Esta tela acompanha a loja aberta no seletor da barra lateral.</p>
+              <dl class="facts">
+                <div class="fact fact-stacked">
+                  <dt>Store ID</dt>
+                  <dd><app-copy-value [value]="store.id" /></dd>
+                </div>
+              </dl>
+            } @else {
+              <p class="quiet">Nenhuma loja selecionada.</p>
+            }
+          </div>
+        </section>
+
+        @if (currentStore(); as store) {
+          <section class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <h2>Condições comerciais</h2>
+                <p>Definidas pela HockPay</p>
+              </div>
+            </div>
+
+            <div class="panel-body terms">
+              <div class="term">
+                <p class="stat-head">Taxa Pix</p>
+                <p class="stat-value numeric">
+                  {{ formatPercent(store.feePercent) }}% +
+                  {{ store.feeFixed / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+                </p>
+                <p class="stat-context">Cobrada sobre cada pagamento confirmado</p>
+              </div>
+
+              <div class="term">
+                <p class="stat-head">Liquidação</p>
+                <p class="stat-value numeric">D+{{ store.settlementDays }}</p>
+                <p class="stat-context">Dias até o líquido virar saldo disponível</p>
+              </div>
+            </div>
+
+            <div class="panel-foot">
+              <p class="note">
+                Valem para pagamentos novos. A edição fica com o time HockPay.
+              </p>
+            </div>
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>

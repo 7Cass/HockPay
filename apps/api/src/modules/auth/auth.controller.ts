@@ -25,6 +25,10 @@ import {
   LoginResponseDto,
   RefreshTokenResponseDto,
 } from './dtos/login.dto';
+import {
+  THROTTLE_LOGIN_LIMIT,
+  THROTTLE_TTL_MS,
+} from '../../common/throttle-config';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { CurrentUserData } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
@@ -78,7 +82,9 @@ export class AuthController {
    */
   @Post('login')
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({
+    default: { limit: THROTTLE_LOGIN_LIMIT, ttl: THROTTLE_TTL_MS },
+  })
   @HttpCode(HttpStatus.OK)
   async login(
     @Req() request: Request,

@@ -1,0 +1,77 @@
+/* Produtos — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.products-table {
+  min-width: 46rem;
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.thumb {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border: 1px solid var(--color-hairline);
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.thumb-blank {
+  display: grid;
+  place-items: center;
+  background: var(--color-paper-2);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-faint);
+}
+
+/* ── Formulário no painel ─────────────────────────────────────────────── */
+.form-pair {
+  display: grid;
+  gap: 1.15rem;
+}
+
+@media (min-width: 420px) {
+  .form-pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.confirm-target {
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}
+
+.confirm-target .numeric {
+  margin-top: 0.3rem;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 860px) {
+  .col-external,
+  .col-created {
+    display: none;
+  }
+}

@@ -282,7 +282,12 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function pollUntil(label, read, isReady) {
+/**
+ * `describe` existe porque despejar centenas de registros truncados em 2000
+ * caracteres nao diz o que faltou. Quem sabe resumir o proprio valor passa a
+ * funcao; o resto continua caindo no JSON.
+ */
+async function pollUntil(label, read, isReady, describe) {
   const deadline = Date.now() + TIMEOUT_MS;
   let lastValue;
 
@@ -294,8 +299,12 @@ async function pollUntil(label, read, isReady) {
     await sleep(POLL_INTERVAL_MS);
   }
 
+  const summary = describe
+    ? describe(lastValue)
+    : JSON.stringify(lastValue)?.slice(0, 2000);
+
   throw new SmokeError(
-    `${label} was not observed within ${TIMEOUT_MS}ms. Last value: ${JSON.stringify(lastValue)?.slice(0, 2000)}`,
+    `${label} was not observed within ${TIMEOUT_MS}ms. Last value: ${summary}`,
     { stage: currentStage, lastHttp },
   );
 }
@@ -466,6 +475,21 @@ function apiKeyHeaders(apiKey, extra = {}) {
     Authorization: `Bearer ${apiKey}`,
     ...extra,
   };
+}
+
+/**
+ * Pagar um link exige o documento do pagador. Reaproveita um cliente ja
+ * criado pelo smoke para o volume de clientes continuar previsivel.
+ */
+function paymentLinkPayerBody(index) {
+  const payer = explicitCustomers[index % explicitCustomers.length];
+  return JSON.stringify({
+    customer: {
+      document: payer.document,
+      name: payer.name,
+      email: payer.email,
+    },
+  });
 }
 
 function customerPayload(index, source, existingCustomer) {
@@ -822,9 +846,11 @@ async function applyDirectPaymentScenarios(apiKey) {
     const refundAmount =
       payment.scenario === 'refunded_full' ? payment.amount : Math.max(1, Math.floor(payment.amount / 2));
     const idempotencyKey = `system-${runId}-refund-${payment.id}`;
+    // Estorno e JWT-only: API key nao cria refund, so a sessao do dashboard.
     const result = await requestJson('/refunds', {
       method: 'POST',
-      headers: apiKeyHeaders(apiKey, { 'Idempotency-Key': idempotencyKey }),
+      jwtCookie: true,
+      headers: { 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify({
         paymentId: payment.id,
         amount: refundAmount,
@@ -836,7 +862,8 @@ async function applyDirectPaymentScenarios(apiKey) {
     if (index === 0) {
       const replay = await requestJson('/refunds', {
         method: 'POST',
-        headers: apiKeyHeaders(apiKey, { 'Idempotency-Key': idempotencyKey }),
+        jwtCookie: true,
+        headers: { 'Idempotency-Key': idempotencyKey },
         body: JSON.stringify({
           paymentId: payment.id,
           amount: refundAmount,
@@ -886,7 +913,9 @@ async function createCheckoutSessions(apiKey) {
         : undefined;
     const created = await requestJson('/checkout-sessions', {
       method: 'POST',
-      headers: apiKeyHeaders(apiKey),
+      headers: apiKeyHeaders(apiKey, {
+        'Idempotency-Key': `system-${runId}-checkout-${index}`,
+      }),
       body: JSON.stringify({
         amount: usesCatalogItems ? undefined : 1800 + index * 333,
         items,
@@ -969,6 +998,9 @@ async function createPaymentLinks(apiKey) {
     const created = await requestJson('/payment-links', {
       method: 'POST',
       jwtCookie: true,
+      headers: {
+        'Idempotency-Key': `system-${runId}-link-${index}`,
+      },
       body: JSON.stringify({
         amount: 2500 + index * 91,
         title: `System Volume Link ${index}`,
@@ -995,6 +1027,7 @@ async function createPaymentLinks(apiKey) {
       const paid = await requestJson(`/payment-links/${linkId}/pay`, {
         method: 'POST',
         jwtCookie: true,
+        body: paymentLinkPayerBody(index),
       });
       assert(paid?.payment?.status === 'CONFIRMED', 'Payment link paid attempt did not return a confirmed payment.');
       paymentLinkPayments.push({ ...paid.payment, source: 'payment_link', finalStatus: 'CONFIRMED' });
@@ -1026,11 +1059,13 @@ async function createPaymentLinks(apiKey) {
       const paid = usesPublicCheckout
         ? await requestJson(`/payment-links/public/${created.paymentLink.publicToken}/pay`, {
             method: 'POST',
+            body: paymentLinkPayerBody(index),
           })
         : await requestJson(`/payment-links/${linkId}/pay`, {
             method: 'POST',
-          jwtCookie: true,
-        });
+            jwtCookie: true,
+            body: paymentLinkPayerBody(index),
+          });
       assert(paid?.payment?.status === 'CONFIRMED', 'Payment link paid attempt did not return a confirmed payment.');
       assert(Array.isArray(paid.payment.items) && paid.payment.items.length === 0, 'Payment link payments should not include items.');
       paymentLinkPayments.push({ ...paid.payment, source: 'payment_link', finalStatus: 'CONFIRMED' });
@@ -1239,12 +1274,14 @@ async function validateWebhooks(apiKey) {
       return collected.records;
     },
     (records) => hasExpectedWebhookCounts(records, (record) => record.eventType),
+    (records) => describeWebhookCounts(records, (record) => record.eventType),
   );
 
   const receiverDeliveries = await pollUntil(
     'Local webhook receiver deliveries for all expected events',
     async () => deliveries,
     (records) => hasExpectedWebhookCounts(records, (record) => record?.body?.type),
+    (records) => describeWebhookCounts(records, (record) => record?.body?.type),
   );
 
   const samplePayment = directPayments.find((payment) => payment.scenario === 'released');
@@ -1272,7 +1309,17 @@ async function validateWebhooks(apiKey) {
   };
 }
 
-function hasExpectedWebhookCounts(records, getEventType) {
+function describeWebhookCounts(records, getEventType) {
+  const counts = countWebhookEvents(records, getEventType);
+  const parts = WEBHOOK_EVENTS.map((event) => {
+    const got = counts[event];
+    const want = expected.webhooks[event];
+    return `${event} ${got}/${want}${got >= want ? '' : ' <-- faltando'}`;
+  });
+  return `${records.length} registros; ${parts.join(', ')}`;
+}
+
+function countWebhookEvents(records, getEventType) {
   const counts = WEBHOOK_EVENTS.reduce((acc, event) => {
     acc[event] = 0;
     return acc;
@@ -1283,6 +1330,11 @@ function hasExpectedWebhookCounts(records, getEventType) {
     if (eventType in counts) counts[eventType] += 1;
   }
 
+  return counts;
+}
+
+function hasExpectedWebhookCounts(records, getEventType) {
+  const counts = countWebhookEvents(records, getEventType);
   return WEBHOOK_EVENTS.every((event) => counts[event] >= expected.webhooks[event]);
 }
 

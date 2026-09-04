@@ -1,70 +1,153 @@
-<div class="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
-    <div class="flex flex-col space-y-2 text-center">
-        <h1 class="text-3xl font-extrabold tracking-tight text-zinc-900">Crie sua conta</h1>
-        <p class="text-sm font-medium text-zinc-500">Informe os dados abaixo para se cadastrar</p>
+<p appReveal class="eyebrow">
+  <span class="pulse-dot"></span>
+  Criar conta
+</p>
+
+<h1
+  [appReveal]="60"
+  class="mt-6 font-display text-[clamp(2.1rem,6vw,2.9rem)] leading-[0.98] tracking-[-0.02em] text-ink"
+>
+  Sua sandbox em <em class="italic">dois minutos.</em>
+</h1>
+
+<p [appReveal]="110" class="mt-4 text-[15px] leading-[1.65] text-ink-soft">
+  Nome, e-mail e documento. Você sai daqui com um par de chaves TEST e nenhum contrato com
+  adquirente.
+</p>
+
+<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="mt-9 space-y-5" novalidate>
+  <div [appReveal]="150" class="field">
+    <label class="field-label" for="name">Nome completo</label>
+    <div class="control">
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        placeholder="João Silva"
+        autocomplete="name"
+        autocapitalize="words"
+        autocorrect="off"
+        [attr.aria-invalid]="showError('name')"
+      />
     </div>
+    @if (showError('name')) {
+      <span class="field-error" role="alert">use entre 2 e 100 caracteres</span>
+    }
+  </div>
 
-    <div class="grid gap-6">
-        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-            <div class="grid gap-5">
-                <hlm-form-field>
-                    <label hlmLabel for="name" class="text-zinc-900">Nome completo</label>
-                    <input hlmInput id="name" formControlName="name" placeholder="João Silva" type="text"
-                        autocapitalize="words" autocorrect="off"
-                        class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white placeholder:text-zinc-400 focus-visible:ring-indigo-500" />
-                    <hlm-error>Nome deve ter entre 2 e 100 caracteres.</hlm-error>
-                </hlm-form-field>
-
-                <hlm-form-field>
-                    <label hlmLabel for="email" class="text-zinc-900">Email</label>
-                    <input hlmInput id="email" formControlName="email" placeholder="nome@empresa.com" type="email"
-                        autocapitalize="none" autocomplete="email" autocorrect="off"
-                        class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white placeholder:text-zinc-400 focus-visible:ring-indigo-500" />
-                    <hlm-error>Insira um e-mail válido.</hlm-error>
-                </hlm-form-field>
-
-                <hlm-form-field>
-                    <label hlmLabel for="document" class="text-zinc-900">Documento (CPF / CNPJ)</label>
-                    <input hlmInput id="document" formControlName="document" placeholder="000.000.000-00" type="text"
-                        mask="000.000.000-00||00.000.000/0000-00"
-                        class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white placeholder:text-zinc-400 focus-visible:ring-indigo-500" />
-                    <hlm-error>Insira um documento válido.</hlm-error>
-                </hlm-form-field>
-
-                <hlm-form-field>
-                    <label hlmLabel for="password" class="text-zinc-900">Senha</label>
-                    <input hlmInput id="password" formControlName="password" type="password"
-                        class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white focus-visible:ring-indigo-500" />
-                    <hlm-error>A senha deve ter pelo menos 8 caracteres.</hlm-error>
-                </hlm-form-field>
-
-                <hlm-form-field>
-                    <label hlmLabel for="confirm-password" class="text-zinc-900">Confirmar Senha</label>
-                    <input hlmInput id="confirm-password" formControlName="confirmPassword" type="password"
-                        class="bg-white border-zinc-200 text-zinc-900 h-10 ring-offset-white focus-visible:ring-indigo-500" />
-                    <hlm-error>As senhas não coincidem.</hlm-error>
-                </hlm-form-field>
-
-                <button hlmBtn
-                    class="w-full mt-2 h-11 bg-indigo-600 text-white hover:bg-indigo-700 font-semibold rounded-lg shadow-sm transition-all"
-                    type="submit" [disabled]="isLoading()">
-                    @if (isLoading()) {
-                    <ng-icon hlm name="lucideLoader2" class="mr-2 h-4 w-4 animate-spin"></ng-icon>
-                    Cadastrando...
-                    } @else {
-                    Cadastrar
-                    }
-                </button>
-            </div>
-        </form>
-
+  <div [appReveal]="185" class="field">
+    <label class="field-label" for="email">E-mail</label>
+    <div class="control">
+      <input
+        id="email"
+        type="email"
+        formControlName="email"
+        placeholder="voce@empresa.com"
+        autocomplete="email"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
+        [attr.aria-invalid]="showError('email')"
+      />
     </div>
+    @if (showError('email')) {
+      <span class="field-error" role="alert">informe um e-mail válido</span>
+    }
+  </div>
 
-    <p class="px-8 text-center text-sm font-medium text-zinc-500">
-        Já tem uma conta?
-        <a routerLink="/login"
-            class="font-semibold text-indigo-600 hover:text-indigo-700 underline-offset-4 hover:underline">
-            Fazer login
-        </a>
-    </p>
-</div>
+  <div [appReveal]="220" class="field">
+    <label class="field-label" for="document">
+      Documento
+      <span class="font-code text-[10.5px] tracking-[0.12em] text-ink-faint">CPF / CNPJ</span>
+    </label>
+    <div class="control">
+      <input
+        id="document"
+        type="text"
+        inputmode="numeric"
+        formControlName="document"
+        placeholder="000.000.000-00"
+        mask="000.000.000-00||00.000.000/0000-00"
+        [attr.aria-invalid]="showError('document')"
+      />
+    </div>
+    @if (showError('document')) {
+      <span class="field-error" role="alert">informe um CPF ou CNPJ válido</span>
+    }
+  </div>
+
+  <div [appReveal]="255" class="field">
+    <label class="field-label" for="password">Senha</label>
+    <div class="control with-toggle">
+      <input
+        id="password"
+        [type]="showPassword() ? 'text' : 'password'"
+        formControlName="password"
+        autocomplete="new-password"
+        [attr.aria-invalid]="showError('password')"
+      />
+      <button
+        type="button"
+        class="toggle"
+        [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+        [attr.aria-pressed]="showPassword()"
+        (click)="togglePassword()"
+      >
+        <ng-icon
+          hlm
+          [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'"
+          size="16px"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+    @if (showError('password')) {
+      <span class="field-error" role="alert">mínimo de 8 caracteres</span>
+    } @else {
+      <span class="field-note">mínimo de 8 caracteres</span>
+    }
+  </div>
+
+  <div [appReveal]="290" class="field">
+    <label class="field-label" for="confirm-password">Confirmar senha</label>
+    <div class="control">
+      <input
+        id="confirm-password"
+        type="password"
+        formControlName="confirmPassword"
+        autocomplete="new-password"
+        [class.is-invalid]="showMismatch()"
+        [attr.aria-invalid]="showError('confirmPassword') || showMismatch()"
+      />
+    </div>
+    @if (showError('confirmPassword')) {
+      <span class="field-error" role="alert">repita a senha</span>
+    } @else if (showMismatch()) {
+      <span class="field-error" role="alert">as senhas não coincidem</span>
+    }
+  </div>
+
+  <div [appReveal]="325" class="pt-1">
+    <button type="submit" class="btn-ink" [disabled]="isLoading()">
+      @if (isLoading()) {
+        <ng-icon name="lucideLoader2" size="16px" class="animate-spin" aria-hidden="true" />
+        Criando…
+      } @else {
+        Criar minha sandbox
+        <ng-icon name="lucideArrowRight" size="16px" class="arrow" aria-hidden="true" />
+      }
+    </button>
+  </div>
+</form>
+
+<p [appReveal]="360" class="mt-8 text-[13.5px] text-ink-soft">
+  Já tem uma conta?
+  <a routerLink="/login" class="link">Entrar</a>
+</p>
+
+<p
+  [appReveal]="390"
+  class="mt-3 font-code text-[11px] leading-[1.6] tracking-[0.06em] text-ink-faint"
+>
+  ao criar a conta você ganha chaves TEST · nenhum centavo real circula por aqui
+</p>

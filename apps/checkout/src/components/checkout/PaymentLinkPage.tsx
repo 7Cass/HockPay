@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AmountDisplay } from './AmountDisplay';
+import { LineItemsSummary } from './LineItemsSummary';
 import { CopyPasteButton } from './CopyPasteButton';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { Timer } from './Timer';
@@ -92,6 +93,11 @@ export function PaymentLinkPage({ initialSession, token }: PaymentLinkPageProps)
             {session.paymentLink.description || session.paymentLink.title}
           </p>
         )}
+
+        <LineItemsSummary
+          items={session.paymentLink.items}
+          currency={session.paymentLink.currency}
+        />
 
         {isPaid && (
           <div className="flex flex-col items-center py-8 text-center">

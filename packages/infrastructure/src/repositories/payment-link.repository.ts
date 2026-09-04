@@ -54,6 +54,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   async findById(id: string): Promise<PaymentLink | null> {
     const row = await this.prisma.paymentLink.findUnique({
       where: { id },
+      include: this.includeItems(),
     });
     return row ? this.toDomain(row) : null;
   }
@@ -61,6 +62,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   async findByIdAndStoreId(id: string, storeId: string): Promise<PaymentLink | null> {
     const row = await this.prisma.paymentLink.findFirst({
       where: { id, storeId },
+      include: this.includeItems(),
     });
     return row ? this.toDomain(row) : null;
   }
@@ -91,6 +93,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
   async findByToken(token: string): Promise<PaymentLink | null> {
     const row = await this.prisma.paymentLink.findUnique({
       where: { publicToken: token },
+      include: this.includeItems(),
     });
     return row ? this.toDomain(row) : null;
   }
@@ -307,8 +310,13 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
     };
   }
 
+  private includeItems() {
+    return { items: { orderBy: { createdAt: 'asc' as const } } };
+  }
+
   private includePayment() {
     return {
+      ...this.includeItems(),
       pixCharge: {
         include: {
           payments: {
@@ -337,6 +345,19 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       cancelledAt: link.cancelledAt,
       createdAt: link.createdAt,
       updatedAt: link.updatedAt,
+      items: {
+        create: link.items.map((item) => ({
+          productId: item.productId ?? null,
+          productExternalId: item.productExternalId ?? null,
+          name: item.name,
+          description: item.description ?? null,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          imageUrl: item.imageUrl ?? null,
+          metadata: (item.metadata as Prisma.InputJsonValue | undefined) ?? undefined,
+        })),
+      },
     };
   }
 
@@ -355,6 +376,7 @@ export class PaymentLinkRepository implements IPaymentLinkRepository {
       expiresAt: row.expiresAt ?? null,
       openedAt: row.openedAt ?? undefined,
       cancelledAt: row.cancelledAt ?? undefined,
+      items: this.toLineItems(row.items ?? []),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

@@ -74,6 +74,7 @@ export interface PaymentLinkPublicSession {
     currency: string;
     title: string | null;
     description: string | null;
+    items: CheckoutLineItem[];
     status: PaymentLinkStatus;
     expiresAt: string | null;
     cancelledAt: string | null;

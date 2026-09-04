@@ -1,0 +1,110 @@
+/* Casca do dashboard.
+   Duas colunas em grid: recolher a sidebar é animar a primeira faixa. */
+
+:host {
+  display: block;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell-aside {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    grid-template-columns: var(--shell-aside) minmax(0, 1fr);
+    transition: grid-template-columns 0.26s var(--ease-brand);
+  }
+
+  .shell.is-collapsed {
+    grid-template-columns: var(--shell-aside-collapsed) minmax(0, 1fr);
+  }
+
+  .shell-aside {
+    display: block;
+    min-width: 0;
+  }
+}
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.shell-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.shell-content {
+  width: 100%;
+  max-width: var(--shell-content);
+  margin: 0 auto;
+  padding: 1.5rem var(--shell-gutter) 4rem;
+}
+
+@media (min-width: 1024px) {
+  .shell-content {
+    padding: 2rem 2rem 5rem;
+  }
+}
+
+/* ── Gaveta ───────────────────────────────────────────────────────────── */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(20 20 15 / 0.32);
+  backdrop-filter: blur(3px);
+  animation: scrim-in 0.18s ease both;
+}
+
+.drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: min(17rem, 84vw);
+  box-shadow: 0 0 60px -12px rgb(20 20 15 / 0.4);
+  animation: drawer-in 0.24s var(--ease-brand) both;
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (min-width: 1024px) {
+  .drawer,
+  .drawer-scrim {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .drawer,
+  .drawer-scrim {
+    transition: none;
+    animation: none;
+  }
+}

@@ -1,0 +1,92 @@
+/* Detalhe do saque — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.quiet {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-ink-faint);
+}
+
+.fact-total {
+  margin-top: 0.2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.fact-total dt {
+  color: var(--color-ink);
+}
+
+.fact-total dd {
+  font-size: 15px;
+}
+
+.entries {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entries li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.entries li:first-child {
+  padding-top: 0;
+}
+
+.entries li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.entry-value {
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+}
+
+.entry-value .numeric {
+  font-size: 13.5px;
+  color: var(--color-ink);
+}
+
+.simulate {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.confirm-target {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}
+
+.confirm-target .numeric {
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}

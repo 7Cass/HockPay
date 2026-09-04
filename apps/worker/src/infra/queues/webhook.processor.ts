@@ -81,7 +81,10 @@ export class WebhookProcessor extends WorkerHost {
     }
 
     await this.deadLetterQueue.add('dead-letter', deadLetterJob, {
-      jobId: `${WEBHOOK_DELIVERY_QUEUE}:${job.id}`,
+      // BullMQ recusa `:` em jobId customizado (Job.create lanca
+      // 'Custom Id cannot contain :'), o que derrubava o worker justamente
+      // na falha final -- o caminho que a DLQ existe para proteger.
+      jobId: `${WEBHOOK_DELIVERY_QUEUE}-dlq-${job.id}`,
     });
 
     this.logger.error(

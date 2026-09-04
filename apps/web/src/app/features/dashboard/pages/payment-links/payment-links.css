@@ -1,0 +1,214 @@
+/* Links de pagamento — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* Sete filtros não cabem num celular: o segmentado rola em vez de quebrar. */
+.filter-scroll {
+  overflow-x: auto;
+  margin: -0.25rem;
+  padding: 0.25rem;
+}
+
+.filter-scroll .seg {
+  width: max-content;
+}
+
+.links-table {
+  min-width: 52rem;
+}
+
+.chip-fail {
+  margin-top: 0.4rem;
+}
+
+/* ── Escolha de validade ──────────────────────────────────────────────── */
+.choices {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (min-width: 420px) {
+  .choices {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.choice:hover {
+  border-color: color-mix(in oklab, var(--color-ink) 30%, var(--color-hairline));
+}
+
+.choice[aria-pressed='true'] {
+  border-color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.choice-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.choice-sub {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--color-ink-faint);
+}
+
+.expiry {
+  margin-top: 0.6rem;
+}
+
+.confirm-target {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+}
+
+.confirm-target p {
+  margin: 0;
+}
+
+.confirm-target .mono {
+  font-size: 11px;
+  color: var(--color-ink-faint);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .col-created,
+  .col-expiry {
+    display: none;
+  }
+}
+
+/* ─── Seletor de produtos do catálogo ──────────────────────────────────── */
+
+.picker {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-hairline);
+  border-radius: 12px;
+}
+
+.picker li + li {
+  border-top: 1px solid var(--color-hairline);
+}
+
+.picker-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.picker-row:hover {
+  background: var(--color-paper-2);
+}
+
+.picker-name {
+  font-size: 13px;
+  color: var(--color-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-price {
+  font-size: 12.5px;
+  color: var(--color-ink-faint);
+  flex: none;
+}
+
+.chosen {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.chosen-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.25rem auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: 10px;
+  background: var(--color-paper-2);
+}
+
+.chosen-name {
+  font-size: 13px;
+  color: var(--color-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chosen-qty {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.chosen-total {
+  font-size: 12.5px;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.chosen-sum {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}

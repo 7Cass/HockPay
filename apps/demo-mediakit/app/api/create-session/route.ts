@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
     upsertPendingMediaKit(sessionId, metadata);
 
     const result = await createCheckoutSession({
+      // O sessionId ja e unico por tentativa de compra; reaproveita-lo evita
+      // duas sessoes quando o navegador reenvia o POST.
+      idempotencyKey: `mediakit-${sessionId}`,
       amount: studyCaseConfig.amountInCents,
       description: studyCaseConfig.productName,
       successUrl: `${APP_URL}${studyCaseConfig.successPath}?sessionId=${sessionId}`,

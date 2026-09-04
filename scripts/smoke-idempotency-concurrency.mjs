@@ -325,11 +325,13 @@ function sortObjectKeys(value) {
 }
 
 async function assertIdempotencyRecord(ctx, key, expectedStatus, expectedBody) {
+  // A reserva e unica por key + store + environment desde a isolacao TEST/LIVE.
   const record = await prisma.idempotencyKey.findUnique({
     where: {
-      key_storeId: {
+      key_storeId_environment: {
         key,
         storeId: ctx.storeId,
+        environment: 'TEST',
       },
     },
   });
@@ -508,9 +510,13 @@ async function assertPostgresReplayAndConflict() {
     where: { id: ctx.accountId },
   });
 
+  // Estorno e JWT-only: com API key o guard responde 403 antes de a
+  // idempotencia ser avaliada, e o conflito de path nunca apareceria.
   const pathConflict = await requestHttp('/refunds', {
     method: 'POST',
-    headers: apiKeyHeaders(ctx, { 'Idempotency-Key': input.idempotencyKey }),
+    cookieJar: ctx.cookieJar,
+    jwtCookie: true,
+    headers: { 'Idempotency-Key': input.idempotencyKey },
     body: jsonBody({
       paymentId,
       amount: 100,
@@ -714,10 +720,12 @@ async function assertConcurrentRefund() {
   const responses = await runConcurrentRequests(CONCURRENCY, (index) =>
     requestHttp('/refunds', {
       method: 'POST',
-      headers: apiKeyHeaders(ctx, {
+      cookieJar: ctx.cookieJar,
+      jwtCookie: true,
+      headers: {
         'Idempotency-Key': idempotencyKey,
         'x-request-id': `${idempotencyKey}-req-${index}`,
-      }),
+      },
       body: jsonBody(payload),
     }),
   );

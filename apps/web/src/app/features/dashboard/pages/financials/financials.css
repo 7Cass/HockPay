@@ -1,0 +1,45 @@
+/* Saldo e Extrato — arranjo da tela. */
+
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+ng-icon {
+  flex: none;
+}
+
+.balances {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.ledger {
+  min-width: 58rem;
+}
+
+.ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11.5px;
+  color: var(--color-ink-soft);
+  transition: color 0.2s;
+}
+
+.ref:hover {
+  color: var(--color-ink);
+}
+
+@media (max-width: 900px) {
+  .col-fee,
+  .col-balance {
+    display: none;
+  }
+}

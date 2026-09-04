@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
@@ -8,31 +8,19 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideBellOff,
   lucideBellRing,
-  lucideCheckCheck,
   lucideDisc3,
   lucideHistory,
-  lucideLoader2,
   lucideMail,
   lucideMessageCircleMore,
   lucidePencil,
   lucidePlus,
   lucideRefreshCcw,
-  lucideShieldAlert,
-  lucideTestTubeDiagonal,
+  lucideSend,
   lucideTrash2,
 } from '@ng-icons/lucide';
-import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmCheckboxImports } from '@spartan-ng/helm/checkbox';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmInputImports } from '@spartan-ng/helm/input';
-import { HlmSheetImports } from '@spartan-ng/helm/sheet';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
-import { HlmSwitchImports } from '@spartan-ng/helm/switch';
 import { toast } from 'ngx-sonner';
 import {
   AlertChannel,
@@ -40,6 +28,7 @@ import {
   AlertDeliveryLog,
   AlertService,
 } from '../../../../core/services/alert.service';
+import { PageHeader, PageState, Sheet, StatusChip } from '../../../../shared/ui';
 
 type AlertChannelPreview = AlertChannel | 'email' | 'whatsapp';
 
@@ -125,38 +114,30 @@ const CHANNEL_OPTIONS: AlertChannelOption[] = [
   selector: 'app-alerts',
   standalone: true,
   imports: [
-    CommonModule,
     DatePipe,
+    NgIcon,
     ReactiveFormsModule,
-    NgIconComponent,
-    HlmIconImports,
-    ...HlmAlertDialogImports,
-    ...HlmButtonImports,
-    ...HlmCheckboxImports,
-    ...HlmInputImports,
-    ...HlmSheetImports,
-    ...HlmSpinnerImports,
-    ...HlmSwitchImports,
+    PageHeader,
+    PageState,
+    Sheet,
+    StatusChip,
   ],
   providers: [
     provideIcons({
-      lucideBellOff,
       lucideBellRing,
-      lucideCheckCheck,
       lucideDisc3,
       lucideHistory,
-      lucideLoader2,
       lucideMail,
       lucideMessageCircleMore,
       lucidePencil,
       lucidePlus,
       lucideRefreshCcw,
-      lucideShieldAlert,
-      lucideTestTubeDiagonal,
+      lucideSend,
       lucideTrash2,
     }),
   ],
   templateUrl: './alerts.html',
+  styleUrl: './alerts.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Alerts implements OnInit {
@@ -249,31 +230,25 @@ export class Alerts implements OnInit {
     this.sheetState.set('open');
   }
 
-  onSheetStateChange(state: string) {
-    this.sheetState.set(state === 'open' ? 'open' : 'closed');
-
-    if (state !== 'open') {
-      this.editingAlertId.set(null);
-      this.resetForm();
-    }
+  /* Escape, o X e o botão de cancelar chegam todos aqui. */
+  closeSheet() {
+    if (this.isSubmitting()) return;
+    this.sheetState.set('closed');
+    this.editingAlertId.set(null);
+    this.resetForm();
   }
 
-  onLogsSheetStateChange(state: string) {
-    this.logsSheetState.set(state === 'open' ? 'open' : 'closed');
-
-    if (state !== 'open') {
-      this.alertForLogs.set(null);
-      this.logs.set([]);
-      this.logsError.set(null);
-    }
+  closeLogsSheet() {
+    this.logsSheetState.set('closed');
+    this.alertForLogs.set(null);
+    this.logs.set([]);
+    this.logsError.set(null);
   }
 
-  onDeleteDialogStateChange(state: string) {
-    this.deleteDialogState.set(state === 'open' ? 'open' : 'closed');
-
-    if (state !== 'open') {
-      this.alertToDelete.set(null);
-    }
+  closeDeleteDialog() {
+    if (this.deletingAlertId()) return;
+    this.deleteDialogState.set('closed');
+    this.alertToDelete.set(null);
   }
 
   selectChannel(channel: AlertChannelPreview) {

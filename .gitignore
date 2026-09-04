@@ -44,3 +44,6 @@ coverage/
 .cache/
 .temp/
 tmp/
+
+# Diagnosticos gravados pelo runner de smoke
+artifacts/

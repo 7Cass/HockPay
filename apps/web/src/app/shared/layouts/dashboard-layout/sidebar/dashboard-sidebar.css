@@ -1,0 +1,316 @@
+/* Sidebar do dashboard — papel e tinta.
+   O item ativo é a única superfície sólida: pílula de tinta, texto papel. */
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-paper);
+  border-right: 1px solid var(--color-hairline);
+}
+
+ng-icon {
+  flex: none;
+  color: currentColor;
+}
+
+/* ── Cabeçalho ────────────────────────────────────────────────────────── */
+.aside-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--shell-topbar);
+  padding: 0 0.85rem;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.head-btn {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: none;
+  border-radius: 8px;
+  color: var(--color-ink-faint);
+  transition:
+    color 0.2s,
+    background 0.2s,
+    opacity 0.2s;
+}
+
+.head-btn:hover {
+  color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+/* No trilho, a marca some e o botão vira o eixo da coluna. */
+.is-collapsed .aside-head {
+  padding: 0;
+  justify-content: center;
+}
+
+.is-collapsed .brand {
+  display: none;
+}
+
+/* ── Seletor de loja ──────────────────────────────────────────────────── */
+.aside-store {
+  position: relative;
+  padding: 0.85rem 0.7rem 0.55rem;
+}
+
+.store,
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border-radius: 11px;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.store {
+  border: 1px solid var(--color-hairline);
+  background: var(--color-surface);
+}
+
+.store:hover,
+.user:hover {
+  background: var(--color-paper-2);
+}
+
+.store-badge,
+.user-badge {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  border-radius: 8px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-code);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.user-badge {
+  border-radius: 999px;
+}
+
+.store-text,
+.user-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  max-width: 12rem;
+  opacity: 1;
+  transition:
+    max-width 0.24s var(--ease-brand),
+    opacity 0.16s linear;
+}
+
+.store-name,
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.store-slug,
+.user-mail {
+  font-size: 10.5px;
+  color: var(--color-ink-faint);
+}
+
+.store-name,
+.store-slug,
+.user-name,
+.user-mail {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.store-caret,
+.user-caret {
+  color: var(--color-ink-faint);
+  transition: opacity 0.16s linear;
+}
+
+.is-collapsed .store,
+.is-collapsed .user {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.is-collapsed .store-text,
+.is-collapsed .user-text {
+  max-width: 0;
+  opacity: 0;
+}
+
+.is-collapsed .store-caret,
+.is-collapsed .user-caret {
+  display: none;
+}
+
+/* ── Navegação ────────────────────────────────────────────────────────── */
+.aside-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.35rem 0.7rem 0.85rem;
+}
+
+.nav-group + .nav-group {
+  margin-top: 1.1rem;
+}
+
+.nav-group-label {
+  height: 1.6rem;
+  padding-inline: 0.6rem;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    height 0.22s var(--ease-brand),
+    opacity 0.16s linear;
+}
+
+.is-collapsed .nav-group-label {
+  height: 0;
+  opacity: 0;
+}
+
+/* No trilho o rótulo do grupo vira um fio. */
+.is-collapsed .nav-group + .nav-group {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  height: 2.3rem;
+  padding: 0 0.6rem;
+  border-radius: 10px;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: var(--color-ink-soft);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    gap 0.24s var(--ease-brand);
+}
+
+.nav-item + .nav-item {
+  margin-top: 2px;
+}
+
+.nav-item:hover {
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+}
+
+.nav-item.is-active {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-weight: 500;
+}
+
+.nav-item.is-active:hover {
+  background: var(--color-ink);
+}
+
+.nav-text {
+  flex: 1;
+  min-width: 0;
+  max-width: 12rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition:
+    max-width 0.24s var(--ease-brand),
+    opacity 0.16s linear;
+}
+
+.is-collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+}
+
+.is-collapsed .nav-text {
+  max-width: 0;
+  opacity: 0;
+}
+
+/* ── Rodapé ───────────────────────────────────────────────────────────── */
+.aside-foot {
+  position: relative;
+  padding: 0.6rem 0.7rem 0.75rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+/* ── Menus flutuantes ─────────────────────────────────────────────────────
+   A chrome (.menu/.menu-row/…) é primitiva global; aqui só a ancoragem. */
+.menu-store {
+  top: calc(100% - 0.2rem);
+  left: 0.7rem;
+  right: 0.7rem;
+  max-height: 17rem;
+  overflow-y: auto;
+}
+
+.menu-user {
+  bottom: calc(100% - 0.2rem);
+  left: 0.7rem;
+  right: 0.7rem;
+}
+
+.is-collapsed .menu-store,
+.is-collapsed .menu-user {
+  left: calc(100% - 0.35rem);
+  right: auto;
+  width: 15rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .nav-text,
+  .store-text,
+  .user-text,
+  .nav-group-label {
+    animation: none;
+    transition: none;
+  }
+}

@@ -8,7 +8,7 @@ import { IPaymentRepository } from '../../domain/repositories/payment.repository
 import { PaymentObject } from '../../domain/entities/payment.entity';
 import { CheckoutSessionNotFoundError } from '../../domain/errors/checkout-session-not-found.error';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
-import { LineItemObject } from '../../domain/entities/line-item.entity';
+import { PublicLineItem, toPublicLineItem } from '../../domain/entities/line-item.entity';
 
 export interface CheckoutSessionCustomerInputState {
   hasDocument: boolean;
@@ -90,23 +90,6 @@ export class GetCheckoutSessionUseCase {
       cancelUrl: session.cancelUrl,
     };
   }
-}
-
-type PublicLineItem = Pick<
-  LineItemObject,
-  'id' | 'name' | 'description' | 'quantity' | 'unitPrice' | 'totalPrice' | 'imageUrl'
->;
-
-function toPublicLineItem(item: LineItemObject): PublicLineItem {
-  return {
-    id: item.id,
-    name: item.name,
-    description: item.description,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    totalPrice: item.totalPrice,
-    imageUrl: item.imageUrl,
-  };
 }
 
 function toPublicPaymentObject(payment: PaymentObject): PaymentObject {

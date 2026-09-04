@@ -7,6 +7,7 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
 import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { FeePolicy } from '../services/fee-policy.service';
+import { forkLineItemSnapshot } from '../../domain/entities/line-item.entity';
 import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
 import { PaymentLinkNotFoundError } from '../../domain/errors/payment-link-not-found.error';
 import { PaymentLinkUnavailableError } from '../../domain/errors/payment-link-unavailable.error';
@@ -60,6 +61,9 @@ export class FailPaymentLinkUseCase {
 
       payment.fail(input.reason ?? 'Payment link simulated failure');
       await repos.paymentRepository.save(payment);
+      if (payment.items.length > 0) {
+        await repos.paymentRepository.saveItems(payment.id, payment.items);
+      }
       const relatedAttempts = await repos.paymentRepository.findByPixChargeIdAndStoreId(
         item.pixCharge.id,
         item.storeId,
@@ -109,6 +113,9 @@ export class FailPaymentLinkUseCase {
       environment: item.environment ?? input.environment,
       paymentMethod: PaymentMethod.PIX,
       pixCharge,
+      // Tentativa falha carrega a mesma cesta da tentativa que deu certo:
+      // o dashboard mostra o que o comprador tentou levar.
+      items: item.items.map(forkLineItemSnapshot),
       expiresAt: paymentExpiresAt,
       metadata: {
         origin: 'payment_link',

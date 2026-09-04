@@ -1,0 +1,164 @@
+/* Auth shell — same paper/ink system as the landing.
+   Color is reserved for payment state; everything else is ink on paper. */
+
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
+}
+
+/* ── Type helpers ─────────────────────────────────────────────────────── */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ── Brand mark ───────────────────────────────────────────────────────── */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: var(--color-ink);
+}
+
+.mark-bar {
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--color-paper);
+  transition: height 0.35s var(--ease);
+}
+
+.mark-bar:last-of-type {
+  height: 7px;
+}
+
+.mark-dot {
+  width: 2.5px;
+  height: 2.5px;
+  margin-left: 2px;
+  align-self: flex-end;
+  margin-bottom: 7px;
+  border-radius: 50%;
+  background: var(--color-paper);
+}
+
+.mark-inverse {
+  background: var(--color-paper);
+}
+
+.mark-inverse .mark-bar,
+.mark-inverse .mark-dot {
+  background: var(--color-ink);
+}
+
+.group:hover .mark-bar:last-of-type {
+  height: 11px;
+}
+
+/* ── Ink panel texture ────────────────────────────────────────────────── */
+.ink-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 26px 26px;
+  color: rgb(250 249 246 / 0.16);
+  mask-image: radial-gradient(85% 60% at 15% 0%, #000 0%, transparent 74%);
+}
+
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-ok);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ok) 55%, transparent);
+  animation: pulse 2.6s ease-out infinite;
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ── Delivered-event log ──────────────────────────────────────────────── */
+.log {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgb(250 249 246 / 0.12);
+  border-radius: 12px;
+  background: rgb(250 249 246 / 0.04);
+}
+
+.log-mark {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-ink-faint);
+}
+
+.log[data-tone='ok'] .log-mark {
+  background: color-mix(in oklab, var(--color-ok) 55%, var(--color-paper));
+}
+
+.log[data-tone='bad'] .log-mark {
+  background: color-mix(in oklab, var(--color-bad) 60%, var(--color-paper));
+}
+
+.log[data-tone='warn'] .log-mark {
+  background: color-mix(in oklab, var(--color-warn) 60%, var(--color-paper));
+}
+
+/* ── Back link ────────────────────────────────────────────────────────── */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.2rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+  transition:
+    color 0.25s,
+    background 0.25s;
+}
+
+.back:hover {
+  color: var(--color-ink);
+  background: rgb(20 20 15 / 0.04);
+}
+
+.arrow-back {
+  transition: transform 0.3s var(--ease);
+}
+
+.group:hover .arrow-back {
+  transform: translateX(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+
+  .arrow-back,
+  .mark-bar {
+    transition: none;
+  }
+}

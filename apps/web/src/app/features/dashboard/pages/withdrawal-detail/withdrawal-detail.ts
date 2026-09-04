@@ -1,65 +1,62 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-    lucideArrowLeft,
-    lucideBadgeCheck,
-    lucideCheckCircle2,
-    lucideCircleAlert,
-    lucideClock,
-    lucideCopy,
+    lucideBuilding2,
+    lucideCircleCheck,
+    lucideCircleX,
     lucideRefreshCcw,
-    lucideSend,
-    lucideWallet,
-    lucideXCircle,
 } from '@ng-icons/lucide';
-import { HlmBadgeImports } from '@spartan-ng/helm/badge';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { finalize } from 'rxjs';
 import { BankAccount } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
 import {
     Withdrawal,
     WithdrawalService,
-    WithdrawalStatus,
     WithdrawalTimelineEvent,
     WithdrawalTransaction,
 } from '../../../../core/services/withdrawal.service';
+import {
+    CopyValue,
+    PageHeader,
+    PageState,
+    Sheet,
+    StatusChip,
+    type Tone,
+} from '../../../../shared/ui';
+
+/** O fio do tempo ganha cor pelo que o evento significa, não pelo seu nome. */
+const TIMELINE_TONES: Readonly<Record<string, Tone>> = {
+    SENT: 'ok',
+    FAILED: 'bad',
+    PROCESSING: 'warn',
+};
 
 @Component({
     selector: 'app-withdrawal-detail',
     standalone: true,
     imports: [
-        CommonModule,
-        RouterLink,
         CurrencyPipe,
         DatePipe,
-        NgIconComponent,
-        ...HlmBadgeImports,
-        ...HlmButtonImports,
-        HlmIconImports,
-        ...HlmSpinnerImports,
-        ...DialogImports,
+        NgIcon,
+        RouterLink,
+        CopyValue,
+        PageHeader,
+        PageState,
+        Sheet,
+        StatusChip,
     ],
     providers: [
         provideIcons({
-            lucideArrowLeft,
-            lucideBadgeCheck,
-            lucideCheckCircle2,
-            lucideCircleAlert,
-            lucideClock,
-            lucideCopy,
+            lucideBuilding2,
+            lucideCircleCheck,
+            lucideCircleX,
             lucideRefreshCcw,
-            lucideSend,
-            lucideWallet,
-            lucideXCircle,
         }),
     ],
     templateUrl: './withdrawal-detail.html',
+    styleUrl: './withdrawal-detail.css',
 })
 export class WithdrawalDetail implements OnInit {
     private readonly route = inject(ActivatedRoute);
@@ -166,54 +163,23 @@ export class WithdrawalDetail implements OnInit {
     }
 
     confirmActionTitle(): string {
-        return this.pendingDevAction() === 'complete' ? 'Completar saque TEST' : 'Falhar saque TEST';
+        return this.pendingDevAction() === 'complete' ? 'Completar este saque' : 'Falhar este saque';
     }
 
     confirmActionDescription(): string {
         if (this.pendingDevAction() === 'complete') {
-            return 'Esta ação marca o saque como concluído no ambiente TEST.';
+            return 'O saque passa a constar como concluído. Nenhum dinheiro se move — é ambiente TEST.';
         }
-        return 'Esta ação marca o saque como falho no ambiente TEST e devolve o saldo disponível.';
+        return 'O saque passa a constar como falho e o saldo reservado volta para o disponível.';
     }
 
-    statusLabel(status: WithdrawalStatus): string {
-        const labels: Record<WithdrawalStatus, string> = {
-            PENDING: 'Pendente',
-            PROCESSING: 'Processando',
-            COMPLETED: 'Concluído',
-            FAILED: 'Falhou',
-        };
-        return labels[status];
-    }
-
-    statusIcon(status: WithdrawalStatus): string {
-        const icons: Record<WithdrawalStatus, string> = {
-            PENDING: 'lucideClock',
-            PROCESSING: 'lucideSend',
-            COMPLETED: 'lucideCheckCircle2',
-            FAILED: 'lucideXCircle',
-        };
-        return icons[status];
-    }
-
-    statusClasses(status: WithdrawalStatus): string {
-        const classes: Record<WithdrawalStatus, string> = {
-            PENDING: 'border-amber-200 bg-amber-50 text-amber-700',
-            PROCESSING: 'border-blue-200 bg-blue-50 text-blue-700',
-            COMPLETED: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            FAILED: 'border-red-200 bg-red-50 text-red-700',
-        };
-        return classes[status];
+    timelineTone(type: string): Tone | null {
+        return TIMELINE_TONES[type] ?? null;
     }
 
     shortId(value?: string | null): string {
-        if (!value) return '-';
-        return value.length <= 16 ? value : `${value.slice(0, 12)}...`;
-    }
-
-    copy(value?: string | null): void {
-        if (!value) return;
-        void navigator.clipboard?.writeText(value);
+        if (!value) return '—';
+        return value.length <= 16 ? value : `${value.slice(0, 12)}…`;
     }
 
     transactionTypeLabel(type: string): string {
@@ -233,7 +199,7 @@ export class WithdrawalDetail implements OnInit {
         if (clean.length === 14) {
             return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}/${clean.slice(8, 12)}-${clean.slice(12)}`;
         }
-        return value || '-';
+        return value || '—';
     }
 
     private loadAccount(): void {

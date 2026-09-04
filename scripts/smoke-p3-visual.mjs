@@ -393,11 +393,12 @@ async function simulate(apiKey, paymentId, action, query = '') {
   return result?.payment;
 }
 
-async function createRefund(apiKey, paymentId, amount, scenario) {
+// Estorno e JWT-only: API key nao cria refund, so a sessao do dashboard.
+async function createRefund(paymentId, amount, scenario) {
   const result = await requestJson('/refunds', {
     method: 'POST',
+    jwtCookie: true,
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       'Idempotency-Key': `p3-refund-${scenario.toLowerCase()}-${runId}`,
       'X-Request-ID': `p3-refund-${scenario.toLowerCase()}-${runId}`,
     },
@@ -543,7 +544,7 @@ async function run() {
   step('Creating REFUNDED scenario');
   const refundedId = await createPayment(apiKey, 'REFUNDED', 1700);
   await simulate(apiKey, refundedId, 'confirm');
-  await createRefund(apiKey, refundedId, 1700, 'REFUNDED');
+  await createRefund(refundedId, 1700, 'REFUNDED');
   await assertTimelineStatus('REFUNDED', refundedId, 'REFUNDED');
   expectedWebhookEvents.push(
     { paymentId: refundedId, eventType: 'payment.created' },

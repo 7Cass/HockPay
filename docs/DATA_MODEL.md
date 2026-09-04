@@ -7,7 +7,7 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 | Grupo | Entidades | Cobertura runtime |
 | --- | --- | --- |
 | Identidade | `Merchant`, `RefreshToken`, `ApiKey`, `IdempotencyKey` | Implementada. |
-| Negocio | `Store`, `Customer`, `CheckoutSession`, `PaymentLink` | Implementada. |
+| Negocio | `Store`, `Customer`, `CheckoutSession`, `PaymentLink`, `PaymentLinkItem` | Implementada. |
 | Pagamento | `Payment`, `PixCharge`, `PaymentItem`, `Product` | Implementada para Pix simulado, catalogo opcional e snapshots de itens. |
 | Financeiro | `Account`, `Transaction`, `Refund`, `Receipt`, `ReceiptCounter`, `BankAccount`, `Withdrawal` | Implementada para saldos, ledger, receipts, refunds, bank accounts e withdrawals simulados. |
 | Integracao | `WebhookConfig`, `WebhookLog`, `WebhookInboxEvent`, `OutboxEvent` | Implementada. |
@@ -36,7 +36,8 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 
 - `PaymentLink` referencia uma `PixCharge` unica.
 - `publicToken` e usado pelo checkout publico em `/pay/:token`.
-- E criado com `amount` direto; nao possui items no contrato atual.
+- E criado com exatamente um de `amount` ou `items`; com `items`, o valor vem da soma das linhas.
+- `PaymentLinkItem` guarda o snapshot dos itens no momento da criacao, congelado junto com a `PixCharge`.
 - Falhas criam tentativas `Payment` sem encerrar a `PixCharge`.
 - Pagamento bem-sucedido fecha a `PixCharge` como `PAID`.
 
@@ -81,8 +82,10 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 - `price` e obrigatorio em centavos, com moeda publica fixa `BRL`.
 - `metadata`, `imageUrl`, `description` e `isActive` apoiam catalogo operacional.
 - Produto arquivado usa `isActive=false` e nao pode ser usado em novas cobrancas.
-- `CheckoutSessionItem` guarda snapshots dos itens no momento da criacao da checkout session.
+- `CheckoutSessionItem` e `PaymentLinkItem` guardam snapshots dos itens no momento da criacao da checkout session ou do Payment Link.
+- O snapshot nao acompanha edicoes posteriores do produto: nome, preco e imagem ficam congelados, coerentes com a `PixCharge`/BR Code EMV, que ja nasce com o valor fixo.
 - `PaymentItem` guarda o snapshot final em cada `Payment`, incluindo `productId`, `productExternalId`, `imageUrl` e metadata propria do item.
+- Cada tentativa de um Payment Link copia o snapshot com identidade propria, entao varias tentativas do mesmo link nao disputam ids de `PaymentItem`.
 - Metadata do produto nao e copiada automaticamente para o item.
 - `POST /api/v1/payments` continua API direta de baixo nivel e nao aceita `items` neste corte.
 

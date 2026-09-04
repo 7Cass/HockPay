@@ -83,6 +83,6 @@ describe('PaymentDetail', () => {
         component.submitRefund();
 
         expect(refundService.create).not.toHaveBeenCalled();
-        expect(component.refundError()).toBe('O valor não pode exceder o restante reembolsável.');
+        expect(component.refundError()).toBe('O valor passa do que ainda dá para estornar.');
     });
 });

@@ -1,89 +1,65 @@
-import { Component, inject, input, OnInit, output, signal } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { Component, OnInit, inject, input, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ApiKeyService, ApiKey, Environment } from '../../../../core/services/api-key.service';
-import { DialogImports } from '../../../../shared/components/dialog/dialog.component';
-import { toast } from 'ngx-sonner';
-
-// Spartan UI
-import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmTableImports } from '@spartan-ng/helm/table';
-import { HlmBadgeImports } from '@spartan-ng/helm/badge';
-import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
-
-// Icons
-import { NgIconComponent, provideIcons } from '@ng-icons/core';
-import { HlmIconImports } from '@spartan-ng/helm/icon';
+import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideRefreshCcw,
-  lucidePlus,
-  lucideTrash2,
-  lucideKey,
-  lucideXCircle,
   lucideCheck,
+  lucideCircleAlert,
   lucideCopy,
-  lucideAlertTriangle,
+  lucideKey,
+  lucidePlus,
+  lucideRefreshCcw,
+  lucideTrash2,
 } from '@ng-icons/lucide';
+import { toast } from 'ngx-sonner';
+import { ApiKey, ApiKeyService, Environment } from '../../../../core/services/api-key.service';
+import { PageHeader, PageState, Sheet } from '../../../../shared/ui';
 
 @Component({
   selector: 'app-api-keys',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    DatePipe,
-    // UI Components
-    ...HlmButtonImports,
-    ...HlmTableImports,
-    ...HlmBadgeImports,
-    ...HlmSpinnerImports,
-    NgIconComponent,
-    HlmIconImports,
-    ...DialogImports,
-  ],
+  imports: [DatePipe, NgIcon, ReactiveFormsModule, PageHeader, PageState, Sheet],
   viewProviders: [
     provideIcons({
-      lucideRefreshCcw,
-      lucidePlus,
-      lucideTrash2,
-      lucideKey,
-      lucideXCircle,
       lucideCheck,
+      lucideCircleAlert,
       lucideCopy,
-      lucideAlertTriangle,
+      lucideKey,
+      lucidePlus,
+      lucideRefreshCcw,
+      lucideTrash2,
     }),
   ],
   templateUrl: './api-keys.html',
+  styleUrl: './api-keys.css',
 })
 export class ApiKeys implements OnInit {
   readonly Environment = Environment;
   private readonly apiKeyService = inject(ApiKeyService);
+
   readonly embedded = input(false);
   readonly headerVariant = input<'default' | 'compact'>('default');
   readonly statsChange = output<{ total: number; isLoading: boolean; hasError: boolean }>();
 
-  // State Signals
-  keys = signal<ApiKey[]>([]);
-  newKeyEnvironment = new FormControl<Environment>(Environment.TEST, {
+  readonly keys = signal<ApiKey[]>([]);
+  readonly isLoading = signal(true);
+  readonly error = signal<string | null>(null);
+
+  readonly newKeyName = new FormControl('', [Validators.required, Validators.minLength(3)]);
+  readonly newKeyEnvironment = new FormControl<Environment>(Environment.TEST, {
     nonNullable: true,
   });
-  isLoading = signal<boolean>(true);
-  error = signal<string | null>(null);
+  readonly isCreating = signal(false);
+  readonly createDialogState = signal<'closed' | 'open'>('closed');
 
-  // Creation State
-  isCreating = signal<boolean>(false);
-  newKeyName = new FormControl('', [Validators.required, Validators.minLength(3)]);
-  createDialogState = signal<'closed' | 'open'>('closed');
+  /** A chave em claro só existe aqui, e só até a janela fechar. */
+  readonly newSecretKey = signal('');
+  readonly copied = signal(false);
+  readonly secretDialogState = signal<'closed' | 'open'>('closed');
 
-  // Secret Key Modal State
-  newSecretKey = signal<string>('');
-  copied = signal<boolean>(false);
-  secretDialogState = signal<'closed' | 'open'>('closed');
-
-  // Revoke Dialog State
-  keyToRevoke = signal<{ id: string; name: string } | null>(null);
-  revokeDialogState = signal<'closed' | 'open'>('closed');
-  isRevoking = signal<boolean>(false);
+  readonly keyToRevoke = signal<{ id: string; name: string } | null>(null);
+  readonly revokeDialogState = signal<'closed' | 'open'>('closed');
+  readonly isRevoking = signal(false);
 
   ngOnInit() {
     this.loadKeys();
@@ -94,12 +70,15 @@ export class ApiKeys implements OnInit {
   }
 
   closeCreateDialog() {
+    if (this.isCreating()) return;
     this.createDialogState.set('closed');
     this.newKeyName.reset();
   }
 
   closeSecretDialog() {
     this.secretDialogState.set('closed');
+    this.newSecretKey.set('');
+    this.copied.set(false);
   }
 
   openRevokeDialog(id: string, name: string) {
@@ -108,9 +87,9 @@ export class ApiKeys implements OnInit {
   }
 
   closeRevokeDialog() {
+    if (this.isRevoking()) return;
     this.revokeDialogState.set('closed');
-    // small delay to let the dialog animation close before nullifying content
-    setTimeout(() => this.keyToRevoke.set(null), 200);
+    this.keyToRevoke.set(null);
   }
 
   loadKeys() {
@@ -125,9 +104,8 @@ export class ApiKeys implements OnInit {
         this.isLoading.set(false);
         this.emitStats();
       },
-      error: (err) => {
-        console.error('Failed to load api keys', err);
-        this.error.set('Houve um erro ao se comunicar com o servidor. Tente novamente mais tarde.');
+      error: () => {
+        this.error.set('O servidor não respondeu. Tente de novo em instantes.');
         this.isLoading.set(false);
         this.emitStats();
       },
@@ -138,36 +116,32 @@ export class ApiKeys implements OnInit {
     if (this.newKeyName.invalid) return;
 
     this.isCreating.set(true);
-    const keyName = this.newKeyName.value!;
 
-    this.apiKeyService.create({
-      name: keyName,
-      environment: this.newKeyEnvironment.value,
-    }).subscribe({
-      next: (response) => {
-        // Reset creating state
-        this.isCreating.set(false);
-        this.newKeyName.reset();
-        this.newKeyEnvironment.setValue(Environment.TEST);
+    this.apiKeyService
+      .create({
+        name: this.newKeyName.value!,
+        environment: this.newKeyEnvironment.value,
+      })
+      .subscribe({
+        next: (response) => {
+          this.isCreating.set(false);
+          this.newKeyName.reset();
+          this.newKeyEnvironment.setValue(Environment.TEST);
 
-        const newKeyEntity: ApiKey = { ...response, plainKey: undefined } as any;
-        this.keys.update((keys) => [newKeyEntity, ...keys]);
+          const { plainKey, ...record } = response;
+          this.keys.update((keys) => [record as ApiKey, ...keys]);
 
-        // Show the one-time plain key in the modal explicitly
-        this.newSecretKey.set(response.plainKey);
-        this.copied.set(false);
-
-        // Hide create dialog and show secret dialog via Signals
-        this.createDialogState.set('closed');
-        this.secretDialogState.set('open');
-        this.emitStats();
-      },
-      error: (err) => {
-        this.isCreating.set(false);
-        console.error('Failed to create api key', err);
-        toast.error('Não foi possível criar a chave de API. Tente novamente.');
-      },
-    });
+          this.newSecretKey.set(plainKey);
+          this.copied.set(false);
+          this.createDialogState.set('closed');
+          this.secretDialogState.set('open');
+          this.emitStats();
+        },
+        error: () => {
+          this.isCreating.set(false);
+          toast.error('Não foi possível criar a chave. Tente de novo.');
+        },
+      });
   }
 
   revokeKey() {
@@ -179,25 +153,26 @@ export class ApiKeys implements OnInit {
     this.apiKeyService.revoke(key.id).subscribe({
       next: () => {
         this.isRevoking.set(false);
-        this.closeRevokeDialog();
+        this.revokeDialogState.set('closed');
+        this.keyToRevoke.set(null);
         this.loadKeys();
       },
-      error: (err) => {
+      error: () => {
         this.isRevoking.set(false);
-        this.closeRevokeDialog();
-        console.error('Failed to revoke api key', err);
-        toast.error('Não foi possível revogar a chave de API.');
+        this.revokeDialogState.set('closed');
+        this.keyToRevoke.set(null);
+        toast.error('Não foi possível revogar a chave.');
       },
     });
   }
 
   copyToClipboard() {
-    if (!this.newSecretKey()) return;
+    const secret = this.newSecretKey();
+    if (!secret) return;
 
-    navigator.clipboard.writeText(this.newSecretKey()).then(() => {
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 3000);
-    });
+    void navigator.clipboard?.writeText(secret);
+    this.copied.set(true);
+    window.setTimeout(() => this.copied.set(false), 3000);
   }
 
   private emitStats() {

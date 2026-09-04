@@ -35,6 +35,51 @@ export function calculateLineItemTotal(input: { quantity: number; unitPrice: num
   return input.quantity * input.unitPrice;
 }
 
+/**
+ * Copia um snapshot de line item para uma nova cobranca.
+ *
+ * O `id` e as datas pertencem ao registro de origem (ex.: `PaymentLinkItem`).
+ * Uma tentativa de pagamento cria registros proprios em `PaymentItem`, entao a
+ * copia precisa nascer sem identidade -- do contrario duas tabelas diferentes
+ * disputam o mesmo id, e um Payment Link com mais de uma tentativa colide na
+ * segunda.
+ */
+export function forkLineItemSnapshot(item: LineItemObject): LineItemObject {
+  return {
+    productId: item.productId,
+    productExternalId: item.productExternalId,
+    name: item.name,
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+    imageUrl: item.imageUrl,
+    metadata: item.metadata,
+  };
+}
+
+/**
+ * Line item as exposed on public (unauthenticated) surfaces: hosted checkout
+ * and the public Payment Link page. Deliberately drops `metadata`, which is
+ * merchant-private, and the product ids, which leak catalog structure.
+ */
+export type PublicLineItem = Pick<
+  LineItemObject,
+  'id' | 'name' | 'description' | 'quantity' | 'unitPrice' | 'totalPrice' | 'imageUrl'
+>;
+
+export function toPublicLineItem(item: LineItemObject): PublicLineItem {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+    imageUrl: item.imageUrl,
+  };
+}
+
 export function sanitizeLineItem(input: LineItemObject): LineItemObject {
   return {
     id: input.id,
