@@ -11,6 +11,7 @@ import { IWebhookLogRepository } from '../../domain/repositories/webhook-log.rep
 import { IWebhookSenderPort } from '../ports/webhook-sender.port';
 import { IHmacSignerPort } from '../ports/hmac-signer.port';
 import { IEncryptionPort } from '../ports/encryption.port';
+import { IWebhookCircuitBreakerPort } from '../ports/webhook-circuit-breaker.port';
 import {
   buildWebhookEventPayload,
   WebhookEventPayload,
@@ -63,6 +64,7 @@ export class ProcessWebhookUseCase {
     private readonly hmacSigner: IHmacSignerPort,
     private readonly encryption: IEncryptionPort,
     private readonly logger?: OperationalLogger,
+    private readonly circuitBreaker?: IWebhookCircuitBreakerPort,
   ) {}
 
   async execute(input: IProcessWebhookInput): Promise<IProcessWebhookOutput> {
@@ -120,13 +122,34 @@ export class ProcessWebhookUseCase {
       };
     }
 
+    // Destinos com o circuito aberto param aqui, antes de qualquer socket.
+    // Segurar o evento (sem marcar processado) faz o BullMQ tentar de novo mais
+    // tarde, quando a janela do breaker ja tiver passado.
+    const { attemptable, open } = await this.partitionByCircuit(configs);
+    const openIds = open.map((config) => config.id).join(', ');
+
+    if (attemptable.length === 0) {
+      this.logger?.warn(
+        `Skipping webhook delivery outboxEventId=${event.id}: all destinations are circuit-open (${openIds})`,
+      );
+      return {
+        event: event.toObject(),
+        delivered: false,
+        error: `Webhook destinations are circuit-open: ${openIds}`,
+      };
+    }
+
     const results = await Promise.all(
-      configs.map((config) =>
+      attemptable.map((config) =>
         this.sendWebhookSafely(event, config, event.requestId ?? input.requestId),
       ),
     );
-    const allSucceeded = results.every((result) => result.success);
-    const lastError = [...results].reverse().find((result) => !result.success)?.error;
+    // Um destino aberto nao conta como entregue: o evento precisa sobreviver
+    // para ser reentregue quando o circuito fechar.
+    const allSucceeded = results.every((result) => result.success) && open.length === 0;
+    const lastError =
+      [...results].reverse().find((result) => !result.success)?.error ??
+      (open.length > 0 ? `Webhook destinations are circuit-open: ${openIds}` : undefined);
 
     if (allSucceeded) {
       event.markAsProcessed();
@@ -138,6 +161,27 @@ export class ProcessWebhookUseCase {
       delivered: allSucceeded,
       error: lastError,
     };
+  }
+
+  private async partitionByCircuit(
+    configs: WebhookConfig[],
+  ): Promise<{ attemptable: WebhookConfig[]; open: WebhookConfig[] }> {
+    if (!this.circuitBreaker) {
+      return { attemptable: configs, open: [] };
+    }
+
+    const attemptable: WebhookConfig[] = [];
+    const open: WebhookConfig[] = [];
+
+    for (const config of configs) {
+      if (await this.circuitBreaker.shouldAttempt(config.id)) {
+        attemptable.push(config);
+      } else {
+        open.push(config);
+      }
+    }
+
+    return { attemptable, open };
   }
 
   /**
@@ -233,6 +277,7 @@ export class ProcessWebhookUseCase {
       );
 
       if (response.success) {
+        await this.circuitBreaker?.recordSuccess(config.id);
         deliveryLog.recordSuccess(response.statusCode, response.body);
         await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.debug(
@@ -240,6 +285,11 @@ export class ProcessWebhookUseCase {
         );
         return { success: true };
       } else {
+        // So `transport` conta: um 4xx e a aplicacao do lojista respondendo, e
+        // um `blocked` nem chegou a abrir socket. Nenhum dos dois trava a fila.
+        if (response.failureKind === 'transport') {
+          await this.circuitBreaker?.recordTransportFailure(config.id);
+        }
         deliveryLog.recordFailure(response.statusCode, response.body);
         await this.webhookLogRepository.upsertDelivery(deliveryLog);
         this.logger?.warn(
@@ -248,7 +298,10 @@ export class ProcessWebhookUseCase {
         return { success: false, error: `HTTP ${response.statusCode}` };
       }
     } catch (error) {
+      // Excecao aqui e o socket morrendo por baixo do sender: conta como falha
+      // de transporte, que e exatamente o caso que o breaker existe para cortar.
       const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.circuitBreaker?.recordTransportFailure(config.id);
       deliveryLog.recordFailure(0, errorMessage);
       await this.webhookLogRepository.upsertDelivery(deliveryLog);
       this.logger?.warn(

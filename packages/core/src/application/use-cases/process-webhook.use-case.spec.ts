@@ -41,12 +41,14 @@ describe('ProcessWebhookUseCase', () => {
     sender,
     encryption = { decrypt: vi.fn().mockReturnValue('plain-secret') },
     existingDeliveries = {},
+    circuitBreaker,
   }: {
     event: OutboxEvent;
     configs: WebhookConfig[];
     sender: any;
     encryption?: any;
     existingDeliveries?: Record<string, WebhookLog | null>;
+    circuitBreaker?: any;
   }) {
     const outboxRepository = {
       findById: vi.fn().mockResolvedValue(event),
@@ -72,6 +74,8 @@ describe('ProcessWebhookUseCase', () => {
         sign: vi.fn().mockReturnValue('signature'),
       } as any,
       encryption,
+      undefined,
+      circuitBreaker,
     );
 
     return {
@@ -422,6 +426,143 @@ describe('ProcessWebhookUseCase', () => {
         status: 'PAID',
         checkout_url: 'https://checkout.example.com/pay/token',
       },
+    });
+  });
+
+  describe('circuit breaker', () => {
+    function makeBreaker(overrides: Partial<Record<string, any>> = {}) {
+      return {
+        shouldAttempt: vi.fn().mockResolvedValue(true),
+        recordSuccess: vi.fn(),
+        recordTransportFailure: vi.fn(),
+        status: vi.fn(),
+        ...overrides,
+      };
+    }
+
+    it('does not open a socket for a destination whose circuit is open', async () => {
+      const event = makeEvent();
+      const config = makeConfig('webhook-config-1', 'https://example.com/webhook');
+      const send = vi.fn();
+      const circuitBreaker = makeBreaker({ shouldAttempt: vi.fn().mockResolvedValue(false) });
+      const { useCase, outboxRepository } = makeUseCase({
+        event,
+        configs: [config],
+        sender: { send },
+        circuitBreaker,
+      });
+
+      const result = await useCase.execute({ eventId: event.id });
+
+      expect(send).not.toHaveBeenCalled();
+      expect(result.delivered).toBe(false);
+      // O evento tem que sobreviver para ser reentregue quando o circuito fechar.
+      expect(outboxRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('keeps delivering to healthy destinations while one is open', async () => {
+      const event = makeEvent();
+      const healthy = makeConfig('healthy', 'https://healthy.example.com/webhook');
+      const stuck = makeConfig('stuck', 'https://stuck.example.com/webhook');
+      const send = vi.fn().mockResolvedValue({ success: true, statusCode: 200, body: 'ok' });
+      const circuitBreaker = makeBreaker({
+        shouldAttempt: vi.fn(async (configId: string) => configId !== 'stuck'),
+      });
+      const { useCase, outboxRepository } = makeUseCase({
+        event,
+        configs: [healthy, stuck],
+        sender: { send },
+        circuitBreaker,
+      });
+
+      const result = await useCase.execute({ eventId: event.id });
+
+      // O ponto do breaker: um destino travado nao segura os demais.
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0]).toBe('https://healthy.example.com/webhook');
+      // Mas o evento so fecha quando todo destino tiver recebido.
+      expect(result.delivered).toBe(false);
+      expect(outboxRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('counts a transport failure, but not a 4xx the merchant chose to answer', async () => {
+      const rejected = makeEvent();
+      const config = makeConfig('webhook-config-1', 'https://example.com/webhook');
+      const businessBreaker = makeBreaker();
+      const business = makeUseCase({
+        event: rejected,
+        configs: [config],
+        sender: {
+          send: vi.fn().mockResolvedValue({
+            success: false,
+            statusCode: 422,
+            body: 'unprocessable',
+            failureKind: 'response',
+          }),
+        },
+        circuitBreaker: businessBreaker,
+      });
+      await business.useCase.execute({ eventId: rejected.id });
+      expect(businessBreaker.recordTransportFailure).not.toHaveBeenCalled();
+
+      const hung = makeEvent();
+      const transportBreaker = makeBreaker();
+      const transport = makeUseCase({
+        event: hung,
+        configs: [config],
+        sender: {
+          send: vi.fn().mockResolvedValue({
+            success: false,
+            statusCode: 0,
+            body: 'timeout',
+            failureKind: 'transport',
+          }),
+        },
+        circuitBreaker: transportBreaker,
+      });
+      await transport.useCase.execute({ eventId: hung.id });
+      expect(transportBreaker.recordTransportFailure).toHaveBeenCalledWith('webhook-config-1');
+    });
+
+    it('does not count a destination the URL policy blocked before any socket', async () => {
+      const event = makeEvent();
+      const config = makeConfig('webhook-config-1', 'http://blocked.example.com/webhook');
+      const circuitBreaker = makeBreaker();
+      const { useCase } = makeUseCase({
+        event,
+        configs: [config],
+        sender: {
+          send: vi.fn().mockResolvedValue({
+            success: false,
+            statusCode: 0,
+            body: 'Webhook URL is not allowed',
+            failureKind: 'blocked',
+          }),
+        },
+        circuitBreaker,
+      });
+
+      await useCase.execute({ eventId: event.id });
+
+      expect(circuitBreaker.recordTransportFailure).not.toHaveBeenCalled();
+    });
+
+    it('closes the circuit on a successful delivery', async () => {
+      const event = makeEvent();
+      const config = makeConfig('webhook-config-1', 'https://example.com/webhook');
+      const circuitBreaker = makeBreaker();
+      const { useCase } = makeUseCase({
+        event,
+        configs: [config],
+        sender: {
+          send: vi.fn().mockResolvedValue({ success: true, statusCode: 200, body: 'ok' }),
+        },
+        circuitBreaker,
+      });
+
+      await useCase.execute({ eventId: event.id });
+
+      expect(circuitBreaker.recordSuccess).toHaveBeenCalledWith('webhook-config-1');
     });
   });
 });

@@ -42,10 +42,4 @@ export class WebhookQueue implements IWebhookQueuePort, OnModuleDestroy {
       },
     );
   }
-
-  async enqueueRetry(eventId: string, attempt: number): Promise<void> {
-    void attempt;
-    // Deprecated: BullMQ handles generic backoffs via the `backoff` config directly in enqueue.
-    await this.enqueue(eventId);
-  }
 }

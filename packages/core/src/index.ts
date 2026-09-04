@@ -32,6 +32,7 @@ export * from './domain/value-objects/document.vo';
 export * from './domain/value-objects/environment.vo';
 
 // Domain - Constants
+export * from './application/ports/webhook-circuit-breaker.port';
 export * from './domain/constants/event-catalog';
 export * from './application/services/event-catalog-examples';
 export * from './application/services/event-catalog-doc';

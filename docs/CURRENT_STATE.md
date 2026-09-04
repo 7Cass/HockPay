@@ -26,7 +26,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Dev simulation                    | Implementado         | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos.                                                                                 |
 | Checkout session                  | Implementado         | API cria sessao, checkout coleta pagador, `fulfill` gera/submete pagamento simulado.                                                                 |
 | Payment Link                      | Implementado         | Modelo `PaymentLink -> PixCharge -> Payment attempts`, por valor avulso ou por itens do catalogo; falhas criam tentativas sem fechar a cobranca, pagamento confirmado fecha o link como `PAID`. |
-| Webhooks                          | Implementado         | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais. Envelope versionado por tipo, catalogado em [EVENTS.md](EVENTS.md).                       |
+| Webhooks                          | Implementado         | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais. Envelope versionado por tipo, catalogado em [EVENTS.md](EVENTS.md). Circuit breaker por destino no Redis e entrega concorrente. |
 | Alerts                            | Implementado         | Configs e entregas para Discord operacional com logs e retry.                                                                                        |
 | Receipts                          | Implementado         | Recibo emitido para pagamento confirmado, consultavel por API e dashboard.                                                                           |
 | Refunds                           | Implementado         | Estornos parciais ou totais ajustam financeiro e outbox.                                                                                             |
@@ -106,7 +106,8 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 CI em GitHub Actions usa Node 22 e pnpm 9.15.0.
 
-- Job `build`: `pnpm run lint:check`, `pnpm run format:check` e `pnpm build`. `lint:check`/`format:check` na raiz cobrem API e worker; web, checkout, demo, core, infrastructure e database nao entram nesse gate.
+- Job `smoke-concurrency`: sobe a stack por Docker e roda `db-concurrency`, `idempotency` e `idempotency-redis-unavailable` em todo PR. Sao suites api-only: nao sobem worker nem checkout.
+- Job `build`: `pnpm run lint:check`, `pnpm run format:check` e `pnpm build`. Os dois cobrem `apps/api`, `apps/worker`, `packages/core`, `packages/infrastructure` e `packages/database`. `apps/web`, `apps/checkout` e `apps/demo-mediakit` nao tem `lint:check` nem `format:check` e ficam fora do gate; `apps/web` tem testes, checkout e demo nao tem nenhum.
 - Job `test`: testes de `@hockpay/core`, `@hockpay/infrastructure`, `@hockpay/api` e `@hockpay/worker`.
 - Job `api-e2e`: e2e da API.
 - Job `web-test`: testes do dashboard Angular (`pnpm --filter @hockpay/web test -- --watch=false`).
