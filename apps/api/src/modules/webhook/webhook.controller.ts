@@ -148,7 +148,10 @@ export class WebhookController {
 
     return {
       webhooks: result.webhookConfigs.map((config) =>
-        mapWebhookConfigToDto(config.toPublicObject()),
+        mapWebhookConfigToDto(
+          config.toPublicObject(),
+          result.circuits[config.id],
+        ),
       ),
     };
   }

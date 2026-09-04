@@ -5,12 +5,24 @@ import { ApiClientService } from './api-client.service';
 /**
  * Webhook Config Business Entity
  */
+/**
+ * Estado do circuit breaker daquele destino. O worker abre o circuito depois de
+ * falhas de transporte seguidas (timeout, DNS, recusa), e enquanto ele estiver
+ * aberto nenhuma entrega e tentada -- e por isso que o lojista precisa ver.
+ */
+export interface WebhookCircuit {
+  state: 'closed' | 'open';
+  consecutiveFailures: number;
+  openUntil?: string;
+}
+
 export interface WebhookConfig {
   id: string;
   url: string;
   prefix: string;
   events: string[];
   isActive: boolean;
+  circuit?: WebhookCircuit;
   createdAt: string;
   updatedAt: string;
 }

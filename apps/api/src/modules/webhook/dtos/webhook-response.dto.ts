@@ -1,4 +1,6 @@
 import {
+  CLOSED_WEBHOOK_CIRCUIT,
+  WebhookCircuitSnapshot,
   WebhookConfigObject,
   WebhookConfigPublicObject,
   WebhookInboxEventObject,
@@ -21,6 +23,16 @@ export class WebhookConfigCreatedDto {
 }
 
 /**
+ * Estado do circuit breaker daquele destino, para o lojista ver que o endpoint
+ * dele esta fora antes de abrir chamado perguntando por que parou de receber.
+ */
+export class WebhookCircuitDto {
+  state: 'closed' | 'open';
+  consecutiveFailures: number;
+  openUntil?: Date;
+}
+
+/**
  * Response DTO for webhook config (without secret).
  */
 export class WebhookConfigDto {
@@ -29,6 +41,7 @@ export class WebhookConfigDto {
   prefix: string;
   events: string[];
   isActive: boolean;
+  circuit: WebhookCircuitDto;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,6 +144,7 @@ export class RetryWebhookResponseDto {
  */
 export function mapWebhookConfigToDto(
   config: WebhookConfigPublicObject | WebhookConfigObject,
+  circuit: WebhookCircuitSnapshot = CLOSED_WEBHOOK_CIRCUIT,
 ): WebhookConfigDto {
   return {
     id: config.id,
@@ -138,6 +152,11 @@ export function mapWebhookConfigToDto(
     prefix: config.prefix,
     events: config.events,
     isActive: config.isActive,
+    circuit: {
+      state: circuit.state,
+      consecutiveFailures: circuit.consecutiveFailures,
+      ...(circuit.openUntil ? { openUntil: circuit.openUntil } : {}),
+    },
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
   };

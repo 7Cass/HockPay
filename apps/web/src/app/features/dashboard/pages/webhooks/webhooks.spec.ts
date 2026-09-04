@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import {
+  WebhookConfig,
   WebhookDeliveryStatus,
   WebhookLog,
   WebhookService,
@@ -78,5 +79,50 @@ describe('Webhooks', () => {
 
     expect(component.resolveLogStatus(log)).toBe('DELIVERED');
     expect(component.canRetryLog(log)).toBe(false);
+  });
+
+  describe('circuit breaker', () => {
+    function createHook(circuit?: WebhookConfig['circuit']): WebhookConfig {
+      return {
+        id: 'config-1',
+        url: 'https://api.example.com/hockpay',
+        prefix: 'whsec_test',
+        events: ['payment.confirmed'],
+        isActive: true,
+        circuit,
+        createdAt: '2026-05-15T12:00:00.000Z',
+        updatedAt: '2026-05-15T12:00:00.000Z',
+      };
+    }
+
+    it('says nothing when the destination is healthy', () => {
+      const component = createComponent();
+
+      expect(component.isCircuitOpen(createHook({ state: 'closed', consecutiveFailures: 0 }))).toBe(
+        false,
+      );
+      // Uma API que ainda nao manda o campo nao pode virar alarme falso.
+      expect(component.isCircuitOpen(createHook(undefined))).toBe(false);
+    });
+
+    it('explains an open circuit with the failure count and when it retries', () => {
+      const component = createComponent();
+      const hook = createHook({
+        state: 'open',
+        consecutiveFailures: 5,
+        openUntil: '2026-05-15T12:01:00.000Z',
+      });
+
+      expect(component.isCircuitOpen(hook)).toBe(true);
+      expect(component.circuitDetail(hook)).toContain('5 falhas seguidas');
+      expect(component.circuitDetail(hook)).toContain('nova tentativa');
+    });
+
+    it('still reports the failures when there is no retry timestamp', () => {
+      const component = createComponent();
+      const hook = createHook({ state: 'open', consecutiveFailures: 1 });
+
+      expect(component.circuitDetail(hook)).toBe('1 falha seguida');
+    });
   });
 });

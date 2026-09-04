@@ -38,6 +38,11 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
  * Dependencies:
  * - ApiKeyModule: Provides ValidateApiKeyUseCase for CombinedAuthGuard
  */
+import {
+  WEBHOOK_CIRCUIT_BREAKER,
+  webhookCircuitBreakerProvider,
+} from './webhook-circuit-breaker.provider';
+
 @Module({
   imports: [
     AuthModule,
@@ -57,7 +62,11 @@ import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
       TokenGeneratorService,
       EncryptionService,
     ]),
-    provideUseCase(ListWebhookConfigsUseCase, ['IWebhookConfigRepository']),
+    webhookCircuitBreakerProvider,
+    provideUseCase(ListWebhookConfigsUseCase, [
+      'IWebhookConfigRepository',
+      WEBHOOK_CIRCUIT_BREAKER,
+    ]),
     provideUseCase(GetWebhookConfigUseCase, ['IWebhookConfigRepository']),
     provideUseCase(
       UpdateWebhookConfigUseCase,

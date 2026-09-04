@@ -82,10 +82,18 @@
                 </td>
 
                 <td>
-                  <app-status-chip
-                    [status]="hook.isActive ? 'ACTIVE' : 'INACTIVE'"
-                    [label]="hook.isActive ? 'Ativo' : 'Inativo'"
-                  />
+                  <span class="cell-stack">
+                    <app-status-chip
+                      [status]="hook.isActive ? 'ACTIVE' : 'INACTIVE'"
+                      [label]="hook.isActive ? 'Ativo' : 'Inativo'"
+                    />
+                    @if (isCircuitOpen(hook)) {
+                      <span class="chip" data-tone="warn" [title]="circuitTitle(hook)">
+                        Entrega pausada
+                      </span>
+                      <span class="cell-sub">{{ circuitDetail(hook) }}</span>
+                    }
+                  </span>
                 </td>
 
                 <td class="col-created numeric">{{ hook.createdAt | date: 'dd/MM/yy HH:mm' }}</td>

@@ -403,6 +403,38 @@ export class Webhooks implements OnInit {
   }
 
   /**
+   * O circuito abre quando o destino falha por transporte varias vezes seguidas
+   * -- endpoint fora do ar, tunel de dev caido, proxy pendurado. Enquanto
+   * estiver aberto nenhuma entrega e tentada, entao a tela precisa dizer isso
+   * em vez de deixar o lojista achar que parou de acontecer evento.
+   */
+  isCircuitOpen(hook?: WebhookConfig | null): boolean {
+    return hook?.circuit?.state === 'open';
+  }
+
+  circuitDetail(hook?: WebhookConfig | null): string {
+    const circuit = hook?.circuit;
+    if (!circuit || circuit.state !== 'open') return '';
+
+    const failures = `${circuit.consecutiveFailures} ${
+      circuit.consecutiveFailures === 1 ? 'falha seguida' : 'falhas seguidas'
+    }`;
+    if (!circuit.openUntil) return failures;
+
+    const retryAt = new Date(circuit.openUntil);
+    if (Number.isNaN(retryAt.getTime())) return failures;
+
+    const time = retryAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `${failures} · nova tentativa às ${time}`;
+  }
+
+  circuitTitle(hook?: WebhookConfig | null): string {
+    return this.isCircuitOpen(hook)
+      ? 'O destino não respondeu às últimas tentativas. As entregas voltam sozinhas quando ele responder.'
+      : '';
+  }
+
+  /**
    * A API nem sempre manda `status`. Quando falta, o desfecho é reconstruído
    * a partir do que sobrou: resposta HTTP, carimbo de entrega, erro, tentativa.
    */
