@@ -37,7 +37,7 @@ describe('AlertProcessor', () => {
         outboxEventId: 'outbox-1',
         timestamp: '2026-05-16T12:00:00.000Z',
       },
-      { jobId: 'alert-delivery:job-1' },
+      { jobId: 'alert-delivery-dlq-job-1' },
     );
   });
 });

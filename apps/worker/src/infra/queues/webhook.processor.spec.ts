@@ -72,7 +72,7 @@ describe('WebhookProcessor', () => {
         configIds: ['config-1'],
         timestamp: '2026-05-16T12:00:00.000Z',
       },
-      { jobId: 'webhook-delivery:job-1' },
+      { jobId: 'webhook-delivery-dlq-job-1' },
     );
     expect(
       webhookLogRepository.markOutboxDeliveriesFinalFailure.mock.invocationCallOrder[0],

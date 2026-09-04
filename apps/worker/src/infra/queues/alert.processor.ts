@@ -54,7 +54,8 @@ export class AlertProcessor extends WorkerHost {
     const deadLetterJob = buildDeadLetterJobData(ALERT_DELIVERY_QUEUE, job, error);
 
     await this.deadLetterQueue.add('dead-letter', deadLetterJob, {
-      jobId: `${ALERT_DELIVERY_QUEUE}:${job.id}`,
+      // Mesmo motivo do webhook.processor: `:` e proibido em jobId.
+      jobId: `${ALERT_DELIVERY_QUEUE}-dlq-${job.id}`,
     });
 
     this.logger.error(
