@@ -107,7 +107,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 CI em GitHub Actions usa Node 22 e pnpm 9.15.0.
 
-- Job `smoke-concurrency`: sobe a stack por Docker e roda `db-concurrency`, `idempotency` e `idempotency-redis-unavailable` em todo PR. Sao suites api-only: nao sobem worker nem checkout.
+- Job `smoke-concurrency`: sobe a stack por Docker em todo PR. Roda `db-concurrency`, `idempotency` e `idempotency-redis-unavailable` (api-only) e `webhook-isolation` (sobe worker, nao sobe checkout).
 - Job `build`: `pnpm run lint:check`, `pnpm run format:check` e `pnpm build`. Os dois cobrem `apps/api`, `apps/worker`, `packages/core`, `packages/infrastructure` e `packages/database`. `apps/web`, `apps/checkout` e `apps/demo-mediakit` nao tem `lint:check` nem `format:check` e ficam fora do gate; `apps/web` tem testes, checkout e demo nao tem nenhum.
 - Job `test`: testes de `@hockpay/core`, `@hockpay/infrastructure`, `@hockpay/api` e `@hockpay/worker`.
 - Job `api-e2e`: e2e da API.

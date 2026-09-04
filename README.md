@@ -54,6 +54,7 @@ Para variáveis de ambiente por app e opções de smoke local, use a matriz do [
 ```bash
 pnpm run smoke:p0
 pnpm run smoke:payment-link
+pnpm run smoke:webhook-isolation
 pnpm run smoke:p3:visual
 pnpm run smoke:studycase:mediakit
 pnpm run smoke:system
