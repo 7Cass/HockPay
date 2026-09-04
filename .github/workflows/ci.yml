@@ -161,6 +161,51 @@ jobs:
       - name: API e2e tests
         run: pnpm --filter @hockpay/api test:e2e
 
+  # A garantia mais dificil do produto -- reserva de saldo sob concorrencia e
+  # idempotencia sob corrida -- estava escrita e funcionando, mas fora do
+  # default do smoke:docker e de qualquer job da CI: so rodava quando alguem
+  # lembrava. Estas tres suites sao "api-only" (nao sobem worker nem checkout),
+  # entao cabem num gate de PR.
+  smoke-concurrency:
+    name: Concurrency smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Run concurrency smoke suites
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/smoke-concurrency
+          HOCKPAY_SMOKE_SUITE=db-concurrency,idempotency,idempotency-redis-unavailable \
+          HOCKPAY_SMOKE_ARTIFACT_DIR=artifacts/smoke-concurrency \
+            pnpm run smoke:docker 2>&1 | tee artifacts/smoke-concurrency/smoke.log
+
+      - name: Upload smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-concurrency-diagnostics
+          path: artifacts/smoke-concurrency
+
   smoke-minimal:
     name: Minimal smoke
     runs-on: ubuntu-latest

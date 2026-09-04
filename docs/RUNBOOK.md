@@ -50,6 +50,8 @@ Use `.env.example` como base local, sem copiar valores reais de `.env`. API e wo
 | `THROTTLE_TTL_MS`           | Tamanho da janela do rate limit da API, em ms                             | `60000`                                                                          |
 | `THROTTLE_LOGIN_LIMIT`      | Tentativas de `POST /auth/login` por IP na mesma janela                   | `5`                                                                              |
 
+> `NODE_ENV` nao e cosmetico no worker: fora de `development`/`dev`/`local`/`test` a politica de URL recusa todo destino HTTP, inclusive `127.0.0.1`. Um worker sem `NODE_ENV` entrega zero webhook em dev, e a falha aparece so no `last_error` do `webhook_logs`.
+
 API e worker aceitam `REDIS_URL` somente, `REDIS_HOST`/`REDIS_PORT` somente, ou os dois formatos quando apontam para o mesmo host e porta. Se `REDIS_URL` divergir de `REDIS_HOST`/`REDIS_PORT`, o processo falha no startup com erro de configuracao para evitar API, worker e filas em Redis diferentes.
 
 `pnpm run db:deploy` no workspace-fonte pode usar o `.env` da raiz. Deploy por artefato que execute `packages/database/dist/prisma.config.ts` deve exportar `DATABASE_URL` no ambiente do processo; não dependa de descoberta de `.env` a partir de `dist`.
@@ -79,6 +81,9 @@ API e worker aceitam `REDIS_URL` somente, `REDIS_HOST`/`REDIS_PORT` somente, ou 
 | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS`     | Limpeza de chaves idempotentes                      | `0 4 * * *`                                      |
 | `WORKER_CRON_ANTI_FRAUD`                   | Varredura antifraude simulada                       | `0 * * * *`                                      |
 | `WORKER_CRON_LOCK_TTL_MS`                  | TTL do lock distribuído                             | `300000`                                         |
+| `WEBHOOK_DELIVERY_CONCURRENCY`             | Entregas de webhook em paralelo por worker          | `5`                                              |
+| `WEBHOOK_CIRCUIT_FAILURE_THRESHOLD`        | Falhas de transporte seguidas antes de abrir o circuito de um destino | `5`                     |
+| `WEBHOOK_CIRCUIT_OPEN_MS`                  | Quanto tempo o destino fica aberto antes de nova tentativa | `60000`                                   |
 | `WITHDRAWAL_SIMULATOR_FORCE_FAILURE`       | Força falha técnica de saque quando `true`          | `false`                                          |
 
 Health do worker:
