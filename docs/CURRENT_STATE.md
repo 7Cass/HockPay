@@ -64,7 +64,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 1. Merchant cria link autenticado em `POST /api/v1/payment-links`, com exatamente um de `amount` ou `items`.
 2. Comprador abre `apps/checkout` em `/pay/:token`, que consulta `GET /api/v1/payment-links/public/:token`.
 3. Checkout publico `/pay/:token` coleta documento do pagador; `pay` associa um `Customer` a tentativa.
-4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` sem items.
+4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` que herdam o snapshot de items do link, quando ele tem items.
 5. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
 
 ### Checkout Session
