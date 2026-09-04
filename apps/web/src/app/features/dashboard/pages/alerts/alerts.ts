@@ -81,6 +81,51 @@ const EVENT_OPTIONS: AlertEventOption[] = [
     label: 'Repasse liberado',
     description: 'Útil para acompanhamento financeiro e conciliação da operação.',
   },
+  {
+    id: 'payment.refunded',
+    label: 'Pagamento estornado',
+    description: 'Sinaliza estornos, que mexem no saldo e costumam exigir conferência.',
+  },
+  {
+    id: 'payment_link.created',
+    label: 'Link criado',
+    description: 'Avisa quando alguém do time cria um link, inclusive pelo dashboard.',
+  },
+  {
+    id: 'payment_link.paid',
+    label: 'Link pago',
+    description: 'Fecha o ciclo do link sem precisar cruzar o pagamento com o link na mão.',
+  },
+  {
+    id: 'payment_link.expired',
+    label: 'Link expirado',
+    description: 'Mostra links que morreram sem conversão.',
+  },
+  {
+    id: 'payment_link.cancelled',
+    label: 'Link cancelado',
+    description: 'Registra quando alguém do time derruba um link antes do pagamento.',
+  },
+  {
+    id: 'withdrawal.created',
+    label: 'Saque solicitado',
+    description: 'Acompanha saídas de saldo desde a solicitação.',
+  },
+  {
+    id: 'withdrawal.processing',
+    label: 'Saque em processamento',
+    description: 'Indica que o saque saiu da fila e está sendo processado.',
+  },
+  {
+    id: 'withdrawal.completed',
+    label: 'Saque concluído',
+    description: 'Confirma que o valor deixou o saldo da loja.',
+  },
+  {
+    id: 'withdrawal.failed',
+    label: 'Saque falhou',
+    description: 'Destaca falhas de saque, com o valor devolvido ao saldo disponível.',
+  },
 ];
 
 const CHANNEL_OPTIONS: AlertChannelOption[] = [

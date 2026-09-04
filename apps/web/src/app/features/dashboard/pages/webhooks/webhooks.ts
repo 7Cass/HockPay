@@ -99,12 +99,28 @@ export class Webhooks implements OnInit {
     events: new FormControl<string[]>([], [Validators.required, Validators.minLength(1)]),
   });
 
+  /**
+   * Espelho de `ALLOWED_WEBHOOK_EVENTS` em @hockpay/core, catalogado em
+   * `docs/EVENTS.md`. O dashboard nao importa o core (app Angular separado),
+   * entao esta lista e mantida a mao -- e tinha ficado para tras: a API aceitava
+   * dez eventos enquanto a tela oferecia cinco, e quem quisesse assinar
+   * `payment.refunded` ou os `withdrawal.*` tinha que ir pela API.
+   */
   readonly availableEvents = [
     { id: 'payment.created', label: 'Pagamento criado' },
     { id: 'payment.confirmed', label: 'Pagamento confirmado' },
     { id: 'payment.failed', label: 'Pagamento falhou' },
     { id: 'payment.expired', label: 'Pagamento expirado' },
     { id: 'payment.released', label: 'Repasse liberado' },
+    { id: 'payment.refunded', label: 'Pagamento estornado' },
+    { id: 'payment_link.created', label: 'Link criado' },
+    { id: 'payment_link.paid', label: 'Link pago' },
+    { id: 'payment_link.expired', label: 'Link expirado' },
+    { id: 'payment_link.cancelled', label: 'Link cancelado' },
+    { id: 'withdrawal.created', label: 'Saque solicitado' },
+    { id: 'withdrawal.processing', label: 'Saque em processamento' },
+    { id: 'withdrawal.completed', label: 'Saque concluido' },
+    { id: 'withdrawal.failed', label: 'Saque falhou' },
   ];
 
   readonly logStatusOptions: LogFilter[] = ['all', 'delivered', 'failed', 'pending'];
