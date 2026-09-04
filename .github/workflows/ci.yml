@@ -167,7 +167,7 @@ jobs:
   # lembrava. Estas tres suites sao "api-only" (nao sobem worker nem checkout),
   # entao cabem num gate de PR.
   smoke-concurrency:
-    name: Concurrency smoke
+    name: Concurrency and isolation smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -199,12 +199,24 @@ jobs:
           HOCKPAY_SMOKE_ARTIFACT_DIR=artifacts/smoke-concurrency \
             pnpm run smoke:docker 2>&1 | tee artifacts/smoke-concurrency/smoke.log
 
+      # Sobe worker, entao nao cabe no job api-only acima. Roda no mesmo job
+      # para reaproveitar o setup, e nao para economizar cobertura.
+      - name: Run webhook isolation smoke
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/smoke-isolation
+          HOCKPAY_SMOKE_SUITE=webhook-isolation \
+          HOCKPAY_SMOKE_ARTIFACT_DIR=artifacts/smoke-isolation \
+            pnpm run smoke:docker 2>&1 | tee artifacts/smoke-isolation/smoke.log
+
       - name: Upload smoke diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-concurrency-diagnostics
-          path: artifacts/smoke-concurrency
+          path: |
+            artifacts/smoke-concurrency
+            artifacts/smoke-isolation
 
   smoke-minimal:
     name: Minimal smoke

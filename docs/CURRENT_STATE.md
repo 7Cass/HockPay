@@ -36,6 +36,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Customer history                  | Implementado         | Endpoints de historico por customer external id para pagamentos e receipts.                                                                          |
 | Products/catalog                  | Implementado         | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`.                           |
 | Settings                          | Perfil mutavel       | Merchant edita `name` e `city` (EMV). Fee, settlement e aprovacao continuam imutaveis.                                                               |
+| Antifraude                        | Planejado            | Nao existe. O `DetectAnomaliesUseCase` stub e o cron horario foram removidos: devolviam lista vazia e logavam varredura que nunca aconteceu. Os quatro tipos de anomalia previstos (volume, transacoes rapidas, valor atipico, taxa de falha) sao consultas sobre dados que ja estao no banco, mas nada disso esta implementado. |
 | Marketplace/split/multi-seller    | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto.                                                                               |
 
 ## Matriz de Superficies
@@ -106,7 +107,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 CI em GitHub Actions usa Node 22 e pnpm 9.15.0.
 
-- Job `smoke-concurrency`: sobe a stack por Docker e roda `db-concurrency`, `idempotency` e `idempotency-redis-unavailable` em todo PR. Sao suites api-only: nao sobem worker nem checkout.
+- Job `smoke-concurrency`: sobe a stack por Docker em todo PR. Roda `db-concurrency`, `idempotency` e `idempotency-redis-unavailable` (api-only) e `webhook-isolation` (sobe worker, nao sobe checkout).
 - Job `build`: `pnpm run lint:check`, `pnpm run format:check` e `pnpm build`. Os dois cobrem `apps/api`, `apps/worker`, `packages/core`, `packages/infrastructure` e `packages/database`. `apps/web`, `apps/checkout` e `apps/demo-mediakit` nao tem `lint:check` nem `format:check` e ficam fora do gate; `apps/web` tem testes, checkout e demo nao tem nenhum.
 - Job `test`: testes de `@hockpay/core`, `@hockpay/infrastructure`, `@hockpay/api` e `@hockpay/worker`.
 - Job `api-e2e`: e2e da API.

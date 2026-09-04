@@ -79,11 +79,11 @@ API e worker aceitam `REDIS_URL` somente, `REDIS_HOST`/`REDIS_PORT` somente, ou 
 | `WORKER_CRON_WITHDRAWAL_PROCESSING`        | Processamento de saques simulados                   | `*/15 * * * * *`                                 |
 | `WORKER_CRON_CLEANUP_LOGS`                 | Limpeza de logs                                     | `0 3 * * *`                                      |
 | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS`     | Limpeza de chaves idempotentes                      | `0 4 * * *`                                      |
-| `WORKER_CRON_ANTI_FRAUD`                   | Varredura antifraude simulada                       | `0 * * * *`                                      |
 | `WORKER_CRON_LOCK_TTL_MS`                  | TTL do lock distribuído                             | `300000`                                         |
 | `WEBHOOK_DELIVERY_CONCURRENCY`             | Entregas de webhook em paralelo por worker          | `5`                                              |
 | `WEBHOOK_CIRCUIT_FAILURE_THRESHOLD`        | Falhas de transporte seguidas antes de abrir o circuito de um destino | `5`                     |
 | `WEBHOOK_CIRCUIT_OPEN_MS`                  | Quanto tempo o destino fica aberto antes de nova tentativa | `60000`                                   |
+| `WEBHOOK_DELIVERY_TIMEOUT_MS`              | Timeout de cada entrega de webhook. E ele que define quanto tempo um destino pendurado ocupa um slot | `30000`                |
 | `WITHDRAWAL_SIMULATOR_FORCE_FAILURE`       | Força falha técnica de saque quando `true`          | `false`                                          |
 
 Health do worker:
@@ -190,6 +190,7 @@ Suites suportadas por `HOCKPAY_SMOKE_SUITE`: `p0`, `payment-link`, `p3`, `studyc
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `pnpm run smoke:p0`                            | Merchant/store/API key, pagamento direto, confirmacao TEST e webhook entregue pelo worker.  |
 | `pnpm run smoke:payment-link`                  | Criacao de Payment Link, abertura, tentativa falha, tentativa paga e estado da `PixCharge`. |
+| `pnpm run smoke:webhook-isolation`             | Um destino pendurado com 50 eventos na fila nao atrasa a entrega de outra loja; o circuito do destino travado abre. Precisa de worker. |
 | `pnpm run smoke:p3:visual`                     | Dados para dashboard: payments em estados principais, receipt, timeline e financials.       |
 | `pnpm run smoke:studycase:mediakit`            | Demo integrada com checkout hospedado, webhook assinado e estado final renderizavel.        |
 | `pnpm run smoke:system`                        | Volume leve cobrindo APIs principais, Payment Links, alerts, bank accounts e withdrawals.   |

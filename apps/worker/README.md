@@ -36,7 +36,6 @@ Worker NestJS separado para processamento assíncrono e tarefas agendadas.
 | `WithdrawalProcessingJob`   | `WORKER_CRON_WITHDRAWAL_PROCESSING`    | `*/15 * * * * *` | processa saques pendentes com sucesso automático e retry técnico |
 | `CleanupLogsJob`            | `WORKER_CRON_CLEANUP_LOGS`             | `0 3 * * *`      | remove logs antigos e eventos processados                        |
 | `CleanupIdempotencyKeysJob` | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | `0 4 * * *`      | remove chaves expiradas                                          |
-| `AntiFraudJob`              | `WORKER_CRON_ANTI_FRAUD`               | `0 * * * *`      | varredura simulada de anomalias                                  |
 
 Os agendamentos aceitam expressoes cron de 5 campos ou 6 campos. Use 6 campos para testes com segundos, por exemplo:
 
@@ -98,7 +97,6 @@ Headers relevantes atualmente enviados ao merchant:
 | `WORKER_CRON_WITHDRAWAL_PROCESSING` | Agendamento de processamento de saques | `*/15 * * * * *` |
 | `WORKER_CRON_CLEANUP_LOGS` | Agendamento de limpeza de logs | `0 3 * * *` |
 | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS` | Agendamento de limpeza de chaves idempotentes | `0 4 * * *` |
-| `WORKER_CRON_ANTI_FRAUD` | Agendamento da varredura antifraude simulada | `0 * * * *` |
 | `WORKER_CRON_LOCK_TTL_MS` | TTL do lock distribuído dos cron jobs | `300000` |
 | `WITHDRAWAL_SIMULATOR_FORCE_FAILURE` | Quando `true`, força falha técnica do processador de saques para testar retry/falha final | `false` |
 

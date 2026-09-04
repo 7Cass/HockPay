@@ -30,7 +30,6 @@ import {
   ReleasePaymentUseCase,
   CompleteWithdrawalUseCase,
   CleanupLogsUseCase,
-  DetectAnomaliesUseCase,
   FailWithdrawalUseCase,
   IOutboxRepository,
   IWebhookConfigRepository,
@@ -58,6 +57,23 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
  * Wires up all use cases with their dependencies (repositories, services).
  * Note: ExpirePaymentUseCase is provided in QueueModule to avoid circular dependency.
  */
+const DEFAULT_WEBHOOK_DELIVERY_TIMEOUT_MS = 30_000;
+
+function webhookDeliveryTimeoutMs(): number {
+  const raw = process.env.WEBHOOK_DELIVERY_TIMEOUT_MS;
+  if (raw === undefined || raw.trim() === '') return DEFAULT_WEBHOOK_DELIVERY_TIMEOUT_MS;
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    new Logger('WebhookHttpClientService').warn(
+      `WEBHOOK_DELIVERY_TIMEOUT_MS="${raw}" is not a positive integer; falling back to ${DEFAULT_WEBHOOK_DELIVERY_TIMEOUT_MS}.`,
+    );
+    return DEFAULT_WEBHOOK_DELIVERY_TIMEOUT_MS;
+  }
+
+  return parsed;
+}
+
 @Module({
   imports: [PrismaModule],
   providers: [
@@ -134,6 +150,11 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       provide: WebhookHttpClientService,
       useFactory: () =>
         new WebhookHttpClientService({
+          // Os 30s eram default embutido, sem forma de ajustar. Como e ele que
+          // define quanto tempo um destino pendurado ocupa um slot, precisa ser
+          // uma decisao de operacao -- e o smoke de isolamento precisa reduzi-lo
+          // para provar o comportamento em segundos em vez de minutos.
+          timeoutMs: webhookDeliveryTimeoutMs(),
           logger: new Logger(WebhookHttpClientService.name),
           webhookUrlPolicyOptions: getWebhookUrlPolicyOptionsForNodeEnv(process.env.NODE_ENV),
         }),
@@ -239,10 +260,6 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       ) => new CleanupLogsUseCase(webhookLogRepository, outboxRepository),
       inject: ['IWebhookLogRepository', 'IOutboxRepository'],
     },
-    {
-      provide: DetectAnomaliesUseCase,
-      useFactory: () => new DetectAnomaliesUseCase(),
-    },
   ],
   exports: [
     // Repositories (tokens for shared)
@@ -268,7 +285,6 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     FailWithdrawalUseCase,
     RecordWithdrawalProcessingErrorUseCase,
     CleanupLogsUseCase,
-    DetectAnomaliesUseCase,
   ],
 })
 export class CoreModule {}

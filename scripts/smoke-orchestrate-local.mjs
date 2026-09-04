@@ -54,6 +54,7 @@ const suiteCommands = new Map([
     ["pnpm", ["run", "smoke:idempotency-redis-unavailable"]],
   ],
   ["db-concurrency", ["pnpm", ["run", "smoke:db-concurrency"]]],
+  ["webhook-isolation", ["pnpm", ["run", "smoke:webhook-isolation"]]],
 ]);
 
 const children = new Set();
@@ -141,6 +142,11 @@ function smokeEnv(ports = smokePorts()) {
     HOCKPAY_SMOKE_WEBHOOK_PORT: String(ports.webhook),
     NEXT_PUBLIC_API_URL: `http://localhost:${ports.api}/api/v1`,
     NEXT_PUBLIC_DEV_MODE: "true",
+    // O smoke de isolamento mede quanto tempo um destino saudavel espera atras
+    // de um pendurado. Com o timeout de producao (30s) isso levaria minutos; o
+    // que o teste prova e a forma do comportamento, e ela escala com o timeout.
+    WEBHOOK_DELIVERY_TIMEOUT_MS:
+      process.env.WEBHOOK_DELIVERY_TIMEOUT_MS ?? "3000",
     CORS_ORIGIN: [
       "http://localhost:4200",
       `http://localhost:${ports.checkout}`,
@@ -497,17 +503,25 @@ async function main() {
     "idempotency-redis-unavailable",
     "db-concurrency",
   ]);
+  // Precisam de worker (entrega de webhook), mas nao do checkout. Subir um Next
+  // dev server so para nao usa-lo custa dezenas de segundos em todo PR.
+  const workerSuites = new Set(["webhook-isolation"]);
   const apiOnly = suites.every((suite) => apiOnlySuites.has(suite));
+  const withoutCheckout =
+    !apiOnly &&
+    suites.every((suite) => apiOnlySuites.has(suite) || workerSuites.has(suite));
   const requiredPorts = apiOnly
     ? [...INFRA_PORTS, ports.api]
-    : [
-        ...INFRA_PORTS,
-        ports.api,
-        ports.worker,
-        ports.checkout,
-        ports.studycase,
-        ports.webhook,
-      ];
+    : withoutCheckout
+      ? [...INFRA_PORTS, ports.api, ports.worker, ports.webhook]
+      : [
+          ...INFRA_PORTS,
+          ports.api,
+          ports.worker,
+          ports.checkout,
+          ports.studycase,
+          ports.webhook,
+        ];
   const migrateMode = process.env.HOCKPAY_SMOKE_MIGRATE_MODE ?? "deploy";
   const cleanVolumes =
     process.env.HOCKPAY_SMOKE_CLEAN_VOLUMES === "true" ||
@@ -571,6 +585,8 @@ async function main() {
         ["--filter", "@hockpay/worker", "start"],
         workerEnv,
       );
+    }
+    if (!apiOnly && !withoutCheckout) {
       startProcess(
         "checkout",
         "pnpm",

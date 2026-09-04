@@ -52,7 +52,6 @@ Pacote central do domínio e da aplicação. Ele concentra entidades, value obje
 
 - `Product` e `PaymentItem` fazem parte do core atual para catalogo e snapshots de checkout sessions. Payment Links seguem como cobranca avulsa por `amount`, sem items de produto.
 - `PaymentMethod` tem valores modelados alem de Pix, mas nao ha use case de processamento real para cartao, boleto ou debito.
-- `DetectAnomaliesUseCase` e o job antifraude atual existem como varredura simulada/stub; nao devem ser tratados como motor antifraude real.
 
 ## Scripts
 
