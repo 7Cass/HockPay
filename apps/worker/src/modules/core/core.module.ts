@@ -42,7 +42,12 @@ import {
   MarkWithdrawalProcessingUseCase,
   RecordWithdrawalProcessingErrorUseCase,
   getWebhookUrlPolicyOptionsForNodeEnv,
+  IWebhookCircuitBreakerPort,
 } from '@hockpay/core';
+import {
+  WEBHOOK_CIRCUIT_BREAKER,
+  webhookCircuitBreakerProvider,
+} from '../../common/webhook-circuit-breaker.provider';
 
 // Token for IExpirationQueuePort (exported for use in QueueModule)
 export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
@@ -118,6 +123,8 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       inject: [PrismaService],
     },
 
+    webhookCircuitBreakerProvider,
+
     // Services
     {
       provide: HmacSignerService,
@@ -147,6 +154,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
         webhookSender: WebhookHttpClientService,
         hmacSigner: HmacSignerService,
         encryption: EncryptionService,
+        circuitBreaker: IWebhookCircuitBreakerPort,
       ) =>
         new ProcessWebhookUseCase(
           outboxRepository,
@@ -156,6 +164,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
           hmacSigner,
           encryption,
           new Logger(ProcessWebhookUseCase.name),
+          circuitBreaker,
         ),
       inject: [
         'IOutboxRepository',
@@ -164,6 +173,7 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
         WebhookHttpClientService,
         HmacSignerService,
         EncryptionService,
+        WEBHOOK_CIRCUIT_BREAKER,
       ],
     },
     {

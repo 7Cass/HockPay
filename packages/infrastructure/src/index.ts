@@ -30,4 +30,5 @@ export * from './queues/expiration.queue';
 export * from './services/encryption.service';
 export * from './services/hmac-signer.service';
 export * from './services/webhook-http-client.service';
+export * from './services/redis-webhook-circuit-breaker.service';
 export * from './services/discord-alert-sender.service';

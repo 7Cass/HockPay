@@ -73,6 +73,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
         statusCode: 0,
         body: errorMessage,
         success: false,
+        failureKind: 'transport',
       };
     }
   }
@@ -107,6 +108,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
           statusCode: response.status,
           body,
           success: false,
+          failureKind: 'response',
         };
       }
 
@@ -118,6 +120,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
           statusCode: 0,
           body: message,
           success: false,
+          failureKind: 'response',
         };
       }
 
@@ -128,6 +131,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       statusCode: 0,
       body: 'Webhook redirect limit exceeded.',
       success: false,
+      failureKind: 'response',
     };
   }
 
@@ -276,6 +280,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       statusCode: response.status,
       body,
       success: false,
+      failureKind: 'response',
     };
   }
 
@@ -287,6 +292,7 @@ export class WebhookHttpClientService implements IWebhookSenderPort {
       statusCode: 0,
       body: message,
       success: false,
+      failureKind: 'blocked',
     };
   }
 }

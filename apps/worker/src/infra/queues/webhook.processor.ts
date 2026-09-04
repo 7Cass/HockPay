@@ -17,12 +17,36 @@ import {
 
 const WEBHOOK_DELIVERY_QUEUE = 'webhook-delivery';
 const WEBHOOK_DEAD_LETTER_QUEUE = 'webhook-dead-letter';
+const DEFAULT_WEBHOOK_DELIVERY_CONCURRENCY = 5;
+
+/**
+ * Quantas entregas correm em paralelo neste worker.
+ *
+ * Era o default 1 do BullMQ, por omissao e nao por decisao: uma entrega de cada
+ * vez em todo o processo. Com o timeout de 30s, um unico destino pendurado
+ * segurava a fila inteira. O breaker corta o caso patologico; a concorrencia
+ * explicita tira o gargalo do caminho comum.
+ */
+function webhookDeliveryConcurrency(): number {
+  const raw = process.env.WEBHOOK_DELIVERY_CONCURRENCY;
+  if (raw === undefined || raw.trim() === '') return DEFAULT_WEBHOOK_DELIVERY_CONCURRENCY;
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    new Logger('WebhookProcessor').warn(
+      `WEBHOOK_DELIVERY_CONCURRENCY="${raw}" is not a positive integer; falling back to ${DEFAULT_WEBHOOK_DELIVERY_CONCURRENCY}.`,
+    );
+    return DEFAULT_WEBHOOK_DELIVERY_CONCURRENCY;
+  }
+
+  return parsed;
+}
 
 /**
  * BullMQ processor for webhook delivery jobs.
  */
 @Injectable()
-@Processor(WEBHOOK_DELIVERY_QUEUE)
+@Processor(WEBHOOK_DELIVERY_QUEUE, { concurrency: webhookDeliveryConcurrency() })
 export class WebhookProcessor extends WorkerHost {
   private readonly logger = new Logger(WebhookProcessor.name);
 
