@@ -36,6 +36,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Customer history                  | Implementado         | Endpoints de historico por customer external id para pagamentos e receipts.                                                                          |
 | Products/catalog                  | Implementado         | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`.                           |
 | Settings                          | Perfil mutavel       | Merchant edita `name` e `city` (EMV). Fee, settlement e aprovacao continuam imutaveis.                                                               |
+| Antifraude                        | Planejado            | Nao existe. O `DetectAnomaliesUseCase` stub e o cron horario foram removidos: devolviam lista vazia e logavam varredura que nunca aconteceu. Os quatro tipos de anomalia previstos (volume, transacoes rapidas, valor atipico, taxa de falha) sao consultas sobre dados que ja estao no banco, mas nada disso esta implementado. |
 | Marketplace/split/multi-seller    | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto.                                                                               |
 
 ## Matriz de Superficies

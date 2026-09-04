@@ -210,7 +210,6 @@ export * from './application/use-cases/fail-payment.use-case';
 export * from './application/use-cases/release-payment.use-case';
 export * from './application/use-cases/process-webhook.use-case';
 export * from './application/use-cases/cleanup-logs.use-case';
-export * from './application/use-cases/detect-anomalies.use-case';
 export * from './application/use-cases/create-webhook-config.use-case';
 export * from './application/use-cases/create-webhook-inbox.use-case';
 export * from './application/use-cases/list-webhook-configs.use-case';

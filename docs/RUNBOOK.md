@@ -79,7 +79,6 @@ API e worker aceitam `REDIS_URL` somente, `REDIS_HOST`/`REDIS_PORT` somente, ou 
 | `WORKER_CRON_WITHDRAWAL_PROCESSING`        | Processamento de saques simulados                   | `*/15 * * * * *`                                 |
 | `WORKER_CRON_CLEANUP_LOGS`                 | Limpeza de logs                                     | `0 3 * * *`                                      |
 | `WORKER_CRON_CLEANUP_IDEMPOTENCY_KEYS`     | Limpeza de chaves idempotentes                      | `0 4 * * *`                                      |
-| `WORKER_CRON_ANTI_FRAUD`                   | Varredura antifraude simulada                       | `0 * * * *`                                      |
 | `WORKER_CRON_LOCK_TTL_MS`                  | TTL do lock distribuído                             | `300000`                                         |
 | `WEBHOOK_DELIVERY_CONCURRENCY`             | Entregas de webhook em paralelo por worker          | `5`                                              |
 | `WEBHOOK_CIRCUIT_FAILURE_THRESHOLD`        | Falhas de transporte seguidas antes de abrir o circuito de um destino | `5`                     |

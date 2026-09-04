@@ -30,7 +30,6 @@ import {
   ReleasePaymentUseCase,
   CompleteWithdrawalUseCase,
   CleanupLogsUseCase,
-  DetectAnomaliesUseCase,
   FailWithdrawalUseCase,
   IOutboxRepository,
   IWebhookConfigRepository,
@@ -239,10 +238,6 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
       ) => new CleanupLogsUseCase(webhookLogRepository, outboxRepository),
       inject: ['IWebhookLogRepository', 'IOutboxRepository'],
     },
-    {
-      provide: DetectAnomaliesUseCase,
-      useFactory: () => new DetectAnomaliesUseCase(),
-    },
   ],
   exports: [
     // Repositories (tokens for shared)
@@ -268,7 +263,6 @@ export const EXPIRATION_QUEUE_PORT = 'IExpirationQueuePort';
     FailWithdrawalUseCase,
     RecordWithdrawalProcessingErrorUseCase,
     CleanupLogsUseCase,
-    DetectAnomaliesUseCase,
   ],
 })
 export class CoreModule {}
