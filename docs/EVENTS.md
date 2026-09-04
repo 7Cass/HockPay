@@ -512,7 +512,7 @@ _Quando:_ Na liquidacao da tentativa que confirmou o link, logo apos o `payment.
 
 Um Payment Link expirou sem ser pago.
 
-_Quando:_ Quando a cobranca por tras do link expira, pelo job de expiracao ou por simulacao TEST.
+_Quando:_ Quando a cobranca por tras do link expira, pelo job de expiracao ou por simulacao TEST. Atencao: o job varre `Payment`, nao `PaymentLink` -- um link que venceu sem nenhuma tentativa de pagamento aparece como EXPIRED na leitura, mas nao produz este evento. Enquanto o status do link for derivado e nao houver varredura por link, conte com a leitura para esse caso.
 
 ```json
 {

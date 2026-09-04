@@ -93,8 +93,10 @@ export function buildPaymentLinkOutboxEvent(input: {
  * dentro da mesma transacao tambem garante que o `status` publicado seja o
  * status depois da mutacao, e nao o de antes.
  *
- * Silenciosamente nao faz nada se o link sumiu: um evento a menos e melhor do
- * que derrubar uma liquidacao ja commitada por causa da notificacao.
+ * Silenciosamente nao faz nada se o link sumiu. A emissao acontece dentro da
+ * transacao da mutacao, entao lancar aqui derrubaria a liquidacao (ou o
+ * cancelamento) inteira -- um evento a menos e melhor do que reverter o fato
+ * que o evento existia para anunciar.
  */
 export async function emitPaymentLinkEvent(
   repos: { paymentLinkRepository: IPaymentLinkRepository; outboxWriter: IOutboxWriter },
