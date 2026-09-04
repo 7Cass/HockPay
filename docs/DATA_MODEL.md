@@ -10,7 +10,7 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 | Negocio | `Store`, `Customer`, `CheckoutSession`, `PaymentLink`, `PaymentLinkItem` | Implementada. |
 | Pagamento | `Payment`, `PixCharge`, `PaymentItem`, `Product` | Implementada para Pix simulado, catalogo opcional e snapshots de itens. |
 | Financeiro | `Account`, `Transaction`, `Refund`, `Receipt`, `ReceiptCounter`, `BankAccount`, `Withdrawal` | Implementada para saldos, ledger, receipts, refunds, bank accounts e withdrawals simulados. |
-| Integracao | `WebhookConfig`, `WebhookLog`, `WebhookInboxEvent`, `OutboxEvent` | Implementada. |
+| Integracao | `WebhookConfig`, `WebhookLog`, `WebhookInboxEvent`, `OutboxEvent` | Implementada. `OutboxEvent.version` congela a versao do contrato na producao do evento; ver [EVENTS.md](EVENTS.md). |
 | Alertas | `AlertConfig`, `AlertDeliveryLog` | Implementada para alerta operacional. |
 
 ## Entidades Principais

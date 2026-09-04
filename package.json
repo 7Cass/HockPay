@@ -20,6 +20,7 @@
     "smoke:idempotency-redis-unavailable": "node scripts/smoke-idempotency-redis-unavailable.mjs",
     "smoke:db-concurrency": "node scripts/smoke-db-concurrency.mjs",
     "smoke:payment-link": "node scripts/smoke-payment-link.mjs",
+    "docs:events": "pnpm --filter @hockpay/core build && node scripts/generate-events-doc.mjs",
     "smoke:p3:visual": "node scripts/smoke-p3-visual.mjs",
     "smoke:studycase:mediakit": "node scripts/smoke-studycase-mediakit.mjs",
     "smoke:docker": "node scripts/smoke-orchestrate-local.mjs",

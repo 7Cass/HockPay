@@ -16,3 +16,7 @@ coverage
 
 artifacts
 packages/database/src/generated
+
+# Gerado por `pnpm docs:events` a partir de EVENT_CATALOG. Um reformat aqui
+# quebraria o teste de drift em packages/core sem mudar o conteudo.
+docs/EVENTS.md

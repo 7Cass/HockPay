@@ -26,7 +26,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Dev simulation                    | Implementado         | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos.                                                                                 |
 | Checkout session                  | Implementado         | API cria sessao, checkout coleta pagador, `fulfill` gera/submete pagamento simulado.                                                                 |
 | Payment Link                      | Implementado         | Modelo `PaymentLink -> PixCharge -> Payment attempts`, por valor avulso ou por itens do catalogo; falhas criam tentativas sem fechar a cobranca, pagamento confirmado fecha o link como `PAID`. |
-| Webhooks                          | Implementado         | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais.                                                                                          |
+| Webhooks                          | Implementado         | Outbox, BullMQ, HMAC, logs, retry e DLQ para falhas finais. Envelope versionado por tipo, catalogado em [EVENTS.md](EVENTS.md).                       |
 | Alerts                            | Implementado         | Configs e entregas para Discord operacional com logs e retry.                                                                                        |
 | Receipts                          | Implementado         | Recibo emitido para pagamento confirmado, consultavel por API e dashboard.                                                                           |
 | Refunds                           | Implementado         | Estornos parciais ou totais ajustam financeiro e outbox.                                                                                             |
@@ -46,7 +46,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Payment Links     | `payment-link`               | `PaymentLink`, `PaymentLinkItem`, `PixCharge`, `Payment`    | dashboard Payment Links e checkout `/pay/:token` | `smoke:payment-link`                                           | Exige exatamente um de `amount` ou `items`; quantidade fixa na criacao.  |
 | Checkout sessions | `checkout-session`           | `CheckoutSession`, `CheckoutSessionItem`, `PaymentItem`     | checkout hosted e demo Media Kit                 | `smoke:studycase:mediakit`                                     | Exige exatamente um de `amount` ou `items`; metadata publica e limitada. |
 | Products/catalog  | `product`                    | `Product`, snapshots em `CheckoutSessionItem`/`PaymentLinkItem`/`PaymentItem` | dashboard Products, checkout sessions e Payment Links com items | coberto por testes/builds focados e por `smoke:payment-link`    | Catalogo opcional por store/environment.                                 |
-| Webhooks/alerts   | `webhook`, `alert`           | `OutboxEvent`, `WebhookLog`, `AlertDeliveryLog`             | dashboard webhooks/alerts                        | `smoke:system`                                                 | Entrega depende do worker/Redis e politica de URL.                       |
+| Webhooks/alerts   | `webhook`, `alert`           | `OutboxEvent`, `WebhookLog`, `AlertDeliveryLog`             | dashboard webhooks/alerts                        | `smoke:system`, `smoke:payment-link`                           | Entrega depende do worker/Redis e politica de URL.                       |
 | Withdrawals       | `withdrawal`, `bank-account` | `Withdrawal`, `BankAccount`, `Transaction`                  | dashboard withdrawals/list/detail                | `smoke:withdrawals`                                            | Saque simulado; sem payout bancario real.                                |
 
 ## Fluxos Reais
@@ -57,7 +57,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 2. API valida store, resolve/cria customer, calcula taxa, cria `PixCharge` e `Payment` simulados.
 3. API grava `OutboxEvent` e agenda expiracao.
 4. Em TEST, `POST /api/v1/dev/simulate/:id/confirm|fail|expire|release` simula transicoes.
-5. Worker entrega webhooks e atualiza logs por BullMQ/Redis.
+5. Worker entrega webhooks e atualiza logs por BullMQ/Redis, com o envelope `{ id, type, version, created_at, data }`.
 
 ### Payment Link
 
@@ -66,6 +66,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 3. Checkout publico `/pay/:token` coleta documento do pagador; `pay` associa um `Customer` a tentativa.
 4. Acoes publicas TEST de `pay` e `fail` criam tentativas `Payment` que herdam o snapshot de items do link, quando ele tem items.
 5. Falha nao encerra o link; pagamento confirmado marca a `PixCharge` como `PAID`.
+6. O ciclo do link emite `payment_link.created`, `.paid`, `.expired` e `.cancelled`, alem dos `payment.*` da tentativa.
 
 ### Checkout Session
 

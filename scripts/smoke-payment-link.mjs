@@ -713,6 +713,40 @@ async function run() {
   assert(list.stats.paid >= 1, 'Payment link conversion stats did not count the paid link.');
   assert(list.stats.conversionRate > 0, 'Payment link conversion rate should be positive.');
 
+  step('Subscribing a webhook to the payment link lifecycle');
+  // O catalogo em docs/EVENTS.md promete que os quatro payment_link.* sao
+  // assinaveis. Se um deles nao estiver em ALLOWED_WEBHOOK_EVENTS, a API
+  // responde 400 aqui em vez de deixar a doc prometer o que nao entrega.
+  const lifecycleEvents = [
+    'payment_link.created',
+    'payment_link.paid',
+    'payment_link.expired',
+    'payment_link.cancelled',
+  ];
+  const hook = await requestJson('/webhooks', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      url: 'http://localhost:4599/webhook',
+      events: lifecycleEvents,
+    }),
+  });
+  assert(
+    lifecycleEvents.every((event) => hook?.events?.includes(event)),
+    `Webhook config did not keep the payment link lifecycle events: ${JSON.stringify(hook?.events)}`,
+  );
+
+  step('Rejecting a webhook subscribed to an event outside the catalog');
+  const bogus = await requestMaybeJson('/webhooks', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      url: 'http://localhost:4599/webhook',
+      events: ['payment_link.vanished'],
+    }),
+  });
+  assert(bogus.status === 400, `Expected 400 for an uncatalogued event, got ${bogus.status}.`);
+
   step('Smoke flow completed');
   console.log(
     JSON.stringify(

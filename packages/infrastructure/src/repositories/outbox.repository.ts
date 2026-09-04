@@ -13,6 +13,7 @@ type OutboxEventRow = {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  version: number;
   requestId: string | null;
   payload: unknown;
   status: OutboxStatus;
@@ -42,6 +43,7 @@ export class OutboxRepository implements IOutboxRepository {
         aggregateType: event.aggregateType,
         aggregateId: event.aggregateId,
         eventType: event.eventType,
+        version: event.version,
         requestId: event.requestId,
         payload: event.payload as any,
         status: event.status as OutboxStatus,
@@ -200,6 +202,7 @@ export class OutboxRepository implements IOutboxRepository {
         oe."aggregate_type" AS "aggregateType",
         oe."aggregate_id" AS "aggregateId",
         oe."event_type" AS "eventType",
+        oe."version",
         oe."request_id" AS "requestId",
         oe."payload",
         oe."status",
@@ -252,6 +255,7 @@ export class OutboxRepository implements IOutboxRepository {
       aggregateType: prismaEvent.aggregateType,
       aggregateId: prismaEvent.aggregateId,
       eventType: prismaEvent.eventType,
+      version: prismaEvent.version ?? 1,
       requestId: prismaEvent.requestId ?? undefined,
       payload: prismaEvent.payload as Record<string, unknown>,
       status: prismaEvent.status as OutboxEventStatus,

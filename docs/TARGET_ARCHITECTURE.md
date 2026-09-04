@@ -36,7 +36,7 @@ Este documento descreve direcao futura. Ele nao substitui `docs/CURRENT_STATE.md
 - Mutacoes financeiras devem ter politica explicita de idempotencia.
 - Valores monetarios permanecem em centavos.
 - Simulacao TEST deve ser ergonomica, mas separada de qualquer caminho LIVE.
-- Eventos publicos devem ser versionados/documentados antes de virarem contrato externo estavel.
+- Eventos publicos devem ser versionados/documentados antes de virarem contrato externo estavel. Atendido: `EVENT_CATALOG` versiona por tipo e gera [EVENTS.md](EVENTS.md).
 - CI ja roda lint/format nao mutantes na API/worker, testes de backend, testes do dashboard e smoke minimo scheduled.
 
 ## Fora do Alvo Imediato

@@ -424,6 +424,24 @@ async function run() {
   );
   assert(delivery?.body?.id, 'Webhook receiver did not capture the outbox event id.');
 
+  // O contrato publicado em docs/EVENTS.md promete um envelope versionado. Vale
+  // olhar o que chegou de verdade no receiver, e nao o que a API respondeu: e o
+  // corpo entregue que o integrador tem que conseguir parsear.
+  for (const field of ['id', 'type', 'version', 'created_at', 'data']) {
+    assert(
+      delivery.body[field] !== undefined,
+      `Webhook envelope for ${delivery.body.type} is missing "${field}".`,
+    );
+  }
+  assert(
+    Number.isInteger(delivery.body.version) && delivery.body.version >= 1,
+    `Webhook envelope carried a non-integer version: ${delivery.body.version}`,
+  );
+  assert(
+    typeof delivery.body.data?.storeId === 'string',
+    'Webhook envelope arrived without data.storeId.',
+  );
+
   step('Smoke flow completed');
   console.log(
     JSON.stringify(
