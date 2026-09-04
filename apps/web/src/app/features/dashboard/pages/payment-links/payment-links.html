@@ -313,7 +313,9 @@
             Nome, preço e imagem são congelados agora. Editar o produto depois não muda este link.
           </span>
         } @else {
-          <span class="field-error">Escolha ao menos um produto.</span>
+          <!-- Ainda nao ha escolha: orienta, nao acusa. O erro so aparece
+               depois de interacao, como no campo de valor avulso. -->
+          <span class="field-note">Escolha os produtos que este link vai cobrar.</span>
         }
       </div>
     }
