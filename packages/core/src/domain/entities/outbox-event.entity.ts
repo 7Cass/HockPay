@@ -1,3 +1,5 @@
+import { assertKnownEventType, eventContractVersion } from '../constants/event-catalog';
+
 /**
  * OutboxEvent Status Enum
  */
@@ -19,6 +21,7 @@ export class OutboxEvent {
   private readonly _aggregateType: string;
   private readonly _aggregateId: string;
   private readonly _eventType: string;
+  private readonly _version: number;
   private readonly _requestId?: string;
   private readonly _payload: Record<string, unknown>;
   private _status: OutboxEventStatus;
@@ -34,6 +37,7 @@ export class OutboxEvent {
     this._aggregateType = props.aggregateType;
     this._aggregateId = props.aggregateId;
     this._eventType = props.eventType;
+    this._version = props.version;
     this._requestId = props.requestId;
     this._payload = props.payload;
     this._status = props.status;
@@ -49,6 +53,9 @@ export class OutboxEvent {
    * Factory method to create a new OutboxEvent.
    */
   static create(props: CreateOutboxEventProps): OutboxEvent {
+    // Um tipo fora do catalogo e bug de programacao: falha aqui, na producao
+    // do evento, e nao la na frente com um webhook sem versao e sem doc.
+    assertKnownEventType(props.eventType);
     const payload = props.storeId ? { ...props.payload, storeId: props.storeId } : props.payload;
 
     return new OutboxEvent({
@@ -56,6 +63,9 @@ export class OutboxEvent {
       aggregateType: props.aggregateType,
       aggregateId: props.aggregateId,
       eventType: props.eventType,
+      // A versao e congelada na producao, nao lida na entrega: um evento
+      // reentregue da DLQ meses depois replica o contrato sob o qual nasceu.
+      version: eventContractVersion(props.eventType),
       requestId: props.requestId,
       payload,
       status: OutboxEventStatus.PENDING,
@@ -89,6 +99,11 @@ export class OutboxEvent {
 
   get eventType(): string {
     return this._eventType;
+  }
+
+  /** Versao do envelope congelada quando o evento foi produzido. */
+  get version(): number {
+    return this._version;
   }
 
   get requestId(): string | undefined {
@@ -215,6 +230,7 @@ export class OutboxEvent {
       aggregateType: this._aggregateType,
       aggregateId: this._aggregateId,
       eventType: this._eventType,
+      version: this._version,
       requestId: this._requestId,
       payload: this._payload,
       status: this._status,
@@ -249,6 +265,7 @@ export interface OutboxEventProps {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  version: number;
   requestId?: string;
   payload: Record<string, unknown>;
   status: OutboxEventStatus;
@@ -268,6 +285,7 @@ export interface OutboxEventObject {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  version: number;
   requestId?: string;
   payload: Record<string, unknown>;
   status: OutboxEventStatus;

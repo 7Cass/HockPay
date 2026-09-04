@@ -1,6 +1,15 @@
 import { randomBytes, randomInt } from 'node:crypto';
+import { createServer } from 'node:http';
 
 const API_URL = process.env.HOCKPAY_API_URL ?? 'http://localhost:3000/api/v1';
+// Mesma porta que o smoke:p0 usa. As suites rodam em sequencia no
+// smoke-orchestrate-local, entao nao se atropelam -- e reaproveitar a porta que
+// o orquestrador ja reserva evita depender de uma porta livre por sorte.
+const WEBHOOK_PORT = Number(process.env.HOCKPAY_SMOKE_WEBHOOK_PORT ?? 3999);
+const TIMEOUT_MS = Number(process.env.HOCKPAY_SMOKE_TIMEOUT_MS ?? 45_000);
+const POLL_INTERVAL_MS = 500;
+const deliveries = [];
+let receiver;
 const runId = `${Date.now()}-${randomInt(1000, 9999)}`;
 const cookieJar = new Map();
 
@@ -307,6 +316,118 @@ async function assertTerminalRace(label, actions, amount) {
       `${label}: non-confirm winner should not change pending balance.`,
     );
   }
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function pollUntil(label, read, isReady) {
+  const deadline = Date.now() + TIMEOUT_MS;
+  let lastValue;
+
+  while (Date.now() < deadline) {
+    lastValue = await read();
+    if (isReady(lastValue)) {
+      return lastValue;
+    }
+    await sleep(POLL_INTERVAL_MS);
+  }
+
+  throw new SmokeError(
+    `${label} was not observed within ${TIMEOUT_MS}ms. Last value: ${JSON.stringify(lastValue)}`,
+  );
+}
+
+async function startWebhookReceiver() {
+  receiver = createServer(async (request, response) => {
+    if (request.method !== 'POST' || request.url !== '/webhook') {
+      response.writeHead(404, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: 'not_found' }));
+      return;
+    }
+
+    const chunks = [];
+    for await (const chunk of request) {
+      chunks.push(chunk);
+    }
+
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    deliveries.push({
+      headers: request.headers,
+      body: rawBody ? parseJson(rawBody, 'Webhook receiver') : undefined,
+    });
+
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ received: true }));
+  });
+
+  await new Promise((resolve, reject) => {
+    receiver.once('error', (error) => {
+      reject(
+        new SmokeError(
+          `Could not start the local webhook receiver on port ${WEBHOOK_PORT}. ${formatError(error)}`,
+        ),
+      );
+    });
+    receiver.listen(WEBHOOK_PORT, '127.0.0.1', resolve);
+  });
+}
+
+async function stopWebhookReceiver() {
+  if (!receiver?.listening) return;
+  await new Promise((resolve, reject) => {
+    receiver.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function deliveryOfType(eventType, linkId) {
+  return deliveries.find(
+    (delivery) => delivery?.body?.type === eventType && delivery?.body?.data?.id === linkId,
+  );
+}
+
+/**
+ * O contrato publicado em docs/EVENTS.md promete um envelope versionado e um
+ * payload sem o QR em base64. Vale olhar o que chegou de verdade no receiver, e
+ * nao o que a API respondeu: e o corpo entregue que o integrador tem que
+ * conseguir parsear.
+ */
+function assertLinkEnvelope(delivery, eventType, expectedStatus) {
+  assert(delivery, `Webhook receiver never got a ${eventType} for the link.`);
+  const envelope = delivery.body;
+
+  for (const field of ['id', 'type', 'version', 'created_at', 'data']) {
+    assert(envelope[field] !== undefined, `Envelope for ${eventType} is missing "${field}".`);
+  }
+  assert(
+    Number.isInteger(envelope.version) && envelope.version >= 1,
+    `Envelope for ${eventType} carried a non-integer version: ${envelope.version}`,
+  );
+  assert(
+    envelope.data.status === expectedStatus,
+    `Envelope for ${eventType} carried status ${envelope.data.status}, expected ${expectedStatus}.`,
+  );
+  assert(
+    typeof envelope.data.storeId === 'string',
+    `Envelope for ${eventType} arrived without data.storeId.`,
+  );
+  assert(
+    typeof envelope.data.checkout_url === 'string',
+    `Envelope for ${eventType} arrived without data.checkout_url.`,
+  );
+  assert(
+    envelope.data.pixCharge === undefined,
+    `Envelope for ${eventType} leaked the PixCharge (QR em base64) into the webhook.`,
+  );
+  assert(
+    envelope.data.publicToken === undefined,
+    `Envelope for ${eventType} leaked the publicToken outside checkout_url.`,
+  );
 }
 
 async function run() {
@@ -713,6 +834,114 @@ async function run() {
   assert(list.stats.paid >= 1, 'Payment link conversion stats did not count the paid link.');
   assert(list.stats.conversionRate > 0, 'Payment link conversion rate should be positive.');
 
+  step('Subscribing a webhook to the payment link lifecycle');
+  // O catalogo em docs/EVENTS.md promete que os quatro payment_link.* sao
+  // assinaveis. Se um deles nao estiver em ALLOWED_WEBHOOK_EVENTS, a API
+  // responde 400 aqui em vez de deixar a doc prometer o que nao entrega.
+  const lifecycleEvents = [
+    'payment_link.created',
+    'payment_link.paid',
+    'payment_link.expired',
+    'payment_link.cancelled',
+  ];
+  await startWebhookReceiver();
+  step(`Local webhook receiver listening on http://127.0.0.1:${WEBHOOK_PORT}/webhook`);
+  const hook = await requestJson('/webhooks', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      url: `http://127.0.0.1:${WEBHOOK_PORT}/webhook`,
+      events: lifecycleEvents,
+    }),
+  });
+  assert(
+    lifecycleEvents.every((event) => hook?.events?.includes(event)),
+    `Webhook config did not keep the payment link lifecycle events: ${JSON.stringify(hook?.events)}`,
+  );
+
+  step('Rejecting a webhook subscribed to an event outside the catalog');
+  const bogus = await requestMaybeJson('/webhooks', {
+    method: 'POST',
+    jwtCookie: true,
+    body: JSON.stringify({
+      url: `http://127.0.0.1:${WEBHOOK_PORT}/webhook`,
+      events: ['payment_link.vanished'],
+    }),
+  });
+  assert(bogus.status === 400, `Expected 400 for an uncatalogued event, got ${bogus.status}.`);
+
+  step('Creating a link with the lifecycle webhook armed');
+  const watched = await requestJson('/payment-links', {
+    method: 'POST',
+    jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `pl-smoke-events-${runId}`,
+    },
+    body: JSON.stringify({
+      amount: 3300,
+      title: 'Payment Link Events Smoke',
+      internalReference: `pl-smoke-events-${runId}`,
+    }),
+  });
+  const watchedId = watched?.paymentLink?.id;
+  assert(watchedId, 'Watched payment link creation did not return an id.');
+
+  step('Waiting for payment_link.created to reach the receiver');
+  await pollUntil(
+    'payment_link.created delivery',
+    async () => deliveryOfType('payment_link.created', watchedId),
+    (delivery) => Boolean(delivery),
+  );
+  assertLinkEnvelope(deliveryOfType('payment_link.created', watchedId), 'payment_link.created', 'ACTIVE');
+
+  step('Paying the watched link and waiting for payment_link.paid');
+  await requestJson(`/payment-links/${watchedId}/pay`, {
+    method: 'POST',
+    jwtCookie: true,
+    body: payerBody(),
+  });
+  await pollUntil(
+    'payment_link.paid delivery',
+    async () => deliveryOfType('payment_link.paid', watchedId),
+    (delivery) => Boolean(delivery),
+  );
+  const paidEnvelope = deliveryOfType('payment_link.paid', watchedId);
+  assertLinkEnvelope(paidEnvelope, 'payment_link.paid', 'PAID');
+  assert(
+    typeof paidEnvelope.body.data.payment_id === 'string',
+    'payment_link.paid should name the attempt that closed the link.',
+  );
+
+  step('Cancelling another link and waiting for payment_link.cancelled');
+  const doomed = await requestJson('/payment-links', {
+    method: 'POST',
+    jwtCookie: true,
+    headers: {
+      'Idempotency-Key': `pl-smoke-cancel-${runId}`,
+    },
+    body: JSON.stringify({
+      amount: 4100,
+      title: 'Payment Link Cancel Smoke',
+      internalReference: `pl-smoke-cancel-${runId}`,
+    }),
+  });
+  const doomedId = doomed?.paymentLink?.id;
+  assert(doomedId, 'Doomed payment link creation did not return an id.');
+  await requestJson(`/payment-links/${doomedId}/cancel`, {
+    method: 'POST',
+    jwtCookie: true,
+  });
+  await pollUntil(
+    'payment_link.cancelled delivery',
+    async () => deliveryOfType('payment_link.cancelled', doomedId),
+    (delivery) => Boolean(delivery),
+  );
+  assertLinkEnvelope(
+    deliveryOfType('payment_link.cancelled', doomedId),
+    'payment_link.cancelled',
+    'CANCELLED',
+  );
+
   step('Smoke flow completed');
   console.log(
     JSON.stringify(
@@ -738,4 +967,9 @@ try {
 } catch (error) {
   console.error(`[smoke:payment-link] FAILED: ${formatError(error)}`);
   process.exitCode = 1;
+} finally {
+  await stopWebhookReceiver().catch((error) => {
+    console.error(`[smoke:payment-link] Failed to close webhook receiver: ${formatError(error)}`);
+    process.exitCode = 1;
+  });
 }

@@ -76,6 +76,7 @@ export class ProcessWebhookUseCase {
           aggregateType: '',
           aggregateId: '',
           eventType: '',
+          version: 1,
           payload: {},
           status: OutboxEventStatus.FAILED,
           retryCount: 0,
@@ -172,6 +173,7 @@ export class ProcessWebhookUseCase {
     const webhookPayload: WebhookEventPayload = buildWebhookEventPayload(
       event.id,
       event.eventType,
+      event.version,
       event.createdAt,
       aggregatePayload,
     );

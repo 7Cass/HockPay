@@ -41,7 +41,8 @@ Para variáveis de ambiente por app e opções de smoke local, use a matriz do [
 
 - Pagamentos Pix simulados com idempotencia, customer on-the-fly, receipt, timeline e webhooks.
 - Products como catalogo opcional store-scoped para checkout sessions, separado por TEST/LIVE.
-- Payment Links publicos em `/pay/:token`, com `PixCharge` e tentativas de pagamento por valor avulso ou por itens do catalogo.
+- Payment Links publicos em `/pay/:token`, com `PixCharge` e tentativas de pagamento por valor avulso ou por itens do catalogo, e ciclo de vida proprio em `payment_link.*`.
+- Webhooks com envelope versionado por tipo de evento e catalogo em [docs/EVENTS.md](docs/EVENTS.md).
 - Checkout sessions hospedadas para demos e integracoes, com valor direto ou itens de produtos.
 - Dashboard para payments, customers, products, API keys, webhooks, alerts, receipts, financials e withdrawals.
 - Saques simulados com bank accounts, reserva de saldo, ledger, summary, timeline, worker e acoes TEST.
@@ -72,6 +73,7 @@ GitHub Actions roda lint/format (API/worker), build, testes de core/infrastructu
 - [Estado atual](./docs/CURRENT_STATE.md)
 - [Produto](./docs/PRODUCT.md)
 - [Modelo de dados](./docs/DATA_MODEL.md)
+- [Catalogo de eventos](./docs/EVENTS.md)
 - [Runbook](./docs/RUNBOOK.md)
 - [Arquitetura alvo](./docs/TARGET_ARCHITECTURE.md)
 

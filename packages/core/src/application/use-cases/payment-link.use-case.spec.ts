@@ -19,6 +19,7 @@ import { PayPaymentLinkUseCase } from './pay-payment-link.use-case';
 
 describe('PaymentLink use cases', () => {
   it('creates an avulso payment link backed by an open Pix charge without creating a payment', async () => {
+    const outboxWriter = { save: vi.fn() };
     const paymentLinkRepository = {
       save: vi.fn(),
     };
@@ -52,6 +53,9 @@ describe('PaymentLink use cases', () => {
       pixQrCodeGenerator as any,
       'http://localhost:3333',
       'test@hockpay.com',
+      undefined,
+      undefined,
+      outboxWriter as any,
     );
 
     const result = await useCase.execute({
@@ -70,6 +74,21 @@ describe('PaymentLink use cases', () => {
     expect(paymentLinkRepository.save).toHaveBeenCalledOnce();
     expect(pixChargeRepository.save.mock.calls[0][0].expiresAt).toBeUndefined();
     expect(paymentLinkRepository.save.mock.calls[0][0].expiresAt).toBeNull();
+
+    // Links tambem nascem pelo dashboard: sem este evento um backend so ficaria
+    // sabendo da existencia do link quando alguem pagasse.
+    const created = outboxWriter.save.mock.calls[0][0];
+    expect(created.eventType).toBe('payment_link.created');
+    expect(created.aggregateType).toBe('PaymentLink');
+    expect(created.aggregateId).toBe(result.paymentLink.id);
+    expect(created.version).toBe(1);
+    expect(created.payload).toMatchObject({
+      status: 'ACTIVE',
+      amount: 12990,
+      checkout_url: 'http://localhost:3333/pay/public-token',
+      storeId: 'store-1',
+    });
+    expect(created.payload).not.toHaveProperty('pixCharge');
   });
 
   it('persists PixCharge and PaymentLink through UnitOfWork when configured', async () => {
@@ -90,6 +109,7 @@ describe('PaymentLink use cases', () => {
         handler({
           paymentLinkRepository: transactionalPaymentLinkRepository,
           pixChargeRepository: transactionalPixChargeRepository,
+          outboxWriter: { save: vi.fn() },
           storeRepository: {
             findById: vi.fn().mockResolvedValue({
               id: 'store-1',
@@ -158,6 +178,7 @@ describe('PaymentLink use cases', () => {
       'test@hockpay.com',
       undefined,
       { findByIdAndStoreId: vi.fn() } as any,
+      { save: vi.fn() } as any,
     );
 
     await expect(
@@ -209,6 +230,7 @@ describe('PaymentLink use cases', () => {
       'test@hockpay.com',
       undefined,
       productRepository as any,
+      { save: vi.fn() } as any,
     );
 
     const result = await useCase.execute({
@@ -266,6 +288,7 @@ describe('PaymentLink use cases', () => {
       'test@hockpay.com',
       undefined,
       productRepository as any,
+      { save: vi.fn() } as any,
     );
 
     await expect(
@@ -308,6 +331,9 @@ describe('PaymentLink use cases', () => {
       pixQrCodeGenerator as any,
       'http://localhost:3333',
       'test@hockpay.com',
+      undefined,
+      undefined,
+      { save: vi.fn() } as any,
     );
     const expiresAt = new Date(Date.now() + 60_000);
 
@@ -353,6 +379,9 @@ describe('PaymentLink use cases', () => {
       pixQrCodeGenerator as any,
       'http://localhost:3333',
       'test@hockpay.com',
+      undefined,
+      undefined,
+      { save: vi.fn() } as any,
     );
 
     await expect(
@@ -588,7 +617,7 @@ describe('PaymentLink use cases', () => {
   });
 
   it('cancels PaymentLink and PixCharge through locked transactional repositories', async () => {
-    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository } =
+    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository, outboxWriter } =
       makeCancelPaymentLinkSut({
         linkEnvironment: Environment.TEST,
       });
@@ -611,10 +640,16 @@ describe('PaymentLink use cases', () => {
     expect(paymentLinkRepository.update).toHaveBeenCalledWith(link);
     expect(pixChargeRepository.update).toHaveBeenCalledWith(charge);
     expect(charge.status).toBe(PixChargeStatus.CANCELLED);
+
+    // O payload sai com o status de depois do cancelamento, nao com o de antes.
+    const cancelled = outboxWriter.save.mock.calls[0][0];
+    expect(cancelled.eventType).toBe('payment_link.cancelled');
+    expect(cancelled.aggregateType).toBe('PaymentLink');
+    expect(cancelled.payload).toMatchObject({ status: 'CANCELLED' });
   });
 
   it('refuses a TEST caller cancelling a LIVE payment link without touching the charge', async () => {
-    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository } =
+    const { useCase, link, charge, paymentLinkRepository, pixChargeRepository, outboxWriter } =
       makeCancelPaymentLinkSut({
         linkEnvironment: Environment.LIVE,
       });
@@ -632,6 +667,7 @@ describe('PaymentLink use cases', () => {
     expect(pixChargeRepository.findByIdAndStoreIdForUpdate).not.toHaveBeenCalled();
     expect(pixChargeRepository.update).not.toHaveBeenCalled();
     expect(charge.status).toBe(PixChargeStatus.OPEN);
+    expect(outboxWriter.save).not.toHaveBeenCalled();
   });
 
   it('allows a LIVE caller to cancel a LIVE payment link', async () => {
@@ -662,7 +698,10 @@ describe('PaymentLink use cases', () => {
     const unitOfWork = {
       execute: vi.fn((handler) =>
         handler({
-          paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+          paymentLinkRepository: {
+            findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+            findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+          },
           pixChargeRepository: {
             findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(makePixChargeFromItem(item)),
             update: vi.fn(),
@@ -728,7 +767,10 @@ describe('PaymentLink use cases', () => {
       {
         execute: vi.fn((handler) =>
           handler({
-            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            paymentLinkRepository: {
+              findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+              findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+            },
             pixChargeRepository: {
               findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(makePixChargeFromItem(item)),
               update: vi.fn(),
@@ -767,7 +809,10 @@ describe('PaymentLink use cases', () => {
       {
         execute: vi.fn((handler) =>
           handler({
-            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            paymentLinkRepository: {
+              findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+              findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+            },
             pixChargeRepository: {
               findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
               update: vi.fn(),
@@ -813,10 +858,21 @@ describe('PaymentLink use cases', () => {
     });
 
     expect(account.addToPending).toHaveBeenCalledWith(4910);
+    // A ordem importa: quem assina os dois le a confirmacao do pagamento antes
+    // do fechamento do link.
     expect(outboxWriter.save.mock.calls.map((call) => call[0].eventType)).toEqual([
       'payment.created',
       'payment.confirmed',
+      'payment_link.paid',
     ]);
+    const linkPaid = outboxWriter.save.mock.calls[2][0];
+    expect(linkPaid.aggregateType).toBe('PaymentLink');
+    expect(linkPaid.aggregateId).toBe(item.id);
+    expect(linkPaid.version).toBe(1);
+    // O QR em base64 e a lista de tentativas ficam de fora do envelope.
+    expect(linkPaid.payload).not.toHaveProperty('pixCharge');
+    expect(linkPaid.payload).not.toHaveProperty('attempts');
+    expect(linkPaid.payload).not.toHaveProperty('publicToken');
     expect(result.payment.status).toBe(PaymentStatus.CONFIRMED);
     expect(result.payment.pixCharge?.status).toBe(PixChargeStatus.PAID);
     expect(result.payment.customerId).toBeDefined();
@@ -829,7 +885,10 @@ describe('PaymentLink use cases', () => {
       {
         execute: vi.fn((handler) =>
           handler({
-            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            paymentLinkRepository: {
+              findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+              findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+            },
             pixChargeRepository: {
               findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(makePixChargeFromItem(item)),
               update: vi.fn(),
@@ -875,7 +934,10 @@ describe('PaymentLink use cases', () => {
       {
         execute: vi.fn((handler) =>
           handler({
-            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            paymentLinkRepository: {
+              findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+              findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+            },
             pixChargeRepository: {
               findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(pixCharge),
               update: vi.fn(),
@@ -936,7 +998,10 @@ describe('PaymentLink use cases', () => {
       {
         execute: vi.fn((handler) =>
           handler({
-            paymentLinkRepository: { findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item) },
+            paymentLinkRepository: {
+              findPublicByTokenForUpdate: vi.fn().mockResolvedValue(item),
+              findListItemByIdAndStoreId: vi.fn().mockResolvedValue(item),
+            },
             pixChargeRepository: {
               findByIdAndStoreIdForUpdate: vi.fn(),
               update: vi.fn(),
@@ -966,11 +1031,18 @@ function makeCancelPaymentLinkSut(options: { linkEnvironment: Environment }) {
     cancel: vi.fn(),
   };
   const charge = makePixChargeFromItem(makePaymentLinkListItem());
+  const cancelledListItem = {
+    ...makePaymentLinkListItem(),
+    status: 'CANCELLED' as const,
+    cancelledAt: new Date('2026-05-15T13:00:00.000Z'),
+  };
   const paymentLinkRepository = {
     findByIdAndStoreId: vi.fn(),
     findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(link),
+    findListItemByIdAndStoreId: vi.fn().mockResolvedValue(cancelledListItem),
     update: vi.fn(),
   };
+  const outboxWriter = { save: vi.fn() };
   const pixChargeRepository = {
     findByIdAndStoreId: vi.fn(),
     findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(charge),
@@ -981,6 +1053,7 @@ function makeCancelPaymentLinkSut(options: { linkEnvironment: Environment }) {
       handler({
         paymentLinkRepository,
         pixChargeRepository,
+        outboxWriter,
       }),
     ),
   };
@@ -992,6 +1065,7 @@ function makeCancelPaymentLinkSut(options: { linkEnvironment: Environment }) {
     charge,
     paymentLinkRepository,
     pixChargeRepository,
+    outboxWriter,
   };
 }
 

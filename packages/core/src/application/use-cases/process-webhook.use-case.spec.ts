@@ -366,4 +366,62 @@ describe('ProcessWebhookUseCase', () => {
     expect(sender.send).not.toHaveBeenCalled();
     expect(outboxRepository.update).toHaveBeenCalledWith(event);
   });
+
+  it('delivers a payment link event inside the versioned envelope', async () => {
+    // O ambiente local nao consegue entregar webhook (a politica de URL do
+    // worker exige NODE_ENV de desenvolvimento), entao a perna de entrega dos
+    // eventos novos e coberta aqui: agregado PaymentLink, sem paymentId, e o
+    // envelope carregando a versao congelada na producao.
+    const event = OutboxEvent.create({
+      aggregateType: 'PaymentLink',
+      aggregateId: 'link-1',
+      eventType: 'payment_link.paid',
+      requestId: 'req-1',
+      payload: {
+        id: 'link-1',
+        storeId: 'store-1',
+        status: 'PAID',
+        checkout_url: 'https://checkout.example.com/pay/token',
+      },
+    });
+    event.markAsDispatched(new Date('2026-01-01T00:45:00.000Z'));
+
+    const config = WebhookConfig.reconstitute({
+      id: 'webhook-config-1',
+      storeId: 'store-1',
+      url: 'https://example.com/webhook',
+      secret: 'encrypted-1',
+      prefix: 'whsec_test',
+      events: ['payment_link.paid'],
+      isActive: true,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+
+    const send = vi.fn().mockResolvedValue({ success: true, statusCode: 200, body: 'ok' });
+    const { useCase, outboxRepository } = makeUseCase({
+      event,
+      configs: [config],
+      sender: { send },
+    });
+
+    const result = await useCase.execute({ eventId: event.id });
+
+    expect(result.delivered).toBe(true);
+    expect(outboxRepository.update).toHaveBeenCalled();
+
+    const [, deliveredBody] = send.mock.calls[0];
+    expect(deliveredBody).toEqual({
+      id: event.id,
+      type: 'payment_link.paid',
+      version: 1,
+      created_at: event.createdAt.toISOString(),
+      data: {
+        id: 'link-1',
+        storeId: 'store-1',
+        status: 'PAID',
+        checkout_url: 'https://checkout.example.com/pay/token',
+      },
+    });
+  });
 });

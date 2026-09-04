@@ -20,7 +20,7 @@ describe('ExpirePaymentUseCase', () => {
     });
   }
 
-  function makePayment(pixCharge?: PixCharge) {
+  function makePayment(pixCharge?: PixCharge, metadata?: Record<string, unknown>) {
     return Payment.create({
       storeId: 'store-1',
       pixChargeId: pixCharge?.id,
@@ -30,7 +30,34 @@ describe('ExpirePaymentUseCase', () => {
       netAmount: 7855,
       expiresAt: new Date(Date.now() - 60_000),
       environment: Environment.TEST,
+      metadata,
     });
+  }
+
+  function makePaymentLinkListItem(id: string) {
+    return {
+      id,
+      storeId: 'store-1',
+      status: 'EXPIRED' as const,
+      amount: 7990,
+      currency: 'BRL',
+      environment: Environment.TEST,
+      title: null,
+      description: null,
+      internalReference: null,
+      checkoutUrl: `http://localhost:3333/pay/${id}`,
+      pixChargeId: 'charge-1',
+      publicToken: id,
+      items: [],
+      paymentId: null,
+      lastPaymentId: null,
+      failedPaymentCount: 0,
+      expiresAt: null,
+      openedAt: null,
+      cancelledAt: null,
+      createdAt: new Date('2026-05-15T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-15T12:00:00.000Z'),
+    };
   }
 
   function makeUseCase(payment: Payment | null, pixCharge: PixCharge | null = null) {
@@ -49,6 +76,9 @@ describe('ExpirePaymentUseCase', () => {
       },
       outboxWriter: {
         save: vi.fn(),
+      },
+      paymentLinkRepository: {
+        findListItemByIdAndStoreId: vi.fn().mockResolvedValue(makePaymentLinkListItem('link-1')),
       },
     };
     const unitOfWork = {
@@ -212,5 +242,52 @@ describe('ExpirePaymentUseCase', () => {
     });
 
     expect(result.payment.status).toBe(PaymentStatus.EXPIRED);
+  });
+
+  it('closes the payment link when the charge behind it expires', async () => {
+    const pixCharge = makePixCharge();
+    const payment = makePayment(pixCharge, {
+      origin: 'payment_link',
+      paymentLinkId: 'link-1',
+    });
+    const { useCase, repos } = makeUseCase(payment, pixCharge);
+
+    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+
+    const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
+    expect(emitted).toEqual(['payment.expired', 'payment_link.expired']);
+
+    const linkExpired = repos.outboxWriter.save.mock.calls[1][0];
+    expect(linkExpired.aggregateType).toBe('PaymentLink');
+    expect(linkExpired.aggregateId).toBe('link-1');
+    expect(linkExpired.payload).toMatchObject({ status: 'EXPIRED', storeId: 'store-1' });
+  });
+
+  it('does not announce the link again when the charge was already closed', async () => {
+    const pixCharge = makePixCharge();
+    pixCharge.expire();
+    const payment = makePayment(pixCharge, {
+      origin: 'payment_link',
+      paymentLinkId: 'link-1',
+    });
+    const { useCase, repos } = makeUseCase(payment, pixCharge);
+
+    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+
+    // Varias tentativas mortas do mesmo link nao viram varios payment_link.expired.
+    const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
+    expect(emitted).toEqual(['payment.expired']);
+  });
+
+  it('leaves a plain payment alone: no link, no link event', async () => {
+    const pixCharge = makePixCharge();
+    const payment = makePayment(pixCharge);
+    const { useCase, repos } = makeUseCase(payment, pixCharge);
+
+    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+
+    const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
+    expect(emitted).toEqual(['payment.expired']);
+    expect(repos.paymentLinkRepository.findListItemByIdAndStoreId).not.toHaveBeenCalled();
   });
 });

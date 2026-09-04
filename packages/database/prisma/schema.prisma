@@ -697,6 +697,7 @@ model OutboxEvent {
   aggregateType String       @map("aggregate_type")
   aggregateId   String       @map("aggregate_id")
   eventType     String       @map("event_type")
+  version       Int          @default(1)
   requestId     String?      @map("request_id")
   payload       Json
   status        OutboxStatus @default(PENDING)

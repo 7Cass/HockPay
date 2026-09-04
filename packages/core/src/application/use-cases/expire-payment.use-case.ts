@@ -5,6 +5,10 @@ import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.erro
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import {
+  emitPaymentLinkEvent,
+  paymentLinkIdFromMetadata,
+} from '../services/payment-link-event.service';
 
 /**
  * Input DTO for ExpirePaymentUseCase.
@@ -83,6 +87,7 @@ export class ExpirePaymentUseCase {
 
       // Only expire if pending
       let pixChargeObject = payment.pixCharge;
+      let expiredTheCharge = false;
       payment.expire();
       await repos.paymentRepository.update(payment);
 
@@ -94,6 +99,7 @@ export class ExpirePaymentUseCase {
         if (pixCharge?.isOpen()) {
           pixCharge.expire();
           await repos.pixChargeRepository.update(pixCharge);
+          expiredTheCharge = true;
         }
         pixChargeObject = pixCharge?.toObject() ?? payment.pixCharge;
       }
@@ -113,6 +119,19 @@ export class ExpirePaymentUseCase {
         payload: paymentPayload as unknown as Record<string, unknown>,
       });
       await repos.outboxWriter.save(outboxEvent);
+
+      // Varias tentativas dividem a mesma PixCharge, mas so uma consegue
+      // expira-la: emitir preso a essa transicao evita um payment_link.expired
+      // por tentativa morta do mesmo link.
+      const paymentLinkId = expiredTheCharge ? paymentLinkIdFromMetadata(payment.metadata) : null;
+      if (paymentLinkId) {
+        await emitPaymentLinkEvent(repos, {
+          eventType: 'payment_link.expired',
+          paymentLinkId,
+          storeId: payment.storeId,
+          requestId: input.requestId,
+        });
+      }
 
       return {
         payment: paymentPayload,

@@ -7,6 +7,10 @@ import { AccountNotFoundError } from '../../domain/errors/account-not-found.erro
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { ITransactedRepositories } from '../../domain/repositories/unit-of-work.interface';
 import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
+import {
+  emitPaymentLinkEvent,
+  paymentLinkIdFromMetadata,
+} from '../services/payment-link-event.service';
 import { buildReceiptNumber } from './receipt-number';
 
 export interface SettleConfirmedPaymentInput {
@@ -110,6 +114,19 @@ export async function settleConfirmedPayment(
     payload: paymentPayload as unknown as Record<string, unknown>,
   });
   await repos.outboxWriter.save(outboxEvent);
+
+  // O link fecha junto com a cobranca. Emitido depois do payment.confirmed
+  // porque essa e a ordem em que os dois fatos acontecem, e quem assina os
+  // dois espera ler a confirmacao antes do fechamento do link.
+  const paymentLinkId = paymentLinkIdFromMetadata(input.payment.metadata);
+  if (paymentLinkId) {
+    await emitPaymentLinkEvent(repos, {
+      eventType: 'payment_link.paid',
+      paymentLinkId,
+      storeId: input.payment.storeId,
+      requestId: input.requestId,
+    });
+  }
 
   return paymentPayload;
 }

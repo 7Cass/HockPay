@@ -66,6 +66,7 @@ export class PaymentLinkController {
   ) {
     const input = {
       storeId,
+      requestId: getRequestId(req),
       environment,
       amount: dto.amount,
       items: dto.items,
