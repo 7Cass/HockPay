@@ -1,4 +1,17 @@
 /**
+ * Audiences a hockpay token can be issued for.
+ *
+ * A token is only ever valid for the principal named here: a merchant token is
+ * rejected on operator routes and vice-versa.
+ */
+export const TOKEN_AUDIENCE = {
+  MERCHANT: 'merchant',
+  OPERATOR: 'operator',
+} as const;
+
+export type TokenAudience = (typeof TOKEN_AUDIENCE)[keyof typeof TOKEN_AUDIENCE];
+
+/**
  * Port interface for JWT service.
  *
  * This port defines the contract for JWT token operations.
@@ -16,20 +29,13 @@ export interface IJwtServicePort {
   generateAccessToken(sub: string, storeId: string | null, expiresIn?: string): Promise<string>;
 
   /**
-   * Generate a refresh token for a merchant.
-   *
-   * @param sub - The merchant ID (subject)
-   * @param expiresIn - Token expiration time (e.g., '7d', '30d')
-   * @returns The signed JWT token
-   */
-  generateRefreshToken(sub: string, expiresIn?: string): Promise<string>;
-
-  /**
    * Verify and decode a JWT token.
+   *
+   * Rejects a token issued for another audience, before any permission is read.
    *
    * @param token - The JWT token to verify
    * @returns The decoded payload
-   * @throws Error if token is invalid or expired
+   * @throws Error if the token is invalid, expired or issued for another audience
    */
   verifyToken(token: string): Promise<JwtPayload>;
 
@@ -47,6 +53,7 @@ export interface IJwtServicePort {
  */
 export interface JwtPayload {
   sub: string;
+  aud: TokenAudience;
   storeId?: string | null;
   iat?: number;
   exp?: number;
