@@ -192,7 +192,8 @@ sem consumidor e a mesma capacidade fantasma que acabou de ser removida.
 ## Ordem de construcao
 
 1. **Fronteira de autorizacao** -- principal `Operator`, autenticacao propria,
-   trilha de auditoria. Nada de poder ainda.
+   trilha de auditoria. Nada de poder ainda. Detalhado em
+   [PRD_OPERATOR_AUTHZ.md](PRD_OPERATOR_AUTHZ.md).
 2. **Ledger por ambiente** -- pre-requisito do passo 3.
 3. **Onboarding LIVE** -- estados de habilitacao e a mesa que decide.
 4. **Condicao comercial** -- taxa e prazo, auditados.

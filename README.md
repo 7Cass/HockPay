@@ -76,6 +76,7 @@ GitHub Actions roda lint/format (API/worker), build, testes de core/infrastructu
 - [Modelo de dados](./docs/DATA_MODEL.md)
 - [Catalogo de eventos](./docs/EVENTS.md)
 - [PRD - Superficie de operador](./docs/PRD_OPERATOR_SURFACE.md) (proposta, nao implementada)
+- [PRD - Fronteira de autorizacao de operador](./docs/PRD_OPERATOR_AUTHZ.md) (proposta, fatia 1 da superficie de operador)
 - [Runbook](./docs/RUNBOOK.md)
 - [Arquitetura alvo](./docs/TARGET_ARCHITECTURE.md)
 
