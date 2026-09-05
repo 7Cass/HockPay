@@ -5,7 +5,12 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { ValidateApiKeyUseCase, JwtPayload, Environment } from '@hockpay/core';
+import {
+  ValidateApiKeyUseCase,
+  JwtPayload,
+  Environment,
+  TOKEN_AUDIENCE,
+} from '@hockpay/core';
 import { JwtService } from 'src/infra/services/jwt.service';
 
 const AUTH_REQUIRED_MESSAGE =
@@ -67,7 +72,7 @@ export class CombinedAuthGuard implements CanActivate {
       const payload: JwtPayload =
         await this.jwtService.verifyToken(accessToken);
 
-      if (!payload.sub) {
+      if (!payload.sub || payload.aud !== TOKEN_AUDIENCE.MERCHANT) {
         throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
       }
 

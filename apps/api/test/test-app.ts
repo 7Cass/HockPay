@@ -27,6 +27,7 @@ import {
   LogoutUseCase,
   RefreshTokenUseCase,
   SwitchStoreUseCase,
+  TOKEN_AUDIENCE,
   ValidateApiKeyUseCase,
 } from '@hockpay/core';
 import {
@@ -126,6 +127,7 @@ export async function createApiE2eTestApp(): Promise<{
         if (token === 'valid-access-token-without-store') {
           return {
             sub: 'merchant-1',
+            aud: TOKEN_AUDIENCE.MERCHANT,
             iat: 1,
             exp: 9999999999,
           };
@@ -134,6 +136,7 @@ export async function createApiE2eTestApp(): Promise<{
         if (token === 'valid-access-token') {
           return {
             sub: 'merchant-1',
+            aud: TOKEN_AUDIENCE.MERCHANT,
             storeId: 'store-1',
             iat: 1,
             exp: 9999999999,

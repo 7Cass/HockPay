@@ -1,5 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { Environment } from '@hockpay/core';
+import { Environment, TOKEN_AUDIENCE } from '@hockpay/core';
 import { CombinedAuthGuard } from './combined-auth.guard';
 
 function makeContext(request: Record<string, unknown>) {
@@ -33,6 +33,7 @@ describe('CombinedAuthGuard', () => {
     });
     jwtService.verifyToken.mockResolvedValue({
       sub: 'merchant-1',
+      aud: TOKEN_AUDIENCE.MERCHANT,
       storeId: 'store-test',
     });
 
@@ -55,6 +56,7 @@ describe('CombinedAuthGuard', () => {
   it('authenticates JWT without storeId but does not attach a store', async () => {
     jwtService.verifyToken.mockResolvedValue({
       sub: 'merchant-1',
+      aud: TOKEN_AUDIENCE.MERCHANT,
     });
 
     const request: Record<string, unknown> = {
@@ -69,6 +71,24 @@ describe('CombinedAuthGuard', () => {
       sub: 'merchant-1',
       storeId: null,
     });
+  });
+
+  it('rejects a token minted for another audience', async () => {
+    jwtService.verifyToken.mockResolvedValue({
+      sub: 'operator-1',
+      aud: TOKEN_AUDIENCE.OPERATOR,
+    });
+
+    const request: Record<string, unknown> = {
+      cookies: { hockpay_at: 'operator-token' },
+      headers: {},
+    };
+
+    await expect(
+      guard.canActivate(makeContext(request)),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(request.user).toBeUndefined();
+    expect(request.authType).toBeUndefined();
   });
 
   it('does not leak JWT verifier text in the 401 body', async () => {
