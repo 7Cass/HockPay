@@ -239,22 +239,36 @@ que esta fatia existe para fechar.
 
 ## Ordem de implementacao
 
-Cada passo e um commit; os dois primeiros sao os que pedem revisao mais dura.
+Duas entregas, cada uma um PR. Dentro de cada uma, cada passo e um commit.
 
-1. Schema + migration (`Operator`, `OperatorRefreshToken`, `OperatorAuditLog`),
+### PR 1 -- `aud` obrigatorio no JWT de merchant
+
+Nada de operador entra aqui. E o unico passo que pode quebrar autenticacao
+existente: 15 arquivos tocam `JwtPayload`, `hockpay_at` ou `generateAccessToken`,
+incluindo `apps/api/test/test-app.ts` e o e2e. Isolado, e trivial de reverter; no
+meio do resto, vira o PR que quebrou o login com trinta arquivos em volta. Os
+smokes pegam o cookie do proprio login e nao mudam.
+
+1. `aud` no `JwtPayload` e na emissao (`JwtService`).
+2. Rejeicao de audiencia na `JwtStrategy` e no `CombinedAuthGuard`.
+3. Specs e e2e acompanhando: token sem `aud` deixa de valer.
+
+### PR 2 -- principal `Operator`, trilha e superficie
+
+4. Schema + migration (`Operator`, `OperatorRefreshToken`, `OperatorAuditLog`),
    ainda sem uso.
-2. `aud` no `JwtPayload`/`JwtService`, `OPERATOR_JWT_SECRET`, e rejeicao de
-   audiencia na `JwtStrategy` e no `CombinedAuthGuard`.
-3. Portas e repositorios (operador, refresh token de operador, trilha
+5. `OPERATOR_JWT_SECRET`, com emissao e verificacao de operador pelo segredo
+   proprio.
+6. Portas e repositorios (operador, refresh token de operador, trilha
    append-only) e entrada no `UnitOfWork`.
-4. Use cases de login/refresh/logout de operador, espelhando os de merchant e
+7. Use cases de login/refresh/logout de operador, espelhando os de merchant e
    gravando a trilha na mesma transacao.
-5. Controller de operador, `OperatorAuthGuard`, `@OperatorRoute()` e o teste de
+8. Controller de operador, `OperatorAuthGuard`, `@OperatorRoute()` e o teste de
    varredura de rotas.
-6. `GET /operator/me` e `GET /operator/audit-logs`.
-7. CLI `operator:create` (e remocao do `db:seed` morto).
-8. Docs: `CURRENT_STATE.md`, `apps/api/README.md`, `.env.example` e `RUNBOOK.md`
-   com a variavel nova.
+9. `GET /operator/me` e `GET /operator/audit-logs`.
+10. CLI `operator:create` (e remocao do `db:seed` morto).
+11. Docs: `CURRENT_STATE.md`, `apps/api/README.md`, `.env.example` e `RUNBOOK.md`
+    com a variavel nova.
 
 ## Riscos
 
