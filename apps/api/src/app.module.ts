@@ -31,6 +31,7 @@ import { CustomerHistoryModule } from './modules/customer-history/customer-histo
 import { AlertModule } from './modules/alert/alert.module';
 import { PaymentLinkModule } from './modules/payment-link/payment-link.module';
 import { WithdrawalModule } from './modules/withdrawal/withdrawal.module';
+import { OperatorModule } from './modules/operator/operator.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -112,6 +113,7 @@ import { getOrCreateRequestId } from './common/request-id';
     AlertModule,
     PaymentLinkModule,
     WithdrawalModule,
+    OperatorModule,
   ],
   controllers: [AppController],
   providers: [

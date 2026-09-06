@@ -1,6 +1,9 @@
 // Domain - Entities
 export * from './domain/entities/merchant.entity';
 export * from './domain/entities/refresh-token.entity';
+export * from './domain/entities/operator.entity';
+export * from './domain/entities/operator-refresh-token.entity';
+export * from './domain/entities/operator-audit-log.entity';
 export * from './domain/entities/api-key.entity';
 export * from './domain/entities/store.entity';
 export * from './domain/entities/customer.entity';
@@ -52,6 +55,9 @@ export * from './domain/errors/token-expired.error';
 export * from './domain/errors/invalid-refresh-token.error';
 export * from './domain/errors/refresh-token-revoked.error';
 export * from './domain/errors/merchant-inactive.error';
+export * from './domain/errors/operator-inactive.error';
+export * from './domain/errors/operator-not-found.error';
+export * from './domain/errors/operator-already-exists.error';
 export * from './domain/errors/api-key-not-found.error';
 export * from './domain/errors/api-key-revoked.error';
 export * from './domain/errors/invalid-api-key-format.error';
@@ -120,6 +126,9 @@ export * from './domain/errors/invalid-balance.error';
 
 // Domain - Repository Interfaces
 export * from './domain/repositories/merchant.repository.interface';
+export * from './domain/repositories/operator.repository.interface';
+export * from './domain/repositories/operator-refresh-token.repository.interface';
+export * from './domain/repositories/operator-audit-log.repository.interface';
 export * from './domain/repositories/api-key.repository.interface';
 export * from './domain/repositories/store.repository.interface';
 export * from './domain/repositories/customer.repository.interface';
@@ -149,6 +158,7 @@ export * from './application/ports/password-hasher.port';
 export * from './application/ports/jwt-service.port';
 export * from './application/ports/token-generator.port';
 export * from './application/ports/refresh-token-repository.port';
+export * from './application/ports/operator-jwt-service.port';
 export * from './application/ports/slug-generator.port';
 export * from './application/ports/pix-qr-code-generator.port';
 export * from './application/ports/expiration-queue.port';
@@ -170,6 +180,12 @@ export * from './application/services/webhook-url-policy.service';
 export * from './application/services/withdrawal-policy.service';
 
 // Application - Use Cases
+export * from './application/use-cases/operator-login.use-case';
+export * from './application/use-cases/operator-refresh-token.use-case';
+export * from './application/use-cases/operator-logout.use-case';
+export * from './application/use-cases/get-operator.use-case';
+export * from './application/use-cases/list-operator-audit-logs.use-case';
+export * from './application/use-cases/create-operator.use-case';
 export * from './application/use-cases/create-merchant.use-case';
 export * from './application/use-cases/get-merchant.use-case';
 export * from './application/use-cases/get-current-merchant.use-case';

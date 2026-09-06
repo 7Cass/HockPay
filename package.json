@@ -26,6 +26,7 @@
     "smoke:studycase:mediakit": "node scripts/smoke-studycase-mediakit.mjs",
     "smoke:docker": "node scripts/smoke-orchestrate-local.mjs",
     "dlq": "node scripts/dlq.mjs",
+    "operator:create": "node --env-file-if-exists=.env scripts/operator-create.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "turbo run format:check",

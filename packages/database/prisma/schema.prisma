@@ -812,3 +812,60 @@ model ApiKey {
   @@unique([prefix, keyHash])
   @@map("api_keys")
 }
+
+// ============================================================================
+// OPERATOR
+// ============================================================================
+
+// Principal separado do merchant, sem relacao com ele: um token de merchant
+// nao alcanca estas tabelas, e um operador nao herda loja nenhuma.
+model Operator {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  refreshTokens OperatorRefreshToken[]
+  auditLogs     OperatorAuditLog[]
+
+  @@map("operators")
+}
+
+model OperatorRefreshToken {
+  id         String    @id @default(uuid())
+  token      String    @unique
+  operatorId String    @unique @map("operator_id")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@map("operator_refresh_tokens")
+}
+
+// Append-only: a porta de dominio nao expoe update nem delete, e o operador
+// dono da linha nao pode ser apagado enquanto ela existir.
+model OperatorAuditLog {
+  id         String   @id @default(uuid())
+  operatorId String   @map("operator_id")
+  action     String
+  targetType String   @map("target_type")
+  targetId   String?  @map("target_id")
+  before     Json?
+  after      Json?
+  reason     String?
+  requestId  String?  @map("request_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([operatorId])
+  @@index([targetType, targetId])
+  @@map("operator_audit_logs")
+}

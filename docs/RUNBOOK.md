@@ -43,12 +43,13 @@ Use `.env.example` como base local, sem copiar valores reais de `.env`. API e wo
 | `NODE_ENV`                  | Seleciona comportamento de dev/test/prod em API, worker e checkout        | `development`                                                                    |
 | `DATABASE_URL`              | PostgreSQL usado por Prisma, API, worker e migrations                     | `postgresql://hockpay:hockpay_dev_password@localhost:5432/hockpay?schema=public` |
 | `JWT_SECRET`                | Assinatura de JWT do dashboard                                            | placeholder forte local                                                          |
+| `OPERATOR_JWT_SECRET`       | Assinatura de JWT do operador; a API nao sobe sem ele e nao cai no `JWT_SECRET` | placeholder forte local, diferente do `JWT_SECRET`                          |
 | `ENCRYPTION_KEY`            | Chave hex de 32 bytes para segredos sensíveis                             | 64 caracteres hex placeholder                                                    |
 | `REDIS_URL`                 | Redis operacional de API, worker, throttling, idempotência/cache e BullMQ | `redis://localhost:6379`                                                         |
 | `REDIS_HOST` / `REDIS_PORT` | Forma alternativa para o mesmo Redis operacional                          | `localhost` / `6379`                                                             |
 | `THROTTLE_LIMIT`            | Requisicoes por IP em cada janela do rate limit da API                    | `100`                                                                            |
 | `THROTTLE_TTL_MS`           | Tamanho da janela do rate limit da API, em ms                             | `60000`                                                                          |
-| `THROTTLE_LOGIN_LIMIT`      | Tentativas de `POST /auth/login` por IP na mesma janela                   | `5`                                                                              |
+| `THROTTLE_LOGIN_LIMIT`      | Tentativas de `POST /auth/login` e `POST /operator/auth/login` por IP na mesma janela | `5`                                                                   |
 
 > `NODE_ENV` nao e cosmetico no worker: fora de `development`/`dev`/`local`/`test` a politica de URL recusa todo destino HTTP, inclusive `127.0.0.1`. Um worker sem `NODE_ENV` entrega zero webhook em dev, e a falha aparece so no `last_error` do `webhook_logs`.
 

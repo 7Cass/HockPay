@@ -35,6 +35,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
 
   // Conflict Errors (409 Conflict)
   MERCHANT_ALREADY_EXISTS: 409,
+  OPERATOR_ALREADY_EXISTS: 409,
   API_KEY_ALREADY_EXISTS: 409,
   PAYMENT_ALREADY_CONFIRMED: 409,
   PAYMENT_ALREADY_REFUNDED: 409,
@@ -52,6 +53,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
 
   // Not Found Errors (404 Not Found)
   MERCHANT_NOT_FOUND: 404,
+  OPERATOR_NOT_FOUND: 404,
   PAYMENT_NOT_FOUND: 404,
   API_KEY_NOT_FOUND: 404,
   WEBHOOK_CONFIG_NOT_FOUND: 404,
@@ -97,6 +99,7 @@ export const ERROR_CODE_MAP: Record<string, number> = {
 
   // Authorization Errors (403 Forbidden)
   INSUFFICIENT_PERMISSIONS: 403,
+  OPERATOR_INACTIVE: 403,
   MERCHANT_MISMATCH: 403,
   NO_CURRENT_STORE: 403,
   MERCHANT_INACTIVE: 403,

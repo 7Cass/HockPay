@@ -26,6 +26,11 @@ import {
   LoginUseCase,
   LogoutUseCase,
   RefreshTokenUseCase,
+  GetOperatorUseCase,
+  ListOperatorAuditLogsUseCase,
+  OperatorLoginUseCase,
+  OperatorLogoutUseCase,
+  OperatorRefreshTokenUseCase,
   SwitchStoreUseCase,
   TOKEN_AUDIENCE,
   ValidateApiKeyUseCase,
@@ -50,6 +55,11 @@ import { PrismaService } from '../src/infra/database/prisma.service';
 import { HealthController } from '../src/modules/health/health.controller';
 import { StoreController } from '../src/modules/store/store.controller';
 import { WithdrawalController } from '../src/modules/withdrawal/withdrawal.controller';
+import { OperatorAuthController } from '../src/modules/operator/operator-auth.controller';
+import { OperatorController } from '../src/modules/operator/operator.controller';
+import { OperatorAuthGuard } from '../src/modules/operator/guards/operator-auth.guard';
+import { IS_OPERATOR_ROUTE_KEY } from '../src/modules/operator/decorators/operator-route.decorator';
+import { OperatorJwtService } from '../src/infra/services/operator-jwt.service';
 
 export type ApiE2eMocks = {
   loginUseCase: { execute: jest.Mock };
@@ -65,6 +75,15 @@ export type ApiE2eMocks = {
   transactionalIdempotencyService: { execute: jest.Mock };
   validateApiKeyUseCase: { execute: jest.Mock };
   jwtService: { verifyToken: jest.Mock };
+  operatorJwtService: {
+    verifyToken: jest.Mock;
+    generateAccessToken: jest.Mock;
+  };
+  operatorLoginUseCase: { execute: jest.Mock };
+  operatorRefreshTokenUseCase: { execute: jest.Mock };
+  operatorLogoutUseCase: { execute: jest.Mock };
+  getOperatorUseCase: { execute: jest.Mock };
+  listOperatorAuditLogsUseCase: { execute: jest.Mock };
   idempotencyCacheService: {
     get: jest.Mock;
     set: jest.Mock;
@@ -84,6 +103,15 @@ class TestJwtGuard implements CanActivate {
     ]);
 
     if (isPublic) {
+      return true;
+    }
+
+    const isOperatorRoute = this.reflector.getAllAndOverride<boolean>(
+      IS_OPERATOR_ROUTE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (isOperatorRoute) {
       return true;
     }
 
@@ -146,6 +174,26 @@ export async function createApiE2eTestApp(): Promise<{
         throw new UnauthorizedException('Invalid token');
       }),
     },
+    operatorJwtService: {
+      generateAccessToken: jest.fn(),
+      verifyToken: jest.fn(async (token: string) => {
+        if (token === 'valid-operator-token') {
+          return {
+            sub: 'operator-1',
+            aud: TOKEN_AUDIENCE.OPERATOR,
+            iat: 1,
+            exp: 9999999999,
+          };
+        }
+
+        throw new UnauthorizedException('Invalid token');
+      }),
+    },
+    operatorLoginUseCase: { execute: jest.fn() },
+    operatorRefreshTokenUseCase: { execute: jest.fn() },
+    operatorLogoutUseCase: { execute: jest.fn() },
+    getOperatorUseCase: { execute: jest.fn() },
+    listOperatorAuditLogsUseCase: { execute: jest.fn() },
     idempotencyCacheService: {
       get: jest.fn().mockResolvedValue(null),
       set: jest.fn().mockResolvedValue(undefined),
@@ -162,6 +210,8 @@ export async function createApiE2eTestApp(): Promise<{
       AuthController,
       StoreController,
       WithdrawalController,
+      OperatorAuthController,
+      OperatorController,
     ],
     providers: [
       {
@@ -198,6 +248,31 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: JwtService,
         useValue: mocks.jwtService,
+      },
+      {
+        provide: OperatorJwtService,
+        useValue: mocks.operatorJwtService,
+      },
+      OperatorAuthGuard,
+      {
+        provide: OperatorLoginUseCase,
+        useValue: mocks.operatorLoginUseCase,
+      },
+      {
+        provide: OperatorRefreshTokenUseCase,
+        useValue: mocks.operatorRefreshTokenUseCase,
+      },
+      {
+        provide: OperatorLogoutUseCase,
+        useValue: mocks.operatorLogoutUseCase,
+      },
+      {
+        provide: GetOperatorUseCase,
+        useValue: mocks.getOperatorUseCase,
+      },
+      {
+        provide: ListOperatorAuditLogsUseCase,
+        useValue: mocks.listOperatorAuditLogsUseCase,
       },
       {
         provide: ValidateApiKeyUseCase,

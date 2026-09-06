@@ -132,6 +132,11 @@ function smokeEnv(ports = smokePorts()) {
     REDIS_HOST: "127.0.0.1",
     REDIS_PORT: "16379",
     JWT_SECRET: process.env.JWT_SECRET ?? `hockpay-smoke-${randomSecret(48)}`,
+    // Segredo proprio do operador: a API nao sobe sem ele, e reaproveitar o
+    // JWT_SECRET aqui apagaria a fronteira que o smoke deveria respeitar.
+    OPERATOR_JWT_SECRET:
+      process.env.OPERATOR_JWT_SECRET ??
+      `hockpay-smoke-operator-${randomSecret(48)}`,
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? randomHex(32),
     CHECKOUT_BASE_URL: `http://localhost:${ports.checkout}`,
     HOCKPAY_API_URL: `http://localhost:${ports.api}/api/v1`,
