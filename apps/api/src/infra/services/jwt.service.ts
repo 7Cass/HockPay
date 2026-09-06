@@ -1,13 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { IJwtServicePort, JwtPayload } from '@hockpay/core';
+import { IJwtServicePort, JwtPayload, TOKEN_AUDIENCE } from '@hockpay/core';
 
 /**
- * Infrastructure implementation of IJwtServicePort.
+ * Infrastructure implementation of IJwtServicePort for the merchant principal.
  *
  * This service wraps NestJS JwtService to provide JWT operations.
  * Configuration is loaded from environment variables.
+ *
+ * Every token it signs carries the merchant audience, and verification rejects
+ * any other audience before the payload is read.
  */
 @Injectable()
 export class JwtService implements IJwtServicePort {
@@ -22,6 +25,10 @@ export class JwtService implements IJwtServicePort {
       secret,
       signOptions: {
         algorithm: 'HS256',
+        audience: TOKEN_AUDIENCE.MERCHANT,
+      },
+      verifyOptions: {
+        audience: TOKEN_AUDIENCE.MERCHANT,
       },
     });
   }
@@ -31,21 +38,11 @@ export class JwtService implements IJwtServicePort {
     storeId: string | null,
     expiresIn: string = '15m',
   ): Promise<string> {
-    const payload: JwtPayload = { sub };
+    const payload: Omit<JwtPayload, 'aud'> = { sub };
     if (storeId) {
       payload.storeId = storeId;
     }
     return this.nestJwtService.signAsync(payload, { expiresIn } as Record<
-      string,
-      unknown
-    >);
-  }
-
-  async generateRefreshToken(
-    sub: string,
-    expiresIn: string = '7d',
-  ): Promise<string> {
-    return this.nestJwtService.signAsync({ sub }, { expiresIn } as Record<
       string,
       unknown
     >);
