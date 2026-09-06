@@ -5,25 +5,26 @@ import {
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 
 export interface IOperatorLogoutInput {
-  refreshToken: string;
+  operatorId: string;
   requestId?: string;
 }
 
 /**
  * Use Case: Operator Logout
  *
- * Revokes the session and records it, in one transaction. Logout of a token
- * that no longer exists is a no-op: it leaves no line, because no session was
- * closed.
+ * Closes the session of the authenticated operator and records it, in one
+ * transaction. It revokes by principal, not by the refresh cookie: that cookie
+ * is scoped to the refresh path and is never sent to this route.
+ *
+ * Logging out with no open session is a no-op and leaves no line, because no
+ * session was closed.
  */
 export class OperatorLogoutUseCase {
   constructor(private readonly unitOfWork: IUnitOfWork) {}
 
   async execute(input: IOperatorLogoutInput): Promise<void> {
     await this.unitOfWork.execute(async (repos) => {
-      const token = await repos.operatorRefreshTokenRepository.findByTokenForUpdate(
-        input.refreshToken,
-      );
+      const token = await repos.operatorRefreshTokenRepository.findByOperatorId(input.operatorId);
 
       if (!token || token.isRevoked()) {
         return;

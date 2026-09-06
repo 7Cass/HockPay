@@ -107,6 +107,30 @@ describe('Operator surface boundary (e2e)', () => {
     });
   });
 
+  describe('logout', () => {
+    it('closes the session of the authenticated operator, not of a cookie', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/auth/logout')
+        .set('Cookie', OPERATOR_COOKIE)
+        .set('x-request-id', 'req-operator-logout')
+        .expect(204);
+
+      expect(mocks.operatorLogoutUseCase.execute).toHaveBeenCalledWith({
+        operatorId: 'operator-1',
+        requestId: 'req-operator-logout',
+      });
+    });
+
+    it('needs an operator session of its own', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/auth/logout')
+        .set('Cookie', MERCHANT_COOKIE)
+        .expect(401);
+
+      expect(mocks.operatorLogoutUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
   describe('login', () => {
     it('sets the operator cookies on their own paths', async () => {
       mocks.operatorLoginUseCase.execute.mockResolvedValue({

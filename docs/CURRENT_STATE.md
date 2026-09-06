@@ -6,7 +6,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 | Area                      | Estado atual                                                                                                                                                                                               |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/api`                | API NestJS em `http://localhost:3000/api/v1`, com cookie JWT para dashboard, API keys para integracoes e `CombinedAuthGuard` nos endpoints que aceitam os dois modos.                                      |
+| `apps/api`                | API NestJS em `http://localhost:3000/api/v1`, com cookie JWT para dashboard, API keys para integracoes e `CombinedAuthGuard` nos endpoints que aceitam os dois modos. `/api/v1/operator` autentica outro principal, com cookie e segredo proprios. |
 | `apps/worker`             | Worker NestJS separado com BullMQ/Redis, dispatcher de outbox, entrega de webhooks, alertas, expiracao, settlement, saques simulados e limpezas periodicas.                                                |
 | `apps/web`                | Angular unico para landing, auth e dashboard do merchant. Inclui overview, payments, Payment Links, products, receipts, customers, API keys, webhooks, alerts, financials, withdrawals e settings de perfil (`name`, `city`). |
 | `apps/checkout`           | Checkout Next.js para comprador, com fluxo de checkout session e rota publica de Payment Link em `/pay/:token`.                                                                                            |
@@ -37,6 +37,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Products/catalog                  | Implementado         | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`.                           |
 | Settings                          | Perfil mutavel       | Merchant edita `name` e `city` (EMV). Fee, settlement e aprovacao continuam imutaveis.                                                               |
 | Antifraude                        | Planejado            | Nao existe. O `DetectAnomaliesUseCase` stub e o cron horario foram removidos: devolviam lista vazia e logavam varredura que nunca aconteceu. Os quatro tipos de anomalia previstos (volume, transacoes rapidas, valor atipico, taxa de falha) sao consultas sobre dados que ja estao no banco, mas nada disso esta implementado. |
+| Superficie de operador            | Parcial              | Existe a fronteira, nao existe a mesa. Principal `Operator` com tabela, cookie e segredo proprios, sessao (login/refresh/logout), `/operator/me` e trilha de auditoria append-only legivel por API. Nenhum poder sobre loja: nao aprova, nao suspende, nao muda taxa e nao le dado de merchant. Sem tela em `apps/web` e sem papeis dentro do operador. |
 | Marketplace/split/multi-seller    | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto.                                                                               |
 
 ## Matriz de Superficies
@@ -48,6 +49,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Checkout sessions | `checkout-session`           | `CheckoutSession`, `CheckoutSessionItem`, `PaymentItem`     | checkout hosted e demo Media Kit                 | `smoke:studycase:mediakit`                                     | Exige exatamente um de `amount` ou `items`; metadata publica e limitada. |
 | Products/catalog  | `product`                    | `Product`, snapshots em `CheckoutSessionItem`/`PaymentLinkItem`/`PaymentItem` | dashboard Products, checkout sessions e Payment Links com items | coberto por testes/builds focados e por `smoke:payment-link`    | Catalogo opcional por store/environment.                                 |
 | Webhooks/alerts   | `webhook`, `alert`           | `OutboxEvent`, `WebhookLog`, `AlertDeliveryLog`             | dashboard webhooks/alerts                        | `smoke:system`, `smoke:payment-link`                           | Entrega depende do worker/Redis e politica de URL.                       |
+| Operador          | `operator-auth`, `operator`  | `Operator`, `OperatorRefreshToken`, `OperatorAuditLog`      | sem dashboard nesta fatia                        | coberto por unit tests e pelo e2e da API                       | Sem poder sobre loja; trilha so por API; provisionamento por `pnpm operator:create`. |
 | Withdrawals       | `withdrawal`, `bank-account` | `Withdrawal`, `BankAccount`, `Transaction`                  | dashboard withdrawals/list/detail                | `smoke:withdrawals`                                            | Saque simulado; sem payout bancario real.                                |
 
 ## Fluxos Reais
@@ -126,6 +128,22 @@ Smokes locais disponiveis:
 
 O default real de `smoke:docker` e `p0,payment-link,p3,studycase,system,withdrawals`.
 
+## Principais e fronteira de autorizacao
+
+Existem dois principais, e eles nao se cruzam:
+
+| Principal | Entra por                                         | Token                                                                 |
+| --------- | -------------------------------------------------- | --------------------------------------------------------------------- |
+| Merchant  | cookie `hockpay_at` (dashboard) ou API key `hk_*` | JWT audiencia `merchant`, assinado com `JWT_SECRET`                   |
+| Operador  | cookie `hockpay_op_at`, so em `/api/v1/operator`  | JWT audiencia `operator`, assinado com `OPERATOR_JWT_SECRET`          |
+
+- Segredos diferentes: um token de merchant nao verifica numa rota de operador nem se a checagem de audiencia falhar, e vice-versa. Token sem audiencia nao vale para nenhum dos dois.
+- API key nunca autentica operador, em TEST ou em LIVE. Nao existe API key de operador.
+- `@OperatorRoute()` tira a rota do guard global de merchant e instala o `OperatorAuthGuard` na mesma marca; um teste de varredura falha se um controller do modulo sair dessa forma.
+- Nao existe elevacao de merchant para operador nem impersonacao. Operador se cria por `pnpm operator:create` (senha por prompt/stdin), nunca por cadastro publico ou seed automatico.
+- Cookies do operador tem paths proprios: `hockpay_op_at` em `/api/v1/operator` e `hockpay_op_rt` em `/api/v1/operator/auth/refresh`. Por isso o logout revoga a sessao pelo operador autenticado, nao pelo cookie de refresh (que nao chega naquela rota).
+- Trilha de auditoria (`operator_audit_logs`) e append-only: a porta nao tem update nem delete, e o repositorio so existe dentro do `UnitOfWork`, entao a linha e escrita na mesma transacao da mudanca que descreve. Hoje registra `operator.login` e `operator.logout`, com `requestId`. Sem retencao ou purga.
+
 ## Idempotencia
 
 Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments`, `POST /withdrawals`, `POST /refunds`, `POST /payment-links`, `POST /checkout-sessions`. A reserva e unica por `key + storeId + environment` (JWT = TEST; API key = environment da key). Replay so ocorre quando a mesma chave, store, ambiente e fingerprint HTTP batem.
@@ -148,3 +166,5 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
 - Settings edita so perfil (`name`, `city`); fee, settlement e aprovacao nao sao mutaveis pelo merchant.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
+- Operador tem fronteira e trilha, mas nenhum poder: aprovacao de loja, taxa, suspensao e leitura cross-merchant continuam inexistentes, e nao ha tela de operador.
+- Trilha de operador cresce sem retencao; `Account` continua sem ambiente, entao habilitacao LIVE segue bloqueada pelo ledger compartilhado.

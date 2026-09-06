@@ -24,6 +24,10 @@ import {
   OPERATOR_REFRESH_COOKIE,
 } from './guards/operator-auth.guard';
 import { OperatorRoute } from './decorators/operator-route.decorator';
+import {
+  CurrentOperator,
+  type CurrentOperatorData,
+} from './decorators/current-operator.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { getOrCreateRequestId } from '../../common/request-id';
 import {
@@ -155,15 +159,12 @@ export class OperatorAuthController {
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
+    @CurrentOperator() operator: CurrentOperatorData,
   ): Promise<void> {
-    const refreshToken = request.cookies?.[OPERATOR_REFRESH_COOKIE];
-
-    if (refreshToken) {
-      await this.operatorLogoutUseCase.execute({
-        refreshToken,
-        requestId: getOrCreateRequestId(request),
-      });
-    }
+    await this.operatorLogoutUseCase.execute({
+      operatorId: operator.operatorId,
+      requestId: getOrCreateRequestId(request),
+    });
 
     clearOperatorCookies(response);
   }

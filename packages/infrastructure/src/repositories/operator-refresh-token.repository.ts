@@ -41,6 +41,14 @@ export class OperatorRefreshTokenRepository implements IOperatorRefreshTokenRepo
     return row ? this.toDomain(row) : null;
   }
 
+  async findByOperatorId(operatorId: string): Promise<DomainOperatorRefreshToken | null> {
+    const row = await this.prisma.operatorRefreshToken.findUnique({
+      where: { operatorId },
+    });
+
+    return row ? this.toDomain(row) : null;
+  }
+
   async findByTokenForUpdate(token: string): Promise<DomainOperatorRefreshToken | null> {
     const rows = await this.prisma.$queryRaw<OperatorRefreshTokenRow[]>`
       SELECT

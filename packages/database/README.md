@@ -37,7 +37,7 @@ Pacote responsável pelo schema Prisma, migrations e cliente compartilhado.
 - `PaymentItem`
 - `Withdrawal`
 
-`Product` e `PaymentItem` estao implementados no runtime atual para catalogo store-scoped, items de checkout sessions e snapshots finais em pagamentos. Payment Links continuam amount-only e nao usam `Product`/`PaymentItem`. `PaymentMethod` tambem modela card/boleto/debito sem processador real correspondente.
+`Product` e `PaymentItem` estao implementados no runtime atual para catalogo store-scoped, items de checkout sessions e snapshots finais em pagamentos. Payment Links cobram por valor avulso ou por itens do catalogo (`PaymentLinkItem`). `PaymentMethod` tambem modela card/boleto/debito sem processador real correspondente.
 
 ## Scripts Reais
 
@@ -47,12 +47,7 @@ pnpm run db:migrate:dev
 pnpm run db:migrate:deploy
 pnpm run db:push
 pnpm run db:studio
-pnpm run db:seed
 ```
-
-## Observação Importante
-
-O script `db:seed` existe no `package.json`, mas o arquivo `prisma/seed.ts` não está presente no repositório atual. Portanto, esse script não deve ser tratado como fluxo operacional confiável até que o seed seja implementado.
 
 ## Importação do Cliente
 
