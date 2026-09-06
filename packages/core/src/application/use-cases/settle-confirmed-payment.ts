@@ -24,7 +24,10 @@ export async function settleConfirmedPayment(
   repos: ITransactedRepositories,
   input: SettleConfirmedPaymentInput,
 ): Promise<PaymentObject> {
-  const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
+  const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(
+    input.storeId,
+    input.payment.environment,
+  );
   if (!account) {
     throw new AccountNotFoundError(input.storeId);
   }

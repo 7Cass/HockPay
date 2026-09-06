@@ -34,7 +34,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 | `webhook`                 | CRUD, teste, logs, retry e inbox dev                          |
 | `alert`                   | configs, teste, logs e retry de alertas operacionais          |
 | `dashboard`               | métricas da visão geral                                       |
-| `account` / `transaction` | leitura financeira e extrato                                  |
+| `account` / `transaction` | leitura financeira e extrato do ledger do ambiente da request |
 | `bank-account`            | gestão de contas Pix de saque                                 |
 | `withdrawal`              | criação/listagem/detalhe, summary, timeline e ações TEST      |
 | `refund`                  | criação de refunds                                            |
@@ -54,6 +54,7 @@ API REST principal do Hockpay. Esta aplicação expõe os contratos HTTP usados 
 - Products sao opcionais e separados por store/environment; hoje alimentam checkout sessions com `items`. `POST /api/v1/payments` segue como API direta de baixo nivel, sem `items`.
 - Payment Links aceitam exatamente um de `amount` ou `items`, como as checkout sessions.
 - Checkout sessions aceitam exatamente um de `amount` ou `items`; `items` referencia produtos existentes por `productId` e o total e derivado de `quantity * product.price`.
+- O saldo é por ambiente: cada store tem um ledger TEST e um LIVE, e `GET /accounts/me`, `/transactions` e as métricas devolvem o do ambiente da request (JWT = TEST; API key = environment da key). Estorno e liquidação seguem o ambiente do pagamento.
 - O operador é um principal separado: token de merchant recebe 401 em `/api/v1/operator`, token de operador recebe 401 em qualquer rota de merchant, e API key não autentica operador em nenhum environment. Não há elevação de merchant para operador, e não existe cadastro público de operador — só `pnpm operator:create`.
 - Nesta fatia o operador não tem poder sobre loja nenhuma: as rotas existentes são sessão, `/operator/me` e a leitura da trilha de auditoria.
 

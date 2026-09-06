@@ -3,6 +3,7 @@ import {
   GetAccountUseCase,
   AccountNotFoundError,
   AccountObject,
+  Environment,
 } from '@hockpay/core';
 import { AccountRepository } from '@hockpay/infrastructure';
 
@@ -13,7 +14,7 @@ describe('GetAccountUseCase', () => {
   beforeEach(async () => {
     // Create mock repository
     mockAccountRepository = {
-      findByStoreId: jest.fn(),
+      findByStoreIdAndEnvironment: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -37,17 +38,20 @@ describe('GetAccountUseCase', () => {
   });
 
   it('should throw AccountNotFoundError if account does not exist', async () => {
-    (mockAccountRepository.findByStoreId as jest.Mock).mockResolvedValue(null);
+    (
+      mockAccountRepository.findByStoreIdAndEnvironment as jest.Mock
+    ).mockResolvedValue(null);
 
-    await expect(useCase.execute({ storeId: 'invalid-id' })).rejects.toThrow(
-      AccountNotFoundError,
-    );
+    await expect(
+      useCase.execute({ storeId: 'invalid-id', environment: Environment.TEST }),
+    ).rejects.toThrow(AccountNotFoundError);
   });
 
   it('should return account balances when it exists', async () => {
     const fakeAccountData = {
       id: 'fake-account-id',
       storeId: 'valid-store-id',
+      environment: Environment.TEST,
       available: 1500,
       pending: 500,
       blocked: 0,
@@ -57,6 +61,7 @@ describe('GetAccountUseCase', () => {
         return {
           id: this.id,
           storeId: this.storeId,
+          environment: this.environment,
           available: this.available,
           pending: this.pending,
           blocked: this.blocked,
@@ -66,14 +71,21 @@ describe('GetAccountUseCase', () => {
       },
     };
 
-    (mockAccountRepository.findByStoreId as jest.Mock).mockResolvedValue(
-      fakeAccountData,
-    );
+    (
+      mockAccountRepository.findByStoreIdAndEnvironment as jest.Mock
+    ).mockResolvedValue(fakeAccountData);
 
-    const result = await useCase.execute({ storeId: 'valid-store-id' });
+    const result = await useCase.execute({
+      storeId: 'valid-store-id',
+      environment: Environment.TEST,
+    });
 
+    expect(
+      mockAccountRepository.findByStoreIdAndEnvironment,
+    ).toHaveBeenCalledWith('valid-store-id', Environment.TEST);
     expect(result.account).toBeDefined();
     expect(result.account.storeId).toBe('valid-store-id');
+    expect(result.account.environment).toBe(Environment.TEST);
     expect(result.account.available).toBe(1500);
     expect(result.account.pending).toBe(500);
     expect(result.account.blocked).toBe(0);

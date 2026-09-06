@@ -9,7 +9,7 @@ describe('StoreRepository', () => {
         create: vi.fn().mockResolvedValue(undefined),
       },
       account: {
-        create: vi.fn().mockResolvedValue(undefined),
+        createMany: vi.fn().mockResolvedValue(undefined),
       },
     };
     const store = Store.create({
@@ -23,16 +23,13 @@ describe('StoreRepository', () => {
 
     await repository.save(store);
 
-    expect(prisma.account.create).toHaveBeenCalledWith({
-      data: {
-        id: expect.any(String),
-        storeId: store.id,
-        available: 0,
-        pending: 0,
-        blocked: 0,
-        currency: 'BRL',
-        updatedAt: expect.any(Date),
-      },
+    // Uma conta por ambiente, criadas juntas: uma loja nunca existe com metade
+    // do ledger.
+    expect(prisma.account.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({ storeId: store.id, environment: 'TEST', available: 0 }),
+        expect.objectContaining({ storeId: store.id, environment: 'LIVE', available: 0 }),
+      ],
     });
   });
 
@@ -42,7 +39,7 @@ describe('StoreRepository', () => {
         create: vi.fn().mockResolvedValue(undefined),
       },
       account: {
-        create: vi.fn().mockResolvedValue(undefined),
+        createMany: vi.fn().mockResolvedValue(undefined),
       },
     };
     const prisma = {
@@ -61,16 +58,11 @@ describe('StoreRepository', () => {
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(tx.store.create).toHaveBeenCalledTimes(1);
-    expect(tx.account.create).toHaveBeenCalledWith({
-      data: {
-        id: expect.any(String),
-        storeId: store.id,
-        available: 0,
-        pending: 0,
-        blocked: 0,
-        currency: 'BRL',
-        updatedAt: expect.any(Date),
-      },
+    expect(tx.account.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({ storeId: store.id, environment: 'TEST' }),
+        expect.objectContaining({ storeId: store.id, environment: 'LIVE' }),
+      ],
     });
   });
 });

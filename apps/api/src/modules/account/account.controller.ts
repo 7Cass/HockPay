@@ -5,11 +5,12 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { GetAccountUseCase } from '@hockpay/core';
+import { Environment, GetAccountUseCase } from '@hockpay/core';
 import { CombinedAuthGuard } from '../auth/guards/combined-auth.guard';
 import { AccountResponseDto } from './dtos/account-response.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentStore } from '../auth/decorators/current-store.decorator';
+import { CurrentEnvironment } from '../auth/decorators/current-environment.decorator';
 
 @Controller('accounts')
 @Public()
@@ -27,8 +28,12 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   async getMyAccount(
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<AccountResponseDto> {
-    const result = await this.getAccountUseCase.execute({ storeId });
+    const result = await this.getAccountUseCase.execute({
+      storeId,
+      environment,
+    });
 
     return {
       account: result.account,

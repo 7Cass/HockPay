@@ -1,9 +1,14 @@
 import { Account } from '../entities/account.entity';
+import { Environment } from '../value-objects/environment.vo';
 
 /**
  * Repository interface for Account aggregate.
  *
  * Provides persistence operations for financial accounts.
+ *
+ * There is no lookup by store alone: a store has one ledger per environment,
+ * and asking for "the store's account" has no answer. Resolving by id keeps
+ * working, because an id already pins the environment.
  */
 export interface IAccountRepository {
   /**
@@ -27,14 +32,18 @@ export interface IAccountRepository {
   findByIdForUpdate(id: string): Promise<Account | null>;
 
   /**
-   * Find an account by store ID.
+   * Find the account of a store in one environment.
    */
-  findByStoreId(storeId: string): Promise<Account | null>;
+  findByStoreIdAndEnvironment(storeId: string, environment: Environment): Promise<Account | null>;
 
   /**
-   * Find an account by store ID and lock it for update within the current transaction.
+   * Find the account of a store in one environment and lock it for update
+   * within the current transaction.
    */
-  findByStoreIdForUpdate(storeId: string): Promise<Account | null>;
+  findByStoreIdAndEnvironmentForUpdate(
+    storeId: string,
+    environment: Environment,
+  ): Promise<Account | null>;
 
   /**
    * Find accounts that have pending balance ready for release.

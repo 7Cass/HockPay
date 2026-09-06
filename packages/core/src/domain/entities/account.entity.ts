@@ -1,8 +1,17 @@
 import { InvalidBalanceError } from '../errors/invalid-balance.error';
+import { Environment } from '../value-objects/environment.vo';
 
+/**
+ * Domain Entity: Account
+ *
+ * The ledger of one store in one environment. Simulation in TEST cannot touch
+ * the LIVE balance because they are different accounts, not because a query
+ * remembered to filter.
+ */
 export class Account {
   private readonly _id: string;
   private readonly _storeId: string;
+  private readonly _environment: Environment;
   private _available: number;
   private _pending: number;
   private _blocked: number;
@@ -12,6 +21,7 @@ export class Account {
   private constructor(props: AccountProps) {
     this._id = props.id;
     this._storeId = props.storeId;
+    this._environment = props.environment;
     this._available = props.available;
     this._pending = props.pending;
     this._blocked = props.blocked;
@@ -26,6 +36,7 @@ export class Account {
     return new Account({
       id: crypto.randomUUID(),
       storeId: props.storeId,
+      environment: props.environment,
       available: 0,
       pending: 0,
       blocked: 0,
@@ -49,6 +60,10 @@ export class Account {
 
   get storeId(): string {
     return this._storeId;
+  }
+
+  get environment(): Environment {
+    return this._environment;
   }
 
   get available(): number {
@@ -202,6 +217,7 @@ export class Account {
     return {
       id: this._id,
       storeId: this._storeId,
+      environment: this._environment,
       available: this._available,
       pending: this._pending,
       blocked: this._blocked,
@@ -216,6 +232,7 @@ export class Account {
  */
 export interface CreateAccountProps {
   storeId: string;
+  environment: Environment;
   currency?: string;
 }
 
@@ -225,6 +242,7 @@ export interface CreateAccountProps {
 export interface AccountProps {
   id: string;
   storeId: string;
+  environment: Environment;
   available: number;
   pending: number;
   blocked: number;
@@ -238,6 +256,7 @@ export interface AccountProps {
 export interface AccountObject {
   id: string;
   storeId: string;
+  environment: Environment;
   available: number;
   pending: number;
   blocked: number;

@@ -21,8 +21,8 @@ describe('ReleasePaymentUseCase', () => {
         findByPaymentId: vi.fn().mockResolvedValue(refunds),
       },
       accountRepository: {
-        findByStoreId: vi.fn().mockResolvedValue(account),
-        findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+        findByStoreIdAndEnvironment: vi.fn().mockResolvedValue(account),
+        findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
         update: vi.fn(),
       },
       transactionRepository: {
@@ -85,7 +85,10 @@ describe('ReleasePaymentUseCase', () => {
     expect(transaction.referenceType).toBe('PAYMENT');
     expect(transaction.referenceId).toBe(payment.id);
     expect(repos.paymentRepository.findByIdForUpdate).toHaveBeenCalledWith(payment.id);
-    expect(repos.accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(payment.storeId);
+    expect(repos.accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(
+      payment.storeId,
+      payment.environment,
+    );
   });
 
   it('returns an already released payment without side effects', async () => {

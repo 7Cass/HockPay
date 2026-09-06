@@ -19,8 +19,9 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 
 - `Store` e o escopo principal de merchant.
 - `Store.city` e opcional e alimenta o EMV Pix (`resolvePixMerchantCity`); sem cidade o fallback documentado e `SAO PAULO`.
-- Toda store criada pela API recebe `Account`.
-- `Account` guarda saldos `available`, `pending` e `blocked`.
+- Toda store recebe duas `Account`, uma por ambiente: `Account` e unica por `storeId + environment`.
+- `Account` guarda saldos `available`, `pending` e `blocked` do ambiente dela; saldo TEST e saldo LIVE nunca se misturam.
+- `Transaction` nao tem coluna de ambiente: ela pendura na conta, e a conta ja diz o ambiente.
 - `Transaction` registra o ledger financeiro com `referenceType` e `referenceId`.
 
 ### Payment e PixCharge

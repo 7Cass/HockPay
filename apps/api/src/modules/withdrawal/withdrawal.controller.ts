@@ -109,9 +109,11 @@ export class WithdrawalController {
   async list(
     @Query() query: ListWithdrawalsQueryDto,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<ListWithdrawalsResponseDto> {
     const result = await this.listWithdrawalsUseCase.execute({
       storeId,
+      environment,
       page: query.page,
       limit: query.limit,
       status: query.status,
@@ -132,9 +134,11 @@ export class WithdrawalController {
   async get(
     @Param('id') id: string,
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
   ): Promise<GetWithdrawalResponseDto> {
     const result = await this.getWithdrawalUseCase.execute({
       storeId,
+      environment,
       withdrawalId: id,
     });
 

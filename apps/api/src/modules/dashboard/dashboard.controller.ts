@@ -45,11 +45,17 @@ export class DashboardController {
   @HttpCode(HttpStatus.OK)
   async getMetrics(
     @CurrentStore() storeId: string,
+    @CurrentEnvironment() environment: Environment,
     @Query() query: GetMetricsQueryDto,
   ): Promise<DashboardMetricsDto> {
     const { startDate, endDate } = this.parseDateRange(query);
 
-    return this.getDashboardMetricsUseCase.execute(storeId, startDate, endDate);
+    return this.getDashboardMetricsUseCase.execute(
+      storeId,
+      environment,
+      startDate,
+      endDate,
+    );
   }
 
   @Get('overview')

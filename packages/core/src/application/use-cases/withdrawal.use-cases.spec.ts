@@ -41,7 +41,10 @@ describe('withdrawal use cases', () => {
     expect(result.account.blocked).toBe(10_000);
     expect(fixture.transactions).toHaveLength(1);
     expect(fixture.transactions[0].type).toBe(TransactionType.WITHDRAWAL_RESERVED);
-    expect(fixture.accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith(fixture.store.id);
+    expect(fixture.accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(
+      fixture.store.id,
+      Environment.TEST,
+    );
     expect(fixture.outbox.map((event) => event.eventType)).toEqual(['withdrawal.created']);
   });
 
@@ -207,7 +210,7 @@ describe('withdrawal use cases', () => {
       }),
     };
     const accountRepository = {
-      findByStoreId: vi.fn().mockResolvedValue(fixture.account),
+      findByStoreIdAndEnvironment: vi.fn().mockResolvedValue(fixture.account),
     };
 
     const result = await new ListWithdrawalsUseCase(
@@ -307,8 +310,10 @@ function makeFixture(
   let dailyAmount = 0;
   let dailyCount = 0;
   const accountRepository = {
-    findByStoreId: vi.fn(async (storeId: string) => (storeId === store.id ? account : null)),
-    findByStoreIdForUpdate: vi.fn(async (storeId: string) =>
+    findByStoreIdAndEnvironment: vi.fn(async (storeId: string) =>
+      storeId === store.id ? account : null,
+    ),
+    findByStoreIdAndEnvironmentForUpdate: vi.fn(async (storeId: string) =>
       storeId === store.id ? account : null,
     ),
     findById: vi.fn(async (id: string) => (id === account.id ? account : null)),

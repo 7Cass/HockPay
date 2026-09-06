@@ -6,9 +6,11 @@ import {
   ListWithdrawalsOptions,
   WithdrawalSummary,
 } from '../../domain/repositories/withdrawal.repository.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IListWithdrawalsInput {
   storeId: string;
+  environment: Environment;
   page?: number;
   limit?: number;
   status?: WithdrawalStatus;
@@ -34,7 +36,10 @@ export class ListWithdrawalsUseCase {
   ) {}
 
   async execute(input: IListWithdrawalsInput): Promise<IListWithdrawalsOutput> {
-    const account = await this.accountRepository.findByStoreId(input.storeId);
+    const account = await this.accountRepository.findByStoreIdAndEnvironment(
+      input.storeId,
+      input.environment,
+    );
     if (!account) throw new AccountNotFoundError(input.storeId);
 
     const options: ListWithdrawalsOptions = {

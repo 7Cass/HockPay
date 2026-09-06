@@ -110,7 +110,10 @@ export interface DashboardDateRangeInput {
 }
 
 export interface IDashboardOverviewRepository {
-  getAccountBalanceByStoreId(storeId: string): Promise<DashboardAccountBalanceProjection | null>;
+  getAccountBalanceByStoreId(
+    storeId: string,
+    environment: Environment,
+  ): Promise<DashboardAccountBalanceProjection | null>;
   getPerformance(input: DashboardDateRangeInput): Promise<DashboardPerformanceProjection>;
   getBalanceMovement(input: DashboardDateRangeInput): Promise<DashboardBalanceMovementProjection>;
   getChart(input: DashboardDateRangeInput): Promise<DashboardOverviewDto['chart']>;
@@ -148,8 +151,13 @@ export class GetDashboardOverviewUseCase {
       input.endDate,
     );
 
+    // O ledger e por ambiente: sem ambiente na entrada, a sessao do dashboard e
+    // TEST, como no resto da API.
+    const environment = (input.environment as Environment) ?? Environment.TEST;
+
     const balance = await this.dashboardOverviewRepository.getAccountBalanceByStoreId(
       input.storeId,
+      environment,
     );
 
     if (!balance) {
@@ -245,7 +253,7 @@ export class GetDashboardOverviewUseCase {
       attention,
       integrationsHealth: {
         ...integrationsHealth,
-        environment: input.environment ?? Environment.TEST,
+        environment,
       },
       recentPayments,
     };

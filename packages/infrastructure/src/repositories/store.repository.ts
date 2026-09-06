@@ -1,4 +1,4 @@
-import { Account, IStoreRepository, Store as DomainStore } from '@hockpay/core';
+import { Account, Environment, IStoreRepository, Store as DomainStore } from '@hockpay/core';
 import { PrismaClient, Prisma, Store as PrismaStore } from '@hockpay/database';
 
 export class StoreRepository implements IStoreRepository {
@@ -6,7 +6,12 @@ export class StoreRepository implements IStoreRepository {
 
   async save(store: DomainStore): Promise<void> {
     const write = async (client: PrismaClient | Prisma.TransactionClient): Promise<void> => {
-      const account = Account.create({ storeId: store.id });
+      // Uma conta por ambiente, criadas juntas. Criar a conta LIVE sob demanda
+      // seria uma condicional a mais em todo caminho de escrita, e um 500
+      // esperando o primeiro caminho que esquecesse dela.
+      const accounts = [Environment.TEST, Environment.LIVE].map((environment) =>
+        Account.create({ storeId: store.id, environment }),
+      );
 
       await client.store.create({
         data: {
@@ -25,16 +30,17 @@ export class StoreRepository implements IStoreRepository {
         },
       });
 
-      await client.account.create({
-        data: {
+      await client.account.createMany({
+        data: accounts.map((account) => ({
           id: account.id,
           storeId: account.storeId,
+          environment: account.environment,
           available: account.available,
           pending: account.pending,
           blocked: account.blocked,
           currency: account.currency,
           updatedAt: account.updatedAt,
-        },
+        })),
       });
     };
 

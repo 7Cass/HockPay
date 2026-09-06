@@ -48,7 +48,11 @@ export class CreateWithdrawalUseCase {
     if (!store.isActive) throw new StoreInactiveError(store.id);
     if (!store.isApproved) throw new StoreNotApprovedError(store.id);
 
-    const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
+    const environment = input.environment ?? Environment.TEST;
+    const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(
+      input.storeId,
+      environment,
+    );
     if (!account) throw new AccountNotFoundError(input.storeId);
 
     const bankAccount = await repos.bankAccountRepository.findById(input.bankAccountId);
@@ -86,7 +90,7 @@ export class CreateWithdrawalUseCase {
       bankAccountId: bankAccount.id,
       amount: input.amount,
       fee: feeResult.feeInCents,
-      environment: input.environment ?? Environment.TEST,
+      environment,
     });
 
     account.block(withdrawal.amount);
