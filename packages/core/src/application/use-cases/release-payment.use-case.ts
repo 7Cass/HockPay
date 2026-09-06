@@ -61,7 +61,10 @@ export class ReleasePaymentUseCase {
       }
 
       if (payment.isReleased()) {
-        const account = await repos.accountRepository.findByStoreId(payment.storeId);
+        const account = await repos.accountRepository.findByStoreIdAndEnvironment(
+          payment.storeId,
+          payment.environment,
+        );
 
         if (!account) {
           throw new AccountNotFoundError(payment.storeId);
@@ -80,7 +83,10 @@ export class ReleasePaymentUseCase {
       }
 
       // Find account
-      const account = await repos.accountRepository.findByStoreIdForUpdate(payment.storeId);
+      const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(
+        payment.storeId,
+        payment.environment,
+      );
 
       if (!account) {
         throw new AccountNotFoundError(payment.storeId);

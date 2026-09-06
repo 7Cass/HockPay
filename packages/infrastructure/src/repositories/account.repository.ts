@@ -1,10 +1,11 @@
-import { IAccountRepository, Account as DomainAccount } from '@hockpay/core';
+import { IAccountRepository, Account as DomainAccount, Environment } from '@hockpay/core';
 import { PrismaClient, Account as PrismaAccount, Prisma } from '@hockpay/database';
 import { utcTimestamp } from '../sql/utc-timestamp';
 
 type AccountRow = {
   id: string;
   storeId: string;
+  environment: Environment;
   available: number;
   pending: number;
   blocked: number;
@@ -23,6 +24,7 @@ export class AccountRepository implements IAccountRepository {
       data: {
         id: account.id,
         storeId: account.storeId,
+        environment: account.environment,
         available: account.available,
         pending: account.pending,
         blocked: account.blocked,
@@ -62,6 +64,7 @@ export class AccountRepository implements IAccountRepository {
       SELECT
         id,
         store_id AS "storeId",
+        environment,
         available,
         pending,
         blocked,
@@ -76,9 +79,12 @@ export class AccountRepository implements IAccountRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findByStoreId(storeId: string): Promise<DomainAccount | null> {
+  async findByStoreIdAndEnvironment(
+    storeId: string,
+    environment: Environment,
+  ): Promise<DomainAccount | null> {
     const prismaAccount = await this.prisma.account.findUnique({
-      where: { storeId },
+      where: { storeId_environment: { storeId, environment } },
     });
 
     if (!prismaAccount) {
@@ -88,11 +94,15 @@ export class AccountRepository implements IAccountRepository {
     return this.toDomain(prismaAccount);
   }
 
-  async findByStoreIdForUpdate(storeId: string): Promise<DomainAccount | null> {
+  async findByStoreIdAndEnvironmentForUpdate(
+    storeId: string,
+    environment: Environment,
+  ): Promise<DomainAccount | null> {
     const rows = await this.prisma.$queryRaw<AccountRow[]>`
       SELECT
         id,
         store_id AS "storeId",
+        environment,
         available,
         pending,
         blocked,
@@ -100,6 +110,7 @@ export class AccountRepository implements IAccountRepository {
         updated_at AS "updatedAt"
       FROM accounts
       WHERE store_id = ${storeId}
+        AND environment = ${environment}::"Environment"
       FOR UPDATE
     `;
 
@@ -126,6 +137,7 @@ export class AccountRepository implements IAccountRepository {
     return DomainAccount.reconstitute({
       id: prismaAccount.id,
       storeId: prismaAccount.storeId,
+      environment: prismaAccount.environment as Environment,
       available: prismaAccount.available,
       pending: prismaAccount.pending,
       blocked: prismaAccount.blocked,
@@ -138,6 +150,7 @@ export class AccountRepository implements IAccountRepository {
     return DomainAccount.reconstitute({
       id: raw.id,
       storeId: raw.store_id,
+      environment: raw.environment as Environment,
       available: Number(raw.available),
       pending: Number(raw.pending),
       blocked: Number(raw.blocked),

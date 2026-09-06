@@ -2,6 +2,7 @@ import { ITransactionRepository } from '../../domain/repositories/transaction.re
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { TransactionType, DailyVolume } from '../../domain/entities/transaction.entity';
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface DashboardMetricsDto {
   currentBalance: {
@@ -24,9 +25,14 @@ export class GetDashboardMetricsUseCase {
     private readonly accountRepo: IAccountRepository,
   ) {}
 
-  async execute(storeId: string, startDate: Date, endDate: Date): Promise<DashboardMetricsDto> {
+  async execute(
+    storeId: string,
+    environment: Environment,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<DashboardMetricsDto> {
     // 1. Get current balance
-    const account = await this.accountRepo.findByStoreId(storeId);
+    const account = await this.accountRepo.findByStoreIdAndEnvironment(storeId, environment);
     if (!account) {
       throw new AccountNotFoundError(storeId);
     }

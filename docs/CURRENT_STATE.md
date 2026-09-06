@@ -20,7 +20,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Capacidade                        | Status               | Observacoes                                                                                                                                          |
 | --------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Auth, merchant, stores e API keys | Implementado         | Login, refresh/logout, troca de store, cadastro de merchant, store auto-aprovada no MVP e API keys TEST/LIVE. O token de dashboard carrega audiencia `merchant`; token de outra audiencia (ou sem audiencia) e recusado na entrada. |
-| Store/account                     | Implementado         | Toda store criada pela API nasce com `Account`; migration cobre stores antigas sem account.                                                          |
+| Store/account                     | Implementado         | Toda store nasce com duas `Account`, uma por ambiente (`storeId + environment`); migration cobre stores antigas.                                     |
 | Payments Pix simulados            | Implementado         | `POST /api/v1/payments` cria `PixCharge`, `Payment`, outbox e job de expiracao; exige `Idempotency-Key`.                                             |
 | Metodos card/boleto/debito        | Modelado/parcial     | O enum/schema aceita `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas nao ha processador, adquirente ou fluxo real para esses metodos.                    |
 | Dev simulation                    | Implementado         | Endpoints TEST para confirmar, falhar, expirar e liberar pagamentos.                                                                                 |
@@ -30,7 +30,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Alerts                            | Implementado         | Configs e entregas para Discord operacional com logs e retry.                                                                                        |
 | Receipts                          | Implementado         | Recibo emitido para pagamento confirmado, consultavel por API e dashboard.                                                                           |
 | Refunds                           | Implementado         | Estornos parciais ou totais ajustam financeiro e outbox.                                                                                             |
-| Financials                        | Implementado         | Dashboard e API exibem account, saldos `pending/available/blocked` e transactions read-only.                                                         |
+| Financials                        | Implementado         | Dashboard e API exibem account, saldos `pending/available/blocked` e transactions read-only, sempre do ledger do ambiente da request.                |
 | Bank accounts                     | Implementado         | API e dashboard para cadastro, listagem, default e remocao com regra de titularidade/documento.                                                      |
 | Withdrawals                       | Implementado         | API, dashboard list/detail, summary, filtros, timeline, ledger, worker simulado, acoes TEST e smoke dedicado.                                        |
 | Customer history                  | Implementado         | Endpoints de historico por customer external id para pagamentos e receipts.                                                                          |
@@ -152,12 +152,15 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 
 - Entidades com coluna `environment` (`Payment`, `PaymentLink`, `CheckoutSession`, `Product`, `ApiKey`): list/get autenticados (incluindo timeline de payment) filtram pelo environment da request (JWT = TEST; API key = environment da key).
 - `Payment.externalId` e `Idempotency-Key` sao unicos por `storeId + environment`. Customer continua store-wide (sem coluna de environment).
-- `Account` continua unico por store. JWT do dashboard mostra saldo e metricas da loja inteira, nao um ledger TEST separado.
+- `Account` e unica por `storeId + environment`: cada loja tem um ledger TEST e um LIVE, e nenhuma escrita de saldo resolve conta sem informar ambiente. A porta nao tem lookup so por loja.
+- Saldo, transacoes, metricas e saque do dashboard sao do ledger TEST, porque a sessao JWT e TEST. Nao ha seletor de ambiente na tela.
+- Estorno e liquidacao seguem o ambiente do pagamento, nao o da request: dinheiro volta para o ledger de onde saiu.
+- `Transaction` nao tem coluna de ambiente; herda o da conta em que esta pendurada.
 - Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Refund`, `BankAccount`) sao escopadas por store. `Receipt` herda `payment.environment` em list/get e no customer-history.
-- `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE; listagem continua store-wide.
+- `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE, e a reserva sai da conta desse ambiente. A listagem continua store-wide; o ledger e o resumo dela vem da conta do ambiente da request.
 - Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
 - Sessao/key TEST nao confirma, expira, falha, libera, estorna payment LIVE nem cancela Payment Link LIVE.
-- Key TEST ainda pode simular no saldo da store (`POST /dev/simulate/:id/*`, pay autenticado de Payment Link, `POST /dev/withdrawals/:id/complete|fail`). LIVE key nao. Create de saque, refund e destino Pix continua JWT-only.
+- Key TEST simula no ledger TEST da store (`POST /dev/simulate/:id/*`, pay autenticado de Payment Link, `POST /dev/withdrawals/:id/complete|fail`) e nao encosta no ledger LIVE. LIVE key nao simula. Create de saque, refund e destino Pix continua JWT-only.
 
 ## Gaps e Limites
 
@@ -167,4 +170,6 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - Settings edita so perfil (`name`, `city`); fee, settlement e aprovacao nao sao mutaveis pelo merchant.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
 - Operador tem fronteira e trilha, mas nenhum poder: aprovacao de loja, taxa, suspensao e leitura cross-merchant continuam inexistentes, e nao ha tela de operador.
-- Trilha de operador cresce sem retencao; `Account` continua sem ambiente, entao habilitacao LIVE segue bloqueada pelo ledger compartilhado.
+- Trilha de operador cresce sem retencao.
+- O ledger LIVE existe e esta vazio: todo caminho que credita conta recusa LIVE hoje (`/dev/simulate`, pay de Payment Link e fulfill de checkout recusam LIVE; refund e saque sao JWT-only, sempre TEST). Entrada de dinheiro em LIVE depende da habilitacao de loja, que ainda nao existe.
+- Saque e estorno so alcancam o ledger TEST, porque sao JWT-only e a sessao e TEST.

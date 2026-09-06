@@ -2,6 +2,7 @@ import {
   DashboardBalanceMovementProjection,
   DashboardOverviewDto,
   DashboardPerformanceProjection,
+  Environment,
   IDashboardOverviewRepository,
 } from '@hockpay/core';
 import { Prisma, PrismaClient } from '@hockpay/database';
@@ -24,9 +25,9 @@ const APPROVED_PAYMENT_STATUSES = ['CONFIRMED', 'RELEASED'] as const;
 export class DashboardOverviewRepository implements IDashboardOverviewRepository {
   constructor(private readonly prisma: PrismaLike) {}
 
-  async getAccountBalanceByStoreId(storeId: string) {
+  async getAccountBalanceByStoreId(storeId: string, environment: Environment) {
     const account = await this.prisma.account.findUnique({
-      where: { storeId },
+      where: { storeId_environment: { storeId, environment } },
       select: {
         id: true,
         available: true,

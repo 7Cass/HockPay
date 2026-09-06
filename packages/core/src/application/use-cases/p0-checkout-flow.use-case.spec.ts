@@ -40,7 +40,8 @@ describe('P0 checkout happy path', () => {
     const storeRepositoryWithAccount = {
       async save(store: Store) {
         await stores.save(store);
-        await accounts.save(Account.create({ storeId: store.id }));
+        await accounts.save(Account.create({ storeId: store.id, environment: Environment.TEST }));
+        await accounts.save(Account.create({ storeId: store.id, environment: Environment.LIVE }));
       },
       findById: stores.findById.bind(stores),
       findByIdAndMerchantId: stores.findByIdAndMerchantId.bind(stores),
@@ -110,7 +111,7 @@ describe('P0 checkout happy path', () => {
     });
     const storeId = storeResult.store.id;
 
-    expect(await accounts.findByStoreId(storeId)).not.toBeNull();
+    expect(await accounts.findByStoreIdAndEnvironment(storeId, Environment.TEST)).not.toBeNull();
 
     const apiKeyResult = await new CreateApiKeyUseCase(apiKeys, tokenGenerator).execute({
       storeId,
@@ -188,7 +189,7 @@ describe('P0 checkout happy path', () => {
       storeId,
       paymentId: fulfilled.paymentId,
     });
-    const account = await accounts.findByStoreId(storeId);
+    const account = await accounts.findByStoreIdAndEnvironment(storeId, Environment.TEST);
     const receipt = await receipts.findByPaymentId(fulfilled.paymentId);
 
     expect(confirmed.payment.status).toBe('CONFIRMED');
@@ -306,12 +307,22 @@ class InMemoryAccountRepository {
     return this.findById(id);
   }
 
-  async findByStoreId(storeId: string): Promise<Account | null> {
-    return [...this.items.values()].find((account) => account.storeId === storeId) ?? null;
+  async findByStoreIdAndEnvironment(
+    storeId: string,
+    environment: Environment,
+  ): Promise<Account | null> {
+    return (
+      [...this.items.values()].find(
+        (account) => account.storeId === storeId && account.environment === environment,
+      ) ?? null
+    );
   }
 
-  async findByStoreIdForUpdate(storeId: string): Promise<Account | null> {
-    return this.findByStoreId(storeId);
+  async findByStoreIdAndEnvironmentForUpdate(
+    storeId: string,
+    environment: Environment,
+  ): Promise<Account | null> {
+    return this.findByStoreIdAndEnvironment(storeId, environment);
   }
 
   async findWithPendingBalance(): Promise<Account[]> {

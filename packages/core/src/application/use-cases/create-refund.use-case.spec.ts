@@ -43,7 +43,7 @@ describe('CreateRefundUseCase', () => {
         save: vi.fn(),
       },
       accountRepository: {
-        findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+        findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
         update: vi.fn(),
       },
       transactionRepository: {
@@ -100,7 +100,10 @@ describe('CreateRefundUseCase', () => {
       payment.id,
       'store-1',
     );
-    expect(repos.accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith('store-1');
+    expect(repos.accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(
+      'store-1',
+      Environment.TEST,
+    );
     expect(repos.accountRepository.update).toHaveBeenCalledWith(account);
     expect(repos.outboxWriter.save).toHaveBeenCalledTimes(1);
   });

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Environment } from '@hockpay/core';
 import { AccountRepository } from './account.repository';
 
 describe('AccountRepository', () => {
@@ -28,12 +29,13 @@ describe('AccountRepository', () => {
     expect(account?.totalBalance).toBe(350);
   });
 
-  it('locks and reconstitutes an account by store id', async () => {
+  it('locks and reconstitutes the account of a store in one environment', async () => {
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValue([
         {
           id: 'account-1',
           storeId: 'store-1',
+          environment: 'TEST',
           available: 100,
           pending: 200,
           blocked: 50,
@@ -44,13 +46,19 @@ describe('AccountRepository', () => {
     };
     const repository = new AccountRepository(prisma as any);
 
-    const account = await repository.findByStoreIdForUpdate('store-1');
+    const account = await repository.findByStoreIdAndEnvironmentForUpdate(
+      'store-1',
+      Environment.TEST,
+    );
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(prisma.$queryRaw.mock.calls[0][1]).toBe('store-1');
+    expect(prisma.$queryRaw.mock.calls[0][2]).toBe(Environment.TEST);
     expect(String(prisma.$queryRaw.mock.calls[0][0].join(' '))).toContain('WHERE store_id =');
+    expect(String(prisma.$queryRaw.mock.calls[0][0].join(' '))).toContain('AND environment =');
     expect(String(prisma.$queryRaw.mock.calls[0][0].join(' '))).toContain('FOR UPDATE');
     expect(account?.id).toBe('account-1');
+    expect(account?.environment).toBe(Environment.TEST);
   });
 
   it('selects only settlement-eligible accounts with pending confirmed payments', async () => {

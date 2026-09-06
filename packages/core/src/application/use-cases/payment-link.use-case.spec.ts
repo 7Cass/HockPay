@@ -835,7 +835,7 @@ describe('PaymentLink use cases', () => {
               findByPixChargeIdAndStoreId: vi.fn(async () => [savedPayment]),
             },
             accountRepository: {
-              findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+              findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
               update: vi.fn(),
             },
             transactionRepository: { save: vi.fn() },
@@ -954,7 +954,7 @@ describe('PaymentLink use cases', () => {
             },
             paymentRepository,
             accountRepository: {
-              findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+              findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
               update: vi.fn(),
             },
             transactionRepository: { save: vi.fn() },

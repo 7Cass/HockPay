@@ -67,7 +67,12 @@ export class CreateRefundUseCase {
       );
     }
 
-    const account = await repos.accountRepository.findByStoreIdForUpdate(input.storeId);
+    // O estorno devolve dinheiro ao ledger de onde ele saiu: quem manda e o
+    // ambiente do pagamento, nao o da request.
+    const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(
+      input.storeId,
+      payment.environment,
+    );
     if (!account) {
       throw new AccountNotFoundError(input.storeId);
     }

@@ -171,7 +171,7 @@ model Store {
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
   merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  account         Account?
+  accounts        Account[]
   apiKeys         ApiKey[]
   bankAccounts    BankAccount[]
   customers       Customer[]
@@ -208,9 +208,13 @@ model BankAccount {
   @@map("bank_accounts")
 }
 
+// Uma conta por loja e ambiente. Saldo de simulacao TEST nunca encosta no
+// saldo LIVE, e isso e garantido pelo unique -- nao por disciplina de quem
+// escreve a query.
 model Account {
   id            String        @id @default(uuid())
-  storeId       String        @unique @map("store_id")
+  storeId       String        @map("store_id")
+  environment   Environment   @default(TEST)
   available     Int           @default(0)
   pending       Int           @default(0)
   blocked       Int           @default(0)
@@ -221,6 +225,7 @@ model Account {
   transactions  Transaction[]
   withdrawals   Withdrawal[]
 
+  @@unique([storeId, environment])
   @@map("accounts")
 }
 

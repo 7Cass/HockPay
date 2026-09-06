@@ -42,7 +42,7 @@ describe('ConfirmPaymentUseCase', () => {
             update: vi.fn(),
           },
           accountRepository: {
-            findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+            findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
             update: vi.fn(),
           },
           transactionRepository: {
@@ -104,7 +104,7 @@ describe('ConfirmPaymentUseCase', () => {
       update: vi.fn(),
     };
     const accountRepository = {
-      findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+      findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
       update: vi.fn(),
     };
     const unitOfWork = {
@@ -144,7 +144,10 @@ describe('ConfirmPaymentUseCase', () => {
       pixCharge.id,
       'store-1',
     );
-    expect(accountRepository.findByStoreIdForUpdate).toHaveBeenCalledWith('store-1');
+    expect(accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(
+      'store-1',
+      Environment.TEST,
+    );
     expect(pixChargeRepository.update).toHaveBeenCalledWith(pixCharge);
   });
 
@@ -176,7 +179,7 @@ describe('ConfirmPaymentUseCase', () => {
       update: vi.fn(),
     };
     const accountRepository = {
-      findByStoreIdForUpdate: vi.fn(),
+      findByStoreIdAndEnvironmentForUpdate: vi.fn(),
       update: vi.fn(),
     };
     const unitOfWork = {
@@ -197,7 +200,7 @@ describe('ConfirmPaymentUseCase', () => {
 
     expect(payment.status).toBe('PENDING');
     expect(pixCharge.status).toBe(PixChargeStatus.CANCELLED);
-    expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
+    expect(accountRepository.findByStoreIdAndEnvironmentForUpdate).not.toHaveBeenCalled();
     expect(paymentRepository.update).not.toHaveBeenCalled();
   });
 
@@ -211,7 +214,7 @@ describe('ConfirmPaymentUseCase', () => {
       environment: Environment.LIVE,
     });
     const accountRepository = {
-      findByStoreIdForUpdate: vi.fn(),
+      findByStoreIdAndEnvironmentForUpdate: vi.fn(),
       update: vi.fn(),
     };
     const paymentRepository = {
@@ -234,7 +237,7 @@ describe('ConfirmPaymentUseCase', () => {
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
     expect(payment.status).toBe('PENDING');
-    expect(accountRepository.findByStoreIdForUpdate).not.toHaveBeenCalled();
+    expect(accountRepository.findByStoreIdAndEnvironmentForUpdate).not.toHaveBeenCalled();
     expect(paymentRepository.update).not.toHaveBeenCalled();
   });
 
@@ -269,7 +272,7 @@ describe('ConfirmPaymentUseCase', () => {
             update: vi.fn(),
           },
           accountRepository: {
-            findByStoreIdForUpdate: vi.fn().mockResolvedValue(account),
+            findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
             update: vi.fn(),
           },
           transactionRepository: {

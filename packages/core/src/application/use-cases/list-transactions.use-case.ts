@@ -5,9 +5,11 @@ import {
 import { IAccountRepository } from '../../domain/repositories/account.repository.interface';
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { TransactionObject, TransactionType } from '../../domain/entities/transaction.entity';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IListTransactionsInput {
   storeId: string;
+  environment: Environment;
   page?: number;
   limit?: number;
   startDate?: Date;
@@ -45,7 +47,10 @@ export class ListTransactionsUseCase {
     const page = input.page && input.page > 0 ? input.page : 1;
     const limit = input.limit && input.limit > 0 ? input.limit : 20;
 
-    const account = await this.accountRepository.findByStoreId(input.storeId);
+    const account = await this.accountRepository.findByStoreIdAndEnvironment(
+      input.storeId,
+      input.environment,
+    );
     if (!account) {
       throw new AccountNotFoundError(input.storeId);
     }

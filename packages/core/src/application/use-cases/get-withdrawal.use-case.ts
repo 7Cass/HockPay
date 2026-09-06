@@ -4,10 +4,12 @@ import { TransactionObject, TransactionType } from '../../domain/entities/transa
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface IGetWithdrawalInput {
   storeId: string;
   withdrawalId: string;
+  environment: Environment;
 }
 
 export interface IGetWithdrawalOutput {
@@ -31,7 +33,10 @@ export class GetWithdrawalUseCase {
 
   async execute(input: IGetWithdrawalInput): Promise<IGetWithdrawalOutput> {
     return this.unitOfWork.execute(async (repos) => {
-      const account = await repos.accountRepository.findByStoreId(input.storeId);
+      const account = await repos.accountRepository.findByStoreIdAndEnvironment(
+        input.storeId,
+        input.environment,
+      );
       if (!account) throw new AccountNotFoundError(input.storeId);
 
       const withdrawal = await repos.withdrawalRepository.findByIdAndAccountId(
