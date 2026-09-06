@@ -22,6 +22,9 @@ import {
   GetWithdrawalUseCase,
   ListStoresUseCase,
   UpdateStoreProfileUseCase,
+  RequestLiveEnablementUseCase,
+  ListStoresForOperatorUseCase,
+  DecideLiveEnablementUseCase,
   ListWithdrawalsUseCase,
   LoginUseCase,
   LogoutUseCase,
@@ -57,6 +60,7 @@ import { StoreController } from '../src/modules/store/store.controller';
 import { WithdrawalController } from '../src/modules/withdrawal/withdrawal.controller';
 import { OperatorAuthController } from '../src/modules/operator/operator-auth.controller';
 import { OperatorController } from '../src/modules/operator/operator.controller';
+import { OperatorStoreController } from '../src/modules/operator/operator-store.controller';
 import { OperatorAuthGuard } from '../src/modules/operator/guards/operator-auth.guard';
 import { IS_OPERATOR_ROUTE_KEY } from '../src/modules/operator/decorators/operator-route.decorator';
 import { OperatorJwtService } from '../src/infra/services/operator-jwt.service';
@@ -69,6 +73,9 @@ export type ApiE2eMocks = {
   createStoreUseCase: { execute: jest.Mock };
   listStoresUseCase: { execute: jest.Mock };
   updateStoreProfileUseCase: { execute: jest.Mock };
+  requestLiveEnablementUseCase: { execute: jest.Mock };
+  listStoresForOperatorUseCase: { execute: jest.Mock };
+  decideLiveEnablementUseCase: { execute: jest.Mock };
   createWithdrawalUseCase: { executeInTransaction: jest.Mock };
   listWithdrawalsUseCase: { execute: jest.Mock };
   getWithdrawalUseCase: { execute: jest.Mock };
@@ -145,6 +152,9 @@ export async function createApiE2eTestApp(): Promise<{
     createStoreUseCase: { execute: jest.fn() },
     listStoresUseCase: { execute: jest.fn() },
     updateStoreProfileUseCase: { execute: jest.fn() },
+    requestLiveEnablementUseCase: { execute: jest.fn() },
+    listStoresForOperatorUseCase: { execute: jest.fn() },
+    decideLiveEnablementUseCase: { execute: jest.fn() },
     createWithdrawalUseCase: { executeInTransaction: jest.fn() },
     listWithdrawalsUseCase: { execute: jest.fn() },
     getWithdrawalUseCase: { execute: jest.fn() },
@@ -212,6 +222,7 @@ export async function createApiE2eTestApp(): Promise<{
       WithdrawalController,
       OperatorAuthController,
       OperatorController,
+      OperatorStoreController,
     ],
     providers: [
       {
@@ -309,6 +320,18 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: UpdateStoreProfileUseCase,
         useValue: mocks.updateStoreProfileUseCase,
+      },
+      {
+        provide: RequestLiveEnablementUseCase,
+        useValue: mocks.requestLiveEnablementUseCase,
+      },
+      {
+        provide: ListStoresForOperatorUseCase,
+        useValue: mocks.listStoresForOperatorUseCase,
+      },
+      {
+        provide: DecideLiveEnablementUseCase,
+        useValue: mocks.decideLiveEnablementUseCase,
       },
       {
         provide: CreateWithdrawalUseCase,

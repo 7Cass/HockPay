@@ -1,4 +1,5 @@
 import { Store } from '../entities/store.entity';
+import { StoreLiveStatus } from '../value-objects/store-live-status.vo';
 
 /**
  * Interface for Store Repository.
@@ -17,6 +18,15 @@ export interface IStoreRepository {
    * Returns null if not found.
    */
   findById(id: string): Promise<Store | null>;
+
+  /**
+   * Find a store by ID and lock it for update.
+   *
+   * The desk's decision reads the state, changes it and writes the audit line
+   * in one transaction. Without the lock, two operators deciding at the same
+   * moment would produce two trail lines describing the same `before`.
+   */
+  findByIdForUpdate(id: string): Promise<Store | null>;
 
   /**
    * Find a store by ID and merchant ID.
@@ -47,4 +57,16 @@ export interface IStoreRepository {
   delete(id: string): Promise<void>;
 
   listActive(): Promise<Store[]>;
+
+  /**
+   * The enablement queue, newest first.
+   *
+   * Reads only what a decision needs. Anything more is cross-merchant
+   * investigation, which is a slice of its own.
+   */
+  listByLiveStatus(params: {
+    liveStatus?: StoreLiveStatus;
+    limit: number;
+    offset: number;
+  }): Promise<Store[]>;
 }

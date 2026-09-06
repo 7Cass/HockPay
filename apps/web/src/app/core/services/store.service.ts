@@ -3,146 +3,155 @@ import { ApiClientService } from './api-client.service';
 import { AuthService } from './auth.service';
 import { map, Observable, switchMap, tap } from 'rxjs';
 
-export type StoreLiveStatus =
-    | 'NOT_REQUESTED'
-    | 'PENDING'
-    | 'APPROVED'
-    | 'REJECTED'
-    | 'SUSPENDED';
+export type StoreLiveStatus = 'NOT_REQUESTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
 export interface Store {
-    id: string;
-    name: string;
-    slug: string;
-    isActive: boolean;
-    liveStatus: StoreLiveStatus;
-    liveStatusReason?: string;
-    liveStatusChangedAt?: string;
-    settlementDays: number;
-    feePercent: number;
-    feeFixed: number;
-    city?: string;
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  liveStatus: StoreLiveStatus;
+  liveStatusReason?: string;
+  liveStatusChangedAt?: string;
+  settlementDays: number;
+  feePercent: number;
+  feeFixed: number;
+  city?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ListStoresResponse {
-    stores: Store[];
+  stores: Store[];
 }
 
 export interface SwitchStoreResponse {
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface CreateStoreDto {
-    name: string;
-    slug?: string;
+  name: string;
+  slug?: string;
 }
 
 export interface CreateStoreResponse {
-    store: Store;
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
+  store: Store;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root',
 })
 export class StoreService {
-    private readonly api = inject(ApiClientService);
-    private readonly authService = inject(AuthService);
+  private readonly api = inject(ApiClientService);
+  private readonly authService = inject(AuthService);
 
-    /** Reactive list of stores for the current merchant. */
-    readonly stores = signal<Store[]>([]);
+  /** Reactive list of stores for the current merchant. */
+  readonly stores = signal<Store[]>([]);
 
-    /** Currently selected store. */
-    readonly currentStore = signal<Store | null>(null);
+  /** Currently selected store. */
+  readonly currentStore = signal<Store | null>(null);
 
-    /**
-     * Fetches all stores for the authenticated merchant.
-     * Updates the internal stores signal.
-     */
-    loadStores(): Observable<ListStoresResponse> {
-        return this.api.get<ListStoresResponse>('/stores').pipe(
-            tap((response) => {
-                this.stores.set(response.stores);
+  /**
+   * Fetches all stores for the authenticated merchant.
+   * Updates the internal stores signal.
+   */
+  loadStores(): Observable<ListStoresResponse> {
+    return this.api.get<ListStoresResponse>('/stores').pipe(
+      tap((response) => {
+        this.stores.set(response.stores);
 
-                const selectedStore = this.currentStore();
-                if (selectedStore) {
-                    const refreshedStore = response.stores.find(s => s.id === selectedStore.id);
-                    if (refreshedStore) {
-                        this.currentStore.set(refreshedStore);
-                        return;
-                    }
-                }
+        const selectedStore = this.currentStore();
+        if (selectedStore) {
+          const refreshedStore = response.stores.find((s) => s.id === selectedStore.id);
+          if (refreshedStore) {
+            this.currentStore.set(refreshedStore);
+            return;
+          }
+        }
 
-                // If a store is not yet selected in memory
-                if (response.stores.length > 0) {
-                    const savedStoreId = this.authService.currentUser()?.currentStoreId;
+        // If a store is not yet selected in memory
+        if (response.stores.length > 0) {
+          const savedStoreId = this.authService.currentUser()?.currentStoreId;
 
-                    if (savedStoreId) {
-                        // Select the store the user actually has saved in the DB
-                        const savedStore = response.stores.find(s => s.id === savedStoreId);
-                        this.currentStore.set(savedStore || response.stores[0]);
-                    } else {
-                        // Fallback to the first store if they don't have one saved
-                        this.currentStore.set(response.stores[0]);
-                    }
-                } else {
-                    this.currentStore.set(null);
-                }
-            })
+          if (savedStoreId) {
+            // Select the store the user actually has saved in the DB
+            const savedStore = response.stores.find((s) => s.id === savedStoreId);
+            this.currentStore.set(savedStore || response.stores[0]);
+          } else {
+            // Fallback to the first store if they don't have one saved
+            this.currentStore.set(response.stores[0]);
+          }
+        } else {
+          this.currentStore.set(null);
+        }
+      }),
+    );
+  }
+
+  /**
+   * Switches the active store context via the API.
+   * The backend will issue new tokens scoped to the selected store.
+   */
+  switchStore(storeId: string): Observable<SwitchStoreResponse> {
+    return this.api
+      .post<SwitchStoreResponse>(`/auth/switch-store/${storeId}`, {})
+      .pipe(tap(() => this.redirectToDashboard()));
+  }
+
+  /**
+   * Creates a new store for the authenticated merchant.
+   * Auto-selects the new store after creation.
+   */
+  createStore(dto: CreateStoreDto): Observable<CreateStoreResponse> {
+    return this.api.post<CreateStoreResponse>('/stores', dto).pipe(
+      tap((response) => {
+        this.stores.update((stores) => [
+          ...stores.filter((store) => store.id !== response.store.id),
+          response.store,
+        ]);
+        this.currentStore.set(response.store);
+      }),
+      switchMap((response) => this.authService.hydrateCurrentUser().pipe(map(() => response))),
+      tap(() => this.redirectToDashboard()),
+    );
+  }
+
+  updateProfile(storeId: string, input: { name: string; city?: string }): Observable<Store> {
+    return this.api.patch<{ store: Store }>(`/stores/${storeId}`, input).pipe(
+      tap((response) => {
+        this.stores.update((stores) =>
+          stores.map((store) => (store.id === response.store.id ? response.store : store)),
         );
-    }
+        this.currentStore.set(response.store);
+      }),
+      map((response) => response.store),
+    );
+  }
 
-    /**
-     * Switches the active store context via the API.
-     * The backend will issue new tokens scoped to the selected store.
-     */
-    switchStore(storeId: string): Observable<SwitchStoreResponse> {
-        return this.api.post<SwitchStoreResponse>(`/auth/switch-store/${storeId}`, {}).pipe(
-            tap(() => this.redirectToDashboard())
+  /**
+   * Pede a habilitacao LIVE para a mesa. TEST nunca dependeu disso e
+   * continua nao dependendo.
+   */
+  requestLiveEnablement(storeId: string): Observable<Store> {
+    return this.api.post<{ store: Store }>(`/stores/${storeId}/live-request`, {}).pipe(
+      tap((response) => {
+        this.stores.update((stores) =>
+          stores.map((store) => (store.id === response.store.id ? response.store : store)),
         );
-    }
+        this.currentStore.set(response.store);
+      }),
+      map((response) => response.store),
+    );
+  }
 
-    /**
-     * Creates a new store for the authenticated merchant.
-     * Auto-selects the new store after creation.
-     */
-    createStore(dto: CreateStoreDto): Observable<CreateStoreResponse> {
-        return this.api.post<CreateStoreResponse>('/stores', dto).pipe(
-            tap((response) => {
-                this.stores.update((stores) => [
-                    ...stores.filter((store) => store.id !== response.store.id),
-                    response.store,
-                ]);
-                this.currentStore.set(response.store);
-            }),
-            switchMap((response) =>
-                this.authService.hydrateCurrentUser().pipe(map(() => response))
-            ),
-            tap(() => this.redirectToDashboard())
-        );
-    }
-
-    updateProfile(storeId: string, input: { name: string; city?: string }): Observable<Store> {
-        return this.api.patch<{ store: Store }>(`/stores/${storeId}`, input).pipe(
-            tap((response) => {
-                this.stores.update((stores) =>
-                    stores.map((store) => (store.id === response.store.id ? response.store : store)),
-                );
-                this.currentStore.set(response.store);
-            }),
-            map((response) => response.store),
-        );
-    }
-
-    private redirectToDashboard(): void {
-        // Hard reload to prevent memory leakage between tenants
-        // and inject cleanly the new HttpOnly cookies into the new session.
-        window.location.href = '/dashboard';
-    }
+  private redirectToDashboard(): void {
+    // Hard reload to prevent memory leakage between tenants
+    // and inject cleanly the new HttpOnly cookies into the new session.
+    window.location.href = '/dashboard';
+  }
 }

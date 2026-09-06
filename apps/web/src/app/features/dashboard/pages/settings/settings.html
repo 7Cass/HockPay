@@ -79,6 +79,24 @@
             </div>
 
             <div class="panel-body form-stack">
+              <div class="field">
+                <span class="field-label">Ambiente de produção</span>
+                <p class="field-note">{{ liveStatusNote() }}</p>
+                @if (store.liveStatusReason) {
+                  <p class="field-note">Motivo da mesa: {{ store.liveStatusReason }}</p>
+                }
+                @if (canRequestLive()) {
+                  <button
+                    type="button"
+                    class="btn"
+                    [disabled]="isRequestingLive()"
+                    (click)="requestLive()"
+                  >
+                    {{ isRequestingLive() ? 'Enviando...' : 'Pedir habilitação LIVE' }}
+                  </button>
+                }
+              </div>
+
               <label class="field">
                 <span class="field-label">Nome público</span>
                 <input

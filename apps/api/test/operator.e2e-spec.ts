@@ -53,6 +53,27 @@ describe('Operator surface boundary (e2e)', () => {
     it('rejects no credential at all', async () => {
       await request(app.getHttpServer()).get('/api/v1/operator/me').expect(401);
     });
+
+    it('rejects a merchant on the desk routes that carry the new power', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores')
+        .set('Cookie', MERCHANT_COOKIE)
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/stores/store-1/live-status')
+        .set('Cookie', MERCHANT_COOKIE)
+        .send({ decision: 'approve', reason: 'nao deveria passar' })
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores')
+        .set('Authorization', 'Bearer hk_live_secret')
+        .expect(401);
+
+      expect(mocks.listStoresForOperatorUseCase.execute).not.toHaveBeenCalled();
+      expect(mocks.decideLiveEnablementUseCase.execute).not.toHaveBeenCalled();
+    });
   });
 
   describe('an operator session opens only the operator door', () => {
@@ -94,6 +115,46 @@ describe('Operator surface boundary (e2e)', () => {
         limit: 10,
         offset: undefined,
         operatorId: undefined,
+      });
+    });
+
+    it('reads the enablement queue', async () => {
+      mocks.listStoresForOperatorUseCase.execute.mockResolvedValue({
+        data: [],
+        limit: 50,
+        offset: 0,
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores?liveStatus=PENDING')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(200);
+
+      expect(mocks.listStoresForOperatorUseCase.execute).toHaveBeenCalledWith({
+        liveStatus: 'PENDING',
+        limit: undefined,
+        offset: undefined,
+      });
+    });
+
+    it('decides an enablement, carrying operator and request id', async () => {
+      mocks.decideLiveEnablementUseCase.execute.mockResolvedValue({
+        store: { id: 'store-1', liveStatus: 'APPROVED' },
+      });
+
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/stores/store-1/live-status')
+        .set('Cookie', OPERATOR_COOKIE)
+        .set('x-request-id', 'req-decision-1')
+        .send({ decision: 'approve', reason: 'documentos conferidos' })
+        .expect(200);
+
+      expect(mocks.decideLiveEnablementUseCase.execute).toHaveBeenCalledWith({
+        operatorId: 'operator-1',
+        storeId: 'store-1',
+        decision: 'approve',
+        reason: 'documentos conferidos',
+        requestId: 'req-decision-1',
       });
     });
 

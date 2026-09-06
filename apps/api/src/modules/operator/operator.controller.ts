@@ -14,9 +14,9 @@ import { OperatorDto } from './dtos/operator-auth.dto';
 /**
  * Operator surface.
  *
- * This slice has no power: nothing here approves a store, changes a fee or
- * reads a merchant's data. What it does have is the trail, readable by the
- * desk itself -- a trail that only exists in the database is a log.
+ * Session and trail. The power over a store's LIVE enablement lives in
+ * OperatorStoreController; what this controller has is the trail, readable by
+ * the desk itself -- a trail that only exists in the database is a log.
  */
 @Controller('operator')
 @OperatorRoute()
