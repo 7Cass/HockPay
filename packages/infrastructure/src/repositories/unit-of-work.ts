@@ -17,6 +17,9 @@ import { RefreshTokenRepository } from './refresh-token.repository';
 import { CheckoutSessionRepository } from './checkout-session.repository';
 import { PaymentLinkRepository } from './payment-link.repository';
 import { ProductRepository } from './product.repository';
+import { OperatorRepository } from './operator.repository';
+import { OperatorRefreshTokenRepository } from './operator-refresh-token.repository';
+import { OperatorAuditLogRepository } from './operator-audit-log.repository';
 
 /**
  * Shared implementation of IUnitOfWork using Prisma.
@@ -52,6 +55,9 @@ export class UnitOfWork implements IUnitOfWork {
           customerRepository: new CustomerRepository(tx),
           idempotencyKeyRepository: new IdempotencyKeyRepository(tx),
           productRepository: new ProductRepository(tx),
+          operatorRepository: new OperatorRepository(tx),
+          operatorRefreshTokenRepository: new OperatorRefreshTokenRepository(tx),
+          operatorAuditLogRepository: new OperatorAuditLogRepository(tx),
         };
 
         return work(repos);

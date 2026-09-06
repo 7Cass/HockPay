@@ -15,6 +15,9 @@ import { ICheckoutSessionRepository } from './checkout-session.repository.interf
 import { IPaymentLinkRepository } from './payment-link.repository.interface';
 import { IProductRepository } from './product.repository.interface';
 import { IRefreshTokenRepositoryPort } from '../../application/ports/refresh-token-repository.port';
+import { IOperatorRepository } from './operator.repository.interface';
+import { IOperatorRefreshTokenRepository } from './operator-refresh-token.repository.interface';
+import { IOperatorAuditLogRepository } from './operator-audit-log.repository.interface';
 
 /**
  * Interface containing transacted repositories.
@@ -37,6 +40,13 @@ export interface ITransactedRepositories {
   customerRepository: ICustomerRepository;
   idempotencyKeyRepository: IIdempotencyKeyRepository;
   productRepository: IProductRepository;
+  operatorRepository: IOperatorRepository;
+  operatorRefreshTokenRepository: IOperatorRefreshTokenRepository;
+  /**
+   * Append-only trail. It lives here, and only here, so that a line can only
+   * be written inside the transaction that applies the change it describes.
+   */
+  operatorAuditLogRepository: IOperatorAuditLogRepository;
 }
 
 /**
