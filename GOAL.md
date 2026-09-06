@@ -4,7 +4,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-06`
 Ordering: decisao antes de codigo; separar o gate existente antes de criar o novo
 Scope: fatia 3 da superficie de operador -- habilitacao de loja para LIVE, o primeiro poder da mesa, e a simulacao em LIVE que a aprovacao destrava
-Status: `em planejamento`
+Status: `em implementacao`
 
 Este arquivo e o tracker executavel da goal atual. Cada macro item e uma unidade de planejamento; as checkboxes em `Subtasks` sao as unidades executaveis de implementacao e validacao.
 
@@ -29,11 +29,12 @@ A passagem anterior (arquivada em `docs/goals/2026-09-06-operator-boundary-and-e
 - Branch: `main` em `d883337` (PR #10 mergeado).
 - Decidido em `2026-09-06`: **opcao B** para entrada de dinheiro em LIVE (registrada em `docs/PRD_ENVIRONMENT_LEDGER.md`). Simulacao tambem em LIVE, liberada so para loja aprovada. Por isso esta fatia nao e so "aprovar loja".
 - Estados previstos pelo PRD pai: `NOT_REQUESTED`, `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`. TEST funciona em todos.
-- O PRD desta fatia **ainda nao existe**. O primeiro item da goal e escreve-lo.
+- O PRD desta fatia e [`docs/PRD_LIVE_ONBOARDING.md`](docs/PRD_LIVE_ONBOARDING.md), escrito em `2026-09-06`.
+- Decidido no PRD: `isApproved` **sai do modelo** (nasce sempre `true`, nunca muda, e os cinco gates duplicam `isActive`); a habilitacao vira `Store.liveStatus`, enum proprio. Regra unica: operacao LIVE do chamador exige `liveStatus === APPROVED`, com o `SettlementJob` como excecao explicita.
 
 ## P0 - Separar "loja ativa" de "loja habilitada para LIVE"
 
-Status: `nao iniciado`
+Status: `em implementacao` (PR 1 do PRD)
 
 Problema: `Store.isApproved` nao significa "habilitada para producao". Ele bloqueia `create-payment`, `create-checkout-session`, `create-payment-link`, `create-withdrawal` e `switch-store` em **qualquer** ambiente, e nasce `true` com o comentario `// Auto-approve for MVP` em `create-store.use-case.ts`.
 
@@ -47,7 +48,7 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P0.1 Escrever o PRD da fatia (`docs/PRD_LIVE_ONBOARDING.md`), decidindo: o que `isApproved` passa a significar, qual campo carrega a habilitacao LIVE, e o que acontece com as cinco chamadas que hoje dependem dele.
+- [x] P0.1 Escrever o PRD da fatia ([`docs/PRD_LIVE_ONBOARDING.md`](docs/PRD_LIVE_ONBOARDING.md)), decidindo: o que `isApproved` passa a significar, qual campo carrega a habilitacao LIVE, e o que acontece com as cinco chamadas que hoje dependem dele.
 - [ ] P0.2 Modelar o estado de habilitacao no schema, com migration que nao muda o comportamento de nenhuma loja existente em TEST.
 - [ ] P0.3 Cobrar em LIVE passa a exigir habilitacao; recusa e erro de dominio com code, nunca 500.
 

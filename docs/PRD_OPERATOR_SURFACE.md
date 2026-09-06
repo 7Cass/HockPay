@@ -196,7 +196,8 @@ sem consumidor e a mesma capacidade fantasma que acabou de ser removida.
    [PRD_OPERATOR_AUTHZ.md](PRD_OPERATOR_AUTHZ.md).
 2. **Ledger por ambiente** -- pre-requisito do passo 3. Detalhado em
    [PRD_ENVIRONMENT_LEDGER.md](PRD_ENVIRONMENT_LEDGER.md).
-3. **Onboarding LIVE** -- estados de habilitacao e a mesa que decide.
+3. **Onboarding LIVE** -- estados de habilitacao e a mesa que decide. Detalhado
+   em [PRD_LIVE_ONBOARDING.md](PRD_LIVE_ONBOARDING.md).
 4. **Condicao comercial** -- taxa e prazo, auditados.
 5. **Visao cross-merchant** -- leitura para investigar chamado.
 6. **Antifraude como modulo** -- alimentando a fila de revisao.

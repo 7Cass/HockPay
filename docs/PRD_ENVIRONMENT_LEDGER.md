@@ -7,7 +7,7 @@
 > tudo abaixo e intencao.
 
 Last reviewed: `2026-09-06`
-Pre-requisito de: onboarding LIVE (fatia 3)
+Pre-requisito de: [onboarding LIVE](PRD_LIVE_ONBOARDING.md) (fatia 3)
 Independente de: [fronteira de autorizacao](PRD_OPERATOR_AUTHZ.md) (fatia 1, ja implementada)
 
 ## O que esta fatia entrega
