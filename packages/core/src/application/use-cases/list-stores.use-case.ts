@@ -1,4 +1,5 @@
 import { IStoreRepository } from '../../domain/repositories/store.repository.interface';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 
 /**
  * Item representation for store listing.
@@ -8,7 +9,9 @@ export interface StoreListItem {
   name: string;
   slug: string;
   isActive: boolean;
-  isApproved: boolean;
+  liveStatus: StoreLiveStatus;
+  liveStatusReason?: string;
+  liveStatusChangedAt?: Date;
   settlementDays: number;
   feePercent: number;
   feeFixed: number;
@@ -47,7 +50,9 @@ export class ListStoresUseCase {
         name: store.name,
         slug: store.slug,
         isActive: store.isActive,
-        isApproved: store.isApproved,
+        liveStatus: store.liveStatus,
+        liveStatusReason: store.liveStatusReason,
+        liveStatusChangedAt: store.liveStatusChangedAt,
         settlementDays: store.settlementDays,
         feePercent: store.feePercent,
         feeFixed: store.feeFixed,

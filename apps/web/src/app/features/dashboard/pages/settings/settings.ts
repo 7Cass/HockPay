@@ -3,8 +3,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideRefreshCcw } from '@ng-icons/lucide';
 import { AuthService } from '../../../../core/services/auth.service';
-import { StoreService } from '../../../../core/services/store.service';
+import { StoreLiveStatus, StoreService } from '../../../../core/services/store.service';
 import { CopyValue, PageHeader, PageState, StatusChip } from '../../../../shared/ui';
+
+const LIVE_STATUS_LABEL: Record<StoreLiveStatus, string> = {
+    NOT_REQUESTED: 'LIVE nao solicitado',
+    PENDING: 'LIVE em analise',
+    APPROVED: 'LIVE habilitado',
+    REJECTED: 'LIVE recusado',
+    SUSPENDED: 'LIVE suspenso',
+};
 
 @Component({
     selector: 'app-settings',
@@ -27,6 +35,11 @@ export class Settings implements OnInit {
     readonly currentUser = computed(() => this.authService.currentUser());
     readonly currentStore = computed(() => this.storeService.currentStore());
     readonly storesCount = computed(() => this.storeService.stores().length);
+
+    readonly liveStatusLabel = computed(() => LIVE_STATUS_LABEL[this.liveStatus()]);
+    readonly liveStatus = computed<StoreLiveStatus>(
+        () => this.currentStore()?.liveStatus ?? 'NOT_REQUESTED',
+    );
 
     ngOnInit(): void {
         this.reload();

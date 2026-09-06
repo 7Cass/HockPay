@@ -1,4 +1,10 @@
-import { Account, Environment, IStoreRepository, Store as DomainStore } from '@hockpay/core';
+import {
+  Account,
+  Environment,
+  IStoreRepository,
+  Store as DomainStore,
+  StoreLiveStatus,
+} from '@hockpay/core';
 import { PrismaClient, Prisma, Store as PrismaStore } from '@hockpay/database';
 
 export class StoreRepository implements IStoreRepository {
@@ -20,7 +26,9 @@ export class StoreRepository implements IStoreRepository {
           name: store.name,
           slug: store.slug,
           isActive: store.isActive,
-          isApproved: store.isApproved,
+          liveStatus: store.liveStatus,
+          liveStatusReason: store.liveStatusReason,
+          liveStatusChangedAt: store.liveStatusChangedAt,
           settlementDays: store.settlementDays,
           feePercent: store.feePercent,
           feeFixed: store.feeFixed,
@@ -93,7 +101,9 @@ export class StoreRepository implements IStoreRepository {
       data: {
         name: store.name,
         isActive: store.isActive,
-        isApproved: store.isApproved,
+        liveStatus: store.liveStatus,
+        liveStatusReason: store.liveStatusReason ?? null,
+        liveStatusChangedAt: store.liveStatusChangedAt ?? null,
         settlementDays: store.settlementDays,
         feePercent: store.feePercent,
         feeFixed: store.feeFixed,
@@ -109,11 +119,10 @@ export class StoreRepository implements IStoreRepository {
     });
   }
 
-  async listActiveApproved(): Promise<DomainStore[]> {
+  async listActive(): Promise<DomainStore[]> {
     const rows = await this.prisma.store.findMany({
       where: {
         isActive: true,
-        isApproved: true,
       },
     });
     return rows.map((row) => this.toDomain(row));
@@ -126,7 +135,9 @@ export class StoreRepository implements IStoreRepository {
       name: data.name,
       slug: data.slug,
       isActive: data.isActive,
-      isApproved: data.isApproved,
+      liveStatus: data.liveStatus as StoreLiveStatus,
+      liveStatusReason: data.liveStatusReason ?? undefined,
+      liveStatusChangedAt: data.liveStatusChangedAt ?? undefined,
       settlementDays: data.settlementDays,
       feePercent: Number(data.feePercent),
       feeFixed: data.feeFixed,

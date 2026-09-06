@@ -7,7 +7,6 @@ import { BankAccountNotFoundError } from '../../domain/errors/bank-account-not-f
 import { BankAccountNotVerifiedError } from '../../domain/errors/bank-account-not-verified.error';
 import { InsufficientWithdrawalBalanceError } from '../../domain/errors/insufficient-withdrawal-balance.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import {
   ITransactedRepositories,
@@ -46,7 +45,6 @@ export class CreateWithdrawalUseCase {
     const store = await repos.storeRepository.findById(input.storeId);
     if (!store) throw new StoreNotFoundError(input.storeId);
     if (!store.isActive) throw new StoreInactiveError(store.id);
-    if (!store.isApproved) throw new StoreNotApprovedError(store.id);
 
     const environment = input.environment ?? Environment.TEST;
     const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(

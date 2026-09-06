@@ -1,3 +1,4 @@
+import { StoreLiveStatus } from '@hockpay/core';
 import {
   IsString,
   IsNotEmpty,
@@ -38,7 +39,9 @@ export class CreateStoreResponseDto {
     name: string;
     slug: string;
     isActive: boolean;
-    isApproved: boolean;
+    liveStatus: StoreLiveStatus;
+    liveStatusReason?: string;
+    liveStatusChangedAt?: Date;
     settlementDays: number;
     feePercent: number;
     feeFixed: number;

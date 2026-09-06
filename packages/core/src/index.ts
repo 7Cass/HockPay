@@ -33,6 +33,7 @@ export * from './domain/enums/payment-status.enum';
 export * from './domain/value-objects/email.vo';
 export * from './domain/value-objects/document.vo';
 export * from './domain/value-objects/environment.vo';
+export * from './domain/value-objects/store-live-status.vo';
 
 // Domain - Constants
 export * from './application/ports/webhook-circuit-breaker.port';
@@ -63,7 +64,8 @@ export * from './domain/errors/api-key-revoked.error';
 export * from './domain/errors/invalid-api-key-format.error';
 export * from './domain/errors/store-not-found.error';
 export * from './domain/errors/store-inactive.error';
-export * from './domain/errors/store-not-approved.error';
+export * from './domain/errors/store-live-not-enabled.error';
+export * from './domain/errors/invalid-store-live-status-transition.error';
 export * from './domain/errors/no-current-store.error';
 export * from './domain/errors/slug-already-exists.error';
 export * from './domain/errors/invalid-slug-format.error';

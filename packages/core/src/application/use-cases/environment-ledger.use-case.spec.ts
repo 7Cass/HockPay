@@ -37,7 +37,7 @@ function makeStore() {
     id: 'store-1',
     name: 'Hockpay Store',
     isActive: true,
-    isApproved: true,
+    isLiveEnabled: () => true,
     settlementDays: 2,
   };
 }

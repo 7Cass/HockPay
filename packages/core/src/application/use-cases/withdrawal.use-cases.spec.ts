@@ -276,7 +276,7 @@ function makeFixture(
     name: 'Store',
     slug: 'store',
     isActive: true,
-    isApproved: true,
+    isLiveEnabled: () => true,
     settlementDays: 1,
     feePercent: 1.5,
     feeFixed: 15,

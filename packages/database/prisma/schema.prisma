@@ -73,6 +73,14 @@ enum TransactionType {
   ADJUSTMENT
 }
 
+enum StoreLiveStatus {
+  NOT_REQUESTED
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 enum PixKeyType {
   CPF
   CNPJ
@@ -162,7 +170,9 @@ model Store {
   name            String
   slug            String            @unique
   isActive        Boolean           @default(true) @map("is_active")
-  isApproved      Boolean           @default(false) @map("is_approved")
+  liveStatus      StoreLiveStatus   @default(NOT_REQUESTED) @map("live_status")
+  liveStatusReason String?          @map("live_status_reason")
+  liveStatusChangedAt DateTime?     @map("live_status_changed_at")
   settlementDays  Int               @default(30) @map("settlement_days")
   feePercent      Decimal           @default(1.5) @map("fee_percent") @db.Decimal(5, 2)
   feeFixed        Int               @default(15) @map("fee_fixed")

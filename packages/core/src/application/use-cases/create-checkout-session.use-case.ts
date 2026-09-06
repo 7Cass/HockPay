@@ -12,7 +12,7 @@ import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { assertLiveEnvironmentEnabled } from '../services/live-environment-guard';
 import { LineItemResolverService } from '../services/line-item-resolver.service';
 
 export interface ICreateCheckoutSessionInput {
@@ -56,10 +56,10 @@ export class CreateCheckoutSessionUseCase {
 
     if (!store) throw new StoreNotFoundError(input.storeId);
     if (!store.isActive) throw new StoreInactiveError(store.id);
-    if (!store.isApproved) throw new StoreNotApprovedError(store.id);
+    const environment = input.environment ?? Environment.TEST;
+    assertLiveEnvironmentEnabled(store, environment);
 
     const checkoutToken = this.tokenGenerator.generateBase64(32);
-    const environment = input.environment ?? Environment.TEST;
     const resolver = new LineItemResolverService(repos.productRepository);
     const resolvedItems = await resolver.resolve({
       storeId: input.storeId,

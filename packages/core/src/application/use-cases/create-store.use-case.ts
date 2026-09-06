@@ -73,12 +73,15 @@ export class CreateStoreUseCase {
         throw new MerchantNotFoundError(input.merchantId);
       }
 
-      // 3. Create Store entity (active and approved for MVP/dev mode)
+      // 3. Create Store entity.
+      //
+      // The store is live from the first request -- in TEST. LIVE starts as
+      // NOT_REQUESTED and only the desk opens it, which is the whole point of
+      // keeping the two apart.
       const store = Store.create({
         merchantId: input.merchantId,
         name: input.name,
         slug: finalSlug,
-        isApproved: true, // Auto-approve for MVP
       });
 
       // 4. Persist Store and its account through the transacted store repository

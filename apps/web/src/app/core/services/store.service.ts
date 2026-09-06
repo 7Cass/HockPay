@@ -3,12 +3,21 @@ import { ApiClientService } from './api-client.service';
 import { AuthService } from './auth.service';
 import { map, Observable, switchMap, tap } from 'rxjs';
 
+export type StoreLiveStatus =
+    | 'NOT_REQUESTED'
+    | 'PENDING'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'SUSPENDED';
+
 export interface Store {
     id: string;
     name: string;
     slug: string;
     isActive: boolean;
-    isApproved: boolean;
+    liveStatus: StoreLiveStatus;
+    liveStatusReason?: string;
+    liveStatusChangedAt?: string;
     settlementDays: number;
     feePercent: number;
     feeFixed: number;

@@ -74,10 +74,7 @@
                   [status]="store.isActive ? 'ACTIVE' : 'INACTIVE'"
                   [label]="store.isActive ? 'Ativa' : 'Inativa'"
                 />
-                <app-status-chip
-                  [status]="store.isApproved ? 'APPROVED' : 'PENDING'"
-                  [label]="store.isApproved ? 'Aprovada' : 'Pendente'"
-                />
+                <app-status-chip [status]="liveStatus()" [label]="liveStatusLabel()" />
               </div>
             </div>
 

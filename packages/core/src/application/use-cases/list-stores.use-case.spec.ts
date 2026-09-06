@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Store } from '../../domain/entities/store.entity';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { ListStoresUseCase } from './list-stores.use-case';
 
 describe('ListStoresUseCase', () => {
@@ -12,7 +13,7 @@ describe('ListStoresUseCase', () => {
       name: 'Smoke Store',
       slug: 'smoke-store',
       isActive: true,
-      isApproved: true,
+      liveStatus: StoreLiveStatus.NOT_REQUESTED,
       settlementDays: 14,
       feePercent: 1.75,
       feeFixed: 25,
@@ -33,7 +34,9 @@ describe('ListStoresUseCase', () => {
         name: 'Smoke Store',
         slug: 'smoke-store',
         isActive: true,
-        isApproved: true,
+        liveStatus: StoreLiveStatus.NOT_REQUESTED,
+        liveStatusReason: undefined,
+        liveStatusChangedAt: undefined,
         settlementDays: 14,
         feePercent: 1.75,
         feeFixed: 25,
