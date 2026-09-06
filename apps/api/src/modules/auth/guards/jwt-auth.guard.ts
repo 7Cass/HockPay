@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { IS_OPERATOR_ROUTE_KEY } from '../../operator/decorators/operator-route.decorator';
 
 /**
  * JWT Authentication Guard
@@ -11,6 +12,9 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
  * When registered as a global guard (APP_GUARD), all routes are protected by default.
  *
  * Use the @Public() decorator to mark routes that should not require authentication.
+ * Routes of the operator surface are marked with @OperatorRoute(), which both
+ * takes them out of this guard and installs the operator guard in its place --
+ * marking them @Public() would be a lie, since they do require a principal.
  *
  * Usage:
  * - Global protection: registered as APP_GUARD in AppModule
@@ -32,6 +36,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
+      return true;
+    }
+
+    // Operator routes authenticate a different principal, with its own guard.
+    const isOperatorRoute = this.reflector.getAllAndOverride<boolean>(
+      IS_OPERATOR_ROUTE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (isOperatorRoute) {
       return true;
     }
 

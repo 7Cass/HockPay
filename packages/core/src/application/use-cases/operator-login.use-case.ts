@@ -51,10 +51,7 @@ export class OperatorLoginUseCase {
       throw new InvalidCredentialsError();
     }
 
-    const isPasswordValid = await this.passwordHasher.verify(
-      input.password,
-      operator.passwordHash,
-    );
+    const isPasswordValid = await this.passwordHasher.verify(input.password, operator.passwordHash);
 
     if (!isPasswordValid) {
       throw new InvalidCredentialsError();
