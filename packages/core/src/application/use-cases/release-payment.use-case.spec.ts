@@ -72,7 +72,10 @@ describe('ReleasePaymentUseCase', () => {
       execute: async (work: any) => work(repos),
     } as any);
 
-    const result = await useCase.execute({ paymentId: payment.id });
+    const result = await useCase.execute({
+      paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
+    });
 
     expect(result.account.pending).toBe(0);
     expect(result.account.available).toBe(6_750);
@@ -117,7 +120,10 @@ describe('ReleasePaymentUseCase', () => {
       execute: async (work: any) => work(repos),
     } as any);
 
-    const result = await useCase.execute({ paymentId: payment.id });
+    const result = await useCase.execute({
+      paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
+    });
 
     expect(result.alreadyReleased).toBe(true);
     expect(result.payment.id).toBe(payment.id);
@@ -158,6 +164,7 @@ describe('ReleasePaymentUseCase', () => {
     await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(repos.paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
@@ -196,6 +203,7 @@ describe('ReleasePaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
@@ -205,7 +213,8 @@ describe('ReleasePaymentUseCase', () => {
     await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
-      allowLiveEnvironment: true,
+      callerEnvironment: Environment.TEST,
+      systemInitiated: true,
     });
 
     expect(payment.isReleased()).toBe(true);

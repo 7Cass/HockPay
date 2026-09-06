@@ -4,7 +4,8 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
-import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import {
   emitPaymentLinkEvent,
   paymentLinkIdFromMetadata,
@@ -14,11 +15,19 @@ import {
  * Input DTO for ExpirePaymentUseCase.
  */
 export interface IExpirePaymentInput {
+  /** Environment of the caller (API key). Must match the payment's. */
+  callerEnvironment?: Environment;
   storeId?: string;
   paymentId: string;
   requestId?: string;
   strictPending?: boolean;
-  allowLiveEnvironment?: boolean;
+  /**
+   * Set by the system's own paths (expiration queue and job), never by a
+   * request. It skips the LIVE enablement gate, because expiring a payment the
+   * store legitimately created is the clock doing its job, not the caller
+   * operating in LIVE.
+   */
+  systemInitiated?: boolean;
 }
 
 /**
@@ -59,8 +68,13 @@ export class ExpirePaymentUseCase {
         throw new PaymentNotFoundError(input.paymentId);
       }
 
-      if (!input.allowLiveEnvironment) {
-        assertNotLiveEnvironment(payment.environment);
+      if (!input.systemInitiated) {
+        await assertLiveSimulationAllowed(
+          repos,
+          payment.storeId,
+          payment.environment,
+          input.callerEnvironment,
+        );
       }
 
       // Exact repeated expirations remain idempotent for queue retries.

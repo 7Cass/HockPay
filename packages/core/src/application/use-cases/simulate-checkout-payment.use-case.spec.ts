@@ -4,7 +4,6 @@ import { Payment } from '../../domain/entities/payment.entity';
 import { CheckoutSession } from '../../domain/entities/checkout-session.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
-import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 
 describe('SimulateCheckoutPaymentUseCase', () => {
   function makePayment(overrides: Partial<Parameters<typeof Payment.create>[0]> = {}) {
@@ -133,17 +132,25 @@ describe('SimulateCheckoutPaymentUseCase', () => {
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
   });
 
-  it('blocks live payments even with a valid checkout token', async () => {
+  it('hands a live payment to the delegate instead of refusing it here', async () => {
+    // LIVE is no longer refused at this layer. The use case this delegates to
+    // applies the enablement gate inside its own transaction, and duplicating
+    // the check here would be two gates for one rule.
     const payment = makePayment({ environment: Environment.LIVE });
-    const { useCase } = makeUseCase({ payment });
+    const { useCase, confirmPaymentUseCase } = makeUseCase({ payment });
 
-    await expect(
-      useCase.execute({
-        paymentId: payment.id,
-        checkoutToken: 'checkout-token',
-        action: 'confirm',
-      }),
-    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+    await useCase.execute({
+      paymentId: payment.id,
+      checkoutToken: 'checkout-token',
+      action: 'confirm',
+    });
+
+    expect(confirmPaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentId: payment.id,
+      callerEnvironment: Environment.LIVE,
+      requestId: undefined,
+    });
   });
 
   it('confirms a test payment only when token, payment, and store match', async () => {
@@ -159,6 +166,8 @@ describe('SimulateCheckoutPaymentUseCase', () => {
     expect(confirmPaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
+      requestId: undefined,
     });
   });
 
@@ -183,11 +192,15 @@ describe('SimulateCheckoutPaymentUseCase', () => {
     expect(expirePaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
+      requestId: undefined,
       strictPending: true,
     });
     expect(failPaymentUseCase.execute).toHaveBeenCalledWith({
       paymentId: payment.id,
       storeId: 'store-1',
+      callerEnvironment: Environment.TEST,
+      requestId: undefined,
       reason: 'Simulated failure',
     });
   });

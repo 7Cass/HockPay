@@ -78,6 +78,7 @@ describe('ledger por ambiente', () => {
     await new ConfirmPaymentUseCase(unitOfWork as never).execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(

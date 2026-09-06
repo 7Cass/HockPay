@@ -8,7 +8,7 @@ import {
   IUnitOfWork,
 } from '../../domain/repositories/unit-of-work.interface';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
-import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
 import { FeePolicy } from '../services/fee-policy.service';
 import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
 import { settleConfirmedPayment } from './settle-confirmed-payment';
@@ -43,7 +43,7 @@ export class PayPaymentLinkUseCase {
       const item = await repos.paymentLinkRepository.findPublicByTokenForUpdate(input.publicToken);
       if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
 
-      this.ensureSimulationAllowed(input.environment, item.environment);
+      await this.ensureSimulationAllowed(repos, item.storeId, input.environment, item.environment);
 
       const pixCharge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
         item.pixCharge.id,
@@ -207,13 +207,17 @@ export class PayPaymentLinkUseCase {
     );
   }
 
-  private ensureSimulationAllowed(
+  /**
+   * The request environment and the link's must match, and LIVE additionally
+   * requires the desk to have opened it for this store.
+   */
+  private async ensureSimulationAllowed(
+    repos: ITransactedRepositories,
+    storeId: string,
     requestEnvironment: Environment,
     linkEnvironment: Environment,
-  ): void {
-    if (requestEnvironment === Environment.LIVE || linkEnvironment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
+  ): Promise<void> {
+    await assertLiveSimulationAllowed(repos, storeId, linkEnvironment, requestEnvironment);
   }
 
   private isAlreadyPaid(linkStatus: PaymentLinkStatus, pixChargeStatus: PixChargeStatus): boolean {

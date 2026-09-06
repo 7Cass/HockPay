@@ -19,7 +19,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 
 | Capacidade                        | Status               | Observacoes                                                                                                                                          |
 | --------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth, merchant, stores e API keys | Implementado         | Login, refresh/logout, troca de store, cadastro de merchant, store auto-aprovada no MVP e API keys TEST/LIVE. O token de dashboard carrega audiencia `merchant`; token de outra audiencia (ou sem audiencia) e recusado na entrada. |
+| Auth, merchant, stores e API keys | Implementado         | Login, refresh/logout, troca de store, cadastro de merchant e API keys TEST/LIVE. Store nasce operando em TEST sem aprovacao; `isApproved` nao existe mais. O token de dashboard carrega audiencia `merchant`; token de outra audiencia (ou sem audiencia) e recusado na entrada. |
 | Store/account                     | Implementado         | Toda store nasce com duas `Account`, uma por ambiente (`storeId + environment`); migration cobre stores antigas.                                     |
 | Payments Pix simulados            | Implementado         | `POST /api/v1/payments` cria `PixCharge`, `Payment`, outbox e job de expiracao; exige `Idempotency-Key`.                                             |
 | Metodos card/boleto/debito        | Modelado/parcial     | O enum/schema aceita `CREDIT_CARD`, `BOLETO` e `DEBIT_CARD`, mas nao ha processador, adquirente ou fluxo real para esses metodos.                    |
@@ -37,7 +37,8 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Products/catalog                  | Implementado         | Catalogo opcional por store e environment, CRUD no dashboard/API, itens em checkout sessions e snapshots em `PaymentItem`.                           |
 | Settings                          | Perfil mutavel       | Merchant edita `name` e `city` (EMV). Fee, settlement e aprovacao continuam imutaveis.                                                               |
 | Antifraude                        | Planejado            | Nao existe. O `DetectAnomaliesUseCase` stub e o cron horario foram removidos: devolviam lista vazia e logavam varredura que nunca aconteceu. Os quatro tipos de anomalia previstos (volume, transacoes rapidas, valor atipico, taxa de falha) sao consultas sobre dados que ja estao no banco, mas nada disso esta implementado. |
-| Superficie de operador            | Parcial              | Existe a fronteira, nao existe a mesa. Principal `Operator` com tabela, cookie e segredo proprios, sessao (login/refresh/logout), `/operator/me` e trilha de auditoria append-only legivel por API. Nenhum poder sobre loja: nao aprova, nao suspende, nao muda taxa e nao le dado de merchant. Sem tela em `apps/web` e sem papeis dentro do operador. |
+| Superficie de operador            | Parcial              | Fronteira, trilha e **um poder**: habilitar loja para LIVE. Principal `Operator` com tabela, cookie e segredo proprios, sessao, `/operator/me`, trilha append-only e `/operator/stores` (fila + decisao com motivo obrigatorio). Ainda nao muda taxa, nao le pagamento/ledger de merchant e nao tem tela em `apps/web`. Sem papeis dentro do operador. |
+| Habilitacao LIVE de loja          | Implementado         | `Store.liveStatus` com cinco estados. TEST funciona em todos; LIVE exige `APPROVED`. Lojista pede em Settings, a mesa decide, e toda decisao grava linha na trilha na mesma transacao. |
 | Marketplace/split/multi-seller    | Fora do escopo atual | Requer PRD e modelagem proprios antes de aparecer como produto pronto.                                                                               |
 
 ## Matriz de Superficies
@@ -49,7 +50,7 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 | Checkout sessions | `checkout-session`           | `CheckoutSession`, `CheckoutSessionItem`, `PaymentItem`     | checkout hosted e demo Media Kit                 | `smoke:studycase:mediakit`                                     | Exige exatamente um de `amount` ou `items`; metadata publica e limitada. |
 | Products/catalog  | `product`                    | `Product`, snapshots em `CheckoutSessionItem`/`PaymentLinkItem`/`PaymentItem` | dashboard Products, checkout sessions e Payment Links com items | coberto por testes/builds focados e por `smoke:payment-link`    | Catalogo opcional por store/environment.                                 |
 | Webhooks/alerts   | `webhook`, `alert`           | `OutboxEvent`, `WebhookLog`, `AlertDeliveryLog`             | dashboard webhooks/alerts                        | `smoke:system`, `smoke:payment-link`                           | Entrega depende do worker/Redis e politica de URL.                       |
-| Operador          | `operator-auth`, `operator`  | `Operator`, `OperatorRefreshToken`, `OperatorAuditLog`      | sem dashboard nesta fatia                        | coberto por unit tests e pelo e2e da API                       | Sem poder sobre loja; trilha so por API; provisionamento por `pnpm operator:create`. |
+| Operador          | `operator-auth`, `operator`, `operator-store` | `Operator`, `OperatorRefreshToken`, `OperatorAuditLog`, `Store.liveStatus` | sem dashboard de operador; lojista pede LIVE em Settings | coberto por unit tests e pelo e2e da API | Unico poder e habilitar LIVE; sem taxa e sem leitura cross-merchant; trilha so por API; provisionamento por `pnpm operator:create`. |
 | Withdrawals       | `withdrawal`, `bank-account` | `Withdrawal`, `BankAccount`, `Transaction`                  | dashboard withdrawals/list/detail                | `smoke:withdrawals`                                            | Saque simulado; sem payout bancario real.                                |
 
 ## Fluxos Reais
@@ -85,6 +86,15 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 3. Produtos arquivados usam `isActive=false` e nao entram em novas cobrancas.
 4. Checkout sessions e Payment Links podem referenciar produtos por `productId`; o valor da cobranca vem da soma dos itens, nunca do cliente.
 5. Produto referenciado gera snapshot de nome, descricao, preco, imagem, `productId` e `productExternalId`; metadata do produto nao e copiada automaticamente.
+
+### Habilitacao LIVE
+
+1. Toda loja nasce em `liveStatus = NOT_REQUESTED` e cobra em TEST sem aprovacao nenhuma.
+2. `POST /api/v1/stores/:id/live-request` move `NOT_REQUESTED | REJECTED -> PENDING`. O lojista ve o estado, a razao da ultima decisao e o botao de pedido em `/dashboard/settings`.
+3. `GET /api/v1/operator/stores?liveStatus=PENDING` e a fila da mesa. Ela devolve so id, merchant, nome, slug, estado, razao e datas -- sem ledger, sem pagamento e sem credencial.
+4. `POST /api/v1/operator/stores/:id/live-status` decide (`approve`, `reject`, `suspend`) com `reason` obrigatorio, validado no use case. A linha da trilha (`store.live_approved|rejected|suspended`, com `before`, `after`, `reason` e `requestId`) e escrita na mesma transacao da mudanca.
+5. Transicoes validas: lojista `NOT_REQUESTED|REJECTED -> PENDING`; mesa `PENDING -> APPROVED|REJECTED`, `APPROVED -> SUSPENDED` e `SUSPENDED -> APPROVED`. Qualquer outra e `INVALID_STORE_LIVE_STATUS_TRANSITION`.
+6. Loja `APPROVED` cobra, confirma e acumula saldo em LIVE. **LIVE tambem e simulado**: o que a habilitacao separa e permissao e cerimonia, nao mecanica.
 
 ### Withdrawals
 
@@ -158,9 +168,10 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - `Transaction` nao tem coluna de ambiente; herda o da conta em que esta pendurada.
 - Entidades sem coluna de environment (`Customer`, `WebhookConfig`, `Refund`, `BankAccount`) sao escopadas por store. `Receipt` herda `payment.environment` em list/get e no customer-history.
 - `Withdrawal` grava o environment da request na criacao para recusar acao TEST sobre reserva LIVE, e a reserva sai da conta desse ambiente. A listagem continua store-wide; o ledger e o resumo dela vem da conta do ambiente da request.
-- Simulacao publica de Payment Link e checkout continua recusando LIVE no use case.
-- Sessao/key TEST nao confirma, expira, falha, libera, estorna payment LIVE nem cancela Payment Link LIVE.
-- Key TEST simula no ledger TEST da store (`POST /dev/simulate/:id/*`, pay autenticado de Payment Link, `POST /dev/withdrawals/:id/complete|fail`) e nao encosta no ledger LIVE. LIVE key nao simula. Create de saque, refund e destino Pix continua JWT-only.
+- Simular ou cobrar em LIVE exige `store.liveStatus === APPROVED`; a recusa e `STORE_LIVE_NOT_ENABLED` (422). Vale para `/dev/simulate/:id/*`, pay/fail de Payment Link, `fulfill` de checkout e para a criacao de payment, Payment Link e checkout session.
+- **Excecao, e a unica:** os caminhos do proprio sistema -- `SettlementJob` e a fila/job de expiracao -- passam `systemInitiated: true` e nao consultam habilitacao. Bloquea-los prenderia dinheiro LIVE em `pending` para sempre quando a mesa suspende uma loja.
+- Sessao/key TEST nao confirma, expira, falha, libera, estorna payment LIVE nem cancela Payment Link LIVE, e o contrario tambem nao vale: o ambiente do chamador precisa ser o do agregado, e a recusa e `LIVE_ENVIRONMENT_NOT_ALLOWED`. Habilitar LIVE nao dissolveu esse isolamento.
+- Key TEST simula no ledger TEST da store e nao encosta no LIVE; key LIVE de loja habilitada simula no ledger LIVE e nao encosta no TEST. Create de saque, refund e destino Pix continua JWT-only, logo continua TEST.
 
 ## Gaps e Limites
 
@@ -169,7 +180,8 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
 - Settings edita so perfil (`name`, `city`); fee, settlement e aprovacao nao sao mutaveis pelo merchant.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
-- Operador tem fronteira e trilha, mas nenhum poder: aprovacao de loja, taxa, suspensao e leitura cross-merchant continuam inexistentes, e nao ha tela de operador.
+- O unico poder do operador e habilitar LIVE. Taxa, prazo e leitura cross-merchant continuam inexistentes, e nao ha tela de operador -- a mesa e API.
 - Trilha de operador cresce sem retencao.
-- O ledger LIVE existe e esta vazio: todo caminho que credita conta recusa LIVE hoje (`/dev/simulate`, pay de Payment Link e fulfill de checkout recusam LIVE; refund e saque sao JWT-only, sempre TEST). Entrada de dinheiro em LIVE depende da habilitacao de loja, que ainda nao existe.
-- Saque e estorno so alcancam o ledger TEST, porque sao JWT-only e a sessao e TEST.
+- **LIVE tambem e simulado.** A habilitacao decide quem pode operar em producao, nao de onde vem o dinheiro: nao ha adquirente, e nenhum centavo e real em nenhum dos dois ambientes. As telas de saldo e de chaves dizem isso.
+- Saque e estorno so alcancam o ledger TEST, porque sao JWT-only e a sessao e TEST. Agora que o ledger LIVE enche, isso e uma lacuna de produto e nao mais uma porta para sala vazia: falta o seletor de ambiente no dashboard.
+- Dashboard nao tem seletor TEST/LIVE, entao saldo, extrato e metricas continuam sendo os do ledger TEST.

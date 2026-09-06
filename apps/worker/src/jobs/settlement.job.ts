@@ -78,7 +78,7 @@ export class SettlementJob implements OnModuleInit {
           storeId,
           paymentId: payment.id,
           requestId,
-          allowLiveEnvironment: true,
+          systemInitiated: true,
         });
         released++;
       } catch (error) {

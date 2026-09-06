@@ -6,16 +6,25 @@ import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.erro
 import { AccountNotFoundError } from '../../domain/errors/account-not-found.error';
 import { PaymentNotConfirmedError } from '../../domain/errors/payment-not-confirmed.error';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
-import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
  * Input DTO for ReleasePaymentUseCase.
  */
 export interface IReleasePaymentInput {
+  /** Environment of the caller (API key). Must match the payment's. */
+  callerEnvironment?: Environment;
   storeId?: string;
   paymentId: string;
   requestId?: string;
-  allowLiveEnvironment?: boolean;
+  /**
+   * Set by the settlement job, never by a request. Releasing LIVE money that
+   * was already confirmed is the clock moving `pending` to `available`;
+   * gating it on enablement would strand that money in `pending` forever when
+   * the desk suspends a store.
+   */
+  systemInitiated?: boolean;
 }
 
 /**
@@ -56,8 +65,13 @@ export class ReleasePaymentUseCase {
         throw new PaymentNotFoundError(input.paymentId);
       }
 
-      if (!input.allowLiveEnvironment) {
-        assertNotLiveEnvironment(payment.environment);
+      if (!input.systemInitiated) {
+        await assertLiveSimulationAllowed(
+          repos,
+          payment.storeId,
+          payment.environment,
+          input.callerEnvironment,
+        );
       }
 
       if (payment.isReleased()) {

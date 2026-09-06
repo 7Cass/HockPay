@@ -1,9 +1,7 @@
 import { PaymentObject } from '../../domain/entities/payment.entity';
-import { Environment } from '../../domain/value-objects/environment.vo';
 import { IPaymentRepository } from '../../domain/repositories/payment.repository.interface';
 import { ICheckoutSessionRepository } from '../../domain/repositories/checkout-session.repository.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
-import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
 import { InvalidSimulationActionError } from '../../domain/errors/invalid-simulation-action.error';
 import { ConfirmPaymentUseCase } from './confirm-payment.use-case';
 import { ExpirePaymentUseCase } from './expire-payment.use-case';
@@ -35,16 +33,17 @@ export interface ISimulateCheckoutOutput {
  * Use Case: Simulate Checkout Payment
  *
  * This use case allows simulating payment actions via payment ID.
- * It only works for payments created in TEST environment.
  *
  * Actions:
  * - confirm: Delegates to ConfirmPaymentUseCase (creates receipt, updates account, etc.)
  * - expire: Delegates to ExpirePaymentUseCase
  * - fail: Delegates to FailPaymentUseCase
  *
- * Security:
- * - Only works for TEST environment payments
- * - LIVE payments will receive 403 Forbidden
+ * Environment:
+ * - TEST always works.
+ * - LIVE works only while the desk keeps the store enabled. The check is not
+ *   repeated here: the use case this delegates to already refuses inside its
+ *   own transaction, and two gates for one rule is one gate too many.
  */
 export class SimulateCheckoutPaymentUseCase {
   constructor(
@@ -73,16 +72,12 @@ export class SimulateCheckoutPaymentUseCase {
       throw new PaymentNotFoundError(input.paymentId);
     }
 
-    // Validate environment - only TEST payments can be simulated
-    if (payment.environment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
-
     switch (input.action) {
       case 'confirm':
         return this.confirmPaymentUseCase.execute({
           storeId: payment.storeId,
           paymentId: payment.id,
+          callerEnvironment: payment.environment,
           requestId: input.requestId,
         });
 
@@ -90,6 +85,7 @@ export class SimulateCheckoutPaymentUseCase {
         return this.expirePaymentUseCase.execute({
           storeId: payment.storeId,
           paymentId: payment.id,
+          callerEnvironment: payment.environment,
           requestId: input.requestId,
           strictPending: true,
         });
@@ -98,6 +94,7 @@ export class SimulateCheckoutPaymentUseCase {
         return this.failPaymentUseCase.execute({
           paymentId: payment.id,
           storeId: payment.storeId,
+          callerEnvironment: payment.environment,
           requestId: input.requestId,
           reason: 'Simulated failure',
         });

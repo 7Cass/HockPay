@@ -188,6 +188,7 @@ describe('P0 checkout happy path', () => {
     }).execute({
       storeId,
       paymentId: fulfilled.paymentId,
+      callerEnvironment: Environment.TEST,
     });
     const account = await accounts.findByStoreIdAndEnvironment(storeId, Environment.TEST);
     const receipt = await receipts.findByPaymentId(fulfilled.paymentId);

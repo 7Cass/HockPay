@@ -31,7 +31,7 @@ export class ExpirationProcessor extends WorkerHost {
       storeId: job.data.storeId,
       paymentId: job.data.paymentId,
       requestId,
-      allowLiveEnvironment: true,
+      systemInitiated: true,
     });
 
     this.logger.debug(`Expiration job requestId=${requestId} jobId=${job.id} completed`);

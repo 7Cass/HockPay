@@ -4,12 +4,19 @@ import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.error';
 import { IExpirationQueuePort } from '../ports/expiration-queue.port';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
-import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
  * Input DTO for FailPaymentUseCase.
  */
 export interface IFailPaymentInput {
+  /**
+   * Environment of the caller (API key). Required, and must match the
+   * payment's: this is what keeps a TEST key from confirming a LIVE payment
+   * now that LIVE is no longer refused at the door.
+   */
+  callerEnvironment: Environment;
   storeId: string;
   paymentId: string;
   requestId?: string;
@@ -54,7 +61,12 @@ export class FailPaymentUseCase {
         throw new PaymentNotFoundError(input.paymentId);
       }
 
-      assertNotLiveEnvironment(payment.environment);
+      await assertLiveSimulationAllowed(
+        repos,
+        payment.storeId,
+        payment.environment,
+        input.callerEnvironment,
+      );
 
       if (payment.status === PaymentStatus.FAILED) {
         return {

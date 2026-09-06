@@ -72,6 +72,7 @@ describe('FailPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: 'payment-1',
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
 
@@ -88,6 +89,7 @@ describe('FailPaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
       reason: 'Payment declined',
     });
 
@@ -127,6 +129,7 @@ describe('FailPaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
       reason: 'Retry failure',
     });
 
@@ -147,6 +150,7 @@ describe('FailPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
         reason: 'Payment declined',
       }),
     ).rejects.toBeInstanceOf(InvalidPaymentStatusError);
@@ -166,6 +170,7 @@ describe('FailPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
         reason: 'Payment declined',
       }),
     ).rejects.toThrow('outbox failed');
@@ -184,6 +189,7 @@ describe('FailPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).resolves.toMatchObject({
       payment: {
@@ -208,6 +214,7 @@ describe('FailPaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 

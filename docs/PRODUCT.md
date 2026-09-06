@@ -42,6 +42,22 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
 3. Cada falha/pagamento vira uma tentativa `Payment` ligada a uma `PixCharge`.
 4. Dashboard permite acompanhar o link, tentativas e conversao.
 
+### Habilitacao para LIVE
+
+1. Toda loja nasce operando em TEST, sem passar por aprovacao nenhuma. Essa e a
+   promessa: cobrar no minuto zero.
+2. Para operar em LIVE, o lojista pede habilitacao em Settings
+   (`NOT_REQUESTED -> PENDING`) e ve o estado ali mesmo.
+3. A mesa de operador aprova, rejeita ou suspende, sempre com motivo. Cada
+   decisao deixa uma linha na trilha de auditoria.
+4. Loja aprovada passa a cobrar com a key `hk_live_`, e o saldo entra no ledger
+   LIVE, separado do TEST.
+
+**LIVE aqui tambem e simulado.** O que a habilitacao ensina e o que separa
+producao de teste num gateway de verdade -- **quem pode operar, e sob que
+cerimonia** -- e nao "de onde vem o dinheiro". Nenhum centavo e real em nenhum
+dos dois ambientes.
+
 ### Catalogo de Products
 
 1. Merchant cria produtos vendaveis em `/dashboard/products` ou via `/api/v1/products`.

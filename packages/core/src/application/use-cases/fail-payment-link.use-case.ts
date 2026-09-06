@@ -3,9 +3,12 @@ import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { PaymentLinkListItem, PaymentLinkStatus } from '../../domain/entities/payment-link.entity';
 import { PixChargeStatus } from '../../domain/entities/pix-charge.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
-import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import {
+  ITransactedRepositories,
+  IUnitOfWork,
+} from '../../domain/repositories/unit-of-work.interface';
 import { IPaymentLinkRepository } from '../../domain/repositories/payment-link.repository.interface';
-import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
 import { FeePolicy } from '../services/fee-policy.service';
 import { forkLineItemSnapshot } from '../../domain/entities/line-item.entity';
 import { enrichPaymentAttempt } from '../services/payment-attempt-context.service';
@@ -35,7 +38,7 @@ export class FailPaymentLinkUseCase {
       const item = await repos.paymentLinkRepository.findPublicByTokenForUpdate(input.publicToken);
       if (!item) throw new PaymentLinkNotFoundError(input.publicToken);
 
-      this.ensureSimulationAllowed(input.environment, item.environment);
+      await this.ensureSimulationAllowed(repos, item.storeId, input.environment, item.environment);
       this.ensureFailable(item.status, item.pixCharge.status);
 
       const pixCharge = await repos.pixChargeRepository.findByIdAndStoreIdForUpdate(
@@ -125,13 +128,17 @@ export class FailPaymentLinkUseCase {
     });
   }
 
-  private ensureSimulationAllowed(
+  /**
+   * The request environment and the link's must match, and LIVE additionally
+   * requires the desk to have opened it for this store.
+   */
+  private async ensureSimulationAllowed(
+    repos: ITransactedRepositories,
+    storeId: string,
     requestEnvironment: Environment,
     linkEnvironment: Environment,
-  ): void {
-    if (requestEnvironment === Environment.LIVE || linkEnvironment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
+  ): Promise<void> {
+    await assertLiveSimulationAllowed(repos, storeId, linkEnvironment, requestEnvironment);
   }
 
   private ensureFailable(linkStatus: PaymentLinkStatus, pixChargeStatus: PixChargeStatus): void {
