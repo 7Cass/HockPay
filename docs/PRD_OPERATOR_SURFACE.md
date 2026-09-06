@@ -194,7 +194,8 @@ sem consumidor e a mesma capacidade fantasma que acabou de ser removida.
 1. **Fronteira de autorizacao** -- principal `Operator`, autenticacao propria,
    trilha de auditoria. Nada de poder ainda. Detalhado em
    [PRD_OPERATOR_AUTHZ.md](PRD_OPERATOR_AUTHZ.md).
-2. **Ledger por ambiente** -- pre-requisito do passo 3.
+2. **Ledger por ambiente** -- pre-requisito do passo 3. Detalhado em
+   [PRD_ENVIRONMENT_LEDGER.md](PRD_ENVIRONMENT_LEDGER.md).
 3. **Onboarding LIVE** -- estados de habilitacao e a mesa que decide.
 4. **Condicao comercial** -- taxa e prazo, auditados.
 5. **Visao cross-merchant** -- leitura para investigar chamado.
