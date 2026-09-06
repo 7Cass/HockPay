@@ -128,7 +128,7 @@ fatia isso deixa de ser um detalhe de authz e vira uma frase sobre dinheiro:
 Nao ha o que consertar aqui enquanto nao existir entrada em LIVE. Saida sem
 entrada e uma porta para uma sala vazia.
 
-## A pergunta que esta fatia obriga a responder
+## Como dinheiro entra em LIVE -- decidido em `2026-09-06`
 
 Se todo caminho de entrada e TEST-only, **como dinheiro entra em LIVE?** Sem
 resposta, a fatia 3 aprova lojas para um ambiente onde nada acontece.
@@ -152,9 +152,21 @@ C esta descartada pelo PRD pai, que e explicito: operador nao move dinheiro. Um
 botao de entrada LIVE seria exatamente o ajuste manual de saldo que transformaria
 o ledger em algo que nao se pode auditar.
 
-Esta decisao pertence a fatia 3, mas precisa ser tomada **antes** dela: se a
-resposta for B, a fatia 3 nao e so "aprovar loja", e sim "aprovar loja e com isso
-destravar a simulacao em LIVE".
+**Decisao: B.** Com isso a fatia 3 deixa de ser "aprovar loja" e passa a ser
+**"aprovar loja e, com isso, destravar a simulacao em LIVE"**.
+
+O que isso _nao_ muda nesta fatia: os gates de LIVE continuam onde estao. Soltar
+a simulacao em LIVE antes de existir estado de habilitacao daria saldo LIVE a
+qualquer loja, que e o oposto da cerimonia que a opcao B existe para ensinar. A
+ordem e: parede primeiro (esta fatia), porta depois (fatia 3).
+
+Duas consequencias que a fatia 3 herda:
+
+- Ao destravar LIVE, a tela precisa dizer que LIVE tambem e simulado. Um LIVE que
+  se apresenta como dinheiro real transforma o simulador em mentira -- e o
+  projeto inteiro e construido no oposto disso.
+- Saque e estorno em LIVE deixam de ser "porta para sala vazia" (D6) e passam a
+  precisar de caminho proprio, porque o dashboard e TEST por sessao.
 
 ## Nao-objetivos desta fatia
 
