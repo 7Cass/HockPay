@@ -125,7 +125,6 @@ export class AccountRepository implements IAccountRepository {
             JOIN stores s ON s.id = a.store_id
             JOIN payments p ON p.store_id = s.id
             WHERE s.is_active = true
-              AND s.is_approved = true
               AND p.status = 'CONFIRMED'
               AND p.paid_at <= ${utcTimestamp(cutoffDate)}
         `;

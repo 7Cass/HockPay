@@ -1,3 +1,5 @@
+import { StoreLiveStatus } from '@hockpay/core';
+
 /**
  * Item DTO for store listing.
  */
@@ -6,7 +8,9 @@ export class StoreListItemDto {
   name!: string;
   slug!: string;
   isActive!: boolean;
-  isApproved!: boolean;
+  liveStatus!: StoreLiveStatus;
+  liveStatusReason?: string;
+  liveStatusChangedAt?: Date;
   settlementDays!: number;
   feePercent!: number;
   feeFixed!: number;

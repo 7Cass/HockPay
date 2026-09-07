@@ -3,7 +3,8 @@ import { PaymentNotFoundError } from '../../domain/errors/payment-not-found.erro
 import { PaymentExpiredError } from '../../domain/errors/payment-expired.error';
 import { PixChargeNotOpenError } from '../../domain/errors/pix-charge-not-open.error';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
-import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { settleConfirmedPayment } from './settle-confirmed-payment';
 
 /**
@@ -14,6 +15,12 @@ export interface IConfirmPaymentInput {
   paymentId: string;
   requestId?: string;
   pixTxId?: string;
+  /**
+   * Environment of the caller (API key). Required, and must match the
+   * payment's: this is what keeps a TEST key from confirming a LIVE payment
+   * now that LIVE is no longer refused at the door.
+   */
+  callerEnvironment: Environment;
 }
 
 /**
@@ -53,7 +60,12 @@ export class ConfirmPaymentUseCase {
         throw new PaymentNotFoundError(input.paymentId);
       }
 
-      assertNotLiveEnvironment(payment.environment);
+      await assertLiveSimulationAllowed(
+        repos,
+        payment.storeId,
+        payment.environment,
+        input.callerEnvironment,
+      );
 
       // Check if expired (lazy check)
       if (payment.isPending() && payment.hasExpired()) {

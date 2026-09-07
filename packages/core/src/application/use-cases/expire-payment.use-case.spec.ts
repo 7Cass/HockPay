@@ -104,6 +104,7 @@ describe('ExpirePaymentUseCase', () => {
     await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(repos.paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
@@ -121,6 +122,7 @@ describe('ExpirePaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
       requestId: 'req-1',
     });
 
@@ -155,6 +157,7 @@ describe('ExpirePaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toThrow('outbox failed');
 
@@ -171,6 +174,7 @@ describe('ExpirePaymentUseCase', () => {
     await expect(
       useCase.execute({
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).resolves.toMatchObject({
       payment: {
@@ -191,6 +195,7 @@ describe('ExpirePaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
         strictPending: true,
       }),
     ).rejects.toBeInstanceOf(InvalidPaymentStatusError);
@@ -207,6 +212,7 @@ describe('ExpirePaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: 'missing',
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PaymentNotFoundError);
 
@@ -228,6 +234,7 @@ describe('ExpirePaymentUseCase', () => {
       useCase.execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
@@ -238,7 +245,8 @@ describe('ExpirePaymentUseCase', () => {
     const result = await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
-      allowLiveEnvironment: true,
+      callerEnvironment: Environment.TEST,
+      systemInitiated: true,
     });
 
     expect(result.payment.status).toBe(PaymentStatus.EXPIRED);
@@ -252,7 +260,11 @@ describe('ExpirePaymentUseCase', () => {
     });
     const { useCase, repos } = makeUseCase(payment, pixCharge);
 
-    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+    await useCase.execute({
+      paymentId: payment.id,
+      storeId: 'store-1',
+      callerEnvironment: Environment.TEST,
+    });
 
     const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
     expect(emitted).toEqual(['payment.expired', 'payment_link.expired']);
@@ -272,7 +284,11 @@ describe('ExpirePaymentUseCase', () => {
     });
     const { useCase, repos } = makeUseCase(payment, pixCharge);
 
-    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+    await useCase.execute({
+      paymentId: payment.id,
+      storeId: 'store-1',
+      callerEnvironment: Environment.TEST,
+    });
 
     // Varias tentativas mortas do mesmo link nao viram varios payment_link.expired.
     const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
@@ -284,7 +300,11 @@ describe('ExpirePaymentUseCase', () => {
     const payment = makePayment(pixCharge);
     const { useCase, repos } = makeUseCase(payment, pixCharge);
 
-    await useCase.execute({ paymentId: payment.id, storeId: 'store-1' });
+    await useCase.execute({
+      paymentId: payment.id,
+      storeId: 'store-1',
+      callerEnvironment: Environment.TEST,
+    });
 
     const emitted = repos.outboxWriter.save.mock.calls.map((call: any) => call[0].eventType);
     expect(emitted).toEqual(['payment.expired']);

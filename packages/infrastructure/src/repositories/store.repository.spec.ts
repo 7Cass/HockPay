@@ -16,7 +16,6 @@ describe('StoreRepository', () => {
       merchantId: 'merchant-1',
       name: 'Media Kit',
       slug: 'media-kit',
-      isApproved: true,
     });
 
     const repository = new StoreRepository(prisma as any);
@@ -49,7 +48,6 @@ describe('StoreRepository', () => {
       merchantId: 'merchant-1',
       name: 'Media Kit',
       slug: 'media-kit',
-      isApproved: true,
     });
 
     const repository = new StoreRepository(prisma as any);

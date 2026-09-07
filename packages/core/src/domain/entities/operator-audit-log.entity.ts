@@ -8,6 +8,9 @@
 export const OPERATOR_AUDIT_ACTION = {
   LOGIN: 'operator.login',
   LOGOUT: 'operator.logout',
+  STORE_LIVE_APPROVED: 'store.live_approved',
+  STORE_LIVE_REJECTED: 'store.live_rejected',
+  STORE_LIVE_SUSPENDED: 'store.live_suspended',
 } as const;
 
 export type OperatorAuditAction =

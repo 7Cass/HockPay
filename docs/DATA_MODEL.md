@@ -18,6 +18,7 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ### Store e Account
 
 - `Store` e o escopo principal de merchant.
+- `Store.liveStatus` (`NOT_REQUESTED`, `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`) e a habilitacao para LIVE, com `liveStatusReason` e `liveStatusChangedAt` guardando a ultima decisao. TEST funciona em todos os estados; so `APPROVED` abre LIVE. O historico das decisoes e `OperatorAuditLog`, nao esses campos.
 - `Store.city` e opcional e alimenta o EMV Pix (`resolvePixMerchantCity`); sem cidade o fallback documentado e `SAO PAULO`.
 - Toda store recebe duas `Account`, uma por ambiente: `Account` e unica por `storeId + environment`.
 - `Account` guarda saldos `available`, `pending` e `blocked` do ambiente dela; saldo TEST e saldo LIVE nunca se misturam.
@@ -107,5 +108,5 @@ Este documento resume o schema Prisma e sua cobertura real no runtime. A fonte t
 ## Gaps Schema vs Runtime
 
 - `PaymentMethod` aceita metodos alem de Pix, mas nao ha processadores reais para cartao, boleto ou debito.
-- Settings mutavel cobre so `Store.name` e `Store.city`; fee/settlement/aprovacao nao tem modelo de edicao pelo merchant.
+- Settings mutavel cobre so `Store.name` e `Store.city`; fee e settlement nao tem modelo de edicao pelo merchant, e `liveStatus` so muda por pedido do lojista ou decisao da mesa.
 - Marketplace, split e multi-seller nao estao modelados como produto atual.

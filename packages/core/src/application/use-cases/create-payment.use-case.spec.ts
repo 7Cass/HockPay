@@ -11,7 +11,7 @@ describe('CreatePaymentUseCase', () => {
     id: 'store-1',
     name: 'Hockpay Store',
     isActive: true,
-    isApproved: true,
+    isLiveEnabled: () => true,
     feePercent: 1.5,
     feeFixed: 15,
   };

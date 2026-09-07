@@ -13,6 +13,7 @@ import type { Response } from 'express';
 import {
   CreateStoreUseCase,
   ListStoresUseCase,
+  RequestLiveEnablementUseCase,
   UpdateStoreProfileUseCase,
 } from '@hockpay/core';
 import {
@@ -49,7 +50,28 @@ export class StoreController {
     private readonly createStoreUseCase: CreateStoreUseCase,
     private readonly listStoresUseCase: ListStoresUseCase,
     private readonly updateStoreProfileUseCase: UpdateStoreProfileUseCase,
+    private readonly requestLiveEnablementUseCase: RequestLiveEnablementUseCase,
   ) {}
+
+  /**
+   * POST /stores/:id/live-request
+   *
+   * Merchant asks the desk to open LIVE. TEST never depended on this and
+   * still does not.
+   */
+  @Post(':id/live-request')
+  @HttpCode(HttpStatus.OK)
+  async requestLive(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    const result = await this.requestLiveEnablementUseCase.execute({
+      storeId: id,
+      merchantId: user.merchantId,
+    });
+
+    return { store: result.store };
+  }
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)

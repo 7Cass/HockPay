@@ -4,7 +4,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-06`
 Ordering: decisao antes de codigo; separar o gate existente antes de criar o novo
 Scope: fatia 3 da superficie de operador -- habilitacao de loja para LIVE, o primeiro poder da mesa, e a simulacao em LIVE que a aprovacao destrava
-Status: `em implementacao`
+Status: `em validacao/hardening`
 
 Este arquivo e o tracker executavel da goal atual. Cada macro item e uma unidade de planejamento; as checkboxes em `Subtasks` sao as unidades executaveis de implementacao e validacao.
 
@@ -34,7 +34,7 @@ A passagem anterior (arquivada em `docs/goals/2026-09-06-operator-boundary-and-e
 
 ## P0 - Separar "loja ativa" de "loja habilitada para LIVE"
 
-Status: `em implementacao` (PR 1 do PRD)
+Status: `concluido` (PR 1)
 
 Problema: `Store.isApproved` nao significa "habilitada para producao". Ele bloqueia `create-payment`, `create-checkout-session`, `create-payment-link`, `create-withdrawal` e `switch-store` em **qualquer** ambiente, e nasce `true` com o comentario `// Auto-approve for MVP` em `create-store.use-case.ts`.
 
@@ -49,18 +49,18 @@ Evidencia:
 Subtasks:
 
 - [x] P0.1 Escrever o PRD da fatia ([`docs/PRD_LIVE_ONBOARDING.md`](docs/PRD_LIVE_ONBOARDING.md)), decidindo: o que `isApproved` passa a significar, qual campo carrega a habilitacao LIVE, e o que acontece com as cinco chamadas que hoje dependem dele.
-- [ ] P0.2 Modelar o estado de habilitacao no schema, com migration que nao muda o comportamento de nenhuma loja existente em TEST.
-- [ ] P0.3 Cobrar em LIVE passa a exigir habilitacao; recusa e erro de dominio com code, nunca 500.
+- [x] P0.2 Modelar o estado de habilitacao no schema, com migration que nao muda o comportamento de nenhuma loja existente em TEST.
+- [x] P0.3 Cobrar em LIVE passa a exigir habilitacao; recusa e erro de dominio com code, nunca 500.
 
 Done Criteria:
 
-- [ ] Loja recem-criada cobra em TEST sem passar por aprovacao nenhuma.
-- [ ] Loja sem habilitacao LIVE nao cobra em LIVE, e a recusa tem code no catalogo.
-- [ ] Nenhuma loja existente perde acesso a TEST por causa da migration.
+- [x] Loja recem-criada cobra em TEST sem passar por aprovacao nenhuma.
+- [x] Loja sem habilitacao LIVE nao cobra em LIVE, e a recusa tem code no catalogo.
+- [x] Nenhuma loja existente perde acesso a TEST por causa da migration.
 
 ## P0 - Destravar a simulacao em LIVE para loja habilitada
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: hoje todo caminho que credita conta recusa LIVE (`/dev/simulate` rejeita key LIVE; `pay-payment-link` e `simulate-checkout-payment` recusam LIVE no use case). Sem mexer nisso, aprovar uma loja para LIVE nao produz efeito observavel nenhum -- o ledger LIVE existe e continua vazio.
 
@@ -68,41 +68,41 @@ Impacto: e o que separa a opcao B de uma cerimonia decorativa.
 
 Subtasks:
 
-- [ ] P0.4 Trocar os gates de "LIVE nunca" para "LIVE se a loja estiver habilitada".
-- [ ] P0.5 Provar por teste que loja nao habilitada continua recusada em LIVE, e que loja habilitada credita **o ledger LIVE** e nao o TEST.
+- [x] P0.4 Trocar os gates de "LIVE nunca" para "LIVE se a loja estiver habilitada".
+- [x] P0.5 Provar por teste que loja nao habilitada continua recusada em LIVE, e que loja habilitada credita **o ledger LIVE** e nao o TEST.
 
 Done Criteria:
 
-- [ ] Uma loja habilitada consegue cobrar, confirmar e acumular saldo em LIVE.
-- [ ] O saldo LIVE nunca aparece no ledger TEST, e vice-versa.
+- [x] Uma loja habilitada consegue cobrar, confirmar e acumular saldo em LIVE.
+- [x] O saldo LIVE nunca aparece no ledger TEST, e vice-versa.
 
 ## P1 - O primeiro poder da mesa, com rastro
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: aprovar e rejeitar habilitacao e o primeiro poder de verdade do operador. A trilha da fatia 1 hoje so registra login e logout.
 
 Subtasks:
 
-- [ ] P1.1 Rotas de operador para listar pedidos e decidir (aprovar/rejeitar/suspender), com `reason` **obrigatorio** na decisao.
-- [ ] P1.2 Cada decisao grava linha na trilha com estado antes e depois, na mesma transacao da mudanca.
-- [ ] P1.3 Lojista pede habilitacao (`NOT_REQUESTED -> PENDING`) e ve o estado.
+- [x] P1.1 Rotas de operador para listar pedidos e decidir (aprovar/rejeitar/suspender), com `reason` **obrigatorio** na decisao.
+- [x] P1.2 Cada decisao grava linha na trilha com estado antes e depois, na mesma transacao da mudanca.
+- [x] P1.3 Lojista pede habilitacao (`NOT_REQUESTED -> PENDING`) e ve o estado.
 
 Done Criteria:
 
-- [ ] Nao existe mudanca de habilitacao sem linha correspondente na trilha.
-- [ ] Decisao sem motivo e recusada pelo use case, nao pela tela.
+- [x] Nao existe mudanca de habilitacao sem linha correspondente na trilha.
+- [x] Decisao sem motivo e recusada pelo use case, nao pela tela.
 
 ## P1 - A tela nao pode mentir sobre LIVE
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: com a opcao B, LIVE tambem e simulado. Um LIVE que se apresenta como dinheiro real transforma o simulador em mentira.
 
 Subtasks:
 
-- [ ] P1.4 Dashboard diz, onde o ambiente aparece, que LIVE tambem e simulacao.
-- [ ] P1.5 `CURRENT_STATE.md` e `PRODUCT.md` descrevem a habilitacao e o que ela destrava.
+- [x] P1.4 Dashboard diz, onde o ambiente aparece, que LIVE tambem e simulacao.
+- [x] P1.5 `CURRENT_STATE.md` e `PRODUCT.md` descrevem a habilitacao e o que ela destrava.
 
 ## Public APIs / Interfaces Mentioned By This Goal
 
@@ -111,16 +111,27 @@ Subtasks:
 - Rota de merchant para pedir habilitacao.
 - Gates de LIVE em `/dev/simulate`, `pay-payment-link` e `simulate-checkout-payment` passam a consultar habilitacao.
 
+## Entregas
+
+| PR | Commit    | O que fecha                                                        |
+| -- | --------- | ------------------------------------------------------------------ |
+| 1  | `86eae44` | `isApproved` sai; `Store.liveStatus` entra; gate de criacao em LIVE |
+| 2  | `f5dccd6` | Pedido do lojista, fila e decisao da mesa, com trilha               |
+| 3  | `dc34acc` | Simulacao em LIVE destravada, tela e docs                           |
+
+O PRD e doc-only e foi direto na `main` (`cc5750f`).
+
 ## Validation Log For This Goal
 
-- [ ] `pnpm --filter @hockpay/core test:ci`
-- [ ] `pnpm --filter @hockpay/infrastructure test`
-- [ ] `pnpm --filter @hockpay/api test`
-- [ ] `pnpm --filter @hockpay/api test:e2e`
-- [ ] `pnpm --filter @hockpay/worker test`
-- [ ] `pnpm --filter @hockpay/web test -- --watch=false`
-- [ ] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
-- [ ] `smoke:docker` com `p0,withdrawals`
+- [x] `pnpm --filter @hockpay/core test:ci`
+- [x] `pnpm --filter @hockpay/infrastructure test`
+- [x] `pnpm --filter @hockpay/api test`
+- [x] `pnpm --filter @hockpay/api test:e2e`
+- [x] `pnpm --filter @hockpay/worker test`
+- [x] `pnpm --filter @hockpay/web test -- --watch=false`
+- [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
+- [x] `smoke:docker` com `p0,withdrawals` (rodado completo: as seis suites, exit 0)
+- [x] Ciclo de habilitacao contra o Postgres de dev, com os repositorios reais (o SQL bruto de `findByIdForUpdate` e o `listByLiveStatus` que os unit tests mockam)
 
 ## Fora desta goal
 

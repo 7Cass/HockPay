@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Merchant } from '../../domain/entities/merchant.entity';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { Store } from '../../domain/entities/store.entity';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { InvalidRefreshTokenError } from '../../domain/errors/invalid-refresh-token.error';
 import { Document } from '../../domain/value-objects/document.vo';
 import { Email } from '../../domain/value-objects/email.vo';
@@ -306,7 +307,7 @@ function makeStore(merchantId: string, id: string): Store {
     name: id,
     slug: id,
     isActive: true,
-    isApproved: true,
+    liveStatus: StoreLiveStatus.NOT_REQUESTED,
     settlementDays: 30,
     feePercent: 1.5,
     feeFixed: 15,

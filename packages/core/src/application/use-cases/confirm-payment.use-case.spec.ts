@@ -70,6 +70,7 @@ describe('ConfirmPaymentUseCase', () => {
     await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(savedReceipt.payerName).toBe('Visitante');
@@ -134,6 +135,7 @@ describe('ConfirmPaymentUseCase', () => {
     await new ConfirmPaymentUseCase(unitOfWork as any).execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(paymentRepository.findByIdAndStoreIdForUpdate).toHaveBeenCalledWith(
@@ -195,6 +197,7 @@ describe('ConfirmPaymentUseCase', () => {
       new ConfirmPaymentUseCase(unitOfWork as any).execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(PixChargeNotOpenError);
 
@@ -233,6 +236,7 @@ describe('ConfirmPaymentUseCase', () => {
       new ConfirmPaymentUseCase(unitOfWork as any).execute({
         storeId: 'store-1',
         paymentId: payment.id,
+        callerEnvironment: Environment.TEST,
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
@@ -300,6 +304,7 @@ describe('ConfirmPaymentUseCase', () => {
     await useCase.execute({
       storeId: 'store-1',
       paymentId: payment.id,
+      callerEnvironment: Environment.TEST,
     });
 
     expect(savedReceipt.payerName).toBe('Cliente Legado');

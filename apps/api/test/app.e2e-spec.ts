@@ -18,7 +18,7 @@ const store = {
   name: 'Main Store',
   slug: 'main-store',
   isActive: true,
-  isApproved: true,
+  isLiveEnabled: () => true,
   settlementDays: 2,
   feePercent: 2.99,
   feeFixed: 49,

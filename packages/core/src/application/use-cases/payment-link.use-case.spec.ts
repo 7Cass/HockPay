@@ -31,7 +31,7 @@ describe('PaymentLink use cases', () => {
         id: 'store-1',
         name: 'Hockpay Store',
         isActive: true,
-        isApproved: true,
+        isLiveEnabled: () => true,
       }),
     };
     const tokenGenerator = {
@@ -115,7 +115,7 @@ describe('PaymentLink use cases', () => {
               id: 'store-1',
               name: 'Hockpay Store',
               isActive: true,
-              isApproved: true,
+              isLiveEnabled: () => true,
             }),
           },
         }),
@@ -129,7 +129,7 @@ describe('PaymentLink use cases', () => {
           id: 'store-1',
           name: 'Hockpay Store',
           isActive: true,
-          isApproved: true,
+          isLiveEnabled: () => true,
         }),
       } as any,
       { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
@@ -169,7 +169,7 @@ describe('PaymentLink use cases', () => {
           id: 'store-1',
           name: 'Hockpay Store',
           isActive: true,
-          isApproved: true,
+          isLiveEnabled: () => true,
         }),
       } as any,
       { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
@@ -221,7 +221,7 @@ describe('PaymentLink use cases', () => {
           id: 'store-1',
           name: 'Hockpay Store',
           isActive: true,
-          isApproved: true,
+          isLiveEnabled: () => true,
         }),
       } as any,
       { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
@@ -279,7 +279,7 @@ describe('PaymentLink use cases', () => {
           id: 'store-1',
           name: 'Hockpay Store',
           isActive: true,
-          isApproved: true,
+          isLiveEnabled: () => true,
         }),
       } as any,
       { generateBase64: vi.fn().mockReturnValue('public-token') } as any,
@@ -309,7 +309,7 @@ describe('PaymentLink use cases', () => {
         id: 'store-1',
         name: 'Hockpay Store',
         isActive: true,
-        isApproved: true,
+        isLiveEnabled: () => true,
       }),
     };
     const tokenGenerator = {
@@ -361,7 +361,7 @@ describe('PaymentLink use cases', () => {
         id: 'store-1',
         name: 'Hockpay Store',
         isActive: true,
-        isApproved: true,
+        isLiveEnabled: () => true,
       }),
     };
     const tokenGenerator = {
@@ -1074,7 +1074,7 @@ function makeStore() {
     id: 'store-1',
     name: 'Hockpay Store',
     isActive: true,
-    isApproved: true,
+    isLiveEnabled: () => true,
     feePercent: 0,
     feeFixed: 90,
   };

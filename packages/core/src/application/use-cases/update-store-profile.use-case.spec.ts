@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Store } from '../../domain/entities/store.entity';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { UpdateStoreProfileUseCase } from './update-store-profile.use-case';
 
 describe('UpdateStoreProfileUseCase', () => {
@@ -10,7 +11,7 @@ describe('UpdateStoreProfileUseCase', () => {
       name: 'Old',
       slug: 'old',
       isActive: true,
-      isApproved: true,
+      liveStatus: StoreLiveStatus.NOT_REQUESTED,
       settlementDays: 30,
       feePercent: 1.5,
       feeFixed: 15,

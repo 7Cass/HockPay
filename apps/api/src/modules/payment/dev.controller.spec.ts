@@ -4,7 +4,7 @@ import {
   Environment,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
-  LiveEnvironmentNotAllowedError,
+  StoreLiveNotEnabledError,
   PaymentNotConfirmedError,
   ReleasePaymentUseCase,
 } from '@hockpay/core';
@@ -48,6 +48,7 @@ describe('DevController', () => {
     expect(releasePaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentId: 'payment-1',
+      callerEnvironment: Environment.TEST,
       requestId: 'req-1',
     });
     expect(result).toEqual({
@@ -55,11 +56,34 @@ describe('DevController', () => {
     });
   });
 
-  it('rejects release simulation in live environment', async () => {
+  it('forwards a LIVE key instead of refusing it at the door', async () => {
+    // LIVE is no longer blocked here. The controller says who is calling and
+    // the use case decides, because the answer depends on whether the desk has
+    // the store enabled -- which the controller does not know.
+    releasePaymentUseCase.execute.mockResolvedValue({
+      payment: { id: 'payment-1', status: 'RELEASED' },
+      account: { id: 'account-1' },
+      alreadyReleased: false,
+    });
+
+    await controller.releasePayment('payment-1', 'store-1', Environment.LIVE);
+
+    expect(releasePaymentUseCase.execute).toHaveBeenCalledWith({
+      storeId: 'store-1',
+      paymentId: 'payment-1',
+      callerEnvironment: Environment.LIVE,
+      requestId: undefined,
+    });
+  });
+
+  it('lets the use case refuse a store that is not enabled for LIVE', async () => {
+    releasePaymentUseCase.execute.mockRejectedValue(
+      new StoreLiveNotEnabledError('store-1'),
+    );
+
     await expect(
       controller.releasePayment('payment-1', 'store-1', Environment.LIVE),
-    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
-    expect(releasePaymentUseCase.execute).not.toHaveBeenCalled();
+    ).rejects.toBeInstanceOf(StoreLiveNotEnabledError);
   });
 
   it('maps non-confirmed payments to unprocessable on release', async () => {
@@ -98,6 +122,7 @@ describe('DevController', () => {
     expect(expirePaymentUseCase.execute).toHaveBeenCalledWith({
       storeId: 'store-1',
       paymentId: 'payment-1',
+      callerEnvironment: Environment.TEST,
       requestId: 'req-1',
       strictPending: true,
     });

@@ -11,7 +11,7 @@ import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { IPixQrCodeGeneratorPort } from '../ports/pix-qr-code-generator.port';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { assertLiveEnvironmentEnabled } from '../services/live-environment-guard';
 export { PaymentLinkInvalidExpirationError } from '../../domain/errors/payment-link-invalid-expiration.error';
 import { PaymentLinkInvalidExpirationError } from '../../domain/errors/payment-link-invalid-expiration.error';
 import { resolvePixMerchantCity } from '../services/pix-merchant-city';
@@ -77,11 +77,11 @@ export class CreatePaymentLinkUseCase {
     const store = await repos.storeRepository.findById(input.storeId);
     if (!store) throw new StoreNotFoundError(input.storeId);
     if (!store.isActive) throw new StoreInactiveError(store.id);
-    if (!store.isApproved) throw new StoreNotApprovedError(store.id);
+    const environment = input.environment ?? Environment.TEST;
+    assertLiveEnvironmentEnabled(store, environment);
 
     const publicToken = this.tokenGenerator.generateBase64(32);
     const linkId = crypto.randomUUID();
-    const environment = input.environment ?? Environment.TEST;
 
     // Mesmo contrato de checkout sessions: exatamente um de amount ou items.
     // O resolver valida produto, ambiente e disponibilidade, e devolve o

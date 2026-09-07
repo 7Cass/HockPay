@@ -4,6 +4,7 @@ import { StoreController } from './store.controller';
 import {
   CreateStoreUseCase,
   ListStoresUseCase,
+  RequestLiveEnablementUseCase,
   UpdateStoreProfileUseCase,
 } from '@hockpay/core';
 import { StoreRepository } from '@hockpay/infrastructure';
@@ -36,7 +37,13 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     provideUseCase(ListStoresUseCase, [StoreRepository]),
     provideUseCase(UpdateStoreProfileUseCase, [StoreRepository]),
+    provideUseCase(RequestLiveEnablementUseCase, ['IUnitOfWork']),
   ],
-  exports: [CreateStoreUseCase, ListStoresUseCase, UpdateStoreProfileUseCase],
+  exports: [
+    CreateStoreUseCase,
+    ListStoresUseCase,
+    UpdateStoreProfileUseCase,
+    RequestLiveEnablementUseCase,
+  ],
 })
 export class StoreModule {}

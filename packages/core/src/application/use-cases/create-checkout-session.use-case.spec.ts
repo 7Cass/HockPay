@@ -11,7 +11,7 @@ function makeUseCase(onSave: (session: unknown) => void) {
             findById: vi.fn().mockResolvedValue({
               id: 'store-1',
               isActive: true,
-              isApproved: true,
+              isLiveEnabled: () => true,
             }),
           },
           productRepository: {},

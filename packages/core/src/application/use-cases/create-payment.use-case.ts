@@ -14,7 +14,7 @@ import { FeePolicy } from '../services/fee-policy.service';
 import { resolvePixMerchantCity } from '../services/pix-merchant-city';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
+import { assertLiveEnvironmentEnabled } from '../services/live-environment-guard';
 import { ExternalIdAlreadyExistsError } from '../../domain/errors/external-id-already-exists.error';
 import { UnsupportedPaymentMethodError } from '../../domain/errors/unsupported-payment-method.error';
 import { Customer } from '../../domain/entities/customer.entity';
@@ -133,9 +133,7 @@ export class CreatePaymentUseCase {
       throw new StoreInactiveError(store.id);
     }
 
-    if (!store.isApproved) {
-      throw new StoreNotApprovedError(store.id);
-    }
+    assertLiveEnvironmentEnabled(store, input.environment);
 
     // 2. Check externalId uniqueness (if provided)
     if (input.externalId) {

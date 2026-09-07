@@ -49,7 +49,7 @@ export class PaymentExpirationJob implements OnModuleInit {
           storeId: payment.storeId,
           paymentId: payment.id,
           requestId,
-          allowLiveEnvironment: true,
+          systemInitiated: true,
         });
 
         if (result.alreadyExpired) {

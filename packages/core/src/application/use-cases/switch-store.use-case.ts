@@ -1,7 +1,6 @@
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { StoreNotFoundError } from '../../domain/errors/store-not-found.error';
 import { StoreInactiveError } from '../../domain/errors/store-inactive.error';
-import { StoreNotApprovedError } from '../../domain/errors/store-not-approved.error';
 import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
@@ -58,11 +57,6 @@ export class SwitchStoreUseCase {
       // 2. Validate store is active
       if (!store.isActive) {
         throw new StoreInactiveError(input.storeId);
-      }
-
-      // 3. Validate store is approved
-      if (!store.isApproved) {
-        throw new StoreNotApprovedError(input.storeId);
       }
 
       // 4. Get merchant and update current store

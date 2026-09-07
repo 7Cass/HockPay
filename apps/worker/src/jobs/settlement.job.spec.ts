@@ -16,7 +16,7 @@ describe('SettlementJob', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-31T12:00:00.000Z'));
 
     const storeRepository = {
-      listActiveApproved: jest.fn().mockResolvedValue([
+      listActive: jest.fn().mockResolvedValue([
         { id: 'store-1', settlementDays: 30 },
         { id: 'store-2', settlementDays: 7 },
       ]),
@@ -38,7 +38,7 @@ describe('SettlementJob', () => {
 
     await job.processSettlements();
 
-    expect(storeRepository.listActiveApproved).toHaveBeenCalledTimes(1);
+    expect(storeRepository.listActive).toHaveBeenCalledTimes(1);
     expect(paymentRepository.findConfirmedForSettlement).toHaveBeenNthCalledWith(
       1,
       'store-1',
@@ -56,7 +56,7 @@ describe('SettlementJob', () => {
 
   it('does not call release when no payments are eligible', async () => {
     const storeRepository = {
-      listActiveApproved: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
+      listActive: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
     };
     const paymentRepository = {
       findConfirmedForSettlement: jest.fn().mockResolvedValue([]),
@@ -75,7 +75,7 @@ describe('SettlementJob', () => {
 
   it('continues processing later payments when one release fails', async () => {
     const storeRepository = {
-      listActiveApproved: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
+      listActive: jest.fn().mockResolvedValue([{ id: 'store-1', settlementDays: 30 }]),
     };
     const paymentRepository = {
       findConfirmedForSettlement: jest

@@ -11,7 +11,7 @@ describe('StoreService', () => {
         name: 'Store A',
         slug: 'store-a',
         isActive: true,
-        isApproved: true,
+        liveStatus: 'NOT_REQUESTED',
         settlementDays: 2,
         feePercent: 2.99,
         feeFixed: 49,

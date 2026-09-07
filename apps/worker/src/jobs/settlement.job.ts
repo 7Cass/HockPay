@@ -37,7 +37,7 @@ export class SettlementJob implements OnModuleInit {
   }
 
   async processSettlements(): Promise<void> {
-    const stores = await this.storeRepository.listActiveApproved();
+    const stores = await this.storeRepository.listActive();
     let totalReleased = 0;
     let errors = 0;
 
@@ -78,7 +78,7 @@ export class SettlementJob implements OnModuleInit {
           storeId,
           paymentId: payment.id,
           requestId,
-          allowLiveEnvironment: true,
+          systemInitiated: true,
         });
         released++;
       } catch (error) {

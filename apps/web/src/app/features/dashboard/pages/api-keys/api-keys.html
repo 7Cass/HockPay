@@ -4,7 +4,7 @@
     [description]="
       headerVariant() === 'compact'
         ? undefined
-        : 'Chaves TEST e LIVE para o backend da loja. Saque continua sendo coisa do dashboard, nunca da chave.'
+        : 'Chaves TEST e LIVE para o backend da loja. LIVE aqui também é simulado — o que muda é a permissão, não o dinheiro. Saque continua sendo coisa do dashboard, nunca da chave.'
     "
   >
     <ng-container pageActions>
@@ -124,7 +124,10 @@
         <option [ngValue]="Environment.TEST">TEST</option>
         <option [ngValue]="Environment.LIVE">LIVE</option>
       </select>
-      <span class="field-note">LIVE fica visível aqui e pode ser revogada a qualquer momento.</span>
+      <span class="field-note"
+        >LIVE fica visível aqui e pode ser revogada a qualquer momento. Ela só cobra depois que a
+        mesa habilitar a loja, e mesmo aí o dinheiro é simulado.</span
+      >
     </label>
   </div>
 

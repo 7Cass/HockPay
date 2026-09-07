@@ -13,7 +13,6 @@ import {
   ConfirmPaymentUseCase,
   ExpirePaymentUseCase,
   FailPaymentUseCase,
-  LiveEnvironmentNotAllowedError,
   ReleasePaymentUseCase,
 } from '@hockpay/core';
 import { Public } from '../auth/decorators/public.decorator';
@@ -27,8 +26,12 @@ import { getRequestId } from '../../common/request-id';
 /**
  * Controller for Dev/Simulation endpoints.
  *
- * These endpoints allow simulating payment status changes in test environment.
- * Only works with API keys from TEST environment.
+ * These endpoints simulate payment status changes.
+ *
+ * TEST always works. LIVE works too -- for a store the desk has enabled --
+ * because in this simulator LIVE is also simulated: what production costs is
+ * permission and ceremony, not a different mechanism. The use cases enforce
+ * the enablement; this controller no longer refuses a LIVE key at the door.
  *
  * Authentication:
  * - All routes use CombinedAuthGuard (API Key OR JWT Cookie)
@@ -59,11 +62,10 @@ export class DevController {
     @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(environment);
-
     const result = await this.confirmPaymentUseCase.execute({
       storeId,
       paymentId: id,
+      callerEnvironment: environment,
       requestId: getRequestId(req),
     });
 
@@ -85,11 +87,10 @@ export class DevController {
     @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(environment);
-
     const result = await this.expirePaymentUseCase.execute({
       storeId,
       paymentId: id,
+      callerEnvironment: environment,
       requestId: getRequestId(req),
       strictPending: true,
     });
@@ -114,11 +115,10 @@ export class DevController {
     @Query('reason') reason?: string,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(environment);
-
     const result = await this.failPaymentUseCase.execute({
       storeId,
       paymentId: id,
+      callerEnvironment: environment,
       requestId: getRequestId(req),
       reason: reason ?? 'Payment failed (simulated)',
     });
@@ -141,22 +141,15 @@ export class DevController {
     @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetPaymentResponseDto> {
-    this.validateTestEnvironment(environment);
-
     const result = await this.releasePaymentUseCase.execute({
       storeId,
       paymentId: id,
+      callerEnvironment: environment,
       requestId: getRequestId(req),
     });
 
     return {
       payment: result.payment,
     };
-  }
-
-  private validateTestEnvironment(environment: Environment): void {
-    if (environment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
   }
 }
