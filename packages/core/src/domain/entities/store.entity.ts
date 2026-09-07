@@ -1,5 +1,6 @@
 import { StoreLiveStatus } from '../value-objects/store-live-status.vo';
 import { InvalidStoreLiveStatusTransitionError } from '../errors/invalid-store-live-status-transition.error';
+import { InvalidCommercialTermsError } from '../errors/invalid-commercial-terms.error';
 
 /**
  * Domain Entity: Store
@@ -16,9 +17,9 @@ export class Store {
   private _liveStatus: StoreLiveStatus;
   private _liveStatusReason?: string;
   private _liveStatusChangedAt?: Date;
-  private readonly _settlementDays: number;
-  private readonly _feePercent: number;
-  private readonly _feeFixed: number;
+  private _settlementDays: number;
+  private _feePercent: number;
+  private _feeFixed: number;
   private _city?: string;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
@@ -196,6 +197,45 @@ export class Store {
     this.transitionLive([StoreLiveStatus.APPROVED], StoreLiveStatus.SUSPENDED, reason);
   }
 
+  /**
+   * The desk sets this store's commercial condition.
+   *
+   * The three fields move together, and there is no partial update. The reason
+   * is the audit trail: a before/after that only carries the changed field
+   * makes whoever reads it reconstruct the whole condition from older lines.
+   * Commercial terms are one object, and the desk decides the object.
+   *
+   * Validation happens before any state changes, so a rejected call leaves the
+   * store exactly as it was.
+   *
+   * This does not reach the past. `Payment.fee` and `Payment.netAmount` are
+   * snapshots taken by `FeePolicy` at charge time and nothing recomputes them.
+   * `settlementDays` is the exception worth saying out loud: the settlement job
+   * reads it when releasing, not when charging, so shortening it brings
+   * forward the release of payments already sitting in `pending`.
+   */
+  updateCommercialTerms(input: CommercialTerms): void {
+    assertInRange('feePercent', input.feePercent, FEE_PERCENT_RANGE);
+    assertInRange('feeFixed', input.feeFixed, FEE_FIXED_RANGE);
+    assertInRange('settlementDays', input.settlementDays, SETTLEMENT_DAYS_RANGE);
+
+    this._feePercent = input.feePercent;
+    this._feeFixed = input.feeFixed;
+    this._settlementDays = input.settlementDays;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * The commercial condition as one object, for the audit trail's before/after.
+   */
+  commercialTerms(): CommercialTerms {
+    return {
+      feePercent: this._feePercent,
+      feeFixed: this._feeFixed,
+      settlementDays: this._settlementDays,
+    };
+  }
+
   private transitionLive(from: StoreLiveStatus[], to: StoreLiveStatus, reason?: string): void {
     if (!from.includes(this._liveStatus)) {
       throw new InvalidStoreLiveStatusTransitionError(this._liveStatus, to);
@@ -289,4 +329,50 @@ export interface StoreObject {
   city?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * A store's commercial condition, as the desk sets it and as the trail records
+ * it.
+ *
+ * A `type` and not an `interface` on purpose: only a type alias gets the
+ * implicit index signature that makes it assignable to `OperatorAuditState`,
+ * which is what lets the whole condition go into a trail line's before/after.
+ */
+export type CommercialTerms = {
+  feePercent: number;
+  feeFixed: number;
+  settlementDays: number;
+};
+
+interface CommercialTermRange {
+  min: number;
+  max: number;
+  integer: boolean;
+}
+
+/**
+ * Zero is a real condition (a demo store). Above 10% is not a negotiation, it
+ * is a typo with a financial consequence on every future charge.
+ */
+const FEE_PERCENT_RANGE: CommercialTermRange = { min: 0, max: 10, integer: false };
+
+/** Cents. R$ 10.00 ceiling, for the same reason. */
+const FEE_FIXED_RANGE: CommercialTermRange = { min: 0, max: 1000, integer: true };
+
+/** Zero is same-day settlement; 90 is the horizon the settlement job explains. */
+const SETTLEMENT_DAYS_RANGE: CommercialTermRange = { min: 0, max: 90, integer: true };
+
+function assertInRange(field: string, value: number, range: CommercialTermRange): void {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new InvalidCommercialTermsError(field, 'must be a finite number');
+  }
+
+  if (range.integer && !Number.isInteger(value)) {
+    throw new InvalidCommercialTermsError(field, 'must be a whole number');
+  }
+
+  if (value < range.min || value > range.max) {
+    throw new InvalidCommercialTermsError(field, `must be between ${range.min} and ${range.max}`);
+  }
 }

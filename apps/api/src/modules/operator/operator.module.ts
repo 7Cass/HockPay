@@ -9,6 +9,7 @@ import {
   OperatorLoginUseCase,
   OperatorLogoutUseCase,
   OperatorRefreshTokenUseCase,
+  UpdateCommercialTermsUseCase,
 } from '@hockpay/core';
 import { OperatorAuthController } from './operator-auth.controller';
 import { OperatorController } from './operator.controller';
@@ -25,10 +26,10 @@ import { provideUseCase } from 'src/common/provide-use-case';
  * The operator surface: a principal of its own, authenticated by its own
  * cookie and secret, with an append-only audit trail.
  *
- * The desk has exactly one power -- opening and closing LIVE for a store --
- * and it cannot be exercised without a reason and a trail line written in the
- * same transaction. Everything else the parent PRD lists (fee, cross-merchant
- * reads, risk review) is still absent, on purpose.
+ * The desk has two powers -- opening and closing LIVE for a store, and setting
+ * its commercial condition -- and neither can be exercised without a reason and
+ * a trail line written in the same transaction. What the parent PRD still lists
+ * as absent: cross-merchant reads and risk review.
  */
 @Module({
   imports: [ConfigModule],
@@ -58,6 +59,7 @@ import { provideUseCase } from 'src/common/provide-use-case';
     provideUseCase(ListOperatorAuditLogsUseCase, ['IUnitOfWork']),
     provideUseCase(ListStoresForOperatorUseCase, ['IUnitOfWork']),
     provideUseCase(DecideLiveEnablementUseCase, ['IUnitOfWork']),
+    provideUseCase(UpdateCommercialTermsUseCase, ['IUnitOfWork']),
     provideUseCase(CreateOperatorUseCase, [
       'IUnitOfWork',
       PasswordHasherService,

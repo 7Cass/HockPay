@@ -15,17 +15,22 @@ import {
   IListStoresForOperatorOutput,
   ListStoresForOperatorUseCase,
   StoreLiveStatus,
+  UpdateCommercialTermsUseCase,
 } from '@hockpay/core';
 import { OperatorRoute } from './decorators/operator-route.decorator';
 import {
   CurrentOperator,
   type CurrentOperatorData,
 } from './decorators/current-operator.decorator';
-import { DecideLiveEnablementDto } from './dtos/operator-store.dto';
+import {
+  DecideLiveEnablementDto,
+  UpdateCommercialTermsDto,
+} from './dtos/operator-store.dto';
 import { getRequestId } from '../../common/request-id';
 
 /**
- * The desk's first real power: opening and closing LIVE for a store.
+ * The desk's two powers over a store: opening and closing LIVE, and setting
+ * the commercial condition.
  *
  * Reading here is deliberately the queue and nothing else -- no ledger, no
  * payment, no secret. Cross-merchant investigation is a slice of its own.
@@ -36,6 +41,7 @@ export class OperatorStoreController {
   constructor(
     private readonly listStoresForOperatorUseCase: ListStoresForOperatorUseCase,
     private readonly decideLiveEnablementUseCase: DecideLiveEnablementUseCase,
+    private readonly updateCommercialTermsUseCase: UpdateCommercialTermsUseCase,
   ) {}
 
   /**
@@ -69,6 +75,33 @@ export class OperatorStoreController {
       operatorId: operator.operatorId,
       storeId: id,
       decision: dto.decision,
+      reason: dto.reason,
+      requestId: getRequestId(req),
+    });
+
+    return { store: result.store };
+  }
+
+  /**
+   * POST /operator/stores/:id/commercial-terms
+   *
+   * Changes what the store pays and how long it waits, from here forward. It
+   * does not reach the past: `Payment.fee` is a snapshot taken at charge time.
+   */
+  @Post(':id/commercial-terms')
+  @HttpCode(HttpStatus.OK)
+  async updateCommercialTerms(
+    @Param('id') id: string,
+    @Body() dto: UpdateCommercialTermsDto,
+    @CurrentOperator() operator: CurrentOperatorData,
+    @Req() req?: Request,
+  ) {
+    const result = await this.updateCommercialTermsUseCase.execute({
+      operatorId: operator.operatorId,
+      storeId: id,
+      feePercent: dto.feePercent,
+      feeFixed: dto.feeFixed,
+      settlementDays: dto.settlementDays,
       reason: dto.reason,
       requestId: getRequestId(req),
     });
