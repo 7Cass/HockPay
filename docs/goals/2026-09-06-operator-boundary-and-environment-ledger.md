@@ -1,6 +1,6 @@
 # Hockpay - Goal (arquivada)
 
-Arquivada em `2026-09-06`. Goal ativa em `/GOAL.md` (fatia 3: onboarding LIVE).
+Arquivada em `2026-09-06`. A fatia 3 que ela abriu foi fechada em `2026-09-07` (ver `2026-09-07-live-onboarding.md`).
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-06`

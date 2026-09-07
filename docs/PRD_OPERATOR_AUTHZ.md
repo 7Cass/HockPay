@@ -1,10 +1,10 @@
 # PRD - Fronteira de autorizacao de operador
 
-> **Status: proposta. Nada descrito aqui existe no runtime.**
+> **Status: implementado em `2026-09-06` (PR #9).**
 > Este documento detalha a **fatia 1** do
-> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md). Enquanto a Matriz de
-> Maturidade do [CURRENT_STATE.md](CURRENT_STATE.md) nao tiver a linha
-> correspondente, tudo abaixo e intencao.
+> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md) e fica como registro
+> das decisoes que levaram ate ela. Ele nao e a fonte de verdade do runtime --
+> para isso, [CURRENT_STATE.md](CURRENT_STATE.md).
 
 Last reviewed: `2026-09-05`
 Nao depende de: ledger por ambiente (fatia 2). As duas podem ser construidas em qualquer ordem.

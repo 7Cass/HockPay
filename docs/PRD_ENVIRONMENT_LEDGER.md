@@ -1,10 +1,10 @@
 # PRD - Ledger por ambiente
 
-> **Status: proposta. Nada descrito aqui existe no runtime.**
+> **Status: implementado em `2026-09-06` (PR #10).**
 > Este documento detalha a **fatia 2** do
-> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md). Enquanto a Matriz de
-> Maturidade do [CURRENT_STATE.md](CURRENT_STATE.md) nao registrar a mudanca,
-> tudo abaixo e intencao.
+> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md) e fica como registro
+> das decisoes que levaram ate ela. Ele nao e a fonte de verdade do runtime --
+> para isso, [CURRENT_STATE.md](CURRENT_STATE.md).
 
 Last reviewed: `2026-09-06`
 Pre-requisito de: [onboarding LIVE](PRD_LIVE_ONBOARDING.md) (fatia 3)

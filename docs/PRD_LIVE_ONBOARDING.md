@@ -1,10 +1,10 @@
 # PRD - Onboarding LIVE
 
-> **Status: proposta. Nada descrito aqui existe no runtime.**
+> **Status: implementado em `2026-09-07` (PR #11).**
 > Este documento detalha a **fatia 3** do
-> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md). Enquanto a Matriz de
-> Maturidade do [CURRENT_STATE.md](CURRENT_STATE.md) nao registrar a mudanca,
-> tudo abaixo e intencao.
+> [PRD - Superficie de operador](PRD_OPERATOR_SURFACE.md) e fica como registro
+> das decisoes que levaram ate ela. Ele nao e a fonte de verdade do runtime --
+> para isso, [CURRENT_STATE.md](CURRENT_STATE.md).
 
 Last reviewed: `2026-09-06`
 Depende de: [fronteira de autorizacao](PRD_OPERATOR_AUTHZ.md) (fatia 1, implementada) e [ledger por ambiente](PRD_ENVIRONMENT_LEDGER.md) (fatia 2, implementada)
