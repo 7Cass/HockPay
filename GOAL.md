@@ -4,7 +4,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-07`
 Ordering: PRD antes de codigo; conteudo antes de tela; a mesa antes do dashboard
 Scope: tudo que a fatia 3 deixou operavel apenas por `curl` -- a segunda decisao da mesa, a leitura para investigar, a tela que torna as tres operaveis, e o ambiente LIVE que o lojista ainda nao ve
-Status: `em planejamento`
+Status: `em implementacao`
 
 Este arquivo e o tracker executavel da goal atual. Cada macro item e uma unidade de planejamento; as checkboxes em `Subtasks` sao as unidades executaveis de implementacao e validacao.
 
@@ -39,13 +39,13 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Por onde comecar
 
-**P0.1**, e so ele. Escrever `docs/PRD_OPERATOR_DESK.md` e uma unidade de trabalho fechada: decide o que a mesa pode ler, sai doc-only direto na `main`, e nao depende de nenhuma outra subtask. Nenhum codigo desta goal deve comecar antes dos dois PRDs existirem.
+**P0.3**. Os dois PRDs estao escritos e na `main` (`3f38035` e o commit seguinte), entao o codigo pode comecar. A ordem esta em [PRD_OPERATOR_DESK.md](docs/PRD_OPERATOR_DESK.md#ordem-de-implementacao): condicao comercial (PR 1), leitura (PR 2), tela (PR 3).
 
-Antes de escrever, leia `docs/PRD_OPERATOR_SURFACE.md` (o PRD pai, que define o que o operador **nao** pode) e `docs/CURRENT_STATE.md` (a fonte de verdade do runtime). Os PRDs das fatias 1, 2 e 3 servem de forma: eles decidem, nao descrevem.
+Antes de implementar, leia os dois PRDs desta goal. Eles ja fizeram o levantamento e ja decidiram -- inclusive as coisas que encolheram o trabalho: a fatia 4 **nao tem migration** (os tres campos ja existem no schema) e a fatia 5 **nao tem use case de leitura novo** (as seis leituras ja sao store-scoped por parametro).
 
 ## P0 - Escrever os PRDs antes do codigo
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: tres entregas desta goal nao tem decisao registrada. Sem PRD, as perguntas caras (o que a mesa pode ler sem virar backdoor; onde o ambiente da sessao mora) seriam respondidas no meio da implementacao.
 
@@ -53,13 +53,23 @@ Impacto: as fatias 1, 2 e 3 mostraram que o PRD e o que evita reabrir decisao co
 
 Subtasks:
 
-- [ ] P0.1 `docs/PRD_OPERATOR_DESK.md` -- cobre condicao comercial, leitura cross-merchant e a tela numa passagem so. As tres respondem a mesma pergunta ("a mesa vira mesa") e separa-las em tres PRDs seria cerimonia.
-- [ ] P0.2 `docs/PRD_ENVIRONMENT_SELECTOR.md` -- separado porque e outro principal e outra pergunta de produto: o que o lojista ve, e o que saque/estorno em LIVE passam a significar.
+- [x] P0.1 [`docs/PRD_OPERATOR_DESK.md`](docs/PRD_OPERATOR_DESK.md) -- cobre condicao comercial, leitura cross-merchant e a tela numa passagem so. As tres respondem a mesma pergunta ("a mesa vira mesa") e separa-las em tres PRDs seria cerimonia.
+- [x] P0.2 [`docs/PRD_ENVIRONMENT_SELECTOR.md`](docs/PRD_ENVIRONMENT_SELECTOR.md) -- separado porque e outro principal e outra pergunta de produto: o que o lojista ve, e o que saque/estorno em LIVE passam a significar.
 
 Done Criteria:
 
-- [ ] Cada PRD decide, e nao so descreve: o que a mesa pode ler, onde o ambiente da sessao mora, e o que acontece com saque/estorno em LIVE.
-- [ ] Os dois vao direto na `main`, doc-only.
+- [x] Cada PRD decide, e nao so descreve: o que a mesa pode ler, onde o ambiente da sessao mora, e o que acontece com saque/estorno em LIVE.
+- [x] Os dois vao direto na `main`, doc-only.
+
+O que os dois PRDs decidiram, e que as subtasks abaixo passam a implementar:
+
+- **Condicao comercial muda como objeto**, nao campo a campo, com faixa validada na entidade (`fee` 0-10%, fixo 0-1000 centavos, prazo 0-90 dias). Sem migration.
+- **`environment` e obrigatorio nas rotas de leitura de operador**, sem default TEST: investigar producao e receber o ledger TEST em silencio produz a conclusao errada com dado certo.
+- **Nenhum use case de leitura novo.** As rotas de operador reusam os seis existentes, trocando so a origem do `storeId`. Um caminho de leitura paralelo seria um segundo lugar onde o vazamento pode nascer.
+- **A varredura de secret descobre as rotas por reflexao**, no molde de `operator-routes.spec.ts`. Lista escrita a mao passa a mentir na primeira rota nova.
+- **Leitura entra na trilha por investigacao aberta** (`store.investigated`), gravada pelo `GET` do detalhe da loja -- decidido em `2026-09-07`. Um `POST /investigate` separado registraria so quem foi educado.
+- **O ambiente da sessao mora em `Merchant.currentEnvironment`**, ao lado de `currentStoreId`; o token so carrega a copia. E a unica migration das duas trilhas.
+- **Saque e estorno em LIVE quase nao tem codigo**: os controllers ja encaminham `CurrentEnvironment`, e o worker ja processa saque LIVE. Eles chegam em TEST porque o guard escreve TEST, e por nenhum outro motivo.
 
 ## P0 - Condicao comercial, auditada (fatia 4)
 
@@ -103,7 +113,7 @@ Subtasks:
 
 - [ ] P0.6 Rotas de operador para payments, ledger, transacoes, timeline e entregas de webhook de uma loja escolhida.
 - [ ] P0.7 Teste de varredura que prova que nenhuma rota de leitura de operador devolve secret de webhook ou chave de API.
-- [ ] P0.8 Implementar o que P0.1 decidir sobre leitura entrar na trilha. Hoje ela so registra escrita, e auditar leitura e uma decisao com custo (volume) e beneficio (quem viu o que) que o PRD precisa pesar.
+- [ ] P0.8 `store.investigated` na trilha, gravado pelo `GET /operator/stores/:id`. As sub-leituras ficam puras -- decidido em P0.1 (D11), depois de pesar volume contra "quem viu o que".
 
 Done Criteria:
 
@@ -212,13 +222,13 @@ Subtasks:
 
 ## Riscos
 
-| Risco                                                  | Como aparece                                          | O que segura                                                                 |
-| ------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
-| A goal e grande demais para uma passagem               | Meses sem merge, e um PR gigante no fim               | Cada macro item e entregavel sozinho; ver "Onde cortar"                      |
-| Rota de leitura de operador vazando secret             | Credencial exposta, sem erro visivel                  | Teste de varredura (P0.7), criterio de aceite e nao acabamento               |
-| Tela de operador reusando a sessao de merchant         | Fronteira da fatia 1 dissolvida na camada de cima     | Guard e layout proprios (P1.1), e o teste de coexistencia das duas sessoes   |
-| `environment` no token sem checar habilitacao          | Loja nao habilitada selecionando LIVE                 | Done criteria do ultimo macro item                                           |
-| Formatar com `pnpm run format` na raiz                 | 413 arquivos de churn que o gate de CI nao pega       | Achado de `2026-09-07`: formatar por pacote                                  |
+| Risco                                          | Como aparece                                      | O que segura                                                               |
+| ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| A goal e grande demais para uma passagem       | Meses sem merge, e um PR gigante no fim           | Cada macro item e entregavel sozinho; ver "Onde cortar"                    |
+| Rota de leitura de operador vazando secret     | Credencial exposta, sem erro visivel              | Teste de varredura (P0.7), criterio de aceite e nao acabamento             |
+| Tela de operador reusando a sessao de merchant | Fronteira da fatia 1 dissolvida na camada de cima | Guard e layout proprios (P1.1), e o teste de coexistencia das duas sessoes |
+| `environment` no token sem checar habilitacao  | Loja nao habilitada selecionando LIVE             | Done criteria do ultimo macro item                                         |
+| Formatar com `pnpm run format` na raiz         | 413 arquivos de churn que o gate de CI nao pega   | Achado de `2026-09-07`: formatar por pacote                                |
 
 ## Onde cortar, se a passagem ficar grande
 
