@@ -26,7 +26,7 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Intake Snapshot
 
-- Branch: `main` em `33fa274` (PR #11 mergeado em `ceae2d1`).
+- Branch: `main` em `86e7d20`. A fatia 3 entrou pelo PR #11 (merge `ceae2d1`) e foi arquivada em `33fa274`.
 - Tres das seis fatias do [PRD pai](docs/PRD_OPERATOR_SURFACE.md) estao no runtime. Faltam a 4 (condicao comercial), a 5 (leitura cross-merchant) e a 6 (antifraude).
 - A fatia 6 **fica fora**: o PRD pai e explicito que o motor entra depois da fila de revisao existir, e ela nao existe.
 - **Nenhuma das fatias desta goal tem PRD.** A convencao do projeto e PRD antes de codigo (fatias 1, 2 e 3 fizeram assim), e PRD e doc-only, entao vai direto na `main`.
@@ -36,6 +36,12 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
   - `switch-store.use-case.ts:76` ja re-emite o access token ao trocar contexto de sessao -- precedente direto para trocar de ambiente.
   - As leituras que a fatia 5 precisa ja existem e sao store-scoped: `list-payments`, `get-account`, `list-transactions`, `get-payment-timeline`, `list-webhook-logs`, `list-webhook-configs`.
   - `WebhookConfig._secret` ja e guardado encriptado, com `prefix` para identificacao. A propriedade "operador nao le secret" e em boa parte estrutural; falta o teste que prova.
+
+## Por onde comecar
+
+**P0.1**, e so ele. Escrever `docs/PRD_OPERATOR_DESK.md` e uma unidade de trabalho fechada: decide o que a mesa pode ler, sai doc-only direto na `main`, e nao depende de nenhuma outra subtask. Nenhum codigo desta goal deve comecar antes dos dois PRDs existirem.
+
+Antes de escrever, leia `docs/PRD_OPERATOR_SURFACE.md` (o PRD pai, que define o que o operador **nao** pode) e `docs/CURRENT_STATE.md` (a fonte de verdade do runtime). Os PRDs das fatias 1, 2 e 3 servem de forma: eles decidem, nao descrevem.
 
 ## P0 - Escrever os PRDs antes do codigo
 
@@ -97,7 +103,7 @@ Subtasks:
 
 - [ ] P0.6 Rotas de operador para payments, ledger, transacoes, timeline e entregas de webhook de uma loja escolhida.
 - [ ] P0.7 Teste de varredura que prova que nenhuma rota de leitura de operador devolve secret de webhook ou chave de API.
-- [ ] P0.8 Decidir no PRD, e implementar, se leitura entra na trilha. Hoje ela so registra escrita.
+- [ ] P0.8 Implementar o que P0.1 decidir sobre leitura entrar na trilha. Hoje ela so registra escrita, e auditar leitura e uma decisao com custo (volume) e beneficio (quem viu o que) que o PRD precisa pesar.
 
 Done Criteria:
 
@@ -124,7 +130,7 @@ Subtasks:
 - [ ] P1.2 Fila de habilitacao e decisao (aprovar/rejeitar/suspender) com motivo.
 - [ ] P1.3 Condicao comercial editavel, com o antes e o depois visiveis.
 - [ ] P1.4 Trilha legivel na propria superficie.
-- [ ] P1.5 Investigacao de loja, usando as leituras do item anterior.
+- [ ] P1.5 Investigacao de loja, usando as rotas de leitura de P0.6.
 
 Done Criteria:
 
