@@ -1,7 +1,7 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-07`
+Last reviewed: `2026-09-08`
 Ordering: PRD antes de codigo; conteudo antes de tela; a mesa antes do dashboard
 Scope: tudo que a fatia 3 deixou operavel apenas por `curl` -- a segunda decisao da mesa, a leitura para investigar, a tela que torna as tres operaveis, e o ambiente LIVE que o lojista ainda nao ve
 Status: `em implementacao`
@@ -27,7 +27,7 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 ## Intake Snapshot
 
 - Branch: `main` em `86e7d20`. A fatia 3 entrou pelo PR #11 (merge `ceae2d1`) e foi arquivada em `33fa274`.
-- As fatias 4 e 5 entraram pelo PR #12 (merge `ec19791`) em `2026-09-07`. O `P1.1`-`P1.5` foi feito direto na `main`, a pedido.
+- As fatias 4 e 5 entraram pelo PR #12 (merge `ec19791`) em `2026-09-07`. O `P1.1`-`P1.5` foi feito direto na `main`, a pedido, e o `P1.6`-`P1.9` tambem, em `2026-09-08`.
 - Tres das seis fatias do [PRD pai](docs/PRD_OPERATOR_SURFACE.md) estao no runtime. Faltam a 4 (condicao comercial), a 5 (leitura cross-merchant) e a 6 (antifraude).
 - A fatia 6 **fica fora**: o PRD pai e explicito que o motor entra depois da fila de revisao existir, e ela nao existe.
 - **Nenhuma das fatias desta goal tem PRD.** A convencao do projeto e PRD antes de codigo (fatias 1, 2 e 3 fizeram assim), e PRD e doc-only, entao vai direto na `main`.
@@ -40,11 +40,9 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Por onde comecar
 
-**P1.6**, o seletor de ambiente -- a unica trilha que sobrou. A trilha "a mesa vira mesa" fechou: os dois PRDs, a condicao comercial, a leitura cross-merchant e a tela estao na `main`, e o PRD pai esta cumprido menos a fatia 6, que fica fora desta goal por decisao dele.
+**P2**, que e doc. As duas trilhas de codigo fecharam: a mesa virou mesa (`P0` e `P1.1`-`P1.5`) e o lojista enxerga LIVE (`P1.6`-`P1.9`), tudo na `main`. O PRD pai esta cumprido menos a fatia 6, que fica fora desta goal por decisao dele.
 
-A ordem esta em [PRD_ENVIRONMENT_SELECTOR.md](docs/PRD_ENVIRONMENT_SELECTOR.md#ordem-de-implementacao): `environment` no `JwtPayload` primeiro (e a unica migration das duas trilhas), depois a rota de troca, o seletor e o que saque/estorno em LIVE passam a significar.
-
-Depois dele sobra so o `P2`, que e doc.
+O que sobra de codigo nao e desta goal -- e a validacao contra a API de verdade, que o Validation Log lista em aberto.
 
 ## P0 - Escrever os PRDs antes do codigo
 
@@ -163,7 +161,7 @@ Achados de `2026-09-07`, com a tela fechada:
 
 ## P1 - O lojista enxerga o LIVE que a fatia 3 encheu
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `request.environment` e TEST fixo para toda sessao JWT. O dashboard nao consegue mostrar LIVE porque a sessao nao sabe dizer outra coisa.
 
@@ -177,16 +175,24 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P1.6 `environment` entra no `JwtPayload`; o guard le em vez de assumir.
-- [ ] P1.7 Rota de troca de ambiente que re-emite o par de tokens, seguindo `switch-store`.
-- [ ] P1.8 Seletor na tela, com LIVE marcado como simulado onde ele aparecer.
-- [ ] P1.9 Saque e estorno em LIVE, conforme o PRD decidir.
+- [x] P1.6 `environment` entra no `JwtPayload`; o guard le em vez de assumir.
+- [x] P1.7 Rota de troca de ambiente que re-emite o par de tokens, seguindo `switch-store`.
+- [x] P1.8 Seletor na tela, com LIVE marcado como simulado onde ele aparecer.
+- [x] P1.9 Saque e estorno em LIVE, conforme o PRD decidir.
 
 Done Criteria:
 
-- [ ] Dashboard em LIVE mostra o ledger LIVE e nunca mistura com o TEST, provado por teste que le os dois.
-- [ ] Trocar de ambiente invalida a sessao anterior, como `switch-store` ja faz.
-- [ ] Loja sem habilitacao LIVE nao consegue selecionar LIVE.
+- [x] Dashboard em LIVE mostra o ledger LIVE e nunca mistura com o TEST, provado por teste que le os dois -- saque e estorno, cada um lendo as duas contas.
+- [x] Trocar de ambiente invalida a sessao anterior, como `switch-store` ja faz.
+- [x] Loja sem habilitacao LIVE nao consegue selecionar LIVE -- provado nos quatro estados que nao sao `APPROVED`, no use case e na tela.
+
+Achados de `2026-09-08`, com as quatro subtasks fechadas:
+
+- **O login precisava da mesma reconferencia que o refresh.** O PRD decidiu D5 so para o refresh, mas `currentEnvironment` sobrevive ao logout: um lojista com a loja suspensa entraria direto em LIVE ao voltar. Os dois caminhos passaram a compartilhar `resolveSessionEnvironment`, que rebaixa e persiste em vez de falhar. E o mesmo raciocinio de D5, aplicado onde ele tambem valia.
+- **Criar loja tambem reseta para TEST.** D4 fala de `switch-store`, mas `create-store` muda a loja atual pelo mesmo mecanismo, e uma loja recem-criada nunca esta habilitada. Sem o reset, D4 teria um buraco do tamanho de um botao.
+- **`callerEnvironment` ficou opcional no input de saque, nao obrigatorio.** O worker nao tem chamador, e obriga-lo a inventar um seria pior que o problema. Sob `simulation` o guard falha fechado na ausencia, entao esquecer resulta em recusa -- que e a propriedade que importava. Mesmo formato que `expire-payment` ja usava com `systemInitiated`.
+- **Os fixtures de saque e de estorno tinham uma conta so, e mentiam.** O schema tem uma conta por ambiente desde a fatia 2; os fixtures ignoravam o argumento. Duas asserções antigas so passavam porque os dois ledgers eram o mesmo objeto -- elas quebraram no instante em que o fixture passou a dizer a verdade. Nao da para provar isolamento com um ledger.
+- **A tela do saldo mentia por omissao.** A descricao dizia "LIVE tem um ledger separado, e o dashboard nao o mostra". Agora mostra, e diz onde trocar.
 
 ## P2 - Docs acompanham
 
@@ -218,9 +224,22 @@ Rodado em `2026-09-07`, com o P0 e a tela (`P1.1`-`P1.5`) fechados:
 - [x] `pnpm --filter @hockpay/worker test` (33)
 - [x] `pnpm --filter @hockpay/web test -- --watch=false` (130, era 68)
 - [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
-- [ ] `smoke:docker` completo -- pendente; nem o P0 nem a tela mudaram caminho de smoke
-- [ ] **Fluxo de operador exercitado na tela, ponta a ponta** -- as telas existem e sao cobertas por teste contra HTTP mockado; ninguem passou por elas contra a API de verdade ainda. E a diferenca entre "a capacidade existe" e "a capacidade foi vista funcionando", e vale fazer antes de tocar no `P1.6`
-- [ ] Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers -- depende de `P1.6`-`P1.8`
+
+Rodado em `2026-09-08`, com `P1.6`-`P1.9` fechados:
+
+- [x] `pnpm --filter @hockpay/core test:ci` (342, era 318)
+- [x] `pnpm --filter @hockpay/infrastructure test` (79)
+- [x] `pnpm --filter @hockpay/api test` (191, era 185)
+- [x] `pnpm --filter @hockpay/api test:e2e` (33, era 30)
+- [x] `pnpm --filter @hockpay/worker test` (33)
+- [x] `pnpm --filter @hockpay/web test -- --watch=false` (151, era 130)
+- [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
+- [x] `grep -r assertNotLiveEnvironment` nao acha nada em `apps` nem em `packages/*/src` -- criterio de aceite do PRD, verificado
+- [ ] **`prisma migrate` da coluna nova aplicado contra o Postgres de dev** -- a migration foi escrita e o schema regenerado, mas nao rodou contra banco nenhum nesta passagem. E o primeiro passo de qualquer validacao abaixo
+- [ ] `smoke:docker` completo -- pendente; nenhuma das duas trilhas mudou caminho de smoke
+- [ ] **Fluxo de operador exercitado na tela, ponta a ponta** -- as telas existem e sao cobertas por teste contra HTTP mockado; ninguem passou por elas contra a API de verdade ainda. E a diferenca entre "a capacidade existe" e "a capacidade foi vista funcionando"
+- [ ] **Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers** -- o isolamento esta provado por unit test com dois fixtures de conta; falta ver o ciclo inteiro (mesa aprova -> lojista troca -> saldo LIVE aparece -> saque LIVE sai do ledger LIVE) contra o banco
+- [ ] Trocar de ambiente com o token antigo na mao, contra a API de verdade -- a revogacao esta provada no use case, nao no HTTP
 - [ ] Ciclo de condicao comercial e de investigacao rodado contra o Postgres de dev com os repositorios reais, como a fatia 3 fez -- os unit tests mockam `findByIdForUpdate`
 
 ## Fora desta goal
@@ -232,28 +251,28 @@ Rodado em `2026-09-07`, com o P0 e a tela (`P1.1`-`P1.5`) fechados:
 
 ## Assumptions
 
-- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR -- com a excecao de `P1.1`-`P1.5`, feito direto na `main` a pedido, em commit por subtask.
+- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR -- com a excecao de `P1.1`-`P1.5` e `P1.6`-`P1.9`, feitos direto na `main` a pedido, em commit por subtask.
 - As fatias 1, 2 e 3 estao no runtime e nao serao refeitas.
 - `Payment.fee` continua sendo snapshot no momento da cobranca; a condicao comercial vale so para o futuro.
 
 ## Riscos
 
-| Risco                                          | Como aparece                                      | O que segura                                                               |
-| ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
-| A goal e grande demais para uma passagem       | Meses sem merge, e um PR gigante no fim           | Cada macro item e entregavel sozinho; ver "Onde cortar"                    |
-| Rota de leitura de operador vazando secret     | Credencial exposta, sem erro visivel              | Teste de varredura (P0.7), criterio de aceite e nao acabamento             |
-| Tela de operador reusando a sessao de merchant | Fronteira da fatia 1 dissolvida na camada de cima | Aconteceu, no interceptor -- fechado em `P1.1`, com spec nos dois sentidos |
-| `environment` no token sem checar habilitacao  | Loja nao habilitada selecionando LIVE             | Done criteria do ultimo macro item                                         |
-| Formatar com `pnpm run format` na raiz         | 413 arquivos de churn que o gate de CI nao pega   | Achado de `2026-09-07`: formatar por pacote                                |
+| Risco                                          | Como aparece                                      | O que segura                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| A goal e grande demais para uma passagem       | Meses sem merge, e um PR gigante no fim           | Cada macro item e entregavel sozinho; ver "Onde cortar"                                           |
+| Rota de leitura de operador vazando secret     | Credencial exposta, sem erro visivel              | Teste de varredura (P0.7), criterio de aceite e nao acabamento                                    |
+| Tela de operador reusando a sessao de merchant | Fronteira da fatia 1 dissolvida na camada de cima | Aconteceu, no interceptor -- fechado em `P1.1`, com spec nos dois sentidos                        |
+| `environment` no token sem checar habilitacao  | Loja nao habilitada selecionando LIVE             | O gate mora no use case, nao na tela. Fechado em `P1.7`, com o login reconferindo alem do refresh |
+| Formatar com `pnpm run format` na raiz         | 413 arquivos de churn que o gate de CI nao pega   | Achado de `2026-09-07`: formatar por pacote -- seguido nesta passagem                             |
 
 ## Onde cortar, se a passagem ficar grande
 
-A goal tem duas trilhas, e elas nao dependem uma da outra:
+As duas trilhas fecharam, entao nao ha mais o que cortar. Ficam registradas porque a divisao funcionou:
 
-- **A mesa vira mesa:** condicao comercial, leitura cross-merchant e tela. Fecha o PRD pai menos a fatia 6.
-- **O lojista enxerga LIVE:** seletor de ambiente. Fecha a divida da fatia 3.
+- **A mesa vira mesa:** condicao comercial, leitura cross-merchant e tela. Fecha o PRD pai menos a fatia 6. `concluido`
+- **O lojista enxerga LIVE:** seletor de ambiente. Fecha a divida da fatia 3. `concluido`
 
-Se for para cortar, corte por trilha inteira, nao pelo meio de uma. E dentro da primeira trilha a ordem importa: condicao comercial e leitura vem antes da tela, porque tela sem conteudo e a mesma capacidade fantasma que o projeto ja removeu uma vez.
+Elas nao dependiam uma da outra, e cada uma coube numa sequencia de commits por subtask. Dentro da primeira, a ordem importou: condicao comercial e leitura vieram antes da tela, porque tela sem conteudo e a mesma capacidade fantasma que o projeto ja removeu uma vez.
 
 ## Passagens anteriores
 
