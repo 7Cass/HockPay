@@ -4,7 +4,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-08`
 Ordering: PRD antes de codigo; conteudo antes de tela; a mesa antes do dashboard
 Scope: tudo que a fatia 3 deixou operavel apenas por `curl` -- a segunda decisao da mesa, a leitura para investigar, a tela que torna as tres operaveis, e o ambiente LIVE que o lojista ainda nao ve
-Status: `em implementacao`
+Status: `em validacao/hardening`
 
 Este arquivo e o tracker executavel da goal atual. Cada macro item e uma unidade de planejamento; as checkboxes em `Subtasks` sao as unidades executaveis de implementacao e validacao.
 
@@ -40,9 +40,9 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Por onde comecar
 
-**P2**, que e doc. As duas trilhas de codigo fecharam: a mesa virou mesa (`P0` e `P1.1`-`P1.5`) e o lojista enxerga LIVE (`P1.6`-`P1.9`), tudo na `main`. O PRD pai esta cumprido menos a fatia 6, que fica fora desta goal por decisao dele.
+**O Validation Log.** Todas as subtasks fecharam -- `P0`, `P1` e `P2` -- e o PRD pai esta cumprido menos a fatia 6, que fica fora desta goal por decisao dele. Nao ha codigo nem doc pendente.
 
-O que sobra de codigo nao e desta goal -- e a validacao contra a API de verdade, que o Validation Log lista em aberto.
+O que falta e de outra natureza: **nada disso foi visto funcionando contra a API de verdade.** Comece por aplicar a migration de `merchant_current_environment` contra o Postgres de dev -- ela e o primeiro passo de qualquer item aberto abaixo. Depois o ciclo inteiro numa sentada: mesa aprova, lojista troca de ambiente, saldo LIVE aparece, saque LIVE sai do ledger LIVE.
 
 ## P0 - Escrever os PRDs antes do codigo
 
@@ -196,13 +196,21 @@ Achados de `2026-09-08`, com as quatro subtasks fechadas:
 
 ## P2 - Docs acompanham
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Subtasks:
 
-- [ ] P2.1 `CURRENT_STATE.md`: Matriz de Maturidade, Matriz de Superficies e a secao de isolamento TEST/LIVE.
-- [ ] P2.2 `PRODUCT.md`: a jornada de operador, e o que o seletor de ambiente muda para o lojista.
-- [ ] P2.3 Fechar no `CURRENT_STATE` os itens que deixam de ser gap.
+- [x] P2.1 `CURRENT_STATE.md`: Matriz de Maturidade, Matriz de Superficies e a secao de isolamento TEST/LIVE.
+- [x] P2.2 `PRODUCT.md`: a jornada de operador, e o que o seletor de ambiente muda para o lojista.
+- [x] P2.3 Fechar no `CURRENT_STATE` os itens que deixam de ser gap.
+
+Achados de `2026-09-08`, escrevendo os docs:
+
+- **"JWT = TEST" estava em tres lugares do `CURRENT_STATE`**, e nao em um: na Idempotencia, na linha de saldo do dashboard e no isolamento. Era premissa das tres, entao `P1.6` invalidou as tres de uma vez sem que nenhuma delas fale de token. Virou uma linha so, com as tres origens de ambiente juntas (sessao, key, query de operador) -- e o `?? TEST` do guard descrito pelo que ele realmente cobre: token mintado antes do campo existir.
+- **Apagar gap fechado nao e atualizar a lista.** Sairam tres itens; entraram cinco, e o que mais importa e o que nenhuma subtask produziu: nenhuma das duas trilhas foi exercitada contra a API de verdade. "Coberto por teste" e "visto funcionando" sao coisas diferentes, e o documento canonico e onde essa diferenca tem que aparecer.
+- **Gap novo, achado ao escrever: ambiente e por sessao, nao por aba.** O cookie e do browser inteiro, entao `switch-environment` move todas as abas; as ja renderizadas seguem mostrando o ambiente anterior ate recarregarem. Nao muda invariante -- a sessao esta correta o tempo todo -- mas e exatamente o tipo de coisa que gera chamado.
+- **Duas linhas estavam velhas desde antes desta goal.** A trilha listava so `operator.login` e `operator.logout` (sao sete acoes desde a fatia 3 + P0), e "Dev simulation" dizia "endpoints TEST" quando simular em LIVE existe sob habilitacao. Doc que so e atualizado no fim da goal acumula divida da goal anterior.
+- **`PRODUCT.md` nao tinha jornada de operador.** A mesa aparecia so como um passo dentro da habilitacao LIVE -- o que ela faz *para o lojista*, nao o que ela e. E o que ela e virou o argumento de produto desta goal.
 
 ## Public APIs / Interfaces Mentioned By This Goal
 
@@ -224,6 +232,8 @@ Rodado em `2026-09-07`, com o P0 e a tela (`P1.1`-`P1.5`) fechados:
 - [x] `pnpm --filter @hockpay/worker test` (33)
 - [x] `pnpm --filter @hockpay/web test -- --watch=false` (130, era 68)
 - [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
+
+`P2` e doc-only e nao roda teste; a validacao dele e a leitura contra o codigo, feita rota a rota ao escrever (rotas do operador, DTO de ambiente, `switch-environment`, faixas de `updateCommercialTerms`, catalogo de acoes da trilha).
 
 Rodado em `2026-09-08`, com `P1.6`-`P1.9` fechados:
 
@@ -251,7 +261,7 @@ Rodado em `2026-09-08`, com `P1.6`-`P1.9` fechados:
 
 ## Assumptions
 
-- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR -- com a excecao de `P1.1`-`P1.5` e `P1.6`-`P1.9`, feitos direto na `main` a pedido, em commit por subtask.
+- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR -- com a excecao de `P1.1`-`P1.5` e `P1.6`-`P1.9`, feitos direto na `main` a pedido, em commit por subtask. `P2` e doc-only, entao segue a regra geral e tambem foi na `main`.
 - As fatias 1, 2 e 3 estao no runtime e nao serao refeitas.
 - `Payment.fee` continua sendo snapshot no momento da cobranca; a condicao comercial vale so para o futuro.
 
