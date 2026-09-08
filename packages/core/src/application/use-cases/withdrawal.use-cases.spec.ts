@@ -11,7 +11,9 @@ import { InsufficientWithdrawalBalanceError } from '../../domain/errors/insuffic
 import { InvalidWithdrawalAmountError } from '../../domain/errors/invalid-withdrawal-amount.error';
 import { WithdrawalLimitExceededError } from '../../domain/errors/withdrawal-limit-exceeded.error';
 import { LiveEnvironmentNotAllowedError } from '../../domain/errors/live-environment-not-allowed.error';
+import { StoreLiveNotEnabledError } from '../../domain/errors/store-live-not-enabled.error';
 import { Environment } from '../../domain/value-objects/environment.vo';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import {
   IUnitOfWork,
   ITransactedRepositories,
@@ -232,15 +234,15 @@ describe('withdrawal use cases', () => {
     expect(result.summary.pendingOrProcessingAmount).toBe(10_000);
   });
 
-  it('refuses TEST simulation complete/fail of a LIVE withdrawal', async () => {
-    const fixture = makeFixture({ available: 20_000 });
-    const created = await new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
-      storeId: fixture.store.id,
-      bankAccountId: fixture.bankAccount.id,
-      amount: 10_000,
-      environment: Environment.LIVE,
+  it('refuses a caller with no environment from simulating a LIVE withdrawal', async () => {
+    const fixture = makeFixture({
+      liveAvailable: 20_000,
+      liveStatus: StoreLiveStatus.APPROVED,
     });
+    const created = await createLiveWithdrawal(fixture);
 
+    // Fail closed: a caller-initiated path that forgot to say who it is does
+    // not get the benefit of the doubt, even with the store approved.
     await expect(
       new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
         withdrawalId: created.withdrawal.id,
@@ -258,14 +260,115 @@ describe('withdrawal use cases', () => {
       }),
     ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
 
-    expect(fixture.account.blocked).toBe(10_000);
-    expect(fixture.account.available).toBe(10_000);
+    expect(fixture.liveAccount.blocked).toBe(10_000);
+  });
+
+  it('refuses a TEST caller from simulating a LIVE withdrawal', async () => {
+    const fixture = makeFixture({
+      liveAvailable: 20_000,
+      liveStatus: StoreLiveStatus.APPROVED,
+    });
+    const created = await createLiveWithdrawal(fixture);
+
+    await expect(
+      new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
+        withdrawalId: created.withdrawal.id,
+        storeId: fixture.store.id,
+        simulation: true,
+        callerEnvironment: Environment.TEST,
+      }),
+    ).rejects.toBeInstanceOf(LiveEnvironmentNotAllowedError);
+  });
+
+  it('refuses a LIVE simulation while the desk has not enabled the store', async () => {
+    const fixture = makeFixture({
+      liveAvailable: 20_000,
+      liveStatus: StoreLiveStatus.SUSPENDED,
+    });
+    const created = await createLiveWithdrawal(fixture);
+
+    // The answer is STORE_LIVE_NOT_ENABLED, not LIVE_ENVIRONMENT_NOT_ALLOWED:
+    // simulating in LIVE now follows the same rule as charging in LIVE, and
+    // two different answers to the same question is what this removed.
+    await expect(
+      new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
+        withdrawalId: created.withdrawal.id,
+        storeId: fixture.store.id,
+        simulation: true,
+        callerEnvironment: Environment.LIVE,
+      }),
+    ).rejects.toBeInstanceOf(StoreLiveNotEnabledError);
+
+    expect(fixture.liveAccount.blocked).toBe(10_000);
+  });
+
+  it('completes a LIVE withdrawal out of the LIVE ledger, without touching TEST', async () => {
+    const fixture = makeFixture({
+      available: 100_000,
+      liveAvailable: 20_000,
+      liveStatus: StoreLiveStatus.APPROVED,
+    });
+    const created = await createLiveWithdrawal(fixture);
+
+    const result = await new CompleteWithdrawalUseCase(fixture.unitOfWork).execute({
+      withdrawalId: created.withdrawal.id,
+      storeId: fixture.store.id,
+      simulation: true,
+      callerEnvironment: Environment.LIVE,
+    });
+
+    expect(result.withdrawal.status).toBe(WithdrawalStatus.COMPLETED);
+
+    // The reservation left the LIVE ledger and the payout cleared it there.
+    expect(fixture.liveAccount.available).toBe(10_000);
+    expect(fixture.liveAccount.blocked).toBe(0);
+
+    // And the TEST ledger never moved -- not by a cent, in either direction.
+    expect(fixture.account.available).toBe(100_000);
+    expect(fixture.account.blocked).toBe(0);
+    expect(
+      fixture.transactions.every((transaction) => transaction.accountId === 'account-live-1'),
+    ).toBe(true);
+  });
+
+  it('reverses a failed LIVE withdrawal back into the LIVE ledger only', async () => {
+    const fixture = makeFixture({
+      available: 100_000,
+      liveAvailable: 20_000,
+      liveStatus: StoreLiveStatus.APPROVED,
+    });
+    const created = await createLiveWithdrawal(fixture);
+
+    await new FailWithdrawalUseCase(fixture.unitOfWork).execute({
+      withdrawalId: created.withdrawal.id,
+      storeId: fixture.store.id,
+      reason: 'simulated fail',
+      simulation: true,
+      callerEnvironment: Environment.LIVE,
+    });
+
+    expect(fixture.liveAccount.available).toBe(20_000);
+    expect(fixture.liveAccount.blocked).toBe(0);
+    expect(fixture.account.available).toBe(100_000);
+    expect(fixture.account.blocked).toBe(0);
   });
 });
+
+/** Um saque LIVE ja reservado, que e o ponto de partida das simulacoes. */
+async function createLiveWithdrawal(fixture: ReturnType<typeof makeFixture>) {
+  return new CreateWithdrawalUseCase(fixture.unitOfWork).execute({
+    storeId: fixture.store.id,
+    bankAccountId: fixture.bankAccount.id,
+    amount: 10_000,
+    environment: Environment.LIVE,
+  });
+}
 
 function makeFixture(
   options: {
     available?: number;
+    liveAvailable?: number;
+    liveStatus?: StoreLiveStatus;
     bankAccountVerified?: boolean;
     bankAccountStoreId?: string;
   } = {},
@@ -276,13 +379,16 @@ function makeFixture(
     name: 'Store',
     slug: 'store',
     isActive: true,
-    isLiveEnabled: () => true,
+    liveStatus: options.liveStatus ?? StoreLiveStatus.NOT_REQUESTED,
     settlementDays: 1,
     feePercent: 1.5,
     feeFixed: 15,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+
+  // Duas contas, uma por ambiente -- como o schema realmente e desde a fatia 2.
+  // Uma so conta no fixture nao consegue provar que LIVE nao encosta no TEST.
   const account = Account.reconstitute({
     id: 'account-1',
     storeId: store.id,
@@ -292,6 +398,19 @@ function makeFixture(
     currency: 'BRL',
     updatedAt: new Date(),
   });
+  const liveAccount = Account.reconstitute({
+    id: 'account-live-1',
+    storeId: store.id,
+    available: options.liveAvailable ?? 100_000,
+    pending: 0,
+    blocked: 0,
+    currency: 'BRL',
+    updatedAt: new Date(),
+  });
+  const accountsByEnvironment = {
+    [Environment.TEST]: account,
+    [Environment.LIVE]: liveAccount,
+  };
   const bankAccount = BankAccount.reconstitute({
     id: 'bank-1',
     storeId: options.bankAccountStoreId ?? store.id,
@@ -309,15 +428,21 @@ function makeFixture(
   const outbox: OutboxEvent[] = [];
   let dailyAmount = 0;
   let dailyCount = 0;
+  const findAccount = (id: string) =>
+    [account, liveAccount].find((candidate) => candidate.id === id) ?? null;
+
+  const accountFor = (storeId: string, environment?: Environment) =>
+    storeId === store.id ? accountsByEnvironment[environment ?? Environment.TEST] : null;
+
   const accountRepository = {
-    findByStoreIdAndEnvironment: vi.fn(async (storeId: string) =>
-      storeId === store.id ? account : null,
+    findByStoreIdAndEnvironment: vi.fn(async (storeId: string, environment?: Environment) =>
+      accountFor(storeId, environment),
     ),
-    findByStoreIdAndEnvironmentForUpdate: vi.fn(async (storeId: string) =>
-      storeId === store.id ? account : null,
+    findByStoreIdAndEnvironmentForUpdate: vi.fn(
+      async (storeId: string, environment?: Environment) => accountFor(storeId, environment),
     ),
-    findById: vi.fn(async (id: string) => (id === account.id ? account : null)),
-    findByIdForUpdate: vi.fn(async (id: string) => (id === account.id ? account : null)),
+    findById: vi.fn(async (id: string) => findAccount(id)),
+    findByIdForUpdate: vi.fn(async (id: string) => findAccount(id)),
     update: vi.fn(async () => undefined),
   };
 
@@ -370,6 +495,7 @@ function makeFixture(
   return {
     store,
     account,
+    liveAccount,
     bankAccount,
     withdrawals,
     transactions,

@@ -14,7 +14,6 @@ import {
   CompleteWithdrawalUseCase,
   Environment,
   FailWithdrawalUseCase,
-  LiveEnvironmentNotAllowedError,
 } from '@hockpay/core';
 import { getRequestId } from '../../common/request-id';
 import { Public } from '../auth/decorators/public.decorator';
@@ -33,6 +32,14 @@ class FailWithdrawalDto {
   reason?: string;
 }
 
+/**
+ * Acoes de simulacao de saque.
+ *
+ * Elas nao recusam mais LIVE na porta. Simular em LIVE segue a mesma regra de
+ * cobrar em LIVE -- a mesa precisa ter a loja habilitada -- e quem responde e o
+ * use case, com `STORE_LIVE_NOT_ENABLED`. Manter duas respostas diferentes para
+ * "posso simular em LIVE?" era convidar a proxima pessoa a escolher a errada.
+ */
 @Controller('dev/withdrawals')
 @Public()
 @UseGuards(CombinedAuthGuard)
@@ -50,12 +57,12 @@ export class WithdrawalDevController {
     @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
-    this.validateTestEnvironment(environment);
     const result = await this.completeWithdrawalUseCase.execute({
       withdrawalId: id,
       storeId,
       requestId: getRequestId(req),
       simulation: true,
+      callerEnvironment: environment,
     });
 
     return {
@@ -72,23 +79,17 @@ export class WithdrawalDevController {
     @CurrentEnvironment() environment: Environment,
     @Req() req?: Request,
   ): Promise<GetWithdrawalResponseDto> {
-    this.validateTestEnvironment(environment);
     const result = await this.failWithdrawalUseCase.execute({
       withdrawalId: id,
       storeId,
       requestId: getRequestId(req),
       reason: dto?.reason ?? 'Withdrawal failed (simulated)',
       simulation: true,
+      callerEnvironment: environment,
     });
 
     return {
       withdrawal: WithdrawalResponseDto.fromObject(result.withdrawal),
     };
-  }
-
-  private validateTestEnvironment(environment: Environment): void {
-    if (environment === Environment.LIVE) {
-      throw new LiveEnvironmentNotAllowedError();
-    }
   }
 }

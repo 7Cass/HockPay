@@ -33,7 +33,23 @@ describe('CreateRefundUseCase', () => {
     });
   }
 
-  function createUseCase(payment: Payment, account: Account | null = createAccount()) {
+  function createLiveAccount(): Account {
+    return Account.reconstitute({
+      id: 'account-live-1',
+      storeId: 'store-1',
+      available: 0,
+      pending: 9_000,
+      blocked: 0,
+      currency: 'BRL',
+      updatedAt: new Date(),
+    });
+  }
+
+  function createUseCase(
+    payment: Payment,
+    account: Account | null = createAccount(),
+    liveAccount: Account | null = createLiveAccount(),
+  ) {
     const repos = {
       paymentRepository: {
         findByIdAndStoreIdForUpdate: vi.fn().mockResolvedValue(payment),
@@ -43,7 +59,12 @@ describe('CreateRefundUseCase', () => {
         save: vi.fn(),
       },
       accountRepository: {
-        findByStoreIdAndEnvironmentForUpdate: vi.fn().mockResolvedValue(account),
+        // Duas contas, uma por ambiente. A conta devolvida depende do ambiente
+        // pedido, entao um estorno que lesse o ledger errado apareceria aqui.
+        findByStoreIdAndEnvironmentForUpdate: vi.fn(
+          async (_storeId: string, environment: Environment) =>
+            environment === Environment.LIVE ? liveAccount : account,
+        ),
         update: vi.fn(),
       },
       transactionRepository: {
@@ -66,6 +87,7 @@ describe('CreateRefundUseCase', () => {
       useCase: new CreateRefundUseCase(unitOfWork as any),
       repos,
       account,
+      liveAccount,
       unitOfWork,
     };
   }
@@ -213,5 +235,38 @@ describe('CreateRefundUseCase', () => {
     expect(repos.refundRepository.save).not.toHaveBeenCalled();
     expect(repos.paymentRepository.update).not.toHaveBeenCalled();
     expect(repos.accountRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('refunds a LIVE payment out of the LIVE ledger, without touching TEST', async () => {
+    const payment = Payment.create({
+      storeId: 'store-1',
+      amount: 10_000,
+      fee: 1_000,
+      netAmount: 9_000,
+      expiresAt: new Date(Date.now() + 60_000),
+      environment: Environment.LIVE,
+    });
+    payment.confirm();
+    const { useCase, repos, account, liveAccount } = createUseCase(payment);
+
+    // Uma sessao LIVE estornando um pagamento LIVE. Antes do seletor isto era
+    // inalcancavel: o guard escrevia TEST, e o estorno morria na porta.
+    await useCase.execute({
+      storeId: 'store-1',
+      paymentId: payment.id,
+      amount: 2_500,
+      callerEnvironment: Environment.LIVE,
+    });
+
+    expect(repos.accountRepository.findByStoreIdAndEnvironmentForUpdate).toHaveBeenCalledWith(
+      'store-1',
+      Environment.LIVE,
+    );
+
+    // O debito saiu do ledger LIVE, e o TEST nao se mexeu.
+    expect(liveAccount?.pending).toBe(6_750);
+    expect(account?.pending).toBe(9_000);
+    expect(repos.accountRepository.update).toHaveBeenCalledWith(liveAccount);
+    expect(repos.accountRepository.update).not.toHaveBeenCalledWith(account);
   });
 });

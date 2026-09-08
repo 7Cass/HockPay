@@ -240,6 +240,15 @@
   "
 >
   <form id="withdrawal-form" class="form-stack" (submit)="submitWithdrawal($event)">
+    <!-- No próprio formulário, e não só no rodapé da página de saldo: é aqui
+         que alguém está prestes a "sacar", e é aqui que a frase precisa estar. -->
+    @if (environments.isLive()) {
+      <p class="live-sim-note" role="note">
+        <strong>Saque LIVE é simulado.</strong> Não existe adquirente: o saldo sai do ledger LIVE
+        desta loja e nenhum dinheiro real se move.
+      </p>
+    }
+
     @if (!isConfirmingWithdrawal()) {
       <div class="field">
         <span class="field-label">

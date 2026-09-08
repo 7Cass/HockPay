@@ -18,6 +18,7 @@ import {
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { EnvironmentService } from '../../../../core/services/environment.service';
 import { BankAccount, BankAccountService } from '../../../../core/services/bank-account.service';
 import { AccountObject, FinancialService } from '../../../../core/services/financial.service';
 import {
@@ -99,6 +100,7 @@ export class Withdrawals implements OnInit {
     private readonly bankAccountService = inject(BankAccountService);
     private readonly financialService = inject(FinancialService);
     private readonly authService = inject(AuthService);
+    protected readonly environments = inject(EnvironmentService);
     private readonly router = inject(Router);
 
     readonly account = signal<AccountObject | null>(null);

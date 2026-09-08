@@ -6,7 +6,8 @@ import { AccountNotFoundError } from '../../domain/errors/account-not-found.erro
 import { InvalidWithdrawalStatusError } from '../../domain/errors/invalid-withdrawal-status.error';
 import { WithdrawalNotFoundError } from '../../domain/errors/withdrawal-not-found.error';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
-import { assertNotLiveEnvironment } from '../services/live-environment-guard';
+import { assertLiveSimulationAllowed } from '../services/live-environment-guard';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { sanitizeWithdrawal } from './create-withdrawal.use-case';
 
 export interface ICompleteWithdrawalInput {
@@ -15,7 +16,18 @@ export interface ICompleteWithdrawalInput {
   requestId?: string;
   pixE2eId?: string;
   paidAt?: Date;
+  /**
+   * Marks a caller-initiated simulation. The worker does not set it: moving a
+   * withdrawal the store legitimately requested is the queue doing its job,
+   * not a caller operating in LIVE.
+   */
   simulation?: boolean;
+  /**
+   * Environment of the caller. Optional in the type because the worker has no
+   * caller to speak of -- but under `simulation` the guard fails closed on its
+   * absence, so a request path that forgets it is refused, not waved through.
+   */
+  callerEnvironment?: Environment;
 }
 
 export interface ICompleteWithdrawalOutput {
@@ -38,7 +50,15 @@ export class CompleteWithdrawalUseCase {
       }
 
       if (input.simulation) {
-        assertNotLiveEnvironment(withdrawal.environment);
+        // Simulating in LIVE follows the same rule as charging in LIVE: the
+        // desk must have the store enabled. Keeping a second answer to "can I
+        // simulate in LIVE?" is inviting the next person to pick the wrong one.
+        await assertLiveSimulationAllowed(
+          repos,
+          account.storeId,
+          withdrawal.environment,
+          input.callerEnvironment,
+        );
       }
 
       if (withdrawal.isTerminal()) {

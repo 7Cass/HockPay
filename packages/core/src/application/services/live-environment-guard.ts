@@ -4,21 +4,6 @@ import { Store } from '../../domain/entities/store.entity';
 import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
- * Refuse LIVE outright.
- *
- * After the LIVE onboarding slice this no longer means "LIVE is never allowed
- * here" in general -- it means "this path has no LIVE version at all", which is
- * true of withdrawals and refunds: they are JWT-only, and the dashboard session
- * is TEST. Paths that do have a LIVE version use `assertLiveEnvironmentEnabled`
- * instead.
- */
-export function assertNotLiveEnvironment(environment: Environment | undefined): void {
-  if (environment === Environment.LIVE) {
-    throw new LiveEnvironmentNotAllowedError();
-  }
-}
-
-/**
  * The single rule that gates LIVE for caller-initiated operations: the desk
  * must have opened LIVE for this store.
  *
