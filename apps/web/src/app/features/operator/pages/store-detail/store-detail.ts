@@ -12,6 +12,7 @@ import {
   OperatorStoreService,
 } from '../../../../core/services/operator-store.service';
 import { PageHeader, PageState } from '../../../../shared/ui';
+import { OperatorInvestigation } from './investigation/investigation';
 import { LIVE_STATUS_LABEL, LIVE_STATUS_TONE } from '../../live-status';
 
 interface TermsDraft {
@@ -31,7 +32,15 @@ interface TermsDraft {
 @Component({
   selector: 'app-operator-store-detail',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, NgIcon, PageHeader, PageState],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    DecimalPipe,
+    NgIcon,
+    PageHeader,
+    PageState,
+    OperatorInvestigation,
+  ],
   providers: [provideIcons({ lucideLoader2, lucideRefreshCcw })],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.css',

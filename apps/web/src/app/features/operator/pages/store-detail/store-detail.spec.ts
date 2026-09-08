@@ -51,6 +51,12 @@ describe('OperatorStoreDetail', () => {
     el = harness.routeNativeElement as HTMLElement;
     await settle();
 
+    // A investigação monta junto e já lê os pagamentos do ambiente TEST.
+    httpMock
+      .expectOne((req) => req.url === `${API}/operator/stores/store-1/payments`)
+      .flush({ payments: [], total: 0, page: 1, limit: 20, totalPages: 1 });
+    await settle();
+
     return request;
   }
 
