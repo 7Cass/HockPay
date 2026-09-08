@@ -210,6 +210,9 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
 - Settings edita so perfil (`name`, `city`). Fee, fixo e prazo nao sao mutaveis pelo merchant -- e decisao, nao lacuna: quem muda condicao comercial e a mesa, com motivo e trilha.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
+- **Loja suspensa continua sacando em LIVE, e nao deveria.** Decidido em `2026-09-08`: loja com o LIVE suspenso nao faz movimentacao financeira nenhuma por conta propria; saque e estorno passam a ser responsabilidade do operador, por chamado. Hoje o gate nao existe: `create-payment` releva a habilitacao **no momento da chamada** e recusa, mas `create-withdrawal` so checa `isActive`. Na janela entre a suspensao e o proximo refresh (ate 15 minutos, o TTL do access token), dinheiro nao entra e sai. Fechar isso exige as duas metades -- o gate no saque e a via do operador para sacar/estornar em nome da loja suspensa --, porque so a primeira deixaria o saldo LIVE sem saida nenhuma.
+- Suspender uma loja nao revoga a sessao do lojista. `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem rebaixa e o proximo login ou refresh. A janela e o TTL do access token.
+- As duas rotas de operador que fazem parse de paginacao a mao (fila e trilha) aceitam `?limit=abc`: `Number('abc')` e `NaN`, o `?? DEFAULT_LIMIT` nao pega `NaN` e o clamp o preserva. As rotas de leitura novas nao tem o problema, porque usam `class-validator`.
 - A mesa nao tem papeis internos: todo operador pode tudo que a mesa pode. Sem impersonacao, sem MFA.
 - Antifraude nao existe, e por ordem: o PRD da superficie de operador poe o motor **depois** da fila de revisao, e ela nao existe.
 - Fila e trilha paginam por `offset`/`limit` e nao devolvem contagem, entao a mesa anda por "anterior/proxima" e nao por numero de pagina.
