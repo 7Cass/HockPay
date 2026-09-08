@@ -4,7 +4,8 @@ import { DashboardLayout } from './shared/layouts/dashboard-layout/dashboard-lay
 import { AuthLayout } from './shared/layouts/auth-layout/auth-layout';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
-import { operatorGuestGuard } from './core/guards/operator.guard';
+import { operatorGuard, operatorGuestGuard } from './core/guards/operator.guard';
+import { OperatorLayout } from './shared/layouts/operator-layout/operator-layout';
 
 export const routes: Routes = [
     {
@@ -41,6 +42,18 @@ export const routes: Routes = [
         canActivate: [operatorGuestGuard],
         loadComponent: () =>
             import('./features/operator/pages/login/login').then(m => m.OperatorLogin),
+    },
+    {
+        path: 'operator',
+        component: OperatorLayout,
+        canActivate: [operatorGuard],
+        children: [
+            {
+                path: '',
+                loadComponent: () =>
+                    import('./features/operator/pages/queue/queue').then(m => m.OperatorQueue),
+            },
+        ],
     },
     {
         path: 'dashboard',
