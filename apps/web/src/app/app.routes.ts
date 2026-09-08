@@ -54,6 +54,13 @@ export const routes: Routes = [
                     import('./features/operator/pages/queue/queue').then(m => m.OperatorQueue),
             },
             {
+                path: 'audit-logs',
+                loadComponent: () =>
+                    import('./features/operator/pages/audit-log/audit-log').then(
+                        m => m.OperatorAuditLogPage,
+                    ),
+            },
+            {
                 path: 'stores/:id',
                 loadComponent: () =>
                     import('./features/operator/pages/store-detail/store-detail').then(

@@ -1,0 +1,164 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── A trilha ─────────────────────────────────────────────────────────────
+   Lista e não tabela: uma linha carrega quantidade variável de mudanças, e
+   uma célula que às vezes tem três valores e às vezes nenhum não é coluna. */
+.trail {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  list-style: none;
+}
+
+.trail-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.trail-row:last-child {
+  border-bottom: 0;
+}
+
+@media (min-width: 720px) {
+  .trail-row {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+}
+
+.trail-when {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+}
+
+@media (min-width: 720px) {
+  .trail-when {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+}
+
+.trail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.trail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12.5px;
+}
+
+.trail-target,
+.trail-who {
+  font-size: 11px;
+  color: var(--color-ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.trail-who {
+  margin-left: auto;
+}
+
+/* ── Antes e depois ───────────────────────────────────────────────────── */
+.trail-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trail-changes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 12.5px;
+}
+
+.trail-field {
+  min-width: 9rem;
+  color: var(--color-ink-faint);
+}
+
+.trail-before {
+  color: var(--color-ink-faint);
+  text-decoration: line-through;
+}
+
+.trail-arrow {
+  color: var(--color-ink-faint);
+}
+
+.trail-after {
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.trail-reason {
+  max-width: 70ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+.trail-request {
+  font-size: 10.5px;
+  color: var(--color-ink-faint);
+}
+
+/* ── Esqueleto e rodapé ───────────────────────────────────────────────── */
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.row-skeleton:last-child {
+  border-bottom: 0;
+}
+
+.trail-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.trail-foot .count {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-faint);
+}
+
+.trail-foot-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+}
