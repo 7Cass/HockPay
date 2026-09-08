@@ -99,6 +99,30 @@ Este documento e a fonte canonica do runtime atual. Ele descreve o que pode ser 
 5. Transicoes validas: lojista `NOT_REQUESTED|REJECTED -> PENDING`; mesa `PENDING -> APPROVED|REJECTED`, `APPROVED -> SUSPENDED` e `SUSPENDED -> APPROVED`. Qualquer outra e `INVALID_STORE_LIVE_STATUS_TRANSITION`.
 6. Loja `APPROVED` cobra, confirma e acumula saldo em LIVE. **LIVE tambem e simulado**: o que a habilitacao separa e permissao e cerimonia, nao mecanica.
 
+### Condicao comercial
+
+1. `POST /api/v1/operator/stores/:id/commercial-terms` recebe `feePercent`, `feeFixed`, `settlementDays` e `reason` obrigatorio.
+2. `Store.updateCommercialTerms` valida os tres no dominio (0-10%, 0-1000 centavos, 0-90 dias) e move os tres **juntos**. Nao existe mudanca parcial; fora de faixa e `INVALID_COMMERCIAL_TERMS`.
+3. A linha `store.commercial_terms_changed`, com `before`/`after` dos tres valores e o motivo, e escrita na mesma transacao.
+4. A mudanca vale para cobranca futura. `Payment.fee` e snapshot do momento da cobranca e nao e recalculado.
+5. O lojista continua vendo os tres em `GET /api/v1/stores`; ele nunca deixou de saber o que paga.
+
+### Investigacao de loja
+
+1. `GET /api/v1/operator/stores/:id` e a entrada, e a unica leitura da mesa que escreve: ela grava `store.investigated` na trilha. Quem abriu a loja abriu a loja, inclusive quem so foi mexer na taxa.
+2. As sub-leituras (`/payments`, `/payments/:paymentId/timeline`, `/account`, `/transactions`, `/webhooks`, `/webhooks/logs`) sao puras e reusam os use cases do merchant, com o `storeId` vindo da rota.
+3. As rotas com escopo de ambiente exigem `environment` explicito na query, sem default: investigar producao e receber o ledger TEST em silencio produz a conclusao errada com dado certo.
+4. Nao ha rota de chave de API, e webhook config sai por `toPublicObject()` -- com o prefixo, sem o secret. `operator-read-no-secrets.spec.ts` varre as rotas do modulo por reflexao e falha se isso mudar.
+
+### Troca de ambiente do dashboard
+
+1. `Merchant.currentEnvironment` guarda o ambiente da sessao, ao lado de `currentStoreId`; o access token carrega a copia.
+2. `POST /api/v1/auth/switch-environment` valida, persiste no merchant, revoga os refresh tokens e re-emite o par -- a mesma ordem de `switch-store`.
+3. Selecionar LIVE exige `store.liveStatus = APPROVED`, checado no use case. TEST nunca e recusado, em nenhum dos cinco estados.
+4. Login e refresh reconferem a habilitacao e **rebaixam para TEST** se a loja perdeu o LIVE, em vez de falhar: `currentEnvironment` sobrevive ao logout, e uma loja suspensa nao pode reentrar em LIVE pela porta dos fundos.
+5. Trocar de store e criar store resetam a sessao para TEST: a loja nova nunca esta habilitada, e a antiga nao responde pela nova.
+6. O dashboard recarrega inteiro na troca. Nenhuma tela filtra os dois ledgers no cliente.
+
 ### Withdrawals
 
 1. Merchant cadastra conta Pix em `POST /api/v1/bank-accounts`; a titularidade usa o documento do merchant.
@@ -155,7 +179,7 @@ Existem dois principais, e eles nao se cruzam:
 - `@OperatorRoute()` tira a rota do guard global de merchant e instala o `OperatorAuthGuard` na mesma marca; um teste de varredura falha se um controller do modulo sair dessa forma.
 - Nao existe elevacao de merchant para operador nem impersonacao. Operador se cria por `pnpm operator:create` (senha por prompt/stdin), nunca por cadastro publico ou seed automatico.
 - Cookies do operador tem paths proprios: `hockpay_op_at` em `/api/v1/operator` e `hockpay_op_rt` em `/api/v1/operator/auth/refresh`. Por isso o logout revoga a sessao pelo operador autenticado, nao pelo cookie de refresh (que nao chega naquela rota).
-- Trilha de auditoria (`operator_audit_logs`) e append-only: a porta nao tem update nem delete, e o repositorio so existe dentro do `UnitOfWork`, entao a linha e escrita na mesma transacao da mudanca que descreve. Hoje registra `operator.login` e `operator.logout`, com `requestId`. Sem retencao ou purga.
+- Trilha de auditoria (`operator_audit_logs`) e append-only: a porta nao tem update nem delete, e o repositorio so existe dentro do `UnitOfWork`, entao a linha e escrita na mesma transacao da mudanca que descreve. Hoje registra sete acoes, todas com `requestId`: `operator.login`, `operator.logout`, `store.live_approved|rejected|suspended`, `store.commercial_terms_changed` e `store.investigated`. As tres primeiras de loja e a de condicao comercial carregam `before`/`after` e o motivo. Sem retencao ou purga.
 
 ## Idempotencia
 
@@ -184,10 +208,12 @@ Mutacoes financeiras/comerciais exigem header `Idempotency-Key`: `POST /payments
 - Nao ha adquirencia real, payout real, liquidacao bancaria real ou Pix real.
 - Payment Links e withdrawals sao funcionais como produto de simulacao, nao como dinheiro real.
 - Card, boleto e debito existem como modelagem/campos, sem processador real.
-- Settings edita so perfil (`name`, `city`); fee, settlement e aprovacao nao sao mutaveis pelo merchant.
+- Settings edita so perfil (`name`, `city`). Fee, fixo e prazo nao sao mutaveis pelo merchant -- e decisao, nao lacuna: quem muda condicao comercial e a mesa, com motivo e trilha.
 - Marketplace, split e multi-seller continuam fora do escopo atual.
-- O unico poder do operador e habilitar LIVE. Taxa, prazo e leitura cross-merchant continuam inexistentes, e nao ha tela de operador -- a mesa e API.
+- A mesa nao tem papeis internos: todo operador pode tudo que a mesa pode. Sem impersonacao, sem MFA.
+- Antifraude nao existe, e por ordem: o PRD da superficie de operador poe o motor **depois** da fila de revisao, e ela nao existe.
+- Fila e trilha paginam por `offset`/`limit` e nao devolvem contagem, entao a mesa anda por "anterior/proxima" e nao por numero de pagina.
 - Trilha de operador cresce sem retencao.
+- Nao ha smoke dedicado da mesa nem do seletor de ambiente. As duas trilhas sao cobertas por unit test, pelo e2e da API e por teste de tela contra HTTP mockado -- nenhuma das duas foi exercitada ponta a ponta contra a API de verdade ainda.
 - **LIVE tambem e simulado.** A habilitacao decide quem pode operar em producao, nao de onde vem o dinheiro: nao ha adquirente, e nenhum centavo e real em nenhum dos dois ambientes. As telas de saldo e de chaves dizem isso.
-- Saque e estorno so alcancam o ledger TEST, porque sao JWT-only e a sessao e TEST. Agora que o ledger LIVE enche, isso e uma lacuna de produto e nao mais uma porta para sala vazia: falta o seletor de ambiente no dashboard.
-- Dashboard nao tem seletor TEST/LIVE, entao saldo, extrato e metricas continuam sendo os do ledger TEST.
+- O ambiente e por sessao, e nao por aba: o cookie e do browser inteiro, entao trocar numa aba move todas. As abas ja renderizadas seguem mostrando o ambiente anterior ate recarregarem.
