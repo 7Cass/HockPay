@@ -74,6 +74,51 @@ describe('Operator surface boundary (e2e)', () => {
       expect(mocks.listStoresForOperatorUseCase.execute).not.toHaveBeenCalled();
       expect(mocks.decideLiveEnablementUseCase.execute).not.toHaveBeenCalled();
     });
+
+    it('rejects a merchant on the commercial terms route', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/stores/store-1/commercial-terms')
+        .set('Cookie', MERCHANT_COOKIE)
+        .send({
+          feePercent: 0,
+          feeFixed: 0,
+          settlementDays: 0,
+          reason: 'nao deveria passar',
+        })
+        .expect(401);
+
+      expect(mocks.updateCommercialTermsUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects a merchant on every cross-merchant read', async () => {
+      const reads = [
+        '/api/v1/operator/stores/store-1',
+        '/api/v1/operator/stores/store-1/payments?environment=LIVE',
+        '/api/v1/operator/stores/store-1/payments/pay-1/timeline?environment=LIVE',
+        '/api/v1/operator/stores/store-1/account?environment=LIVE',
+        '/api/v1/operator/stores/store-1/transactions?environment=LIVE',
+        '/api/v1/operator/stores/store-1/webhooks',
+        '/api/v1/operator/stores/store-1/webhooks/logs',
+      ];
+
+      for (const path of reads) {
+        await request(app.getHttpServer())
+          .get(path)
+          .set('Cookie', MERCHANT_COOKIE)
+          .expect(401);
+
+        await request(app.getHttpServer())
+          .get(path)
+          .set('Authorization', 'Bearer hk_live_secret')
+          .expect(401);
+      }
+
+      // A merchant's own store is still a store somebody else's session must
+      // not read from here: none of the use cases was even reached.
+      expect(mocks.getStoreForOperatorUseCase.execute).not.toHaveBeenCalled();
+      expect(mocks.operatorListPaymentsUseCase.execute).not.toHaveBeenCalled();
+      expect(mocks.operatorGetAccountUseCase.execute).not.toHaveBeenCalled();
+    });
   });
 
   describe('an operator session opens only the operator door', () => {
@@ -165,6 +210,136 @@ describe('Operator surface boundary (e2e)', () => {
         .expect(401);
 
       expect(mocks.listWithdrawalsUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the desk investigates a store', () => {
+    it('records the investigation when the store is opened', async () => {
+      mocks.getStoreForOperatorUseCase.execute.mockResolvedValue({
+        store: { id: 'store-1', name: 'Ateliê Corvo', liveStatus: 'APPROVED' },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(200);
+
+      expect(response.body.store.id).toBe('store-1');
+      expect(mocks.getStoreForOperatorUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operatorId: 'operator-1',
+          storeId: 'store-1',
+        }),
+      );
+    });
+
+    it('refuses a read without an environment instead of assuming TEST', async () => {
+      // An operator investigating a production incident who silently receives
+      // the TEST ledger draws the wrong conclusion from correct data.
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1/account')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1/transactions?environment=STAGING')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(400);
+
+      expect(mocks.operatorGetAccountUseCase.execute).not.toHaveBeenCalled();
+      expect(
+        mocks.operatorListTransactionsUseCase.execute,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('reads the ledger of the environment the operator asked for', async () => {
+      mocks.operatorGetAccountUseCase.execute.mockResolvedValue({
+        account: { id: 'acc-live', availableBalance: 5000 },
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1/account?environment=LIVE')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(200);
+
+      expect(mocks.operatorGetAccountUseCase.execute).toHaveBeenCalledWith({
+        storeId: 'store-1',
+        environment: 'LIVE',
+      });
+    });
+
+    it('leaves the webhook secret behind, keeping only the prefix', async () => {
+      mocks.operatorListWebhookConfigsUseCase.execute.mockResolvedValue({
+        webhookConfigs: [
+          {
+            id: 'webhook-1',
+            toPublicObject: () => ({
+              id: 'webhook-1',
+              url: 'https://example.test/hook',
+              prefix: 'whsec_PLANT',
+            }),
+            toObject: () => ({ id: 'webhook-1', secret: 'whsec_LEAKED' }),
+          },
+        ],
+        circuits: { 'webhook-1': { state: 'closed' } },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1/webhooks')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(200);
+
+      expect(response.body.webhooks[0].prefix).toBe('whsec_PLANT');
+      expect(JSON.stringify(response.body)).not.toContain('whsec_LEAKED');
+      expect(response.body.webhooks[0].secret).toBeUndefined();
+    });
+  });
+
+  describe('the desk sets a commercial condition', () => {
+    it('carries operator, the three fields and the reason into the use case', async () => {
+      mocks.updateCommercialTermsUseCase.execute.mockResolvedValue({
+        store: {
+          id: 'store-1',
+          feePercent: 2.9,
+          feeFixed: 39,
+          settlementDays: 2,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/operator/stores/store-1/commercial-terms')
+        .set('Cookie', OPERATOR_COOKIE)
+        .send({
+          feePercent: 2.9,
+          feeFixed: 39,
+          settlementDays: 2,
+          reason: 'plano anual',
+        })
+        .expect(200);
+
+      expect(response.body.store.feePercent).toBe(2.9);
+      expect(mocks.updateCommercialTermsUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operatorId: 'operator-1',
+          storeId: 'store-1',
+          feePercent: 2.9,
+          feeFixed: 39,
+          settlementDays: 2,
+          reason: 'plano anual',
+        }),
+      );
+    });
+
+    it('refuses a partial condition at the door', async () => {
+      // The three fields move together. A partial body leaves the trail's
+      // before/after describing something nobody decided.
+      await request(app.getHttpServer())
+        .post('/api/v1/operator/stores/store-1/commercial-terms')
+        .set('Cookie', OPERATOR_COOKIE)
+        .send({ feePercent: 2.9, reason: 'so a taxa' })
+        .expect(400);
+
+      expect(mocks.updateCommercialTermsUseCase.execute).not.toHaveBeenCalled();
     });
   });
 

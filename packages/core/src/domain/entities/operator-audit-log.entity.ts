@@ -12,6 +12,7 @@ export const OPERATOR_AUDIT_ACTION = {
   STORE_LIVE_REJECTED: 'store.live_rejected',
   STORE_LIVE_SUSPENDED: 'store.live_suspended',
   STORE_COMMERCIAL_TERMS_CHANGED: 'store.commercial_terms_changed',
+  STORE_INVESTIGATED: 'store.investigated',
 } as const;
 
 export type OperatorAuditAction =

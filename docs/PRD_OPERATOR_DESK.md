@@ -188,11 +188,17 @@ que impede a proxima pessoa de serializar por `toObject()`.
 
 ## D8. `environment` e obrigatorio, e nao tem default
 
-Todas as seis leituras exigem `environment`. O merchant resolve isso pela
-sessao (hoje sempre TEST). **O operador nao tem sessao com ambiente** -- ele nao
-opera uma loja, ele investiga varias.
+As leituras que sao por ambiente -- payments, timeline, ledger e transacoes --
+exigem `environment`. O merchant resolve isso pela sessao (hoje sempre TEST).
+**O operador nao tem sessao com ambiente** -- ele nao opera uma loja, ele
+investiga varias.
 
 Entao: `?environment=TEST|LIVE`, obrigatorio, e ausente ou invalido e `400`.
+
+**As duas rotas de webhook ficam de fora**, e isso nao e excecao: `WebhookConfig`
+e `WebhookLog` sao escopados por loja e nao tem coluna de ambiente. Exigir um
+parametro que a rota depois ignora seria a mesma classe de mentira pequena que
+o resto deste D8 existe para evitar.
 
 A alternativa -- `?? TEST` como o guard de merchant faz -- foi descartada. Um
 operador investigando um chamado de producao que recebe silenciosamente o
@@ -228,7 +234,14 @@ O teste, no formato que `operator-routes.spec.ts` ja estabeleceu:
    conhecido, chama cada uma.
 3. Falha se a resposta serializada contiver o valor do secret plantado, o valor
    da chave plantada, ou qualquer chave chamada `secret`, `hashedKey`,
-   `plainKey` ou `hashedSecret` -- em qualquer profundidade.
+   `plainKey` ou `hashedSecret` -- em qualquer profundidade, e atravessando
+   `toObject()` das entidades que chegarem inteiras na resposta.
+
+O arquivo e `apps/api/src/modules/operator/operator-read-no-secrets.spec.ts`.
+Ele carrega dois testes que provam que a varredura serve para alguma coisa: um
+que a faz falhar com a forma exata que um `toObject()` descuidado produz, e um
+que garante que ela **nao** acusa a assinatura HMAC do header de entrega, que
+nao e o secret.
 
 Rota nova entra na varredura sozinha. Rota nova que vaza quebra o build, e nao
 a revisao de alguem.

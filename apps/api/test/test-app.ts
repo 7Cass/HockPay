@@ -24,6 +24,14 @@ import {
   UpdateStoreProfileUseCase,
   RequestLiveEnablementUseCase,
   ListStoresForOperatorUseCase,
+  UpdateCommercialTermsUseCase,
+  GetStoreForOperatorUseCase,
+  ListPaymentsUseCase,
+  GetPaymentTimelineUseCase,
+  GetAccountUseCase,
+  ListTransactionsUseCase,
+  ListWebhookConfigsUseCase,
+  ListWebhookLogsUseCase,
   DecideLiveEnablementUseCase,
   ListWithdrawalsUseCase,
   LoginUseCase,
@@ -61,6 +69,7 @@ import { WithdrawalController } from '../src/modules/withdrawal/withdrawal.contr
 import { OperatorAuthController } from '../src/modules/operator/operator-auth.controller';
 import { OperatorController } from '../src/modules/operator/operator.controller';
 import { OperatorStoreController } from '../src/modules/operator/operator-store.controller';
+import { OperatorStoreReadController } from '../src/modules/operator/operator-store-read.controller';
 import { OperatorAuthGuard } from '../src/modules/operator/guards/operator-auth.guard';
 import { IS_OPERATOR_ROUTE_KEY } from '../src/modules/operator/decorators/operator-route.decorator';
 import { OperatorJwtService } from '../src/infra/services/operator-jwt.service';
@@ -76,6 +85,14 @@ export type ApiE2eMocks = {
   requestLiveEnablementUseCase: { execute: jest.Mock };
   listStoresForOperatorUseCase: { execute: jest.Mock };
   decideLiveEnablementUseCase: { execute: jest.Mock };
+  updateCommercialTermsUseCase: { execute: jest.Mock };
+  getStoreForOperatorUseCase: { execute: jest.Mock };
+  operatorListPaymentsUseCase: { execute: jest.Mock };
+  operatorGetPaymentTimelineUseCase: { execute: jest.Mock };
+  operatorGetAccountUseCase: { execute: jest.Mock };
+  operatorListTransactionsUseCase: { execute: jest.Mock };
+  operatorListWebhookConfigsUseCase: { execute: jest.Mock };
+  operatorListWebhookLogsUseCase: { execute: jest.Mock };
   createWithdrawalUseCase: { executeInTransaction: jest.Mock };
   listWithdrawalsUseCase: { execute: jest.Mock };
   getWithdrawalUseCase: { execute: jest.Mock };
@@ -155,6 +172,14 @@ export async function createApiE2eTestApp(): Promise<{
     requestLiveEnablementUseCase: { execute: jest.fn() },
     listStoresForOperatorUseCase: { execute: jest.fn() },
     decideLiveEnablementUseCase: { execute: jest.fn() },
+    updateCommercialTermsUseCase: { execute: jest.fn() },
+    getStoreForOperatorUseCase: { execute: jest.fn() },
+    operatorListPaymentsUseCase: { execute: jest.fn() },
+    operatorGetPaymentTimelineUseCase: { execute: jest.fn() },
+    operatorGetAccountUseCase: { execute: jest.fn() },
+    operatorListTransactionsUseCase: { execute: jest.fn() },
+    operatorListWebhookConfigsUseCase: { execute: jest.fn() },
+    operatorListWebhookLogsUseCase: { execute: jest.fn() },
     createWithdrawalUseCase: { executeInTransaction: jest.fn() },
     listWithdrawalsUseCase: { execute: jest.fn() },
     getWithdrawalUseCase: { execute: jest.fn() },
@@ -223,6 +248,7 @@ export async function createApiE2eTestApp(): Promise<{
       OperatorAuthController,
       OperatorController,
       OperatorStoreController,
+      OperatorStoreReadController,
     ],
     providers: [
       {
@@ -332,6 +358,38 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: DecideLiveEnablementUseCase,
         useValue: mocks.decideLiveEnablementUseCase,
+      },
+      {
+        provide: UpdateCommercialTermsUseCase,
+        useValue: mocks.updateCommercialTermsUseCase,
+      },
+      {
+        provide: GetStoreForOperatorUseCase,
+        useValue: mocks.getStoreForOperatorUseCase,
+      },
+      {
+        provide: ListPaymentsUseCase,
+        useValue: mocks.operatorListPaymentsUseCase,
+      },
+      {
+        provide: GetPaymentTimelineUseCase,
+        useValue: mocks.operatorGetPaymentTimelineUseCase,
+      },
+      {
+        provide: GetAccountUseCase,
+        useValue: mocks.operatorGetAccountUseCase,
+      },
+      {
+        provide: ListTransactionsUseCase,
+        useValue: mocks.operatorListTransactionsUseCase,
+      },
+      {
+        provide: ListWebhookConfigsUseCase,
+        useValue: mocks.operatorListWebhookConfigsUseCase,
+      },
+      {
+        provide: ListWebhookLogsUseCase,
+        useValue: mocks.operatorListWebhookLogsUseCase,
       },
       {
         provide: CreateWithdrawalUseCase,
