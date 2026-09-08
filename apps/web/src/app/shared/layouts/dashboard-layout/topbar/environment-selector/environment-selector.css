@@ -1,0 +1,84 @@
+/* Seletor de ambiente: o chip que já existia na topbar, agora clicável. */
+
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.env-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  transition: opacity 0.16s;
+}
+
+.env-trigger:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.env {
+  letter-spacing: 0.14em;
+}
+
+/* LIVE nunca aparece sozinho: o rótulo "simulado" anda junto. */
+.env-sim,
+.env-tag {
+  font-family: var(--font-code);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--color-ink-faint);
+}
+
+.env-tag {
+  margin-left: 0.35rem;
+}
+
+.env-caret {
+  color: var(--color-ink-faint);
+}
+
+.menu-env {
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(20rem, calc(100vw - 2rem));
+}
+
+/* As linhas aqui explicam o que o ambiente significa: precisam de duas linhas,
+   e o `.menu-sub` do primitivo corta em uma. */
+.menu-env .menu-sub {
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.45;
+}
+
+.menu-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-row:disabled:hover {
+  background: transparent;
+}
+
+.menu-note {
+  padding: 0.35rem 0.55rem;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--color-ink-faint);
+}
+
+.env-error {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: max-content;
+  max-width: 18rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 9px;
+  background: var(--color-bad-soft);
+  color: var(--color-bad);
+  font-size: 11.5px;
+}

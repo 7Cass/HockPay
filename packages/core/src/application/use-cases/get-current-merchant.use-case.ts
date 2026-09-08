@@ -1,4 +1,5 @@
 import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 import { IMerchantRepository } from '../../domain/repositories/merchant.repository.interface';
 
 /**
@@ -15,6 +16,13 @@ export interface IGetCurrentMerchantOutput {
   isActive: boolean;
   createdAt: Date;
   currentStoreId?: string;
+  /**
+   * The environment this session is in. The screen has to be told, rather than
+   * assume: the guard's `?? TEST` fallback is silent, and a dashboard showing
+   * LIVE while the session is really in TEST would be the exact confusion the
+   * environment ledger was split to avoid.
+   */
+  currentEnvironment: Environment;
 }
 
 /**
@@ -44,6 +52,7 @@ export class GetCurrentMerchantUseCase {
       isActive: merchant.isActive,
       createdAt: merchant.createdAt,
       currentStoreId: merchant.currentStoreId,
+      currentEnvironment: merchant.currentEnvironment,
     };
   }
 }

@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     heading="Saldo e Extrato"
-    description="O saldo TEST da loja. LIVE tem um ledger separado, e o dashboard não o mostra."
+    [description]="ledgerDescription()"
   >
     <ng-container pageActions>
       <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Atualizar">

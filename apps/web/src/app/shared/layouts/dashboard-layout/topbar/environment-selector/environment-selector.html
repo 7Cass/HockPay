@@ -1,0 +1,77 @@
+<button
+  type="button"
+  class="env-trigger"
+  (click)="toggle($event)"
+  [attr.aria-expanded]="open()"
+  [disabled]="environments.isSwitching()"
+  [title]="
+    isLive()
+      ? 'Sua sessão opera no ambiente LIVE — saldo e movimento são simulados'
+      : 'Sua sessão opera no ambiente TEST'
+  "
+>
+  <span class="chip env" [attr.data-tone]="isLive() ? 'ok' : 'warn'">{{ current() }}</span>
+  @if (isLive()) {
+    <span class="env-sim">simulado</span>
+  }
+  <ng-icon class="env-caret" name="lucideChevronsUpDown" size="13px" strokeWidth="1.7" />
+</button>
+
+@if (open()) {
+  <div class="menu menu-env" role="menu">
+    <p class="menu-title eyebrow">Ambiente da sessão</p>
+
+    <button type="button" class="menu-row" role="menuitem" (click)="select('TEST')">
+      <span class="menu-check" aria-hidden="true">
+        @if (current() === 'TEST') {
+          <ng-icon name="lucideCheck" size="13px" strokeWidth="2" />
+        }
+      </span>
+      <span class="menu-text">
+        <span class="menu-label">TEST</span>
+        <span class="menu-sub">Sempre disponível, em qualquer estado da loja.</span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      class="menu-row"
+      role="menuitem"
+      [disabled]="!environments.canSelectLive()"
+      (click)="select('LIVE')"
+    >
+      <span class="menu-check" aria-hidden="true">
+        @if (!environments.canSelectLive()) {
+          <ng-icon name="lucideLock" size="12px" strokeWidth="2" />
+        } @else if (current() === 'LIVE') {
+          <ng-icon name="lucideCheck" size="13px" strokeWidth="2" />
+        }
+      </span>
+      <span class="menu-text">
+        <span class="menu-label">
+          LIVE
+          <span class="env-tag">simulado</span>
+        </span>
+        <span class="menu-sub">
+          Ledger separado do TEST. Não existe adquirente — nenhum dinheiro se move.
+        </span>
+      </span>
+    </button>
+
+    <!-- A porta fechada aparece fechada, com o motivo e o caminho para abri-la. -->
+    @if (environments.liveBlockedReason(); as reason) {
+      <div class="menu-rule"></div>
+      <p class="menu-note">{{ reason }}</p>
+      <a class="menu-row" role="menuitem" routerLink="/dashboard/settings" (click)="close()">
+        <span class="menu-check" aria-hidden="true"></span>
+        <span class="menu-text">
+          <span class="menu-label">Ver habilitação em Settings</span>
+        </span>
+      </a>
+    }
+  </div>
+}
+
+@if (error(); as message) {
+  <p class="env-error" role="alert">{{ message }}</p>
+}

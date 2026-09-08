@@ -10,6 +10,7 @@ import {
     TransactionObject,
     TransactionType,
 } from '../../../../core/services/financial.service';
+import { EnvironmentService } from '../../../../core/services/environment.service';
 import { PageHeader, PageState, Pagination } from '../../../../shared/ui';
 
 @Component({
@@ -22,6 +23,19 @@ import { PageHeader, PageState, Pagination } from '../../../../shared/ui';
 })
 export class Financials implements OnInit {
     private readonly financialService = inject(FinancialService);
+    protected readonly environments = inject(EnvironmentService);
+
+    /**
+     * O ledger que esta tela mostra é o do ambiente da sessão, e ela diz qual
+     * é. LIVE aqui é saldo simulado: não existe adquirente, e um saldo LIVE
+     * apresentado como um saldo de verdade seria a mentira mais cara que o
+     * simulador consegue contar.
+     */
+    readonly ledgerDescription = computed(() =>
+        this.environments.isLive()
+            ? 'O saldo LIVE da loja — simulado. Não existe adquirente: nenhum dinheiro real se move. O ledger TEST é separado e não se mistura.'
+            : 'O saldo TEST da loja. LIVE tem um ledger separado, e você troca de ambiente na barra do topo.',
+    );
 
     readonly account = signal<AccountObject | null>(null);
     readonly transactions = signal<TransactionObject[]>([]);

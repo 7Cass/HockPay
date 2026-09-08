@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs';
 
 import { SEGMENT_LABELS } from '../dashboard-nav';
 import { DashboardShell } from '../dashboard-shell';
+import { EnvironmentSelector } from './environment-selector/environment-selector';
 
 interface Crumb {
   readonly label: string;
@@ -24,7 +25,7 @@ interface Crumb {
 @Component({
   selector: 'app-dashboard-topbar',
   standalone: true,
-  imports: [RouterLink, NgIcon],
+  imports: [RouterLink, NgIcon, EnvironmentSelector],
   providers: [provideIcons({ lucideBellRing, lucideMenu, lucideSearch })],
   templateUrl: './dashboard-topbar.html',
   styleUrl: './dashboard-topbar.css',

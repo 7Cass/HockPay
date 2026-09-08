@@ -41,6 +41,8 @@ export interface CurrentUser {
     isActive: boolean;
     createdAt: string;
     currentStoreId?: string;
+    /** O ambiente em que a sessão realmente está, dito pelo servidor. */
+    currentEnvironment?: 'TEST' | 'LIVE';
 }
 
 @Injectable({
