@@ -5,6 +5,7 @@ import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
  * Input DTO for SwitchStoreUseCase.
@@ -67,6 +68,14 @@ export class SwitchStoreUseCase {
       }
 
       merchant.setCurrentStoreId(store.id);
+
+      // LIVE enablement is a fact of the *store*. Carrying LIVE from an
+      // approved store into one that never asked would leave the session in a
+      // state no rule authorised -- and the enablement gate would not even be
+      // consulted, because nobody "switched environment". Resetting is the only
+      // way the invariant holds without a second place to check it.
+      merchant.setCurrentEnvironment(Environment.TEST);
+
       await repos.merchantRepository.update(merchant);
 
       // 5. Revoke old tokens

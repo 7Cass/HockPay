@@ -278,4 +278,53 @@ describe('API HTTP boundary (e2e)', () => {
       mocks.transactionalIdempotencyService.execute,
     ).not.toHaveBeenCalled();
   });
+  it('POST /api/v1/auth/switch-environment reissues the cookie pair', async () => {
+    mocks.switchEnvironmentUseCase.execute.mockResolvedValue({
+      accessToken: 'live-access-token',
+      refreshToken: 'live-refresh-token',
+      expiresIn: 900,
+      environment: 'LIVE',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/switch-environment')
+      .set('Cookie', 'hockpay_at=valid-access-token')
+      .send({ environment: 'LIVE' })
+      .expect(200);
+
+    expect(mocks.switchEnvironmentUseCase.execute).toHaveBeenCalledWith({
+      merchantId: 'merchant-1',
+      environment: 'LIVE',
+    });
+    expect(response.body).toMatchObject({ environment: 'LIVE' });
+
+    // The response is what tells the screen which environment it is actually
+    // in, so a silent fallback in the guard cannot masquerade as a switch.
+    expect(setCookies(response)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('hockpay_at=live-access-token'),
+        expect.stringContaining('hockpay_rt=live-refresh-token'),
+      ]),
+    );
+  });
+
+  it('POST /api/v1/auth/switch-environment rejects an environment outside TEST|LIVE', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/switch-environment')
+      .set('Cookie', 'hockpay_at=valid-access-token')
+      .send({ environment: 'STAGING' })
+      .expect(400);
+
+    expect(mocks.switchEnvironmentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/v1/auth/switch-environment is closed to an API key', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/switch-environment')
+      .set('Authorization', 'Bearer hk_test_secret')
+      .send({ environment: 'LIVE' })
+      .expect(401);
+
+    expect(mocks.switchEnvironmentUseCase.execute).not.toHaveBeenCalled();
+  });
 });

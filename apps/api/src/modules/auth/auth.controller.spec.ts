@@ -5,6 +5,7 @@ import {
   LogoutUseCase,
   RefreshTokenUseCase,
   SwitchStoreUseCase,
+  SwitchEnvironmentUseCase,
 } from '@hockpay/core';
 import { AuthController } from './auth.controller';
 
@@ -21,6 +22,7 @@ describe('AuthController', () => {
       { execute: jest.fn() } as unknown as RefreshTokenUseCase,
       {} as LogoutUseCase,
       {} as SwitchStoreUseCase,
+      {} as SwitchEnvironmentUseCase,
     );
 
     const res = response();
@@ -40,6 +42,7 @@ describe('AuthController', () => {
       } as unknown as RefreshTokenUseCase,
       {} as LogoutUseCase,
       {} as SwitchStoreUseCase,
+      {} as SwitchEnvironmentUseCase,
     );
 
     const res = response();

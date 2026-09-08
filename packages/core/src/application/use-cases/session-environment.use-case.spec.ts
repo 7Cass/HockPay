@@ -7,8 +7,11 @@ import { Email } from '../../domain/value-objects/email.vo';
 import { Environment } from '../../domain/value-objects/environment.vo';
 import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { ITransactedRepositories } from '../../domain/repositories/unit-of-work.interface';
+import { NoCurrentStoreError } from '../../domain/errors/no-current-store.error';
+import { StoreLiveNotEnabledError } from '../../domain/errors/store-live-not-enabled.error';
 import { LoginUseCase } from './login.use-case';
 import { RefreshTokenUseCase } from './refresh-token.use-case';
+import { SwitchEnvironmentUseCase } from './switch-environment.use-case';
 import { SwitchStoreUseCase } from './switch-store.use-case';
 
 /**
@@ -98,6 +101,151 @@ describe('session environment', () => {
       '15m',
     );
   });
+
+  describe('switching', () => {
+    it('opens LIVE for an approved store, and revokes the previous session', async () => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', StoreLiveStatus.APPROVED);
+      const merchant = world.addMerchant(store.id, Environment.TEST);
+      world.addRefreshToken(merchant.id, 'test-refresh');
+
+      const result = await world.switchEnvironment().execute({
+        merchantId: merchant.id,
+        environment: Environment.LIVE,
+      });
+
+      expect(result.environment).toBe(Environment.LIVE);
+      expect(world.merchants.get(merchant.id)?.currentEnvironment).toBe(Environment.LIVE);
+      // The old refresh token is gone: a still-valid TEST session after the
+      // switch would read the wrong ledger without anybody having asked.
+      expect(world.refreshTokens.has('test-refresh')).toBe(false);
+    });
+
+    it.each([
+      StoreLiveStatus.NOT_REQUESTED,
+      StoreLiveStatus.PENDING,
+      StoreLiveStatus.REJECTED,
+      StoreLiveStatus.SUSPENDED,
+    ])('refuses LIVE while the store is %s', async (liveStatus) => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', liveStatus);
+      const merchant = world.addMerchant(store.id, Environment.TEST);
+
+      await expect(
+        world.switchEnvironment().execute({
+          merchantId: merchant.id,
+          environment: Environment.LIVE,
+        }),
+      ).rejects.toBeInstanceOf(StoreLiveNotEnabledError);
+
+      expect(world.merchants.get(merchant.id)?.currentEnvironment).toBe(Environment.TEST);
+    });
+
+    it.each([
+      StoreLiveStatus.NOT_REQUESTED,
+      StoreLiveStatus.PENDING,
+      StoreLiveStatus.REJECTED,
+      StoreLiveStatus.SUSPENDED,
+      StoreLiveStatus.APPROVED,
+    ])('never refuses TEST, including while the store is %s', async (liveStatus) => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', liveStatus);
+      const merchant = world.addMerchant(store.id, Environment.LIVE);
+
+      const result = await world.switchEnvironment().execute({
+        merchantId: merchant.id,
+        environment: Environment.TEST,
+      });
+
+      expect(result.environment).toBe(Environment.TEST);
+    });
+
+    it('refuses to switch with no store in the session context', async () => {
+      const world = makeWorld();
+      const merchant = world.addMerchant(undefined, Environment.TEST);
+
+      await expect(
+        world.switchEnvironment().execute({
+          merchantId: merchant.id,
+          environment: Environment.LIVE,
+        }),
+      ).rejects.toBeInstanceOf(NoCurrentStoreError);
+    });
+  });
+
+  describe('degrading', () => {
+    it('demotes a LIVE session to TEST when the desk suspends the store, without failing', async () => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', StoreLiveStatus.SUSPENDED);
+      const merchant = world.addMerchant(store.id, Environment.LIVE);
+      world.addRefreshToken(merchant.id, 'live-refresh');
+
+      const useCase = new RefreshTokenUseCase(
+        world.unitOfWork as never,
+        world.jwtService as never,
+        world.tokenGenerator as never,
+      );
+
+      // Locking the merchant out of their own session is worse than what the
+      // suspension is trying to prevent. They lose LIVE, and keep getting in.
+      await expect(useCase.execute({ refreshToken: 'live-refresh' })).resolves.toMatchObject({
+        expiresIn: 900,
+      });
+
+      expect(world.lastIssuedEnvironment()).toBe(Environment.TEST);
+    });
+
+    it('persists the demotion, so the next refresh does not rediscover it', async () => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', StoreLiveStatus.REJECTED);
+      const merchant = world.addMerchant(store.id, Environment.LIVE);
+      world.addRefreshToken(merchant.id, 'live-refresh');
+
+      await new RefreshTokenUseCase(
+        world.unitOfWork as never,
+        world.jwtService as never,
+        world.tokenGenerator as never,
+      ).execute({ refreshToken: 'live-refresh' });
+
+      expect(world.merchants.get(merchant.id)?.currentEnvironment).toBe(Environment.TEST);
+    });
+
+    it('demotes on login too, because currentEnvironment survives a logout', async () => {
+      const world = makeWorld();
+      const store = world.addStore('store-1', StoreLiveStatus.SUSPENDED);
+      const merchant = world.addMerchant(store.id, Environment.LIVE);
+
+      await new LoginUseCase(
+        world.unitOfWork as never,
+        { verify: vi.fn().mockResolvedValue(true) } as never,
+        world.jwtService as never,
+        world.tokenGenerator as never,
+      ).execute({ email: merchant.email.toString(), password: 'secret' });
+
+      expect(world.lastIssuedEnvironment()).toBe(Environment.TEST);
+      expect(world.merchants.get(merchant.id)?.currentEnvironment).toBe(Environment.TEST);
+    });
+  });
+
+  describe('switching store', () => {
+    it('resets a LIVE session to TEST, even between two approved stores', async () => {
+      const world = makeWorld();
+      const origin = world.addStore('store-1', StoreLiveStatus.APPROVED);
+      const target = world.addStore('store-2', StoreLiveStatus.APPROVED);
+      const merchant = world.addMerchant(origin.id, Environment.LIVE);
+
+      await new SwitchStoreUseCase(
+        world.unitOfWork as never,
+        world.jwtService as never,
+        world.tokenGenerator as never,
+      ).execute({ merchantId: merchant.id, storeId: target.id });
+
+      // Enablement is a fact of the store. Carrying LIVE across would leave the
+      // session in a state the enablement gate was never asked about.
+      expect(world.lastIssuedEnvironment()).toBe(Environment.TEST);
+      expect(world.merchants.get(merchant.id)?.currentEnvironment).toBe(Environment.TEST);
+    });
+  });
 });
 
 /**
@@ -176,7 +324,15 @@ function makeWorld() {
       return store;
     },
 
-    addMerchant(currentStoreId: string, currentEnvironment: Environment): Merchant {
+    switchEnvironment(): SwitchEnvironmentUseCase {
+      return new SwitchEnvironmentUseCase(
+        this.unitOfWork as never,
+        this.jwtService as never,
+        this.tokenGenerator as never,
+      );
+    },
+
+    addMerchant(currentStoreId: string | undefined, currentEnvironment: Environment): Merchant {
       const merchant = Merchant.reconstitute({
         id: 'merchant-1',
         email: new Email('merchant@example.com'),

@@ -5,6 +5,7 @@ import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { resolveSessionEnvironment } from '../services/session-environment';
 
 /**
  * Input DTO for LoginUseCase.
@@ -89,30 +90,40 @@ export class LoginUseCase {
         }
       }
 
-      // 4. Generate access token (15 minutes) with current store if available
+      // 4. Reconfer the LIVE enablement, for the same reason the refresh does:
+      // `currentEnvironment` survives a logout, and the desk may have closed
+      // LIVE in between. Logging back in is not "asking for LIVE".
+      const environment = await resolveSessionEnvironment(repos.storeRepository, lockedMerchant);
+
+      if (environment !== lockedMerchant.currentEnvironment) {
+        lockedMerchant.setCurrentEnvironment(environment);
+        await repos.merchantRepository.update(lockedMerchant);
+      }
+
+      // 5. Generate access token (15 minutes) with current store if available
       const accessToken = await this.jwtService.generateAccessToken(
         lockedMerchant.id,
         lockedMerchant.currentStoreId ?? null,
-        lockedMerchant.currentEnvironment,
+        environment,
         '15m',
       );
 
-      // 5. Generate refresh token string
+      // 6. Generate refresh token string
       const refreshTokenString = this.tokenGenerator.generateBase64(32);
 
-      // 6. Create refresh token entity (7 days expiration - default)
+      // 7. Create refresh token entity (7 days expiration - default)
       const refreshToken = RefreshToken.create({
         token: refreshTokenString,
         merchantId: lockedMerchant.id,
       });
 
-      // 7. Revoke existing refresh tokens for this merchant
+      // 8. Revoke existing refresh tokens for this merchant
       await repos.refreshTokenRepository.revokeAllForMerchant(lockedMerchant.id);
 
-      // 8. Save new refresh token
+      // 9. Save new refresh token
       await repos.refreshTokenRepository.create(refreshToken);
 
-      // 9. Return the output
+      // 10. Return the output
       return {
         accessToken,
         refreshToken: refreshTokenString,

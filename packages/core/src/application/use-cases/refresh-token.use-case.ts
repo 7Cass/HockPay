@@ -5,6 +5,7 @@ import { IJwtServicePort } from '../ports/jwt-service.port';
 import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { RefreshToken } from '../../domain/entities/refresh-token.entity';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
+import { resolveSessionEnvironment } from '../services/session-environment';
 
 /**
  * Input DTO for RefreshTokenUseCase.
@@ -67,31 +68,43 @@ export class RefreshTokenUseCase {
         throw new InvalidRefreshTokenError();
       }
 
-      // 5. Generate new access token with current store if available
+      // 5. Reconfer the LIVE enablement before carrying it into a new token.
+      // A refresh happens every 15 minutes without the merchant asking for
+      // anything, so a stored LIVE would otherwise outlive the approval that
+      // justified it. It demotes rather than failing -- and persists the
+      // demotion, so the next refresh does not have to rediscover it.
+      const environment = await resolveSessionEnvironment(repos.storeRepository, merchant);
+
+      if (environment !== merchant.currentEnvironment) {
+        merchant.setCurrentEnvironment(environment);
+        await repos.merchantRepository.update(merchant);
+      }
+
+      // 6. Generate new access token with current store if available
       const accessToken = await this.jwtService.generateAccessToken(
         merchant.id,
         merchant.currentStoreId ?? null,
-        merchant.currentEnvironment,
+        environment,
         '15m',
       );
 
-      // 6. Generate new refresh token (token rotation)
+      // 7. Generate new refresh token (token rotation)
       const newRefreshTokenString = this.tokenGenerator.generateBase64(32);
 
-      // 7. Revoke all old tokens for this merchant (hard delete)
+      // 8. Revoke all old tokens for this merchant (hard delete)
       // This allows creating a new token with the same merchantId
       await repos.refreshTokenRepository.revokeAllForMerchant(merchant.id);
 
-      // 8. Create new refresh token entity (7 days expiration - default)
+      // 9. Create new refresh token entity (7 days expiration - default)
       const newRefreshToken = RefreshToken.create({
         token: newRefreshTokenString,
         merchantId: merchant.id,
       });
 
-      // 9. Save new refresh token
+      // 10. Save new refresh token
       await repos.refreshTokenRepository.create(newRefreshToken);
 
-      // 10. Return output
+      // 11. Return output
       return {
         accessToken,
         refreshToken: newRefreshTokenString,

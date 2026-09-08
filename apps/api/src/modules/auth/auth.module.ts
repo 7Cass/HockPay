@@ -10,6 +10,7 @@ import {
   RefreshTokenUseCase,
   LogoutUseCase,
   SwitchStoreUseCase,
+  SwitchEnvironmentUseCase,
 } from '@hockpay/core';
 import { RefreshTokenRepository } from '@hockpay/infrastructure';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
@@ -52,12 +53,18 @@ import { provideUseCase } from 'src/common/provide-use-case';
       JwtService,
       TokenGeneratorService,
     ]),
+    provideUseCase(SwitchEnvironmentUseCase, [
+      'IUnitOfWork',
+      JwtService,
+      TokenGeneratorService,
+    ]),
   ],
   exports: [
     LoginUseCase,
     RefreshTokenUseCase,
     LogoutUseCase,
     SwitchStoreUseCase,
+    SwitchEnvironmentUseCase,
     JwtAuthGuard,
     RequireStoreGuard,
   ],

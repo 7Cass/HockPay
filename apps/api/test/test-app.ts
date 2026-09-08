@@ -43,6 +43,7 @@ import {
   OperatorLogoutUseCase,
   OperatorRefreshTokenUseCase,
   SwitchStoreUseCase,
+  SwitchEnvironmentUseCase,
   TOKEN_AUDIENCE,
   ValidateApiKeyUseCase,
 } from '@hockpay/core';
@@ -103,6 +104,7 @@ export type ApiE2eMocks = {
     verifyToken: jest.Mock;
     generateAccessToken: jest.Mock;
   };
+  switchEnvironmentUseCase: { execute: jest.Mock };
   operatorLoginUseCase: { execute: jest.Mock };
   operatorRefreshTokenUseCase: { execute: jest.Mock };
   operatorLogoutUseCase: { execute: jest.Mock };
@@ -224,6 +226,7 @@ export async function createApiE2eTestApp(): Promise<{
         throw new UnauthorizedException('Invalid token');
       }),
     },
+    switchEnvironmentUseCase: { execute: jest.fn() },
     operatorLoginUseCase: { execute: jest.fn() },
     operatorRefreshTokenUseCase: { execute: jest.fn() },
     operatorLogoutUseCase: { execute: jest.fn() },
@@ -334,6 +337,10 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: SwitchStoreUseCase,
         useValue: mocks.switchStoreUseCase,
+      },
+      {
+        provide: SwitchEnvironmentUseCase,
+        useValue: mocks.switchEnvironmentUseCase,
       },
       {
         provide: CreateStoreUseCase,

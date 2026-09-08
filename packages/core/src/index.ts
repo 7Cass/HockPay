@@ -206,6 +206,7 @@ export * from './application/use-cases/list-api-keys.use-case';
 export * from './application/use-cases/revoke-api-key.use-case';
 export * from './application/use-cases/validate-api-key.use-case';
 export * from './application/use-cases/switch-store.use-case';
+export * from './application/use-cases/switch-environment.use-case';
 export * from './application/use-cases/create-store.use-case';
 export * from './application/use-cases/update-store-profile.use-case';
 export * from './application/use-cases/list-stores.use-case';

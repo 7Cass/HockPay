@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   HttpCode,
   HttpStatus,
@@ -16,6 +17,8 @@ import {
   LogoutUseCase,
   SwitchStoreUseCase,
   ISwitchStoreOutput,
+  SwitchEnvironmentUseCase,
+  ISwitchEnvironmentOutput,
   InvalidRefreshTokenError,
   RefreshTokenRevokedError,
   TokenExpiredError,
@@ -25,6 +28,7 @@ import {
   LoginResponseDto,
   RefreshTokenResponseDto,
 } from './dtos/login.dto';
+import { SwitchEnvironmentRequestDto } from './dtos/switch-environment.dto';
 import {
   THROTTLE_LOGIN_LIMIT,
   THROTTLE_TTL_MS,
@@ -43,6 +47,27 @@ const getCookieOptions = () => {
     secure: isProduction,
     sameSite: 'strict' as const,
   };
+};
+
+const setAuthCookies = (
+  response: Response,
+  tokens: { accessToken: string; refreshToken: string },
+) => {
+  const cookieOptions = getCookieOptions();
+
+  // Access token - available on all routes (15 min)
+  response.cookie('hockpay_at', tokens.accessToken, {
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+  });
+
+  // Refresh token - restricted to the refresh route only (7 days)
+  response.cookie('hockpay_rt', tokens.refreshToken, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/api/v1/auth/refresh',
+  });
 };
 
 const clearAuthCookies = (response: Response) => {
@@ -72,6 +97,7 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
     private readonly switchStoreUseCase: SwitchStoreUseCase,
+    private readonly switchEnvironmentUseCase: SwitchEnvironmentUseCase,
   ) {}
 
   /**
@@ -214,21 +240,35 @@ export class AuthController {
       storeId,
     });
 
-    const cookieOptions = getCookieOptions();
+    setAuthCookies(response, result);
 
-    // Access token - available on all routes (15 min)
-    response.cookie('hockpay_at', result.accessToken, {
-      ...cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
+    return result;
+  }
+
+  /**
+   * POST /auth/switch-environment
+   *
+   * Moves the dashboard session between TEST and LIVE.
+   *
+   * Reissuing the pair -- rather than flipping a flag the client sends along --
+   * is what makes the switch invalidate the previous session: a still-valid
+   * TEST token after a switch to LIVE is a session reading the wrong ledger
+   * without anybody having asked. `switch-store` already treats that as an
+   * invariant, and this follows it.
+   */
+  @Post('switch-environment')
+  @HttpCode(HttpStatus.OK)
+  async switchEnvironment(
+    @Body() dto: SwitchEnvironmentRequestDto,
+    @CurrentUser() user: CurrentUserData,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<ISwitchEnvironmentOutput> {
+    const result = await this.switchEnvironmentUseCase.execute({
+      merchantId: user.merchantId,
+      environment: dto.environment,
     });
 
-    // Refresh token - restricted to refresh route only (7 days)
-    response.cookie('hockpay_rt', result.refreshToken, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/v1/auth/refresh',
-    });
+    setAuthCookies(response, result);
 
     return result;
   }

@@ -7,6 +7,7 @@ import { ITokenGeneratorPort } from '../ports/token-generator.port';
 import { ISlugGeneratorPort } from '../ports/slug-generator.port';
 import { IUnitOfWork } from '../../domain/repositories/unit-of-work.interface';
 import { MerchantNotFoundError } from '../../domain/errors/merchant-not-found.error';
+import { Environment } from '../../domain/value-objects/environment.vo';
 
 /**
  * Input DTO for CreateStoreUseCase.
@@ -89,6 +90,11 @@ export class CreateStoreUseCase {
 
       // 5. Update merchant's current store
       merchant.setCurrentStoreId(store.id);
+
+      // A brand new store is never LIVE-enabled, and this changes the current
+      // store just like `switch-store` does. Same reset, same reason.
+      merchant.setCurrentEnvironment(Environment.TEST);
+
       await repos.merchantRepository.update(merchant);
 
       // 6. Revoke old tokens
