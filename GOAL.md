@@ -39,9 +39,11 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Por onde comecar
 
-**P0.3**. Os dois PRDs estao escritos e na `main` (`3f38035` e o commit seguinte), entao o codigo pode comecar. A ordem esta em [PRD_OPERATOR_DESK.md](docs/PRD_OPERATOR_DESK.md#ordem-de-implementacao): condicao comercial (PR 1), leitura (PR 2), tela (PR 3).
+**P1.1**, a tela. Todo o P0 esta fechado: os dois PRDs estao na `main`, e a condicao comercial e a leitura cross-merchant estao na branch `feat/operator-commercial-terms`. A mesa agora tem tres poderes e leitura, e nada disso tem tela -- que e exatamente o estado que o PRD pai chama de "trilha que so existe no banco nao e trilha, e log".
 
-Antes de implementar, leia os dois PRDs desta goal. Eles ja fizeram o levantamento e ja decidiram -- inclusive as coisas que encolheram o trabalho: a fatia 4 **nao tem migration** (os tres campos ja existem no schema) e a fatia 5 **nao tem use case de leitura novo** (as seis leituras ja sao store-scoped por parametro).
+A ordem da tela esta em [PRD_OPERATOR_DESK.md](docs/PRD_OPERATOR_DESK.md#pr-3----a-tela): guard e layout proprios primeiro, depois fila, condicao, trilha e investigacao.
+
+A outra trilha (`P1.6`-`P1.9`, o seletor de ambiente) e independente e pode comecar em paralelo -- ver [PRD_ENVIRONMENT_SELECTOR.md](docs/PRD_ENVIRONMENT_SELECTOR.md#ordem-de-implementacao).
 
 ## P0 - Escrever os PRDs antes do codigo
 
@@ -73,7 +75,7 @@ O que os dois PRDs decidiram, e que as subtasks abaixo passam a implementar:
 
 ## P0 - Condicao comercial, auditada (fatia 4)
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: `feePercent`, `feeFixed` e `settlementDays` nascem com default e nunca mudam -- nao existe caminho de escrita. O PRD pai lista "ajustar taxa e prazo" como poder da mesa.
 
@@ -86,19 +88,21 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P0.3 Os tres campos viram mutaveis na entidade, por metodo com regra -- nao por setter solto, como `liveStatus` fez.
-- [ ] P0.4 `POST /operator/stores/:id/commercial-terms` com `reason` obrigatorio, validado no use case.
-- [ ] P0.5 Acao nova na trilha, com `before`/`after` dos tres valores.
+- [x] P0.3 Os tres campos viram mutaveis na entidade, por metodo com regra -- nao por setter solto, como `liveStatus` fez. `Store.updateCommercialTerms` move os tres juntos; nao existe mudanca parcial.
+- [x] P0.4 `POST /operator/stores/:id/commercial-terms` com `reason` obrigatorio, validado no use case.
+- [x] P0.5 Acao nova na trilha (`store.commercial_terms_changed`), com `before`/`after` dos tres valores.
 
 Done Criteria:
 
-- [ ] Mudanca de taxa nao altera o `fee` de nenhum `Payment` ja gravado, provado por teste.
-- [ ] Nao existe mudanca de condicao comercial sem linha correspondente na trilha.
-- [ ] Valor fora de faixa e recusado pelo dominio, com code no catalogo.
+- [x] Mudanca de taxa nao altera o `fee` de nenhum `Payment` ja gravado, provado por teste -- e o teste usa o `FeePolicy` e o `Store` reais, nao mocks concordando entre si.
+- [x] Nao existe mudanca de condicao comercial sem linha correspondente na trilha.
+- [x] Valor fora de faixa e recusado pelo dominio, com `INVALID_COMMERCIAL_TERMS` no catalogo.
+
+Achado: nao houve migration. Os tres campos ja existiam no schema com default e o `StoreRepository.update` ja os persistia; `GET /stores` ja devolvia os tres, entao o lojista nunca deixou de ver o que paga.
 
 ## P0 - Leitura para investigar chamado (fatia 5)
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: o operador nao le dado de loja nenhuma. Investigar um chamado e impossivel pela superficie da mesa.
 
@@ -111,15 +115,15 @@ Evidencia:
 
 Subtasks:
 
-- [ ] P0.6 Rotas de operador para payments, ledger, transacoes, timeline e entregas de webhook de uma loja escolhida.
-- [ ] P0.7 Teste de varredura que prova que nenhuma rota de leitura de operador devolve secret de webhook ou chave de API.
-- [ ] P0.8 `store.investigated` na trilha, gravado pelo `GET /operator/stores/:id`. As sub-leituras ficam puras -- decidido em P0.1 (D11), depois de pesar volume contra "quem viu o que".
+- [x] P0.6 Rotas de operador para payments, ledger, transacoes, timeline e entregas de webhook de uma loja escolhida, em `OperatorStoreReadController`. Reusam os use cases do merchant; nenhum use case de leitura novo.
+- [x] P0.7 `operator-read-no-secrets.spec.ts`: varredura por reflexao que prova que nenhuma rota de leitura de operador devolve secret de webhook ou chave de API.
+- [x] P0.8 `store.investigated` na trilha, gravado pelo `GET /operator/stores/:id`. As sub-leituras ficam puras -- decidido em P0.1 (D11), depois de pesar volume contra "quem viu o que".
 
 Done Criteria:
 
-- [ ] Operador investiga um pagamento de qualquer loja sem tocar em credencial.
-- [ ] A varredura falha se uma rota futura devolver secret -- verificado por teste, nao por revisao.
-- [ ] Nenhuma rota de leitura de operador aceita token de merchant, e vice-versa.
+- [x] Operador investiga um pagamento de qualquer loja sem tocar em credencial.
+- [x] A varredura falha se uma rota futura devolver secret -- verificado invertendo `toPublicObject()` para `toObject()` de proposito: ela falha na rota certa, apontando o campo.
+- [x] Nenhuma rota de leitura de operador aceita token de merchant, e vice-versa -- e2e cobre as sete rotas com cookie de merchant e com API key.
 
 ## P1 - A mesa ganha tela
 
@@ -196,16 +200,19 @@ Subtasks:
 
 ## Validation Log For This Goal
 
-- [ ] `pnpm --filter @hockpay/core test:ci`
-- [ ] `pnpm --filter @hockpay/infrastructure test`
-- [ ] `pnpm --filter @hockpay/api test`
-- [ ] `pnpm --filter @hockpay/api test:e2e`
-- [ ] `pnpm --filter @hockpay/worker test`
-- [ ] `pnpm --filter @hockpay/web test -- --watch=false`
-- [ ] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
-- [ ] `smoke:docker` completo
-- [ ] Fluxo de operador exercitado na tela, ponta a ponta
-- [ ] Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers
+Rodado em `2026-09-07`, com o P0 fechado:
+
+- [x] `pnpm --filter @hockpay/core test:ci` (318, era 291)
+- [x] `pnpm --filter @hockpay/infrastructure test` (79)
+- [x] `pnpm --filter @hockpay/api test` (185, era 169)
+- [x] `pnpm --filter @hockpay/api test:e2e` (30, era 22)
+- [x] `pnpm --filter @hockpay/worker test` (33)
+- [ ] `pnpm --filter @hockpay/web test -- --watch=false` -- nada de web foi tocado no P0; roda quando `P1.1` comecar
+- [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
+- [ ] `smoke:docker` completo -- pendente; o P0 nao mudou nenhum caminho de smoke
+- [ ] Fluxo de operador exercitado na tela, ponta a ponta -- depende de `P1.1`
+- [ ] Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers -- depende de `P1.6`-`P1.8`
+- [ ] Ciclo de condicao comercial e de investigacao rodado contra o Postgres de dev com os repositorios reais, como a fatia 3 fez -- os unit tests mockam `findByIdForUpdate`
 
 ## Fora desta goal
 

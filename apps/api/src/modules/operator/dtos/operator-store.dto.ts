@@ -1,4 +1,11 @@
-import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { StoreLiveStatus } from '@hockpay/core';
 
 /**
@@ -27,4 +34,30 @@ export class OperatorStoreDto {
   liveStatusReason?: string;
   liveStatusChangedAt?: Date;
   createdAt!: Date;
+}
+
+/**
+ * The desk's commercial condition for a store.
+ *
+ * The three fields are required together: there is no partial update, because
+ * a before/after that only carries the changed field makes whoever reads the
+ * trail reconstruct the rest from older lines.
+ *
+ * Shape is validated here; the accepted range lives in the `Store` entity, so
+ * a direct HTTP client cannot reach an out-of-range value by skipping this DTO.
+ */
+export class UpdateCommercialTermsDto {
+  @IsNumber()
+  feePercent!: number;
+
+  @IsInt()
+  feeFixed!: number;
+
+  @IsInt()
+  settlementDays!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
 }
