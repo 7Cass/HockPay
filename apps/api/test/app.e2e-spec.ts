@@ -115,13 +115,17 @@ describe('API HTTP boundary (e2e)', () => {
       ]),
     );
 
+    // Deliberately WITHOUT `hockpay_rt`: that cookie is scoped to
+    // `/api/v1/auth/refresh`, so a browser never sends it here. The previous
+    // version of this test set it by hand and proved only that the controller
+    // could read a cookie it never receives in production.
     const logout = await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .set('Cookie', 'hockpay_rt=refresh-token-2')
+      .set('Cookie', 'hockpay_at=valid-access-token')
       .expect(204);
 
     expect(mocks.logoutUseCase.execute).toHaveBeenCalledWith({
-      refreshToken: 'refresh-token-2',
+      merchantId: 'merchant-1',
     });
     expect(setCookies(logout)).toEqual(
       expect.arrayContaining([
@@ -129,6 +133,17 @@ describe('API HTTP boundary (e2e)', () => {
         expect.stringContaining('hockpay_rt='),
       ]),
     );
+  });
+
+  it('refuses logout without a session, and revokes nothing', async () => {
+    // Logout revokes by principal, so it needs one. A refresh cookie alone is
+    // not a session -- and it does not reach this route anyway.
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Cookie', 'hockpay_rt=refresh-token-2')
+      .expect(401);
+
+    expect(mocks.logoutUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('GET /api/v1/stores requires a JWT cookie and lists stores', async () => {

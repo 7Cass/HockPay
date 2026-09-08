@@ -179,6 +179,7 @@ Existem dois principais, e eles nao se cruzam:
 - `@OperatorRoute()` tira a rota do guard global de merchant e instala o `OperatorAuthGuard` na mesma marca; um teste de varredura falha se um controller do modulo sair dessa forma.
 - Nao existe elevacao de merchant para operador nem impersonacao. Operador se cria por `pnpm operator:create` (senha por prompt/stdin), nunca por cadastro publico ou seed automatico.
 - Cookies do operador tem paths proprios: `hockpay_op_at` em `/api/v1/operator` e `hockpay_op_rt` em `/api/v1/operator/auth/refresh`. Por isso o logout revoga a sessao pelo operador autenticado, nao pelo cookie de refresh (que nao chega naquela rota).
+- **Logout revoga por principal nos dois lados, e as duas rotas sao autenticadas.** `hockpay_rt` tambem tem path proprio (`/api/v1/auth/refresh`) e nunca chega em `/api/v1/auth/logout`, entao um logout que lesse esse cookie leria `undefined` e nao revogaria nada -- respondendo `204` com a sessao viva no banco. Corrigido em `2026-09-08`, no molde do lado do operador.
 - Trilha de auditoria (`operator_audit_logs`) e append-only: a porta nao tem update nem delete, e o repositorio so existe dentro do `UnitOfWork`, entao a linha e escrita na mesma transacao da mudanca que descreve. Hoje registra sete acoes, todas com `requestId`: `operator.login`, `operator.logout`, `store.live_approved|rejected|suspended`, `store.commercial_terms_changed` e `store.investigated`. As tres primeiras de loja e a de condicao comercial carregam `before`/`after` e o motivo. Sem retencao ou purga.
 
 ## Idempotencia

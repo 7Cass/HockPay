@@ -203,20 +203,24 @@ export class AuthController {
    *
    * Logs out the current merchant by revoking their refresh token.
    * Clears both access token and refresh token cookies.
+   *
+   * Authenticated, and that is the fix rather than an incidental tightening:
+   * it revokes by the principal in the access token. The refresh cookie is
+   * scoped to `/api/v1/auth/refresh` and never arrives here, so reading it --
+   * which is what this route used to do -- revoked nothing while answering
+   * `204`. `/operator/auth/logout` was corrected the same way in `2026-09-06`.
+   *
+   * An expired access token is not a dead end: the dashboard's interceptor
+   * refreshes on `401` and retries, and a session too dead to refresh has no
+   * live token left to revoke.
    */
   @Post('logout')
-  @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
-    @Req() request: Request,
+    @CurrentUser() user: CurrentUserData,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
-    // Get refresh token from cookie only
-    const refreshToken = request.cookies?.hockpay_rt;
-
-    if (refreshToken) {
-      await this.logoutUseCase.execute({ refreshToken });
-    }
+    await this.logoutUseCase.execute({ merchantId: user.merchantId });
 
     clearAuthCookies(response);
   }

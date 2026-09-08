@@ -56,11 +56,14 @@ Total nas paginacoes da fila e da trilha (e o `Pagination` que depende dele), va
 - **A favor:** barato, e a mesa e a superficie mais nova do produto -- e onde o atrito ainda nao foi gasto por uso.
 - **Contra:** nenhum item sozinho justifica uma passagem, e nenhum deles muda invariante.
 
+## Corrigidos fora de passagem
+
+- **Logout de merchant nao revogava o refresh token no banco** -- corrigido em `2026-09-08`. Era pior do que o registro dizia: o `LogoutUseCase` nunca era chamado, porque `hockpay_rt` tem path `/api/v1/auth/refresh` e o browser nao o manda para `/api/v1/auth/logout`. A rota respondia `204` e a sessao seguia viva por sete dias. Passou a revogar pelo principal autenticado, como o lado do operador ja fazia desde `2026-09-06`.
+
 ## Achados abertos, sem dono
 
 - **Loja suspensa continua sacando em LIVE.** Ate 15 minutos depois da suspensao, que e o TTL do access token. Ver a opcao A; enquanto ela nao acontece, esta escrito como defeito conhecido no `CURRENT_STATE`.
 - **A decisao da mesa nao revoga a sessao do lojista.** `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem rebaixa e o proximo login ou refresh.
-- **Logout de merchant nao revoga o refresh token no banco.** `hockpay_rt` vive em `/api/v1/auth/refresh` e nunca chega na rota de logout -- a mesma forma do bug de operador corrigido em `2026-09-06`. Registrado desde entao, sem correcao.
 - **`?limit=abc` vira `NaN`** na fila e na trilha, as duas rotas de operador que fazem parse de paginacao a mao.
 - **Ambiente e por sessao, e nao por aba.** O cookie e do browser inteiro; abas ja renderizadas seguem mostrando o ambiente anterior ate recarregarem.
 - **Nenhum teste cobre texto de tela.** Ja aconteceu duas vezes: `financials.html` na fatia 2, e a descricao do saldo na fatia 3. As duas foram achadas por inspecao, uma passagem depois de virarem mentira.
