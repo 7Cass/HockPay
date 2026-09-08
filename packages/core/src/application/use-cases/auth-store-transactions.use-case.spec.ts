@@ -336,6 +336,7 @@ function cloneMerchant(merchant: Merchant): Merchant {
     name: merchant.name,
     isActive: merchant.isActive,
     currentStoreId: merchant.currentStoreId,
+    currentEnvironment: merchant.currentEnvironment,
     createdAt: merchant.createdAt,
     updatedAt: merchant.updatedAt,
   });

@@ -130,32 +130,33 @@ enum WebhookDeliveryStatus {
 // ============================================================================
 
 model Merchant {
-  id              String         @id @default(uuid())
-  email           String         @unique
-  passwordHash    String         @map("password_hash")
-  name            String
-  document        String         @unique
-  isActive        Boolean        @default(true) @map("is_active")
-  currentStoreId  String?        @map("current_store_id")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  id                 String      @id @default(uuid())
+  email              String      @unique
+  passwordHash       String      @map("password_hash")
+  name               String
+  document           String      @unique
+  isActive           Boolean     @default(true) @map("is_active")
+  currentStoreId     String?     @map("current_store_id")
+  currentEnvironment Environment @default(TEST) @map("current_environment")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
 
-  stores          Store[]
-  refreshTokens   RefreshToken[]
+  stores        Store[]
+  refreshTokens RefreshToken[]
 
   @@map("merchants")
 }
 
 model RefreshToken {
-  id          String      @id @default(uuid())
-  token       String      @unique
-  merchantId  String      @unique @map("merchant_id")
-  expiresAt   DateTime    @map("expires_at")
-  revokedAt   DateTime?   @map("revoked_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id         String    @id @default(uuid())
+  token      String    @unique
+  merchantId String    @unique @map("merchant_id")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
-  merchant    Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
@@ -165,55 +166,55 @@ model RefreshToken {
 // ============================================================================
 
 model Store {
-  id              String            @id @default(uuid())
-  merchantId      String            @map("merchant_id")
-  name            String
-  slug            String            @unique
-  isActive        Boolean           @default(true) @map("is_active")
-  liveStatus      StoreLiveStatus   @default(NOT_REQUESTED) @map("live_status")
-  liveStatusReason String?          @map("live_status_reason")
-  liveStatusChangedAt DateTime?     @map("live_status_changed_at")
-  settlementDays  Int               @default(30) @map("settlement_days")
-  feePercent      Decimal           @default(1.5) @map("fee_percent") @db.Decimal(5, 2)
-  feeFixed        Int               @default(15) @map("fee_fixed")
-  city            String?
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  id                  String          @id @default(uuid())
+  merchantId          String          @map("merchant_id")
+  name                String
+  slug                String          @unique
+  isActive            Boolean         @default(true) @map("is_active")
+  liveStatus          StoreLiveStatus @default(NOT_REQUESTED) @map("live_status")
+  liveStatusReason    String?         @map("live_status_reason")
+  liveStatusChangedAt DateTime?       @map("live_status_changed_at")
+  settlementDays      Int             @default(30) @map("settlement_days")
+  feePercent          Decimal         @default(1.5) @map("fee_percent") @db.Decimal(5, 2)
+  feeFixed            Int             @default(15) @map("fee_fixed")
+  city                String?
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
-  merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  accounts        Account[]
-  apiKeys         ApiKey[]
-  bankAccounts    BankAccount[]
-  customers       Customer[]
-  products        Product[]
-  payments        Payment[]
-  pixCharges      PixCharge[]
-  checkoutSessions CheckoutSession[]
-  paymentLinks    PaymentLink[]
-  webhookConfigs  WebhookConfig[]
+  merchant           Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  accounts           Account[]
+  apiKeys            ApiKey[]
+  bankAccounts       BankAccount[]
+  customers          Customer[]
+  products           Product[]
+  payments           Payment[]
+  pixCharges         PixCharge[]
+  checkoutSessions   CheckoutSession[]
+  paymentLinks       PaymentLink[]
+  webhookConfigs     WebhookConfig[]
   webhookInboxEvents WebhookInboxEvent[]
-  alertConfigs    AlertConfig[]
-  idempotencyKeys IdempotencyKey[]
-  receipts        Receipt[]
-  receiptCounters ReceiptCounter[]
+  alertConfigs       AlertConfig[]
+  idempotencyKeys    IdempotencyKey[]
+  receipts           Receipt[]
+  receiptCounters    ReceiptCounter[]
 
   @@map("stores")
 }
 
 model BankAccount {
-  id              String        @id @default(uuid())
-  storeId         String        @map("store_id")
-  pixKey          String        @map("pix_key")
-  pixKeyType      PixKeyType    @map("pix_key_type")
-  holderName      String        @map("holder_name")
-  holderDocument  String        @map("holder_document")
-  isDefault       Boolean       @default(false) @map("is_default")
-  isVerified      Boolean       @default(false) @map("is_verified")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id             String     @id @default(uuid())
+  storeId        String     @map("store_id")
+  pixKey         String     @map("pix_key")
+  pixKeyType     PixKeyType @map("pix_key_type")
+  holderName     String     @map("holder_name")
+  holderDocument String     @map("holder_document")
+  isDefault      Boolean    @default(false) @map("is_default")
+  isVerified     Boolean    @default(false) @map("is_verified")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  withdrawals     Withdrawal[]
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  withdrawals Withdrawal[]
 
   @@map("bank_accounts")
 }
@@ -222,18 +223,18 @@ model BankAccount {
 // saldo LIVE, e isso e garantido pelo unique -- nao por disciplina de quem
 // escreve a query.
 model Account {
-  id            String        @id @default(uuid())
-  storeId       String        @map("store_id")
-  environment   Environment   @default(TEST)
-  available     Int           @default(0)
-  pending       Int           @default(0)
-  blocked       Int           @default(0)
-  currency      String        @default("BRL")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id          String      @id @default(uuid())
+  storeId     String      @map("store_id")
+  environment Environment @default(TEST)
+  available   Int         @default(0)
+  pending     Int         @default(0)
+  blocked     Int         @default(0)
+  currency    String      @default("BRL")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
-  withdrawals   Withdrawal[]
+  store        Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  withdrawals  Withdrawal[]
 
   @@unique([storeId, environment])
   @@map("accounts")
@@ -253,31 +254,31 @@ model Transaction {
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
-  account       Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
 }
 
 model Withdrawal {
-  id              String              @id @default(uuid())
-  accountId       String              @map("account_id")
-  bankAccountId   String              @map("bank_account_id")
-  amount          Int
-  fee             Int                 @default(0)
-  netAmount       Int                 @map("net_amount")
-  environment     Environment         @default(TEST)
-  status          WithdrawalStatus
-  pixE2eId        String?             @map("pix_e2e_id")
-  paidAt          DateTime?           @map("paid_at")
-  failedReason    String?             @map("failed_reason")
-  processingAttempts Int              @default(0) @map("processing_attempts")
-  nextProcessAt   DateTime?           @map("next_process_at")
-  lastProcessingError String?         @map("last_processing_error") @db.Text
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  id                  String           @id @default(uuid())
+  accountId           String           @map("account_id")
+  bankAccountId       String           @map("bank_account_id")
+  amount              Int
+  fee                 Int              @default(0)
+  netAmount           Int              @map("net_amount")
+  environment         Environment      @default(TEST)
+  status              WithdrawalStatus
+  pixE2eId            String?          @map("pix_e2e_id")
+  paidAt              DateTime?        @map("paid_at")
+  failedReason        String?          @map("failed_reason")
+  processingAttempts  Int              @default(0) @map("processing_attempts")
+  nextProcessAt       DateTime?        @map("next_process_at")
+  lastProcessingError String?          @map("last_processing_error") @db.Text
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
 
-  account         Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  bankAccount     BankAccount         @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
 
   @@index([accountId, status, createdAt])
   @@index([bankAccountId])
@@ -292,26 +293,26 @@ model Withdrawal {
 // ============================================================================
 
 model Customer {
-  id          String      @id @default(uuid())
-  storeId     String      @map("store_id")
-  externalId  String?     @map("external_id")
-  name        String?
-  email       String?
-  document    String
-  phone       String?
-  street      String?     @map("street")
-  number      String?     @map("number")
-  complement  String?     @map("complement")
-  city        String?     @map("city")
-  state       String?     @map("state")
-  zipCode     String?     @map("zip_code")
-  country     String?     @default("BR") @map("country")
-  metadata    Json?
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  storeId    String   @map("store_id")
+  externalId String?  @map("external_id")
+  name       String?
+  email      String?
+  document   String
+  phone      String?
+  street     String?  @map("street")
+  number     String?  @map("number")
+  complement String?  @map("complement")
+  city       String?  @map("city")
+  state      String?  @map("state")
+  zipCode    String?  @map("zip_code")
+  country    String?  @default("BR") @map("country")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  payments    Payment[]
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payments Payment[]
 
   @@unique([storeId, document])
   @@unique([storeId, externalId])
@@ -319,22 +320,22 @@ model Customer {
 }
 
 model Product {
-  id          String        @id @default(uuid())
-  storeId     String        @map("store_id")
-  externalId  String?       @map("external_id")
+  id          String      @id @default(uuid())
+  storeId     String      @map("store_id")
+  externalId  String?     @map("external_id")
   name        String
   description String?
   price       Int
-  currency    String        @default("BRL")
-  imageUrl    String?       @map("image_url")
+  currency    String      @default("BRL")
+  imageUrl    String?     @map("image_url")
   metadata    Json?
-  environment Environment   @default(TEST)
-  isActive    Boolean       @default(true) @map("is_active")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  environment Environment @default(TEST)
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  paymentItems  PaymentItem[]
+  store                Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  paymentItems         PaymentItem[]
   checkoutSessionItems CheckoutSessionItem[]
   paymentLinkItems     PaymentLinkItem[]
 
@@ -345,22 +346,22 @@ model Product {
 }
 
 model PaymentItem {
-  id                String    @id @default(uuid())
-  paymentId         String    @map("payment_id")
-  productId         String?   @map("product_id")
-  productExternalId String?   @map("product_external_id")
+  id                String   @id @default(uuid())
+  paymentId         String   @map("payment_id")
+  productId         String?  @map("product_id")
+  productExternalId String?  @map("product_external_id")
   name              String
   description       String?
-  quantity          Int       @default(1)
-  unitPrice         Int       @map("unit_price")
-  totalPrice        Int       @map("total_price")
-  imageUrl          String?   @map("image_url")
+  quantity          Int      @default(1)
+  unitPrice         Int      @map("unit_price")
+  totalPrice        Int      @map("total_price")
+  imageUrl          String?  @map("image_url")
   metadata          Json?
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  payment           Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  product           Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  payment Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([paymentId])
   @@index([productId])
@@ -372,41 +373,41 @@ model PaymentItem {
 // ============================================================================
 
 model Payment {
-  id            String          @id @default(uuid())
-  storeId       String          @map("store_id")
-  customerId    String?         @map("customer_id")
-  pixChargeId   String?         @map("pix_charge_id")
-  externalId    String?         @map("external_id")
-  amount        Int
-  fee           Int
-  netAmount     Int             @map("net_amount")
-  currency      String          @default("BRL")
-  description   String?
-  payerName     String?         @map("payer_name")
-  payerDocument String?         @map("payer_document")
-  payerEmail    String?         @map("payer_email")
-  status        PaymentStatus
-  environment   Environment     @default(TEST)
-  paymentMethod PaymentMethod   @default(PIX) @map("payment_method")
-  paymentDetails Json?          @map("payment_details")
-  acquirerId    String?         @map("acquirer_id")
-  totalRefunded Int             @default(0) @map("total_refunded")
-  expiresAt     DateTime        @map("expires_at")
-  paidAt        DateTime?       @map("paid_at")
-  releasedAt    DateTime?       @map("released_at")
-  failedReason  String?         @map("failed_reason")
-  metadata      Json?
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id             String        @id @default(uuid())
+  storeId        String        @map("store_id")
+  customerId     String?       @map("customer_id")
+  pixChargeId    String?       @map("pix_charge_id")
+  externalId     String?       @map("external_id")
+  amount         Int
+  fee            Int
+  netAmount      Int           @map("net_amount")
+  currency       String        @default("BRL")
+  description    String?
+  payerName      String?       @map("payer_name")
+  payerDocument  String?       @map("payer_document")
+  payerEmail     String?       @map("payer_email")
+  status         PaymentStatus
+  environment    Environment   @default(TEST)
+  paymentMethod  PaymentMethod @default(PIX) @map("payment_method")
+  paymentDetails Json?         @map("payment_details")
+  acquirerId     String?       @map("acquirer_id")
+  totalRefunded  Int           @default(0) @map("total_refunded")
+  expiresAt      DateTime      @map("expires_at")
+  paidAt         DateTime?     @map("paid_at")
+  releasedAt     DateTime?     @map("released_at")
+  failedReason   String?       @map("failed_reason")
+  metadata       Json?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customer      Customer?       @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  pixCharge     PixCharge?      @relation(fields: [pixChargeId], references: [id], onDelete: SetNull)
-  checkoutSession CheckoutSession?
-  items         PaymentItem[]
-  refunds       Refund[]
-  receipt       Receipt?
-  webhookLogs   WebhookLog[]
+  store              Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer           Customer?           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  pixCharge          PixCharge?          @relation(fields: [pixChargeId], references: [id], onDelete: SetNull)
+  checkoutSession    CheckoutSession?
+  items              PaymentItem[]
+  refunds            Refund[]
+  receipt            Receipt?
+  webhookLogs        WebhookLog[]
   webhookInboxEvents WebhookInboxEvent[]
 
   @@unique([storeId, environment, externalId])
@@ -423,23 +424,23 @@ model Payment {
 }
 
 model PixCharge {
-  id            String          @id @default(uuid())
-  storeId       String          @map("store_id")
-  amount        Int
-  currency      String          @default("BRL")
-  status        PixChargeStatus @default(OPEN)
-  pixQrCode     String          @map("pix_qr_code")
-  pixCopyPaste  String          @map("pix_copy_paste") @db.Text
-  pixTxId       String          @unique @map("pix_tx_id")
-  expiresAt     DateTime?       @map("expires_at")
-  paidAt        DateTime?       @map("paid_at")
-  cancelledAt   DateTime?       @map("cancelled_at")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id           String          @id @default(uuid())
+  storeId      String          @map("store_id")
+  amount       Int
+  currency     String          @default("BRL")
+  status       PixChargeStatus @default(OPEN)
+  pixQrCode    String          @map("pix_qr_code")
+  pixCopyPaste String          @map("pix_copy_paste") @db.Text
+  pixTxId      String          @unique @map("pix_tx_id")
+  expiresAt    DateTime?       @map("expires_at")
+  paidAt       DateTime?       @map("paid_at")
+  cancelledAt  DateTime?       @map("cancelled_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
 
-  store         Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  payments      Payment[]
-  paymentLink   PaymentLink?
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+  paymentLink PaymentLink?
 
   @@index([storeId, status])
   @@index([expiresAt])
@@ -451,48 +452,48 @@ model PixCharge {
 // ============================================================================
 
 model CheckoutSession {
-  id              String         @id @default(uuid())
-  storeId         String         @map("store_id")
-  amount          Int
-  currency        String         @default("BRL")
-  environment     Environment    @default(TEST)
-  description     String?
+  id                     String                 @id @default(uuid())
+  storeId                String                 @map("store_id")
+  amount                 Int
+  currency               String                 @default("BRL")
+  environment            Environment            @default(TEST)
+  description            String?
   customerCollectionMode CustomerCollectionMode @default(IDENTIFIED) @map("customer_collection_mode")
-  prefillCustomer Json?          @map("prefill_customer")
-  paymentId       String?        @unique @map("payment_id")
-  checkoutToken   String         @unique @map("checkout_token")
-  status          SessionStatus  @default(OPEN)
-  expiresAt       DateTime       @map("expires_at")
-  successUrl      String?        @map("success_url")
-  cancelUrl       String?        @map("cancel_url")
-  metadata        Json?
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  prefillCustomer        Json?                  @map("prefill_customer")
+  paymentId              String?                @unique @map("payment_id")
+  checkoutToken          String                 @unique @map("checkout_token")
+  status                 SessionStatus          @default(OPEN)
+  expiresAt              DateTime               @map("expires_at")
+  successUrl             String?                @map("success_url")
+  cancelUrl              String?                @map("cancel_url")
+  metadata               Json?
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
 
-  store           Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  payment         Payment?       @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  items           CheckoutSessionItem[]
+  store   Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payment Payment?              @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  items   CheckoutSessionItem[]
 
   @@map("checkout_sessions")
 }
 
 model CheckoutSessionItem {
-  id                String          @id @default(uuid())
-  checkoutSessionId String          @map("checkout_session_id")
-  productId         String?         @map("product_id")
-  productExternalId String?         @map("product_external_id")
+  id                String   @id @default(uuid())
+  checkoutSessionId String   @map("checkout_session_id")
+  productId         String?  @map("product_id")
+  productExternalId String?  @map("product_external_id")
   name              String
   description       String?
-  quantity          Int             @default(1)
-  unitPrice         Int             @map("unit_price")
-  totalPrice        Int             @map("total_price")
-  imageUrl          String?         @map("image_url")
+  quantity          Int      @default(1)
+  unitPrice         Int      @map("unit_price")
+  totalPrice        Int      @map("total_price")
+  imageUrl          String?  @map("image_url")
   metadata          Json?
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  checkoutSession   CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
-  product           Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  checkoutSession CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
+  product         Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([checkoutSessionId])
   @@index([productId])
@@ -500,25 +501,25 @@ model CheckoutSessionItem {
 }
 
 model PaymentLink {
-  id                String          @id @default(uuid())
-  storeId           String          @map("store_id")
-  pixChargeId       String          @unique @map("pix_charge_id")
-  publicToken       String          @unique @map("public_token")
+  id                String      @id @default(uuid())
+  storeId           String      @map("store_id")
+  pixChargeId       String      @unique @map("pix_charge_id")
+  publicToken       String      @unique @map("public_token")
   amount            Int
-  currency          String          @default("BRL")
-  environment       Environment     @default(TEST)
+  currency          String      @default("BRL")
+  environment       Environment @default(TEST)
   title             String?
   description       String?
-  internalReference String?         @map("internal_reference")
-  expiresAt         DateTime?       @map("expires_at")
-  openedAt          DateTime?       @map("opened_at")
-  cancelledAt       DateTime?       @map("cancelled_at")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  internalReference String?     @map("internal_reference")
+  expiresAt         DateTime?   @map("expires_at")
+  openedAt          DateTime?   @map("opened_at")
+  cancelledAt       DateTime?   @map("cancelled_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  store             Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  pixCharge         PixCharge       @relation(fields: [pixChargeId], references: [id], onDelete: Restrict)
-  items             PaymentLinkItem[]
+  store     Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  pixCharge PixCharge         @relation(fields: [pixChargeId], references: [id], onDelete: Restrict)
+  items     PaymentLinkItem[]
 
   @@index([storeId, createdAt(sort: Desc)])
   @@index([storeId, openedAt])
@@ -531,22 +532,22 @@ model PaymentLink {
 // preco e imagem daquele instante e nao acompanha edicoes posteriores do
 // produto -- mesma regra de CheckoutSessionItem.
 model PaymentLinkItem {
-  id                String          @id @default(uuid())
-  paymentLinkId     String          @map("payment_link_id")
-  productId         String?         @map("product_id")
-  productExternalId String?         @map("product_external_id")
+  id                String   @id @default(uuid())
+  paymentLinkId     String   @map("payment_link_id")
+  productId         String?  @map("product_id")
+  productExternalId String?  @map("product_external_id")
   name              String
   description       String?
-  quantity          Int             @default(1)
-  unitPrice         Int             @map("unit_price")
-  totalPrice        Int             @map("total_price")
-  imageUrl          String?         @map("image_url")
+  quantity          Int      @default(1)
+  unitPrice         Int      @map("unit_price")
+  totalPrice        Int      @map("total_price")
+  imageUrl          String?  @map("image_url")
   metadata          Json?
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  paymentLink       PaymentLink     @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
-  product           Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  product     Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([paymentLinkId])
   @@index([productId])
@@ -558,16 +559,16 @@ model PaymentLinkItem {
 // ============================================================================
 
 model Refund {
-  id           String        @id @default(uuid())
-  paymentId    String        @map("payment_id")
-  amount       Int
-  feeRefunded  Int           @default(0) @map("fee_refunded")
-  reason       String?
-  status       RefundStatus
-  processedAt  DateTime?     @map("processed_at")
-  createdAt    DateTime      @default(now()) @map("created_at")
+  id          String       @id @default(uuid())
+  paymentId   String       @map("payment_id")
+  amount      Int
+  feeRefunded Int          @default(0) @map("fee_refunded")
+  reason      String?
+  status      RefundStatus
+  processedAt DateTime?    @map("processed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  payment      Payment       @relation(fields: [paymentId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
 
   @@index([paymentId])
   @@map("refunds")
@@ -578,17 +579,17 @@ model Refund {
 // ============================================================================
 
 model WebhookConfig {
-  id          String        @id @default(uuid())
-  storeId     String        @map("store_id")
-  url         String
-  secret      String        // Encrypted with AES-256-GCM
-  prefix      String        // First 12 chars of secret for identification (whsec_xxx...)
-  events      String[]
-  isActive    Boolean       @default(true) @map("is_active")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  storeId   String   @map("store_id")
+  url       String
+  secret    String // Encrypted with AES-256-GCM
+  prefix    String // First 12 chars of secret for identification (whsec_xxx...)
+  events    String[]
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  store       Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store       Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
   webhookLogs WebhookLog[]
   inboxEvents WebhookInboxEvent[]
 
@@ -596,22 +597,22 @@ model WebhookConfig {
 }
 
 model WebhookInboxEvent {
-  id              String        @id @default(uuid())
-  storeId         String        @map("store_id")
-  configId        String        @map("config_id")
-  eventType       String        @map("event_type")
-  payload         Json
-  requestHeaders  Json?         @map("request_headers")
-  requestId       String?       @map("request_id")
-  deliveryId      String?       @map("delivery_id")
-  outboxEventId   String?       @map("outbox_event_id")
-  paymentId       String?       @map("payment_id")
-  signatureValid  Boolean       @default(false) @map("signature_valid")
-  receivedAt      DateTime      @default(now()) @map("received_at")
+  id             String   @id @default(uuid())
+  storeId        String   @map("store_id")
+  configId       String   @map("config_id")
+  eventType      String   @map("event_type")
+  payload        Json
+  requestHeaders Json?    @map("request_headers")
+  requestId      String?  @map("request_id")
+  deliveryId     String?  @map("delivery_id")
+  outboxEventId  String?  @map("outbox_event_id")
+  paymentId      String?  @map("payment_id")
+  signatureValid Boolean  @default(false) @map("signature_valid")
+  receivedAt     DateTime @default(now()) @map("received_at")
 
-  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  config          WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  store   Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  config  WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  payment Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@index([configId, receivedAt])
   @@index([storeId, receivedAt])
@@ -620,29 +621,29 @@ model WebhookInboxEvent {
 }
 
 model WebhookLog {
-  id              String        @id @default(uuid())
-  configId        String        @map("config_id")
-  paymentId       String?       @map("payment_id")
-  aggregateType   String?       @map("aggregate_type")
-  aggregateId     String?       @map("aggregate_id")
-  outboxEventId   String?       @map("outbox_event_id")
-  requestId       String?       @map("request_id")
-  eventType       String        @map("event_type")
-  payload         Json
-  requestHeaders  Json?         @map("request_headers")
-  responseStatus  Int?          @map("response_status")
-  responseBody    String?       @map("response_body") @db.Text
-  status          WebhookDeliveryStatus @default(PENDING)
-  attempt         Int           @default(1)
-  maxAttempts     Int           @default(5) @map("max_attempts")
-  nextRetryAt     DateTime?     @map("next_retry_at")
-  deliveredAt     DateTime?     @map("delivered_at")
-  failedAt        DateTime?     @map("failed_at")
-  lastError       String?       @map("last_error") @db.Text
-  createdAt       DateTime      @default(now()) @map("created_at")
+  id             String                @id @default(uuid())
+  configId       String                @map("config_id")
+  paymentId      String?               @map("payment_id")
+  aggregateType  String?               @map("aggregate_type")
+  aggregateId    String?               @map("aggregate_id")
+  outboxEventId  String?               @map("outbox_event_id")
+  requestId      String?               @map("request_id")
+  eventType      String                @map("event_type")
+  payload        Json
+  requestHeaders Json?                 @map("request_headers")
+  responseStatus Int?                  @map("response_status")
+  responseBody   String?               @map("response_body") @db.Text
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempt        Int                   @default(1)
+  maxAttempts    Int                   @default(5) @map("max_attempts")
+  nextRetryAt    DateTime?             @map("next_retry_at")
+  deliveredAt    DateTime?             @map("delivered_at")
+  failedAt       DateTime?             @map("failed_at")
+  lastError      String?               @map("last_error") @db.Text
+  createdAt      DateTime              @default(now()) @map("created_at")
 
-  config          WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  payment         Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  config  WebhookConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  payment Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@unique([configId, outboxEventId])
   @@index([configId, deliveredAt])
@@ -659,43 +660,43 @@ model WebhookLog {
 // ============================================================================
 
 model AlertConfig {
-  id              String        @id @default(uuid())
-  storeId         String        @map("store_id")
+  id              String       @id @default(uuid())
+  storeId         String       @map("store_id")
   name            String
   channel         AlertChannel
-  encryptedConfig Json          @map("encrypted_config")
-  configPreview   Json          @map("config_preview")
+  encryptedConfig Json         @map("encrypted_config")
+  configPreview   Json         @map("config_preview")
   events          String[]
-  isActive        Boolean       @default(true) @map("is_active")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  isActive        Boolean      @default(true) @map("is_active")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  deliveryLogs    AlertDeliveryLog[]
+  store        Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  deliveryLogs AlertDeliveryLog[]
 
   @@index([storeId, isActive])
   @@map("alert_configs")
 }
 
 model AlertDeliveryLog {
-  id              String              @id @default(uuid())
-  alertConfigId   String              @map("alert_config_id")
-  outboxEventId   String              @map("outbox_event_id")
-  paymentId       String?             @map("payment_id")
-  eventType       String              @map("event_type")
-  channel         AlertChannel
-  status          AlertDeliveryStatus @default(PENDING)
-  payload         Json
-  responseStatus  Int?                @map("response_status")
-  responseBody    String?             @map("response_body") @db.Text
-  errorMessage    String?             @map("error_message") @db.Text
-  attempt         Int                 @default(1)
-  maxAttempts     Int                 @default(5) @map("max_attempts")
-  nextRetryAt     DateTime?           @map("next_retry_at")
-  deliveredAt     DateTime?           @map("delivered_at")
-  createdAt       DateTime            @default(now()) @map("created_at")
+  id             String              @id @default(uuid())
+  alertConfigId  String              @map("alert_config_id")
+  outboxEventId  String              @map("outbox_event_id")
+  paymentId      String?             @map("payment_id")
+  eventType      String              @map("event_type")
+  channel        AlertChannel
+  status         AlertDeliveryStatus @default(PENDING)
+  payload        Json
+  responseStatus Int?                @map("response_status")
+  responseBody   String?             @map("response_body") @db.Text
+  errorMessage   String?             @map("error_message") @db.Text
+  attempt        Int                 @default(1)
+  maxAttempts    Int                 @default(5) @map("max_attempts")
+  nextRetryAt    DateTime?           @map("next_retry_at")
+  deliveredAt    DateTime?           @map("delivered_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
 
-  alertConfig     AlertConfig         @relation(fields: [alertConfigId], references: [id], onDelete: Cascade)
+  alertConfig AlertConfig @relation(fields: [alertConfigId], references: [id], onDelete: Cascade)
 
   @@unique([alertConfigId, outboxEventId])
   @@index([alertConfigId, createdAt])
@@ -735,43 +736,43 @@ model OutboxEvent {
 // ============================================================================
 
 model Receipt {
-  id            String        @id @default(uuid())
-  receiptNumber String        @unique @map("receipt_number")
-  paymentId     String        @unique @map("payment_id")
-  storeId       String        @map("store_id")
+  id            String @id @default(uuid())
+  receiptNumber String @unique @map("receipt_number")
+  paymentId     String @unique @map("payment_id")
+  storeId       String @map("store_id")
 
-  payerName     String?       @map("payer_name")
-  payerDocument String?       @map("payer_document")
-  payerEmail    String?       @map("payer_email")
+  payerName     String? @map("payer_name")
+  payerDocument String? @map("payer_document")
+  payerEmail    String? @map("payer_email")
 
-  payeeName     String        @map("payee_name")
-  payeeDocument String?       @map("payee_document")
+  payeeName     String  @map("payee_name")
+  payeeDocument String? @map("payee_document")
 
-  amount        Int
-  fee           Int
-  netAmount     Int           @map("net_amount")
-  currency      String        @default("BRL")
-  description   String?
+  amount      Int
+  fee         Int
+  netAmount   Int     @map("net_amount")
+  currency    String  @default("BRL")
+  description String?
 
-  status        ReceiptStatus @default(ISSUED)
-  issuedAt      DateTime      @map("issued_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  status    ReceiptStatus @default(ISSUED)
+  issuedAt  DateTime      @map("issued_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
-  payment       Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@index([storeId])
   @@map("receipts")
 }
 
 model ReceiptCounter {
-  id        String   @id @default(uuid())
-  storeId   String   @map("store_id")
-  date      String   // YYYYMMDD
-  sequence  Int      @default(0)
+  id       String @id @default(uuid())
+  storeId  String @map("store_id")
+  date     String // YYYYMMDD
+  sequence Int    @default(0)
 
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, date])
   @@map("receipt_counters")
@@ -787,21 +788,21 @@ enum IdempotencyKeyStatus {
 }
 
 model IdempotencyKey {
-  id             String                @id @default(uuid())
+  id             String               @id @default(uuid())
   key            String
-  storeId        String                @map("store_id")
-  environment    Environment           @default(TEST)
-  requestMethod  String                @default("POST") @map("request_method")
-  requestPath    String                @map("request_path")
-  requestHash    String                @map("request_hash")
-  responseBody   Json?                 @map("response_body")
-  responseStatus Int?                  @map("response_status")
-  status         IdempotencyKeyStatus  @default(COMPLETED)
-  completedAt    DateTime?             @map("completed_at")
-  createdAt      DateTime              @default(now()) @map("created_at")
-  expiresAt      DateTime              @map("expires_at")
+  storeId        String               @map("store_id")
+  environment    Environment          @default(TEST)
+  requestMethod  String               @default("POST") @map("request_method")
+  requestPath    String               @map("request_path")
+  requestHash    String               @map("request_hash")
+  responseBody   Json?                @map("response_body")
+  responseStatus Int?                 @map("response_status")
+  status         IdempotencyKeyStatus @default(COMPLETED)
+  completedAt    DateTime?            @map("completed_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  expiresAt      DateTime             @map("expires_at")
 
-  store          Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([key, storeId, environment])
   @@map("idempotency_keys")
@@ -812,17 +813,17 @@ model IdempotencyKey {
 // ============================================================================
 
 model ApiKey {
-  id           String      @id @default(uuid())
-  storeId      String      @map("store_id")
-  keyHash      String      @map("key_hash")
-  prefix       String
-  name         String
-  environment  Environment @default(TEST)
-  lastUsedAt   DateTime?   @map("last_used_at")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  revokedAt    DateTime?   @map("revoked_at")
+  id          String      @id @default(uuid())
+  storeId     String      @map("store_id")
+  keyHash     String      @map("key_hash")
+  prefix      String
+  name        String
+  environment Environment @default(TEST)
+  lastUsedAt  DateTime?   @map("last_used_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  revokedAt   DateTime?   @map("revoked_at")
 
-  store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([prefix, keyHash])
   @@map("api_keys")

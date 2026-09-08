@@ -76,21 +76,28 @@ export class CombinedAuthGuard implements CanActivate {
         throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
       }
 
+      // The `??` is not an oversight, and it stays. Tokens minted before the
+      // field existed circulate for up to 15 minutes, and a session whose
+      // environment went missing for any reason should fail closed -- into the
+      // environment that has no consequence.
+      const environment = payload.environment ?? Environment.TEST;
+
       request.user = {
         sub: payload.sub,
         storeId: payload.storeId ?? null,
+        environment,
         iat: payload.iat,
         exp: payload.exp,
       };
       request.authType = 'jwt';
-      request.environment = Environment.TEST;
+      request.environment = environment;
 
       if (payload.storeId) {
         request.store = { id: payload.storeId };
       }
 
       this.logger.debug(
-        `JWT authenticated for merchant ${payload.sub}, store ${payload.storeId ?? 'none'}`,
+        `JWT authenticated for merchant ${payload.sub}, store ${payload.storeId ?? 'none'}, environment ${environment}`,
       );
       return true;
     } catch (error) {
@@ -121,6 +128,7 @@ type AuthenticatedRequest = {
   user?: {
     sub: string;
     storeId: string | null;
+    environment?: Environment;
     iat?: number;
     exp?: number;
   };

@@ -93,6 +93,7 @@ export class LoginUseCase {
       const accessToken = await this.jwtService.generateAccessToken(
         lockedMerchant.id,
         lockedMerchant.currentStoreId ?? null,
+        lockedMerchant.currentEnvironment,
         '15m',
       );
 

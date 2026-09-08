@@ -73,6 +73,40 @@ describe('CombinedAuthGuard', () => {
     });
   });
 
+  it('reads the environment the token carries instead of assuming TEST', async () => {
+    jwtService.verifyToken.mockResolvedValue({
+      sub: 'merchant-1',
+      aud: TOKEN_AUDIENCE.MERCHANT,
+      storeId: 'store-1',
+      environment: Environment.LIVE,
+    });
+
+    const request: Record<string, unknown> = {
+      cookies: { hockpay_at: 'jwt-token' },
+      headers: {},
+    };
+
+    await expect(guard.canActivate(makeContext(request))).resolves.toBe(true);
+    expect(request.environment).toBe(Environment.LIVE);
+    expect(request.user).toMatchObject({ environment: Environment.LIVE });
+  });
+
+  it('falls back to TEST for a token minted before the field existed', async () => {
+    jwtService.verifyToken.mockResolvedValue({
+      sub: 'merchant-1',
+      aud: TOKEN_AUDIENCE.MERCHANT,
+      storeId: 'store-1',
+    });
+
+    const request: Record<string, unknown> = {
+      cookies: { hockpay_at: 'legacy-token' },
+      headers: {},
+    };
+
+    await expect(guard.canActivate(makeContext(request))).resolves.toBe(true);
+    expect(request.environment).toBe(Environment.TEST);
+  });
+
   it('rejects a token minted for another audience', async () => {
     jwtService.verifyToken.mockResolvedValue({
       sub: 'operator-1',

@@ -1,5 +1,6 @@
 import { Email } from '../value-objects/email.vo';
 import { Document } from '../value-objects/document.vo';
+import { Environment } from '../value-objects/environment.vo';
 
 /**
  * Domain Entity: Merchant
@@ -15,6 +16,7 @@ export class Merchant {
   private readonly _document: Document;
   private readonly _isActive: boolean;
   private _currentStoreId?: string;
+  private _currentEnvironment: Environment;
   private readonly _createdAt: Date;
   private readonly _updatedAt: Date;
 
@@ -26,6 +28,7 @@ export class Merchant {
     this._document = props.document;
     this._isActive = props.isActive ?? true;
     this._currentStoreId = props.currentStoreId;
+    this._currentEnvironment = props.currentEnvironment ?? Environment.TEST;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
   }
@@ -42,6 +45,7 @@ export class Merchant {
       passwordHash: props.passwordHash,
       name: props.name,
       isActive: true,
+      currentEnvironment: Environment.TEST,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -85,6 +89,18 @@ export class Merchant {
     return this._currentStoreId;
   }
 
+  /**
+   * The environment this merchant's dashboard session reads and writes.
+   *
+   * It lives here, and not in the token, because the token is reissued every
+   * 15 minutes and would have nowhere to read the environment back from: the
+   * merchant would fall to TEST mid-session without having asked. The token
+   * carries a copy; this is the source.
+   */
+  get currentEnvironment(): Environment {
+    return this._currentEnvironment;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -121,6 +137,7 @@ export class Merchant {
       documentType: this._document.type,
       isActive: this._isActive,
       currentStoreId: this._currentStoreId,
+      currentEnvironment: this._currentEnvironment,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -131,6 +148,17 @@ export class Merchant {
    */
   setCurrentStoreId(storeId: string | undefined): void {
     this._currentStoreId = storeId;
+  }
+
+  /**
+   * Set the environment of the current session.
+   *
+   * Whether LIVE is allowed at all is a fact of the *store*, not of the
+   * merchant, so the enablement gate lives in the use case that reads the
+   * store -- not here.
+   */
+  setCurrentEnvironment(environment: Environment): void {
+    this._currentEnvironment = environment;
   }
 }
 
@@ -156,6 +184,7 @@ export interface MerchantProps {
   name: string;
   isActive: boolean;
   currentStoreId?: string;
+  currentEnvironment?: Environment;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -172,6 +201,7 @@ export interface MerchantObject {
   documentType: 'CPF' | 'CNPJ';
   isActive: boolean;
   currentStoreId?: string;
+  currentEnvironment: Environment;
   createdAt: Date;
   updatedAt: Date;
 }

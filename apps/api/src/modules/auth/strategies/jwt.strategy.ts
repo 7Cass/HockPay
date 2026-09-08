@@ -3,7 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from 'src/infra/services/jwt.service';
-import { TOKEN_AUDIENCE, type JwtPayload } from '@hockpay/core';
+import { Environment, TOKEN_AUDIENCE, type JwtPayload } from '@hockpay/core';
 import type { Request } from 'express';
 
 /**
@@ -58,10 +58,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Invalid token audience');
     }
 
-    // Return the payload which will be attached to request.user
+    // Return the payload which will be attached to request.user.
+    //
+    // `environment` is answered here rather than being left to the decorator's
+    // own `?? TEST`: two places defaulting the same field is one place too
+    // many for something that decides which ledger the request reads.
     return {
       sub: payload.sub,
       storeId: payload.storeId ?? null,
+      environment: payload.environment ?? Environment.TEST,
       iat: payload.iat,
       exp: payload.exp,
     };

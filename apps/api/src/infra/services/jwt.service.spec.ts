@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import { TOKEN_AUDIENCE } from '@hockpay/core';
+import { Environment, TOKEN_AUDIENCE } from '@hockpay/core';
 import { JwtService } from './jwt.service';
 
 const SECRET = 'test-secret';
@@ -18,7 +18,11 @@ describe('JwtService', () => {
   const service = makeService();
 
   it('signs the merchant audience into every access token', async () => {
-    const token = await service.generateAccessToken('merchant-1', 'store-1');
+    const token = await service.generateAccessToken(
+      'merchant-1',
+      'store-1',
+      Environment.TEST,
+    );
 
     expect(service.decodeToken(token)).toMatchObject({
       sub: 'merchant-1',
@@ -28,11 +32,27 @@ describe('JwtService', () => {
   });
 
   it('verifies a token it issued', async () => {
-    const token = await service.generateAccessToken('merchant-1', null);
+    const token = await service.generateAccessToken(
+      'merchant-1',
+      null,
+      Environment.TEST,
+    );
 
     await expect(service.verifyToken(token)).resolves.toMatchObject({
       sub: 'merchant-1',
       aud: TOKEN_AUDIENCE.MERCHANT,
+    });
+  });
+
+  it('carries the session environment in the payload', async () => {
+    const token = await service.generateAccessToken(
+      'merchant-1',
+      'store-1',
+      Environment.LIVE,
+    );
+
+    await expect(service.verifyToken(token)).resolves.toMatchObject({
+      environment: Environment.LIVE,
     });
   });
 

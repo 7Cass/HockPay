@@ -1,4 +1,10 @@
-import { Document, Email, IMerchantRepository, Merchant as DomainMerchant } from '@hockpay/core';
+import {
+  Document,
+  Email,
+  Environment,
+  IMerchantRepository,
+  Merchant as DomainMerchant,
+} from '@hockpay/core';
 import { Merchant as PrismaMerchant, Prisma, PrismaClient } from '@hockpay/database';
 
 type MerchantRow = {
@@ -9,6 +15,7 @@ type MerchantRow = {
   document: string;
   isActive: boolean;
   currentStoreId: string | null;
+  currentEnvironment: Environment;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -26,6 +33,7 @@ export class MerchantRepository implements IMerchantRepository {
         document: merchant.document.value,
         isActive: merchant.isActive,
         currentStoreId: merchant.currentStoreId,
+        currentEnvironment: merchant.currentEnvironment,
         createdAt: merchant.createdAt,
         updatedAt: merchant.updatedAt,
       },
@@ -54,6 +62,7 @@ export class MerchantRepository implements IMerchantRepository {
         document,
         is_active AS "isActive",
         current_store_id AS "currentStoreId",
+        current_environment AS "currentEnvironment",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM merchants
@@ -119,6 +128,7 @@ export class MerchantRepository implements IMerchantRepository {
         document: merchant.document.value,
         isActive: merchant.isActive,
         currentStoreId: merchant.currentStoreId,
+        currentEnvironment: merchant.currentEnvironment,
         updatedAt: merchant.updatedAt,
       },
     });
@@ -133,6 +143,7 @@ export class MerchantRepository implements IMerchantRepository {
       name: prismaMerchant.name,
       isActive: prismaMerchant.isActive,
       currentStoreId: prismaMerchant.currentStoreId ?? undefined,
+      currentEnvironment: prismaMerchant.currentEnvironment as Environment,
       createdAt: prismaMerchant.createdAt,
       updatedAt: prismaMerchant.updatedAt,
     });

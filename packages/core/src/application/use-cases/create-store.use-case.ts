@@ -95,7 +95,12 @@ export class CreateStoreUseCase {
       await repos.refreshTokenRepository.revokeAllForMerchant(input.merchantId);
 
       // 7. Generate new JWT with storeId
-      const accessToken = await this.jwtService.generateAccessToken(merchant.id, store.id, '15m');
+      const accessToken = await this.jwtService.generateAccessToken(
+        merchant.id,
+        store.id,
+        merchant.currentEnvironment,
+        '15m',
+      );
 
       // 8. Generate new refresh token
       const refreshTokenString = this.tokenGenerator.generateBase64(32);

@@ -1,7 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { IJwtServicePort, JwtPayload, TOKEN_AUDIENCE } from '@hockpay/core';
+import {
+  Environment,
+  IJwtServicePort,
+  JwtPayload,
+  TOKEN_AUDIENCE,
+} from '@hockpay/core';
 
 /**
  * Infrastructure implementation of IJwtServicePort for the merchant principal.
@@ -36,9 +41,10 @@ export class JwtService implements IJwtServicePort {
   async generateAccessToken(
     sub: string,
     storeId: string | null,
+    environment: Environment,
     expiresIn: string = '15m',
   ): Promise<string> {
-    const payload: Omit<JwtPayload, 'aud'> = { sub };
+    const payload: Omit<JwtPayload, 'aud'> = { sub, environment };
     if (storeId) {
       payload.storeId = storeId;
     }

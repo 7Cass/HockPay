@@ -71,6 +71,7 @@ export class RefreshTokenUseCase {
       const accessToken = await this.jwtService.generateAccessToken(
         merchant.id,
         merchant.currentStoreId ?? null,
+        merchant.currentEnvironment,
         '15m',
       );
 

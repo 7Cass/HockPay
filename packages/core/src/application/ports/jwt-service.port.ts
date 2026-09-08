@@ -1,3 +1,5 @@
+import { Environment } from '../../domain/value-objects/environment.vo';
+
 /**
  * Audiences a hockpay token can be issued for.
  *
@@ -21,12 +23,23 @@ export interface IJwtServicePort {
   /**
    * Generate an access token for a merchant.
    *
+   * `environment` is required, and every caller reads it from
+   * `merchant.currentEnvironment`: the token is the copy, the merchant is the
+   * source. Making it optional here would let a reissue path silently drop the
+   * merchant back to TEST mid-session.
+   *
    * @param sub - The merchant ID (subject)
    * @param storeId - The current store ID (optional)
+   * @param environment - The environment of the session being issued
    * @param expiresIn - Token expiration time (e.g., '15m', '1h')
    * @returns The signed JWT token
    */
-  generateAccessToken(sub: string, storeId: string | null, expiresIn?: string): Promise<string>;
+  generateAccessToken(
+    sub: string,
+    storeId: string | null,
+    environment: Environment,
+    expiresIn?: string,
+  ): Promise<string>;
 
   /**
    * Verify and decode a JWT token.
@@ -55,6 +68,12 @@ export interface JwtPayload {
   sub: string;
   aud: TokenAudience;
   storeId?: string | null;
+  /**
+   * Optional on purpose. Tokens minted before this field existed circulate for
+   * up to 15 minutes, and a session whose environment went missing should land
+   * in the one without consequence -- see `?? Environment.TEST` in the guard.
+   */
+  environment?: Environment;
   iat?: number;
   exp?: number;
 }
