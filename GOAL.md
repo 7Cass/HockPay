@@ -27,6 +27,7 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 ## Intake Snapshot
 
 - Branch: `main` em `86e7d20`. A fatia 3 entrou pelo PR #11 (merge `ceae2d1`) e foi arquivada em `33fa274`.
+- As fatias 4 e 5 entraram pelo PR #12 (merge `ec19791`) em `2026-09-07`. O `P1.1`-`P1.5` foi feito direto na `main`, a pedido.
 - Tres das seis fatias do [PRD pai](docs/PRD_OPERATOR_SURFACE.md) estao no runtime. Faltam a 4 (condicao comercial), a 5 (leitura cross-merchant) e a 6 (antifraude).
 - A fatia 6 **fica fora**: o PRD pai e explicito que o motor entra depois da fila de revisao existir, e ela nao existe.
 - **Nenhuma das fatias desta goal tem PRD.** A convencao do projeto e PRD antes de codigo (fatias 1, 2 e 3 fizeram assim), e PRD e doc-only, entao vai direto na `main`.
@@ -39,11 +40,11 @@ A passagem anterior (arquivada em `docs/goals/2026-09-07-live-onboarding.md`) fe
 
 ## Por onde comecar
 
-**P1.1**, a tela. Todo o P0 esta fechado: os dois PRDs estao na `main`, e a condicao comercial e a leitura cross-merchant estao na branch `feat/operator-commercial-terms`. A mesa agora tem tres poderes e leitura, e nada disso tem tela -- que e exatamente o estado que o PRD pai chama de "trilha que so existe no banco nao e trilha, e log".
+**P1.6**, o seletor de ambiente -- a unica trilha que sobrou. A trilha "a mesa vira mesa" fechou: os dois PRDs, a condicao comercial, a leitura cross-merchant e a tela estao na `main`, e o PRD pai esta cumprido menos a fatia 6, que fica fora desta goal por decisao dele.
 
-A ordem da tela esta em [PRD_OPERATOR_DESK.md](docs/PRD_OPERATOR_DESK.md#pr-3----a-tela): guard e layout proprios primeiro, depois fila, condicao, trilha e investigacao.
+A ordem esta em [PRD_ENVIRONMENT_SELECTOR.md](docs/PRD_ENVIRONMENT_SELECTOR.md#ordem-de-implementacao): `environment` no `JwtPayload` primeiro (e a unica migration das duas trilhas), depois a rota de troca, o seletor e o que saque/estorno em LIVE passam a significar.
 
-A outra trilha (`P1.6`-`P1.9`, o seletor de ambiente) e independente e pode comecar em paralelo -- ver [PRD_ENVIRONMENT_SELECTOR.md](docs/PRD_ENVIRONMENT_SELECTOR.md#ordem-de-implementacao).
+Depois dele sobra so o `P2`, que e doc.
 
 ## P0 - Escrever os PRDs antes do codigo
 
@@ -127,7 +128,7 @@ Done Criteria:
 
 ## P1 - A mesa ganha tela
 
-Status: `nao iniciado`
+Status: `concluido`
 
 Problema: a mesa tem fronteira, trilha e (depois dos itens acima) tres poderes, e nada disso tem tela. O PRD pai e explicito: "trilha que so existe no banco nao e trilha, e log".
 
@@ -135,22 +136,30 @@ Impacto: nenhuma capacidade nova. O que muda e que a superficie de operador pass
 
 Evidencia:
 
-- `apps/web` tem `auth.guard.ts`/`guest.guard.ts` e tres layouts, todos de merchant. Nao existe nada de operador.
+- `apps/web` tinha `auth.guard.ts`/`guest.guard.ts` e tres layouts, todos de merchant. Nao existia nada de operador.
 - `docs/CURRENT_STATE.md`, Matriz de Superficies: "sem dashboard de operador".
 
 Subtasks:
 
-- [ ] P1.1 Sessao de operador em `apps/web`, com guard e layout proprios -- sem reusar o caminho de merchant.
-- [ ] P1.2 Fila de habilitacao e decisao (aprovar/rejeitar/suspender) com motivo.
-- [ ] P1.3 Condicao comercial editavel, com o antes e o depois visiveis.
-- [ ] P1.4 Trilha legivel na propria superficie.
-- [ ] P1.5 Investigacao de loja, usando as rotas de leitura de P0.6.
+- [x] P1.1 Sessao de operador em `apps/web`, com guard e layout proprios -- sem reusar o caminho de merchant.
+- [x] P1.2 Fila de habilitacao e decisao (aprovar/rejeitar/suspender) com motivo.
+- [x] P1.3 Condicao comercial editavel, com o antes e o depois visiveis.
+- [x] P1.4 Trilha legivel na propria superficie.
+- [x] P1.5 Investigacao de loja, usando as rotas de leitura de P0.6.
 
 Done Criteria:
 
-- [ ] Um operador opera a fila inteira, decide, ajusta condicao e le a trilha sem `curl`.
-- [ ] Nenhuma tela de operador expoe secret de webhook ou chave de API.
-- [ ] Sessao de merchant e de operador coexistem no mesmo browser sem se atrapalhar.
+- [x] Um operador opera a fila inteira, decide, ajusta condicao e le a trilha sem `curl`.
+- [x] Nenhuma tela de operador expoe secret de webhook ou chave de API.
+- [x] Sessao de merchant e de operador coexistem no mesmo browser sem se atrapalhar.
+
+Achados de `2026-09-07`, com a tela fechada:
+
+- **O interceptor era o unico lugar onde as duas sessoes se encostavam.** `auth.interceptor.ts` renovava o token de merchant em qualquer `401`, inclusive num `401` de `/operator/...`. Os cookies ja tinham paths proprios, entao a fronteira do backend estava de pe -- quem a furava era a camada de cima, exatamente o risco que a tabela de riscos previa. Agora ele escolhe a sessao pelo dono da rota, e o spec prova os dois sentidos.
+- **`Store` do lojista nao serve para a mesa.** Falta `merchantId`: o lojista nunca precisa saber de qual comerciante e a propria loja, e a mesa comeca toda investigacao por ai. Virou `OperatorStore = Store & { merchantId }` em vez de alargar o tipo do lojista.
+- **A fila e a trilha nao tem total.** As duas rotas paginam por `offset`/`limit` e nao devolvem contagem, entao a tela anda por "anterior/proxima" e nao por numero de pagina. O componente `Pagination` existente pede `total` e nao serve; nao foi alterado.
+- **`store.investigated` e gravado inclusive para quem abre a loja so para mexer na taxa.** E o D11 funcionando como escrito, nao um efeito colateral: quem abriu a loja abriu a loja.
+- A tela nao foi exercitada contra a API de verdade nesta passagem -- ver o Validation Log.
 
 ## P1 - O lojista enxerga o LIVE que a fatia 3 encheu
 
@@ -200,17 +209,17 @@ Subtasks:
 
 ## Validation Log For This Goal
 
-Rodado em `2026-09-07`, com o P0 fechado:
+Rodado em `2026-09-07`, com o P0 e a tela (`P1.1`-`P1.5`) fechados:
 
 - [x] `pnpm --filter @hockpay/core test:ci` (318, era 291)
 - [x] `pnpm --filter @hockpay/infrastructure test` (79)
 - [x] `pnpm --filter @hockpay/api test` (185, era 169)
 - [x] `pnpm --filter @hockpay/api test:e2e` (30, era 22)
 - [x] `pnpm --filter @hockpay/worker test` (33)
-- [ ] `pnpm --filter @hockpay/web test -- --watch=false` -- nada de web foi tocado no P0; roda quando `P1.1` comecar
+- [x] `pnpm --filter @hockpay/web test -- --watch=false` (130, era 68)
 - [x] `pnpm run lint:check`, `pnpm run format:check`, `pnpm build`
-- [ ] `smoke:docker` completo -- pendente; o P0 nao mudou nenhum caminho de smoke
-- [ ] Fluxo de operador exercitado na tela, ponta a ponta -- depende de `P1.1`
+- [ ] `smoke:docker` completo -- pendente; nem o P0 nem a tela mudaram caminho de smoke
+- [ ] **Fluxo de operador exercitado na tela, ponta a ponta** -- as telas existem e sao cobertas por teste contra HTTP mockado; ninguem passou por elas contra a API de verdade ainda. E a diferenca entre "a capacidade existe" e "a capacidade foi vista funcionando", e vale fazer antes de tocar no `P1.6`
 - [ ] Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers -- depende de `P1.6`-`P1.8`
 - [ ] Ciclo de condicao comercial e de investigacao rodado contra o Postgres de dev com os repositorios reais, como a fatia 3 fez -- os unit tests mockam `findByIdForUpdate`
 
@@ -223,7 +232,7 @@ Rodado em `2026-09-07`, com o P0 fechado:
 
 ## Assumptions
 
-- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR.
+- PRD antes de codigo, e PRD e doc-only, entao vai direto na `main`. Codigo vai por branch e PR -- com a excecao de `P1.1`-`P1.5`, feito direto na `main` a pedido, em commit por subtask.
 - As fatias 1, 2 e 3 estao no runtime e nao serao refeitas.
 - `Payment.fee` continua sendo snapshot no momento da cobranca; a condicao comercial vale so para o futuro.
 
@@ -233,7 +242,7 @@ Rodado em `2026-09-07`, com o P0 fechado:
 | ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
 | A goal e grande demais para uma passagem       | Meses sem merge, e um PR gigante no fim           | Cada macro item e entregavel sozinho; ver "Onde cortar"                    |
 | Rota de leitura de operador vazando secret     | Credencial exposta, sem erro visivel              | Teste de varredura (P0.7), criterio de aceite e nao acabamento             |
-| Tela de operador reusando a sessao de merchant | Fronteira da fatia 1 dissolvida na camada de cima | Guard e layout proprios (P1.1), e o teste de coexistencia das duas sessoes |
+| Tela de operador reusando a sessao de merchant | Fronteira da fatia 1 dissolvida na camada de cima | Aconteceu, no interceptor -- fechado em `P1.1`, com spec nos dois sentidos |
 | `environment` no token sem checar habilitacao  | Loja nao habilitada selecionando LIVE             | Done criteria do ultimo macro item                                         |
 | Formatar com `pnpm run format` na raiz         | 413 arquivos de churn que o gate de CI nao pega   | Achado de `2026-09-07`: formatar por pacote                                |
 
