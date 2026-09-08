@@ -4,6 +4,7 @@ import { DashboardLayout } from './shared/layouts/dashboard-layout/dashboard-lay
 import { AuthLayout } from './shared/layouts/auth-layout/auth-layout';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { operatorGuestGuard } from './core/guards/operator.guard';
 
 export const routes: Routes = [
     {
@@ -30,6 +31,16 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/auth/pages/register/register').then(m => m.Register),
             },
         ],
+    },
+    // ─── Mesa de operação ───────────────────────────────────────────────
+    // Fora do dashboard de propósito: outra sessão, outro guard, outra casca.
+    // Os cookies já têm paths próprios no backend, então as duas convivem no
+    // mesmo browser sem que uma saiba da outra.
+    {
+        path: 'operator/login',
+        canActivate: [operatorGuestGuard],
+        loadComponent: () =>
+            import('./features/operator/pages/login/login').then(m => m.OperatorLogin),
     },
     {
         path: 'dashboard',

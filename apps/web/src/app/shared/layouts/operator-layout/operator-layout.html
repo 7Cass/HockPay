@@ -1,0 +1,57 @@
+<div class="desk">
+  <header class="desk-bar">
+    <div class="desk-bar-inner">
+      <a routerLink="/operator" class="desk-brand">
+        <span class="mark mark-inverse" aria-hidden="true">
+          <span class="mark-bar"></span>
+          <span class="mark-bar"></span>
+          <span class="mark-dot"></span>
+        </span>
+        <span class="desk-brand-name">hockpay</span>
+        <span class="desk-tag">mesa</span>
+      </a>
+
+      <nav class="desk-nav" aria-label="Navegação da mesa">
+        @for (item of nav; track item.route) {
+          <a
+            class="desk-nav-item"
+            [routerLink]="item.route"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+          >
+            <ng-icon [name]="item.icon" size="15px" strokeWidth="1.7" aria-hidden="true" />
+            {{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="desk-who">
+        <span class="desk-avatar" aria-hidden="true">{{
+          initials(operatorAuth.currentOperator()?.name)
+        }}</span>
+        <span class="desk-who-text">
+          <span class="desk-who-name">{{ operatorAuth.currentOperator()?.name ?? '—' }}</span>
+          <span class="desk-who-mail mono">{{ operatorAuth.currentOperator()?.email ?? '' }}</span>
+        </span>
+        <button
+          type="button"
+          class="desk-exit"
+          (click)="logout()"
+          [disabled]="isLeaving()"
+          aria-label="Sair da mesa"
+          title="Sair da mesa"
+        >
+          <ng-icon name="lucideLogOut" size="15px" strokeWidth="1.7" />
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="desk-scroll scroll-thin">
+    <div class="desk-content">
+      <router-outlet />
+    </div>
+  </main>
+</div>
+
+<hlm-toaster position="bottom-right" richColors="true" />

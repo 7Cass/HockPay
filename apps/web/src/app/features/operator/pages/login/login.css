@@ -1,0 +1,77 @@
+/* A porta da mesa: fundo em tinta, cartão em papel. */
+
+.gate {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 2rem 1.25rem;
+  background: var(--color-ink);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 24rem;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-paper);
+  padding: 2rem 1.75rem;
+  box-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.55);
+}
+
+.gate-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.gate-brand .mark-inverse {
+  background: var(--color-ink);
+}
+
+.gate-brand-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.gate-tag {
+  border: 1px solid var(--color-hairline);
+  border-radius: 999px;
+  padding: 2px 0.5rem;
+  font-family: var(--font-code);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.gate-title {
+  margin-top: 1.5rem;
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.gate-desc {
+  margin-top: 0.65rem;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 1.75rem;
+}
+
+.gate-foot {
+  margin-top: 1.5rem;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-faint);
+}

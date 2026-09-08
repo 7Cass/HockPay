@@ -2,22 +2,31 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { OperatorAuthService } from '../services/operator-auth.service';
 
 /**
- * HTTP Interceptor — Handles authentication concerns at the HTTP layer ONLY.
+ * HTTP Interceptor — Handles authentication concerns at the HTTP LAYER ONLY.
  *
  * Responsibilities:
  * 1. Attach `withCredentials: true` to every request (sends HTTP-only cookies).
- * 2. On 401 (except refresh/login): attempt a transparent token refresh.
- * 3. On refresh failure: update auth state to `false` and propagate the error.
+ * 2. On 401 (except refresh/login): attempt a transparent token refresh, with
+ *    the session that owns the route — merchant or operator, never crossed.
+ * 3. On refresh failure: update that session's state and propagate the error.
  *
  * This interceptor NEVER does routing (no `router.navigate`). Routing decisions
  * belong to the Guards and Components that consume the auth state.
+ *
+ * The two sessions coexist in one browser, so the branch below is a routing
+ * decision about *which* session is being renewed, not a shared session with a
+ * flag: a 401 on `/operator/...` must never renew — nor invalidate — the
+ * merchant's, and the reverse holds just as strictly.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);
+    const operatorAuthService = inject(OperatorAuthService);
 
     const clonedRequest = req.clone({ withCredentials: true });
+    const isOperatorRoute = isOperatorSurface(req.url);
 
     return next(clonedRequest).pipe(
         catchError((error: HttpErrorResponse) => {
@@ -27,7 +36,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 req.url.includes('/auth/login');
 
             if (isUnauthorized && !isAuthRoute) {
-                return authService.handleTokenRefresh().pipe(
+                const session = isOperatorRoute ? operatorAuthService : authService;
+
+                return session.handleTokenRefresh().pipe(
                     switchMap(() => next(clonedRequest)),
                     catchError((refreshError) => {
                         // Refresh failed — state is already set to false by handleTokenRefresh.
@@ -41,3 +52,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         })
     );
 };
+
+/**
+ * Whether the URL belongs to the operator surface.
+ *
+ * Matched on the path segment, not on a substring: a merchant route whose id
+ * or query happened to spell "operator" is not the desk.
+ */
+function isOperatorSurface(url: string): boolean {
+    const path = url.split('?')[0];
+    return /(^|\/)operator(\/|$)/.test(path);
+}
