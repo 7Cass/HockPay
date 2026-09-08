@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideInbox, lucideLoader2, lucideRefreshCcw } from '@ng-icons/lucide';
 import { Subscription } from 'rxjs';
@@ -36,6 +36,10 @@ const VALID_STATUSES = FILTERS.map((filter) => filter.value);
 /**
  * A fila de habilitação LIVE.
  *
+ * O nome da loja abre a investigação — e abrir grava `store.investigated` na
+ * trilha. Por isso a fila não pré-carrega nada da loja: quem passa o olho na
+ * fila não deixa linha, quem abre deixa.
+ *
  * Abre em `PENDING` porque é o que pede decisão; os outros estados existem para
  * revisar o que já foi decidido — suspender uma loja aprovada é tão parte do
  * trabalho quanto aprovar uma pendente.
@@ -47,7 +51,7 @@ const VALID_STATUSES = FILTERS.map((filter) => filter.value);
 @Component({
   selector: 'app-operator-queue',
   standalone: true,
-  imports: [DatePipe, NgIcon, PageHeader, PageState, Sheet],
+  imports: [DatePipe, NgIcon, RouterLink, PageHeader, PageState, Sheet],
   providers: [provideIcons({ lucideInbox, lucideLoader2, lucideRefreshCcw })],
   templateUrl: './queue.html',
   styleUrl: './queue.css',

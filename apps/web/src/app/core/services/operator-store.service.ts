@@ -7,6 +7,14 @@ import type { Store, StoreLiveStatus } from './store.service';
 export type LiveEnablementDecision = 'approve' | 'reject' | 'suspend';
 
 /**
+ * A loja como a mesa a recebe.
+ *
+ * É a `Store` do lojista mais o `merchantId`: o lojista nunca precisa saber de
+ * qual comerciante é a própria loja, e a mesa começa toda investigação por aí.
+ */
+export type OperatorStore = Store & { merchantId: string };
+
+/**
  * O que a fila mostra sobre uma loja.
  *
  * Deliberadamente menos do que `Store`: a fila não carrega ledger, pagamento,
@@ -23,6 +31,20 @@ export interface OperatorStoreListItem {
   liveStatusChangedAt?: string;
   createdAt: string;
 }
+
+/** A condição comercial, como a mesa a decide: os três campos juntos. */
+export interface CommercialTerms {
+  feePercent: number;
+  feeFixed: number;
+  settlementDays: number;
+}
+
+/** As faixas que a entidade `Store` aceita. A tela avisa antes; ela decide. */
+export const COMMERCIAL_TERMS_RANGE = {
+  feePercent: { min: 0, max: 10 },
+  feeFixed: { min: 0, max: 1000 },
+  settlementDays: { min: 0, max: 90 },
+} as const;
 
 export interface ListOperatorStoresQuery {
   liveStatus?: StoreLiveStatus;
@@ -49,12 +71,18 @@ interface ListOperatorStoresResponse {
 export class OperatorStoreService {
   private readonly api = inject(ApiClientService);
 
+  private readonly storeState = signal<OperatorStore | null>(null);
+  private readonly isStoreLoadingState = signal(false);
+  private readonly storeErrorState = signal<string | null>(null);
   private readonly storesState = signal<OperatorStoreListItem[]>([]);
   private readonly isLoadingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private readonly limitState = signal(20);
   private readonly offsetState = signal(0);
 
+  readonly store = computed(() => this.storeState());
+  readonly isStoreLoading = computed(() => this.isStoreLoadingState());
+  readonly storeError = computed(() => this.storeErrorState());
   readonly stores = computed(() => this.storesState());
   readonly isLoading = computed(() => this.isLoadingState());
   readonly error = computed(() => this.errorState());
@@ -92,22 +120,83 @@ export class OperatorStoreService {
   }
 
   /**
+   * Abre uma loja para investigar.
+   *
+   * Este GET escreve: ele grava `store.investigated` na trilha. É a exceção
+   * deliberada de D11 — a alternativa, um POST /investigate separado, produz
+   * uma trilha que registra só quem foi educado. Não há deduplicação: recarregar
+   * a página grava outra linha, e duas linhas iguais são a verdade sobre o que
+   * aconteceu.
+   */
+  loadStore(storeId: string): void {
+    this.isStoreLoadingState.set(true);
+    this.storeErrorState.set(null);
+    this.storeState.set(null);
+
+    this.api
+      .get<{ store: OperatorStore }>(`/operator/stores/${storeId}`)
+      .pipe(finalize(() => this.isStoreLoadingState.set(false)))
+      .subscribe({
+        next: (response) => this.storeState.set(response.store),
+        error: (err) => {
+          this.storeErrorState.set(
+            err.error?.error?.message || err.message || 'Erro ao carregar a loja',
+          );
+        },
+      });
+  }
+
+  /**
+   * Muda o que a loja paga e quanto ela espera, daqui para frente.
+   *
+   * Os três campos vão juntos porque não existe mudança parcial: a trilha
+   * guarda a condição inteira nos dois lados, e um before/after que só carrega
+   * o campo alterado obriga quem lê a reconstruir o resto de linhas antigas.
+   */
+  updateCommercialTerms(
+    storeId: string,
+    input: CommercialTerms & { reason: string },
+  ): Observable<OperatorStore> {
+    return this.api
+      .post<{ store: OperatorStore }>(`/operator/stores/${storeId}/commercial-terms`, input)
+      .pipe(
+        map((response) => response.store),
+        tap((store) => {
+          this.storeState.set(store);
+          this.patchInQueue(store);
+        }),
+      );
+  }
+
+  /**
    * Aprova, rejeita ou suspende a habilitação LIVE de uma loja.
    *
    * O motivo é obrigatório aqui e de novo no use case: um cliente HTTP direto
    * não passa por este formulário.
    */
-  decide(storeId: string, decision: LiveEnablementDecision, reason: string): Observable<Store> {
+  decide(
+    storeId: string,
+    decision: LiveEnablementDecision,
+    reason: string,
+  ): Observable<OperatorStore> {
     return this.api
-      .post<{ store: Store }>(`/operator/stores/${storeId}/live-status`, { decision, reason })
+      .post<{ store: OperatorStore }>(`/operator/stores/${storeId}/live-status`, {
+        decision,
+        reason,
+      })
       .pipe(
         map((response) => response.store),
-        tap((store) => this.patchInQueue(store)),
+        tap((store) => {
+          this.patchInQueue(store);
+          if (this.storeState()?.id === store.id) {
+            this.storeState.set(store);
+          }
+        }),
       );
   }
 
   /** Mantém a linha decidida na tela, com o estado novo, em vez de recarregar. */
-  private patchInQueue(store: Store): void {
+  private patchInQueue(store: OperatorStore): void {
     this.storesState.update((stores) =>
       stores.map((item) =>
         item.id === store.id

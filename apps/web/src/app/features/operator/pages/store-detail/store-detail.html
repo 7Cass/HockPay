@@ -1,0 +1,233 @@
+@if (desk.storeError(); as message) {
+  <app-page-state variant="error" [message]="message">
+    <button pageStateAction type="button" class="btn btn-quiet btn-sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </app-page-state>
+} @else if (desk.isStoreLoading() || !desk.store()) {
+  <app-page-state variant="loading" message="Abrindo a loja…" />
+} @else if (desk.store(); as store) {
+  <div class="page">
+    <app-page-header
+      eyebrow="Mesa · investigação"
+      [heading]="store.name"
+      [description]="'Loja ' + store.slug + ' · comerciante ' + store.merchantId"
+      backTo="/operator"
+      backLabel="Voltar para a fila"
+    >
+      <span pageStatus class="chip" [attr.data-tone]="statusTone[store.liveStatus]">
+        {{ statusLabel[store.liveStatus] }}
+      </span>
+
+      <ng-container pageActions>
+        <button type="button" class="btn btn-quiet btn-icon" (click)="reload()" title="Recarregar">
+          <ng-icon name="lucideRefreshCcw" size="15px" strokeWidth="1.7" />
+        </button>
+      </ng-container>
+    </app-page-header>
+
+    <!-- ─── Identidade ────────────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">A loja</h2></div>
+      <div class="panel-body">
+        <dl class="facts">
+          <div class="fact">
+            <dt>Estado da loja</dt>
+            <dd>{{ store.isActive ? 'Ativa' : 'Inativa' }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Habilitação LIVE</dt>
+            <dd>{{ statusLabel[store.liveStatus] }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Última decisão</dt>
+            <dd>
+              @if (store.liveStatusChangedAt) {
+                {{ store.liveStatusChangedAt | date: 'dd/MM/yy HH:mm' }}
+              } @else {
+                —
+              }
+            </dd>
+          </div>
+          <div class="fact">
+            <dt>Criada em</dt>
+            <dd>{{ store.createdAt | date: 'dd/MM/yy' }}</dd>
+          </div>
+        </dl>
+
+        @if (store.liveStatusReason) {
+          <p class="fact-reason">
+            <span class="eyebrow">Motivo da última decisão</span>
+            {{ store.liveStatusReason }}
+          </p>
+        }
+      </div>
+    </section>
+
+    <!-- ─── Condição comercial ────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Condição comercial</h2>
+        <span class="panel-note mono">vale daqui para frente</span>
+      </div>
+
+      <div class="panel-body terms">
+        <p class="terms-lead">
+          Os três campos mudam juntos: não existe mudança parcial, porque a trilha guarda a condição
+          inteira dos dois lados. Cobranças já gravadas não mudam — a taxa delas é um retrato tirado
+          no momento da cobrança.
+        </p>
+
+        <div class="terms-grid">
+          <div class="field" [class.is-changed]="fieldChanged('feePercent')">
+            <label class="field-label" for="fee-percent">Taxa variável (%)</label>
+            <div class="control">
+              <input
+                id="fee-percent"
+                type="number"
+                step="0.01"
+                [min]="range.feePercent.min"
+                [max]="range.feePercent.max"
+                [value]="draft().feePercent"
+                (input)="setField('feePercent', $event)"
+              />
+            </div>
+            <span class="field-note">
+              atual <strong>{{ store.feePercent | number: '1.0-2' }}%</strong> · faixa
+              {{ range.feePercent.min }}–{{ range.feePercent.max }}%
+            </span>
+            @if (outOfRange().includes('feePercent')) {
+              <span class="field-error" role="alert">fora da faixa aceita</span>
+            }
+          </div>
+
+          <div class="field" [class.is-changed]="fieldChanged('feeFixed')">
+            <label class="field-label" for="fee-fixed">Taxa fixa (centavos)</label>
+            <div class="control">
+              <input
+                id="fee-fixed"
+                type="number"
+                step="1"
+                [min]="range.feeFixed.min"
+                [max]="range.feeFixed.max"
+                [value]="draft().feeFixed"
+                (input)="setField('feeFixed', $event)"
+              />
+            </div>
+            <span class="field-note">
+              atual <strong>{{ store.feeFixed / 100 | currency: 'BRL' }}</strong> · faixa
+              {{ range.feeFixed.min }}–{{ range.feeFixed.max }} centavos
+            </span>
+            @if (outOfRange().includes('feeFixed')) {
+              <span class="field-error" role="alert">inteiro, dentro da faixa</span>
+            }
+          </div>
+
+          <div class="field" [class.is-changed]="fieldChanged('settlementDays')">
+            <label class="field-label" for="settlement-days">Prazo de liquidação (dias)</label>
+            <div class="control">
+              <input
+                id="settlement-days"
+                type="number"
+                step="1"
+                [min]="range.settlementDays.min"
+                [max]="range.settlementDays.max"
+                [value]="draft().settlementDays"
+                (input)="setField('settlementDays', $event)"
+              />
+            </div>
+            <span class="field-note">
+              atual <strong>{{ store.settlementDays }} dias</strong> · faixa
+              {{ range.settlementDays.min }}–{{ range.settlementDays.max }}
+            </span>
+            @if (outOfRange().includes('settlementDays')) {
+              <span class="field-error" role="alert">inteiro, dentro da faixa</span>
+            }
+          </div>
+        </div>
+
+        <!-- ── Antes e depois ──────────────────────────────────────────── -->
+        @if (parsed(); as next) {
+          @if (changed()) {
+            <div class="diff" data-testid="terms-diff">
+              <p class="eyebrow">O que vai para a trilha</p>
+              <table class="table diff-table">
+                <thead>
+                  <tr>
+                    <th>Campo</th>
+                    <th class="num">Antes</th>
+                    <th class="num">Depois</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr [class.is-changed]="fieldChanged('feePercent')">
+                    <td>Taxa variável</td>
+                    <td class="num numeric">{{ store.feePercent | number: '1.0-2' }}%</td>
+                    <td class="num numeric">{{ next.feePercent | number: '1.0-2' }}%</td>
+                  </tr>
+                  <tr [class.is-changed]="fieldChanged('feeFixed')">
+                    <td>Taxa fixa</td>
+                    <td class="num numeric">{{ store.feeFixed / 100 | currency: 'BRL' }}</td>
+                    <td class="num numeric">{{ next.feeFixed / 100 | currency: 'BRL' }}</td>
+                  </tr>
+                  <tr [class.is-changed]="fieldChanged('settlementDays')">
+                    <td>Prazo</td>
+                    <td class="num numeric">{{ store.settlementDays }} dias</td>
+                    <td class="num numeric">{{ next.settlementDays }} dias</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+
+        @if (shortensSettlement()) {
+          <p class="notice" data-tone="warn" data-testid="settlement-warning">
+            <span class="notice-text">
+              Encurtar o prazo antecipa a liberação de pagamentos que já estão pendentes. O prazo é
+              promessa da loja, não do pagamento — e é a única parte desta condição que alcança o
+              que já foi cobrado.
+            </span>
+          </p>
+        }
+
+        <div class="field">
+          <label class="field-label" for="terms-reason">Motivo</label>
+          <div class="control">
+            <textarea
+              id="terms-reason"
+              rows="3"
+              maxlength="500"
+              placeholder="O que sustenta a nova condição."
+              [value]="reason()"
+              (input)="setReason($event)"
+            ></textarea>
+          </div>
+          <span class="field-note">
+            Obrigatório. A trilha guarda o antes, o depois e este motivo, na mesma transação que
+            muda a loja.
+          </span>
+        </div>
+
+        <div class="terms-actions">
+          <button
+            type="button"
+            class="btn btn-quiet btn-sm"
+            (click)="discard()"
+            [disabled]="isSaving() || (!changed() && !reason())"
+          >
+            Descartar
+          </button>
+          <button type="button" class="btn btn-ink btn-sm" (click)="save()" [disabled]="!canSave()">
+            @if (isSaving()) {
+              <ng-icon name="lucideLoader2" size="15px" class="animate-spin" aria-hidden="true" />
+              Registrando…
+            } @else {
+              Mudar condição
+            }
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+}

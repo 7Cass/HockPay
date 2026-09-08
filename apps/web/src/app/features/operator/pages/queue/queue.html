@@ -67,10 +67,10 @@
             @for (store of queue.stores(); track store.id) {
               <tr>
                 <td>
-                  <span class="cell-stack">
+                  <a class="cell-link" [routerLink]="['/operator/stores', store.id]">
                     <span class="cell-title">{{ store.name }}</span>
                     <span class="cell-sub mono">{{ store.slug }}</span>
-                  </span>
+                  </a>
                 </td>
 
                 <td>
