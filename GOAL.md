@@ -35,12 +35,13 @@ Decidido em `2026-09-08`: loja com o LIVE suspenso nao faz movimentacao financei
 - **A favor:** e correcao de comportamento, nao capacidade nova -- hoje `create-payment` recusa em loja suspensa mas `create-withdrawal` nao, entao dinheiro nao entra e sai. A decisao de produto ja esta tomada e escrita, o que dispensa a metade cara do PRD.
 - **Contra:** precisa das duas metades. So o gate deixaria o saldo LIVE de uma loja suspensa sem saida nenhuma, e a mesa nao tem nenhuma rota que mova dinheiro hoje -- e o primeiro poder da mesa que **escreve no ledger**, com tudo que isso implica de idempotencia e trilha.
 
-### B. Ver funcionando o que ja existe
+### B. Ver funcionando o que ja existe -- **feito em `2026-09-08`**
 
-A passagem anterior fechou com seis itens de validacao em aberto, e o primeiro deles -- a migration nunca aplicada contra banco nenhum -- bloqueia os outros cinco.
+Cinco dos seis itens fecharam contra a API e o Postgres de dev: migration aplicada, ciclo LIVE ponta a ponta (22 assercoes), ciclo de condicao comercial e investigacao (16 assercoes), `smoke:docker` com as seis suites verdes, e a revogacao no HTTP -- essa ultima provada pela metade, e a metade que faltou virou achado.
 
-- **A favor:** e a diferenca entre "a capacidade existe" e "a capacidade foi vista funcionando", e duas passagens inteiras (mesa e seletor) estao do lado errado dessa linha. A fatia 3 fechou com todos os itens verdes; esta nao. Nao ha smoke de operador nem de seletor de ambiente.
-- **Contra:** nao entrega nada novo, e o risco que ela cobre e desconhecido por definicao -- pode nao achar nada.
+Sobra **o passo pela tela**, que nao e falta de tentativa: o repo nao tem automacao de browser, entao ele precisa de alguem clicando.
+
+E sobra a pergunta que o exercicio levantou: **o ciclo foi um script descartavel, nao uma suite versionada.** Ele provou o comportamento uma vez e nao protege contra regressao. Transformar os dois ciclos num `smoke:operator` e num `smoke:environment` e trabalho pequeno com valor permanente, e hoje nao existe smoke de nenhuma das duas superficies.
 
 ### C. Fatia 6 -- antifraude e a fila de revisao
 
@@ -61,6 +62,11 @@ Total nas paginacoes da fila e da trilha (e o `Pagination` que depende dele), va
 - **Logout de merchant nao revogava o refresh token no banco** -- corrigido em `2026-09-08`. Era pior do que o registro dizia: o `LogoutUseCase` nunca era chamado, porque `hockpay_rt` tem path `/api/v1/auth/refresh` e o browser nao o manda para `/api/v1/auth/logout`. A rota respondia `204` e a sessao seguia viva por sete dias. Passou a revogar pelo principal autenticado, como o lado do operador ja fazia desde `2026-09-06`.
 
 ## Achados abertos, sem dono
+
+- **O access token sobrevive a troca de ambiente e le o ambiente antigo**, por ate 15 minutos. Revogar o refresh nao impede o cenario que o comentario de `switch-environment.use-case.ts` afirma impedir. E o mesmo mecanismo da janela da suspensao e do "ambiente por sessao, nao por aba": **nada revoga um access token em voo.** Muda o desenho da opcao A -- o gate do congelamento tem que reler a loja na chamada, como `create-payment` faz
+- **`@IsEnum` recebendo array em vez de enum** em `operator-store.dto.ts` (`decision`): valida certo, mas a mensagem de erro lista os valores aceitos **vazia**
+- **Deletar store com saque falha mesmo com tudo em CASCADE** -- `withdrawals.bank_account_id` e `RESTRICT` e o cascade tenta apagar o destino Pix antes do saque. So aparece em delete de store, que a aplicacao nao faz
+- **O exemplo de saque no `RUNBOOK` esta errado** -- usa `Authorization: Bearer hk_test_xxx`, e saque e JWT-only desde a fatia de autorizacao
 
 - **Loja suspensa continua sacando em LIVE.** Ate 15 minutos depois da suspensao, que e o TTL do access token. Ver a opcao A; enquanto ela nao acontece, esta escrito como defeito conhecido no `CURRENT_STATE`.
 - **A decisao da mesa nao revoga a sessao do lojista.** `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem rebaixa e o proximo login ou refresh.

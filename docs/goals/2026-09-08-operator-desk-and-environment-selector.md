@@ -6,7 +6,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-08`
 Ordering: PRD antes de codigo; conteudo antes de tela; a mesa antes do dashboard
 Scope: tudo que a fatia 3 deixou operavel apenas por `curl` -- a segunda e a terceira decisao da mesa, a tela que as torna operaveis, e o ambiente LIVE que o lojista ainda nao via
-Status final: `concluido, com a validacao contra a API de verdade em aberto`
+Status final: `concluido`. A validacao contra a API de verdade foi feita em `2026-09-08`, depois do arquivamento; so o passo pela tela continua aberto
 
 A fatia 3 deixou uma capacidade que **ninguem conseguia ver nem operar**: a mesa era `curl`, e o saldo LIVE so existia por API. Esta passagem fechou isso pelos dois lados -- a mesa virou mesa, e o lojista passou a enxergar o LIVE que a fatia 3 enchia.
 
@@ -93,21 +93,24 @@ Rodado em `2026-09-08`, com `P1.6`-`P1.9` fechados, e reconferido no fim da pass
 - [x] `grep -r assertNotLiveEnvironment` nao acha nada em `apps` nem em `packages/*/src` -- criterio de aceite do PRD, verificado
 - [x] A varredura de secret falha se uma rota futura devolver credencial -- verificado invertendo `toPublicObject()` para `toObject()` de proposito: ela falha na rota certa, apontando o campo
 
-**Nao rodado, e esta e a diferenca desta passagem para a fatia 3.** A fatia 3 fechou com todos os itens abaixo verdes; esta nao:
+Rodado em `2026-09-08`, depois do arquivamento, contra a API e o Postgres de dev:
 
-- [ ] **`prisma migrate` da coluna nova aplicado contra o Postgres de dev** -- a migration foi escrita e o schema regenerado, mas nao rodou contra banco nenhum. E o primeiro passo de qualquer item abaixo
-- [ ] `smoke:docker` completo -- nenhuma das duas trilhas mudou caminho de smoke, mas ninguem confirmou
-- [ ] **Fluxo de operador exercitado na tela, ponta a ponta** -- as telas existem e sao cobertas por teste contra HTTP mockado; ninguem passou por elas contra a API de verdade. E a diferenca entre "a capacidade existe" e "a capacidade foi vista funcionando"
-- [ ] **Dashboard em LIVE exercitado contra Postgres local, lendo os dois ledgers** -- o isolamento esta provado por unit test com dois fixtures de conta; falta o ciclo inteiro (mesa aprova -> lojista troca -> saldo LIVE aparece -> saque LIVE sai do ledger LIVE) contra o banco
-- [ ] Trocar de ambiente com o token antigo na mao, contra a API de verdade -- a revogacao esta provada no use case, nao no HTTP
-- [ ] Ciclo de condicao comercial e de investigacao contra o Postgres de dev com os repositorios reais, como a fatia 3 fez -- os unit tests mockam `findByIdForUpdate`
+- [x] **`prisma migrate deploy` da coluna nova aplicado contra o Postgres de dev.** `deploy` e nao `dev`, de proposito: o banco tem 165 payments e historico, e `migrate dev` propoe reset em caso de drift. Antes: 28 de 29 migrations, coluna ausente. Depois: `Database schema is up to date`, coluna `current_environment` (`Environment`, `NOT NULL`, default `'TEST'`), **14 merchants todos em TEST**. Nada mais se moveu -- 13 stores todas ativas e `NOT_REQUESTED`, ledger TEST em `pending=234244`, 165 payments. A migration se comportou como o comentario dela prometia: sem backfill, porque `TEST` para todo merchant existente ja era o que o guard escrevia por linha de codigo
+- [x] **Ciclo LIVE ponta a ponta contra a API de verdade** -- 22 assercoes. Sessao nasce TEST; trocar para LIVE **sem** aprovacao e recusado (422); a loja aparece na fila; a mesa aprova; a troca e aceita; pagamento com `hk_live_` nasce LIVE; depois de confirmar e liberar o ledger LIVE fica em `available=49235` com o TEST em `0/0/0`; o saque nasce marcado LIVE e bloqueia `20000` no ledger LIVE sem tocar o TEST; e o worker fechou sozinho em `COMPLETED env=LIVE`, com o LIVE indo a `29235`. **O isolamento que so tinha prova de fixture agora tem prova de banco**
+- [x] **Ciclo de condicao comercial e de investigacao com os repositorios reais** -- 16 assercoes. Faixa recusada pelo dominio (`INVALID_COMMERCIAL_TERMS`, 422); o lojista ve a nova condicao; **o pagamento cobrado antes manteve `fee=1515` em vez de `10400`** -- o snapshot provado contra o banco, e nao contra mocks concordando entre si; a trilha carrega `before`/`after` e motivo; abrir a loja gravou `store.investigated`; leitura de operador **sem** `environment` e recusada (400); e nenhuma das seis rotas de leitura devolveu credencial
+- [x] `smoke:docker` completo -- as seis suites `"ok": true`, exit 0, com os containers proprios criados e destruidos. O banco de dev nao foi tocado
+- [~] Trocar de ambiente com o token antigo na mao -- **provado pela metade, e o que faltou virou achado.** O refresh token de antes da troca e recusado (401). O **access token** de antes continua valido e devolveu `200 lendo o ledger TEST` com a sessao ja em LIVE. Ver as dividas abaixo
+- [ ] **Fluxo de operador exercitado na tela, ponta a ponta** -- continua aberto, e nao por falta de tentativa: o repo nao tem automacao de browser (`smoke:p3:visual` e um seeder HTTP, nao um driver de tela). Precisa de alguem clicando
 
-**Nao ha smoke de operador nem de seletor de ambiente.** As duas trilhas sao cobertas por unit test, pelo e2e da API e por teste de tela contra HTTP mockado, e por mais nada.
+**Nao ha smoke de operador nem de seletor de ambiente.** O ciclo acima foi um script de validacao descartavel, nao uma suite versionada -- entao ele provou o comportamento uma vez e nao protege contra regressao.
 
 ## Dividas que esta passagem criou
 
 - **Loja suspensa continua sacando em LIVE.** Decidido em `2026-09-08`, depois da passagem fechar: loja com o LIVE suspenso nao faz movimentacao financeira por conta propria; saque e estorno viram trabalho da mesa, por chamado. Hoje `create-payment` releva a habilitacao no momento da chamada e recusa, mas `create-withdrawal` so checa `isActive` -- entao na janela entre a suspensao e o proximo refresh, **dinheiro nao entra e sai**. A assimetria nasceu aqui: enquanto a sessao JWT era TEST fixo, saque nunca alcancava o ledger LIVE e a pergunta nao existia. Fechar exige as duas metades -- o gate no saque e a via do operador --, porque so a primeira deixaria o saldo LIVE sem saida nenhuma.
-- **A validacao contra a API de verdade nao aconteceu.** Seis itens acima, e o primeiro deles bloqueia os outros.
+- **O access token sobrevive a troca de ambiente, e le o ambiente antigo.** Achado em `2026-09-08` ao exercitar o ciclo. Revogar o refresh **nao** impede o cenario que o comentario de `switch-environment.use-case.ts` diz impedir -- "a still-valid TEST token after a switch to LIVE is a session reading the wrong ledger without anybody having asked for it" e exatamente o que acontece, por ate 15 minutos. E o mesmo mecanismo da janela da suspensao e do "ambiente e por sessao, nao por aba": **o access token e a fonte da verdade sobre ambiente, e nada o revoga em voo.** Consequencia de desenho para a fatia do congelamento: o gate tem que reler a loja na hora da chamada, como `create-payment` faz, e nunca confiar no token
+- **`@IsEnum` recebendo array em vez de enum.** `operator-store.dto.ts`, no campo `decision`. A validacao funciona, mas a mensagem de erro sai `"decision must be one of the following values: "` -- com a lista vazia, porque `Object.keys` de um array da indices numericos que o class-validator filtra. Quem chama a rota errado nao descobre o que e aceito
+- **Deletar uma store com saque falha, mesmo com tudo em CASCADE.** `withdrawals.bank_account_id -> bank_accounts` e `RESTRICT`, enquanto `bank_accounts.store_id -> stores` e `CASCADE`: o cascade tenta apagar o destino Pix antes do saque que o referencia. Encontrado ao limpar a massa de teste; so aparece em delete de store, que a aplicacao nao faz
+- **O `RESTRICT` de `operator_audit_logs -> operators` funciona, e vale registrar como propriedade e nao como obstaculo:** o banco recusa apagar um operador que ja agiu. A trilha append-only nao depende so da porta sem `delete` -- o schema tambem a defende
 - **A decisao da mesa nao revoga a sessao do lojista.** `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem rebaixa e o proximo login ou refresh, ate 15 minutos depois.
 - **`?limit=abc` vira `NaN`** nas duas rotas de operador que fazem parse de paginacao a mao (fila e trilha). Anterior a esta passagem, mas agora tem tela dirigindo as duas.
 
