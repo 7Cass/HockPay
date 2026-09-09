@@ -192,6 +192,8 @@ export * from './application/use-cases/list-operator-audit-logs.use-case';
 export * from './application/use-cases/list-stores-for-operator.use-case';
 export * from './application/use-cases/decide-live-enablement.use-case';
 export * from './application/use-cases/update-commercial-terms.use-case';
+export * from './application/use-cases/operator-create-withdrawal.use-case';
+export * from './application/use-cases/operator-create-refund.use-case';
 export * from './application/use-cases/get-store-for-operator.use-case';
 export * from './application/use-cases/request-live-enablement.use-case';
 export * from './application/use-cases/create-operator.use-case';

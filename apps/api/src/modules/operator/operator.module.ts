@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import {
   CreateOperatorUseCase,
+  CreateRefundUseCase,
+  CreateWithdrawalUseCase,
   DecideLiveEnablementUseCase,
   GetAccountUseCase,
   GetPaymentTimelineUseCase,
@@ -15,6 +17,8 @@ import {
   ListOperatorAuditLogsUseCase,
   OperatorLoginUseCase,
   OperatorLogoutUseCase,
+  OperatorCreateRefundUseCase,
+  OperatorCreateWithdrawalUseCase,
   OperatorRefreshTokenUseCase,
   UpdateCommercialTermsUseCase,
 } from '@hockpay/core';
@@ -22,6 +26,7 @@ import { OperatorAuthController } from './operator-auth.controller';
 import { OperatorController } from './operator.controller';
 import { OperatorStoreController } from './operator-store.controller';
 import { OperatorStoreReadController } from './operator-store-read.controller';
+import { OperatorStoreMoneyController } from './operator-store-money.controller';
 import { OperatorAuthGuard } from './guards/operator-auth.guard';
 import { PasswordHasherService } from 'src/infra/services/password-hasher.service';
 import { OperatorJwtService } from 'src/infra/services/operator-jwt.service';
@@ -44,8 +49,14 @@ import {
  * to investigate a case, reusing the merchant surface's own use cases rather
  * than growing a parallel read path.
  *
- * What the parent PRD still lists as absent: risk review, and any operator
- * write over a merchant's data. The desk does not move money.
+ * Since `2026-09-09` it also moves money for a store, and that is the point of
+ * the suspension rule rather than an exception to it: a store the desk closed
+ * stops withdrawing and refunding on its own, and this is the way its balance
+ * still gets out. That surface lives in its own controller, because writing to
+ * the ledger costs an idempotency key and a trail line that deciding about a
+ * store does not.
+ *
+ * What the parent PRD still lists as absent: risk review.
  */
 @Module({
   imports: [ConfigModule],
@@ -54,6 +65,7 @@ import {
     OperatorController,
     OperatorStoreController,
     OperatorStoreReadController,
+    OperatorStoreMoneyController,
   ],
   providers: [
     OperatorAuthGuard,
@@ -78,6 +90,20 @@ import {
     provideUseCase(DecideLiveEnablementUseCase, ['IUnitOfWork']),
     provideUseCase(UpdateCommercialTermsUseCase, ['IUnitOfWork']),
     provideUseCase(GetStoreForOperatorUseCase, ['IUnitOfWork']),
+
+    // Moving money for a store. The desk does not own a ledger path: these are
+    // the merchant's own use cases, wrapped by an operator use case that adds
+    // the reason and the trail line inside the same transaction.
+    provideUseCase(CreateWithdrawalUseCase, ['IUnitOfWork']),
+    provideUseCase(CreateRefundUseCase, ['IUnitOfWork']),
+    provideUseCase(OperatorCreateWithdrawalUseCase, [
+      'IUnitOfWork',
+      CreateWithdrawalUseCase,
+    ]),
+    provideUseCase(OperatorCreateRefundUseCase, [
+      'IUnitOfWork',
+      CreateRefundUseCase,
+    ]),
 
     // Cross-merchant reads. These are the merchant surface's own use cases,
     // wired here with the same ports: the operator sees exactly what the

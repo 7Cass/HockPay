@@ -13,6 +13,8 @@ export const OPERATOR_AUDIT_ACTION = {
   STORE_LIVE_SUSPENDED: 'store.live_suspended',
   STORE_COMMERCIAL_TERMS_CHANGED: 'store.commercial_terms_changed',
   STORE_INVESTIGATED: 'store.investigated',
+  STORE_WITHDRAWAL_CREATED: 'store.withdrawal_created',
+  STORE_REFUND_CREATED: 'store.refund_created',
 } as const;
 
 export type OperatorAuditAction =
