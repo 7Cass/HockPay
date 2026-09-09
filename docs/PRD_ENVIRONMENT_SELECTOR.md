@@ -103,6 +103,25 @@ O `??` nao e descuido, e ele fica. Duas razoes:
    ambiente que nao tem consequencia. O default seguro e TEST, e vai continuar
    sendo mesmo depois do rollout terminar.
 
+**A consequencia que D1 e D2 juntos produzem, escrita para nao ser redescoberta
+como bug** (verificada contra a API em `2026-09-08`): se o token e a copia e o
+guard confia nela, entao trocar de ambiente **nao invalida o access token
+anterior**. O refresh e revogado, mas o access e um JWT e nada o revoga em voo
+-- ele segue lendo o ambiente antigo ate expirar, por ate 15 minutos.
+
+Isso e tolerado, e nao ignorado. O cookie e substituido no browser inteiro
+(`path: '/'`), entao nenhum cliente legitimo fica com o token velho; e o que um
+token retido le e o ledger do proprio lojista, no ambiente que ele acabou de
+deixar. Fechar a janela exige um guard com estado -- versao de sessao no
+merchant ou epoch no Redis -- e uma leitura por request num caminho que hoje so
+verifica assinatura.
+
+**A regra que fica para quem precisar de mais que isso:** um caminho que *move
+dinheiro* nao pode confiar no ambiente do token. Ele relê a loja na propria
+chamada, como `CreatePaymentUseCase` faz. Foi assim que a habilitacao LIVE
+ficou correta sem precisar revogar token nenhum, e e assim que o congelamento de
+loja suspensa tem que ser construido.
+
 `JwtStrategy` passa a devolver `environment` no objeto que anexa em
 `request.user`, para parar de depender do `??` do decorator como unica cobertura.
 

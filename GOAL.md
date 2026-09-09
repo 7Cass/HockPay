@@ -63,7 +63,7 @@ Total nas paginacoes da fila e da trilha (e o `Pagination` que depende dele), va
 
 ## Achados abertos, sem dono
 
-- **O access token sobrevive a troca de ambiente e le o ambiente antigo**, por ate 15 minutos. Revogar o refresh nao impede o cenario que o comentario de `switch-environment.use-case.ts` afirma impedir. E o mesmo mecanismo da janela da suspensao e do "ambiente por sessao, nao por aba": **nada revoga um access token em voo.** Muda o desenho da opcao A -- o gate do congelamento tem que reler a loja na chamada, como `create-payment` faz
+- **Nada revoga um access token em voo.** Trocar de ambiente nao invalida o access anterior (so o refresh), e o mesmo vale para a suspensao e para o "ambiente por sessao, nao por aba". Nao e defeito: e consequencia de D1/D2 do PRD do seletor, e desde `2026-09-08` esta escrita la e no use case, que antes prometia o contrario. Fechar a janela exige guard com estado e uma leitura por request. **A regra que fica: caminho que move dinheiro rele a loja na chamada, como `create-payment` faz** -- e por isso o gate da opcao A nao pode confiar no token
 - **`@IsEnum` recebendo array em vez de enum** em `operator-store.dto.ts` (`decision`): valida certo, mas a mensagem de erro lista os valores aceitos **vazia**
 - **Deletar store com saque falha mesmo com tudo em CASCADE** -- `withdrawals.bank_account_id` e `RESTRICT` e o cascade tenta apagar o destino Pix antes do saque. So aparece em delete de store, que a aplicacao nao faz
 - **O exemplo de saque no `RUNBOOK` esta errado** -- usa `Authorization: Bearer hk_test_xxx`, e saque e JWT-only desde a fatia de autorizacao
