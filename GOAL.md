@@ -1,79 +1,75 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-08`
-Scope: **a definir**
-Status: `sem goal ativa`
+Last reviewed: `2026-09-09`
+Ordering: o gate e a via andam juntos; dominio antes de rota; rota antes de tela
+Scope: **loja suspensa nao movimenta dinheiro por conta propria, e a mesa movimenta por ela**
+Status: `em andamento`
 
-A passagem anterior (arquivada em `docs/goals/2026-09-08-operator-desk-and-environment-selector.md`) fechou as fatias 4 e 5 do [PRD da superficie de operador](docs/PRD_OPERATOR_SURFACE.md) e deu tela as tres: a mesa habilita loja para LIVE, muda condicao comercial e le dado de loja para investigar chamado, tudo sem `curl`. E o lojista passou a enxergar o ledger LIVE, com seletor de ambiente na topbar.
+A decisao de produto ja estava tomada e escrita em `2026-09-08` (`PRODUCT.md`, e a
+lacuna no `CURRENT_STATE`): suspensao fecha a movimentacao financeira do lojista em
+LIVE, nao so a cobranca. O saldo continua sendo dele; o que muda e quem executa.
 
-Este arquivo volta a ser o tracker executavel quando a proxima goal for escolhida.
+Esta passagem e a **correcao do comportamento**, nao capacidade nova. Hoje
+`create-payment`, `create-payment-link` e `create-checkout-session` releem a loja na
+chamada e recusam LIVE sem habilitacao; `create-withdrawal` so checa `isActive`, e
+`create-refund` nao le a loja de jeito nenhum. Dinheiro nao entra e sai.
 
-## Onde o projeto esta
+## As duas metades
 
-Cinco das seis fatias do PRD pai estao no runtime:
+Ela precisa das duas, e a razao esta escrita no commit `22ab5fc`: so o gate deixaria
+o saldo LIVE de uma loja suspensa **sem saida nenhuma**, e uma porta trancada sem
+chave e o inverso da "porta para sala vazia" que a fatia 3 evitou.
 
-| Fatia | Estado         | O que deu                                                                      |
-| ----- | -------------- | ------------------------------------------------------------------------------ |
-| 1     | `concluido`    | Principal `Operator`, segredo e cookies proprios, trilha append-only           |
-| 2     | `concluido`    | `Account` unica por `storeId + environment`                                    |
-| 3     | `concluido`    | `Store.liveStatus`, a mesa que decide, e a simulacao em LIVE que isso destrava |
-| 4     | `concluido`    | Condicao comercial -- taxa, fixo e prazo, auditados e com faixa no dominio     |
-| 5     | `concluido`    | Leitura cross-merchant para investigar chamado, sem secret                     |
-| 6     | `nao iniciado` | Antifraude como modulo, alimentando a fila de revisao                          |
+| Passo | Entrega                                                                    |
+| ----- | -------------------------------------------------------------------------- |
+| P0    | O gate: saque e estorno recusam LIVE em loja nao habilitada                |
+| P1    | A mesa saca pela loja -- use case, rota, trilha e idempotencia             |
+| P2    | A mesa estorna pela loja, pelo mesmo caminho                               |
+| P3    | Doc: fechar a lacuna no `CURRENT_STATE`, e o `PRODUCT` deixa de prometer   |
 
-Fora do PRD pai, a passagem anterior tambem fechou a divida da fatia 3: o ambiente da sessao mora em `Merchant.currentEnvironment`, e saque e estorno alcancam o ledger LIVE.
+## Decisoes desta passagem
 
-## Candidatas a proxima passagem
+- **O gate e o que ja existe, nao um gate de suspensao.** `assertLiveEnvironmentEnabled`
+  ja e "a unica regra que fecha LIVE para operacao iniciada pelo chamador", e vale
+  para os tres caminhos de entrada de dinheiro. Saque e estorno entram nela. Um
+  segundo predicado -- "esta suspensa?" -- seria um segundo lugar onde a regra pode
+  divergir, e divergiria: `SUSPENDED` nao e o unico estado sem habilitacao.
+- **A regra e reler a loja na chamada, e nao confiar no token.** E o que o achado
+  aberto do `GOAL` anterior determinou: nada revoga um access token em voo, entao a
+  suspensao so vale se o caminho que move dinheiro consultar a loja no momento em que
+  move. `create-payment` ja fazia; e por isso que a janela de 15 minutos existia so
+  para o saque.
+- **Estorno passa a ler a loja, e so em LIVE.** Ele nao lia nenhuma. A leitura extra
+  fica atras do `environment !== LIVE`, como `assertLiveSimulationAllowed` ja faz --
+  TEST nao paga por uma regra que so existe em LIVE.
+- **O ambiente do estorno e o do pagamento, nao o da request.** Isso ja valia para o
+  ledger; passa a valer para o gate, pela mesma razao: quem manda e o dinheiro que
+  esta sendo devolvido.
+- **A mesa nao ganha um caminho paralelo de dinheiro.** As duas rotas novas chamam
+  `CreateWithdrawalUseCase` e `CreateRefundUseCase` -- os mesmos do lojista -- dentro
+  da transacao onde a trilha e escrita. Um segundo caminho para o ledger teria a
+  propria nocao de limite, taxa e saldo, e as duas divergiriam na primeira mudanca.
+- **A escapatoria e explicita e do chamador.** `operatorInitiated` no input, no mesmo
+  molde do `systemInitiated` que o job de liquidacao e a fila de expiracao ja usam.
+  Fail closed: quem nao diz quem e, nao passa.
+- **O caminho do sistema continua livre.** `complete-withdrawal`, `fail-withdrawal` e
+  `mark-withdrawal-processing` nao ganham gate: fechar o saque ja reservado deixaria
+  dinheiro LIVE presos em `blocked` para sempre, que e pior do que a suspensao tenta
+  evitar. Mesma razao que a liquidacao e a expiracao ja tinham.
+- **Motivo obrigatorio, checado no use case.** Como nas outras duas mutacoes da mesa:
+  um cliente HTTP direto nao passa pela tela, e a regra de auditoria e do dominio.
+- **A trilha guarda saldo antes e depois.** `targetType: 'store'`, como as outras tres
+  acoes, porque a mesa raciocina por loja e a trilha nao filtra por alvo. A identidade
+  do saque/estorno vai no `after`.
 
-Nenhuma escolhida. A opcao A tem a decisao de produto ja tomada, o que a torna a mais barata de comecar -- e a unica que corrige comportamento existente em vez de acrescentar.
+## Fora do escopo, e por que
 
-### A. Loja suspensa nao movimenta dinheiro, e a mesa movimenta por ela
-
-Decidido em `2026-09-08`: loja com o LIVE suspenso nao faz movimentacao financeira por conta propria. Saque e estorno de loja suspensa viram trabalho da mesa, por chamado, como num gateway de verdade.
-
-- **A favor:** e correcao de comportamento, nao capacidade nova -- hoje `create-payment` recusa em loja suspensa mas `create-withdrawal` nao, entao dinheiro nao entra e sai. A decisao de produto ja esta tomada e escrita, o que dispensa a metade cara do PRD.
-- **Contra:** precisa das duas metades. So o gate deixaria o saldo LIVE de uma loja suspensa sem saida nenhuma, e a mesa nao tem nenhuma rota que mova dinheiro hoje -- e o primeiro poder da mesa que **escreve no ledger**, com tudo que isso implica de idempotencia e trilha.
-
-### B. Ver funcionando o que ja existe -- **feito em `2026-09-08`**
-
-Cinco dos seis itens fecharam contra a API e o Postgres de dev: migration aplicada, ciclo LIVE ponta a ponta (22 assercoes), ciclo de condicao comercial e investigacao (16 assercoes), `smoke:docker` com as seis suites verdes, e a revogacao no HTTP -- essa ultima provada pela metade, e a metade que faltou virou achado.
-
-Sobra **o passo pela tela**, que nao e falta de tentativa: o repo nao tem automacao de browser, entao ele precisa de alguem clicando.
-
-E sobra a pergunta que o exercicio levantou: **o ciclo foi um script descartavel, nao uma suite versionada.** Ele provou o comportamento uma vez e nao protege contra regressao. Transformar os dois ciclos num `smoke:operator` e num `smoke:environment` e trabalho pequeno com valor permanente, e hoje nao existe smoke de nenhuma das duas superficies.
-
-### C. Fatia 6 -- antifraude e a fila de revisao
-
-O ultimo passo do PRD pai. O motor produz sinal; a fila de revisao e onde a mesa decide sobre ele.
-
-- **A favor:** fecha o PRD pai, e agora a pre-condicao que ele exigia existe -- a mesa tem tela, trilha e leitura de dado de loja, que e do que uma fila de revisao e feita.
-- **Contra:** e a maior das restantes, e a unica que precisa de PRD do zero. O `DetectAnomaliesUseCase` stub foi removido de proposito na fatia 3 por devolver lista vazia; refaze-lo de verdade e trabalho de modelagem, nao de superficie.
-
-### D. Acabamento da mesa
-
-Total nas paginacoes da fila e da trilha (e o `Pagination` que depende dele), validacao de `limit`/`offset` nas duas rotas que fazem parse a mao, e retencao da trilha.
-
-- **A favor:** barato, e a mesa e a superficie mais nova do produto -- e onde o atrito ainda nao foi gasto por uso.
-- **Contra:** nenhum item sozinho justifica uma passagem, e nenhum deles muda invariante.
-
-## Corrigidos fora de passagem
-
-- **Logout de merchant nao revogava o refresh token no banco** -- corrigido em `2026-09-08`. Era pior do que o registro dizia: o `LogoutUseCase` nunca era chamado, porque `hockpay_rt` tem path `/api/v1/auth/refresh` e o browser nao o manda para `/api/v1/auth/logout`. A rota respondia `204` e a sessao seguia viva por sete dias. Passou a revogar pelo principal autenticado, como o lado do operador ja fazia desde `2026-09-06`.
-
-## Achados abertos, sem dono
-
-- **Nada revoga um access token em voo.** Trocar de ambiente nao invalida o access anterior (so o refresh), e o mesmo vale para a suspensao e para o "ambiente por sessao, nao por aba". Nao e defeito: e consequencia de D1/D2 do PRD do seletor, e desde `2026-09-08` esta escrita la e no use case, que antes prometia o contrario. Fechar a janela exige guard com estado e uma leitura por request. **A regra que fica: caminho que move dinheiro rele a loja na chamada, como `create-payment` faz** -- e por isso o gate da opcao A nao pode confiar no token
-- **`@IsEnum` recebendo array em vez de enum** em `operator-store.dto.ts` (`decision`): valida certo, mas a mensagem de erro lista os valores aceitos **vazia**
-- **Deletar store com saque falha mesmo com tudo em CASCADE** -- `withdrawals.bank_account_id` e `RESTRICT` e o cascade tenta apagar o destino Pix antes do saque. So aparece em delete de store, que a aplicacao nao faz
-- **O exemplo de saque no `RUNBOOK` esta errado** -- usa `Authorization: Bearer hk_test_xxx`, e saque e JWT-only desde a fatia de autorizacao
-
-- **Loja suspensa continua sacando em LIVE.** Ate 15 minutos depois da suspensao, que e o TTL do access token. Ver a opcao A; enquanto ela nao acontece, esta escrito como defeito conhecido no `CURRENT_STATE`.
-- **A decisao da mesa nao revoga a sessao do lojista.** `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem rebaixa e o proximo login ou refresh.
-- **`?limit=abc` vira `NaN`** na fila e na trilha, as duas rotas de operador que fazem parse de paginacao a mao.
-- **Ambiente e por sessao, e nao por aba.** O cookie e do browser inteiro; abas ja renderizadas seguem mostrando o ambiente anterior ate recarregarem.
-- **Nenhum teste cobre texto de tela.** Ja aconteceu duas vezes: `financials.html` na fatia 2, e a descricao do saldo na fatia 3. As duas foram achadas por inspecao, uma passagem depois de virarem mentira.
-- **Trilha de operador cresce sem retencao.** Decisao registrada, nao esquecida.
+- **A tela da mesa.** As rotas ficam operaveis por HTTP; a superficie de "mover
+  dinheiro pela loja" e a proxima passagem. O `CURRENT_STATE` registra isso como
+  lacuna aberta, e nao como pronto.
+- **Revogar a sessao do lojista na suspensao.** Continua achado aberto. Com o gate no
+  lugar, ele deixa de custar dinheiro: a sessao sobrevive, mas nao move nada.
 
 ## Passagens anteriores
 

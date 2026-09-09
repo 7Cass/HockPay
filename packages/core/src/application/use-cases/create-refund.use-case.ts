@@ -10,7 +10,10 @@ import {
   IUnitOfWork,
 } from '../../domain/repositories/unit-of-work.interface';
 import { Environment } from '../../domain/value-objects/environment.vo';
-import { assertCallerCanMutateEnvironment } from '../services/live-environment-guard';
+import {
+  assertCallerCanMutateEnvironment,
+  assertLiveEnvironmentEnabledById,
+} from '../services/live-environment-guard';
 
 export interface ICreateRefundInput {
   storeId: string;
@@ -19,6 +22,12 @@ export interface ICreateRefundInput {
   amount: number;
   reason?: string;
   callerEnvironment?: Environment;
+  /**
+   * The desk refunding on behalf of a store it has closed. See the same field
+   * on `ICreateWithdrawalInput` -- a suspended store stops moving money by
+   * itself, and the desk is what keeps its money from being stranded.
+   */
+  operatorInitiated?: boolean;
 }
 
 export interface ICreateRefundOutput {
@@ -50,6 +59,14 @@ export class CreateRefundUseCase {
       payment.environment,
       input.callerEnvironment ?? Environment.TEST,
     );
+
+    // A refund is money leaving the store, so it answers to the same enablement
+    // as money entering it. The environment that decides is the payment's, not
+    // the request's -- for the gate exactly as for the ledger below, because
+    // what is being returned is the money that came in through that door.
+    if (!input.operatorInitiated) {
+      await assertLiveEnvironmentEnabledById(repos, input.storeId, payment.environment);
+    }
 
     if (!payment.isConfirmed() && !payment.isReleased()) {
       throw new InvalidRefundAmountError('Can only refund confirmed or released payments');

@@ -78,3 +78,34 @@ export function assertCallerCanMutateEnvironment(
     throw new LiveEnvironmentNotAllowedError();
   }
 }
+
+/**
+ * The same rule as `assertLiveEnvironmentEnabled`, for a caller that does not
+ * already hold the store.
+ *
+ * Money leaving the store -- a withdrawal, a refund -- is gated by the same
+ * enablement as money entering it: a store the desk closed does not move money
+ * on its own. The read sits behind the LIVE check, because TEST should not pay
+ * for a rule that only exists in LIVE.
+ *
+ * It reads the store **at the moment of the call**, and that is the whole
+ * point: nothing revokes an access token in flight, so a suspension only holds
+ * if the path that moves money asks the store rather than trusting the token.
+ * That gap is exactly why a suspended store kept withdrawing for up to the
+ * access token's TTL while its charges were already being refused.
+ */
+export async function assertLiveEnvironmentEnabledById(
+  repos: { storeRepository: { findById(id: string): Promise<Store | null> } },
+  storeId: string,
+  environment: Environment | undefined,
+): Promise<void> {
+  if (environment !== Environment.LIVE) {
+    return;
+  }
+
+  const store = await repos.storeRepository.findById(storeId);
+
+  if (!store || !store.isLiveEnabled()) {
+    throw new StoreLiveNotEnabledError(storeId);
+  }
+}

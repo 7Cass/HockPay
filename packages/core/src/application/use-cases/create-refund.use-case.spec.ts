@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { CreateRefundUseCase } from './create-refund.use-case';
 import { Payment } from '../../domain/entities/payment.entity';
 import { Account } from '../../domain/entities/account.entity';
+import { Store } from '../../domain/entities/store.entity';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { PaymentStatus } from '../../domain/enums/payment-status.enum';
 import { RefundStatus } from '../../domain/entities/refund.entity';
 import { TransactionType } from '../../domain/entities/transaction.entity';
@@ -45,10 +47,30 @@ describe('CreateRefundUseCase', () => {
     });
   }
 
+  // Uma loja habilitada, porque estornar em LIVE agora pergunta a ela. O stub
+  // vazio de antes bastava enquanto o estorno nao lia loja nenhuma; desde o
+  // gate da saida de dinheiro, ele e uma loja que nao existe.
+  function createStore(liveStatus = StoreLiveStatus.APPROVED): Store {
+    return Store.reconstitute({
+      id: 'store-1',
+      merchantId: 'merchant-1',
+      name: 'Store',
+      slug: 'store',
+      isActive: true,
+      liveStatus,
+      settlementDays: 1,
+      feePercent: 1.5,
+      feeFixed: 15,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
   function createUseCase(
     payment: Payment,
     account: Account | null = createAccount(),
     liveAccount: Account | null = createLiveAccount(),
+    store: Store = createStore(),
   ) {
     const repos = {
       paymentRepository: {
@@ -75,7 +97,7 @@ describe('CreateRefundUseCase', () => {
         save: vi.fn(),
       },
       receiptRepository: {},
-      storeRepository: {},
+      storeRepository: { findById: vi.fn(async () => store) },
       customerRepository: {},
     };
 
@@ -88,6 +110,7 @@ describe('CreateRefundUseCase', () => {
       repos,
       account,
       liveAccount,
+      store,
       unitOfWork,
     };
   }

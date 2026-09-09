@@ -3,6 +3,7 @@ import { Account } from '../../domain/entities/account.entity';
 import { BankAccount, PixKeyType } from '../../domain/entities/bank-account.entity';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { Store } from '../../domain/entities/store.entity';
+import { StoreLiveStatus } from '../../domain/value-objects/store-live-status.vo';
 import { Transaction, TransactionType } from '../../domain/entities/transaction.entity';
 import { Withdrawal, WithdrawalStatus } from '../../domain/entities/withdrawal.entity';
 import { BankAccountNotFoundError } from '../../domain/errors/bank-account-not-found.error';
@@ -283,9 +284,15 @@ describe('withdrawal use cases', () => {
   it('refuses a LIVE simulation while the desk has not enabled the store', async () => {
     const fixture = makeFixture({
       liveAvailable: 20_000,
-      liveStatus: StoreLiveStatus.SUSPENDED,
+      liveStatus: StoreLiveStatus.APPROVED,
     });
     const created = await createLiveWithdrawal(fixture);
+
+    // A ordem e a real, e nao ha outra: o saque nasceu com a loja aberta,
+    // porque desde o gate da saida de dinheiro uma loja fechada nao cria saque
+    // nenhum. Quem fecha depois e a mesa, e e ai que a pergunta desta suite
+    // comeca a existir.
+    fixture.store.suspendLive('mesa suspendeu depois do saque criado');
 
     // The answer is STORE_LIVE_NOT_ENABLED, not LIVE_ENVIRONMENT_NOT_ALLOWED:
     // simulating in LIVE now follows the same rule as charging in LIVE, and

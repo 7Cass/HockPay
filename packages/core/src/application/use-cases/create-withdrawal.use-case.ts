@@ -13,6 +13,7 @@ import {
   IUnitOfWork,
 } from '../../domain/repositories/unit-of-work.interface';
 import { WithdrawalPolicy } from '../services/withdrawal-policy.service';
+import { assertLiveEnvironmentEnabled } from '../services/live-environment-guard';
 import { Environment } from '../../domain/value-objects/environment.vo';
 
 export interface ICreateWithdrawalInput {
@@ -21,6 +22,16 @@ export interface ICreateWithdrawalInput {
   amount: number;
   requestId?: string;
   environment?: Environment;
+  /**
+   * The desk withdrawing on behalf of a store it has closed.
+   *
+   * A suspended store does not move money on its own, but its LIVE balance is
+   * still its own -- so the way out is the desk, by ticket. Same shape as the
+   * `systemInitiated` the settlement job and the expiration queue use, and
+   * fail closed for the same reason: a caller that does not say who it is does
+   * not get the benefit of the doubt.
+   */
+  operatorInitiated?: boolean;
 }
 
 export interface ICreateWithdrawalOutput {
@@ -47,6 +58,14 @@ export class CreateWithdrawalUseCase {
     if (!store.isActive) throw new StoreInactiveError(store.id);
 
     const environment = input.environment ?? Environment.TEST;
+
+    // The store is read here, in the call that moves the money, and not taken
+    // from the token: nothing revokes an access token in flight, so this is
+    // the only place where a suspension decided a minute ago actually holds.
+    if (!input.operatorInitiated) {
+      assertLiveEnvironmentEnabled(store, environment);
+    }
+
     const account = await repos.accountRepository.findByStoreIdAndEnvironmentForUpdate(
       input.storeId,
       environment,
