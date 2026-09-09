@@ -58,12 +58,15 @@ Hockpay e uma plataforma dev-first de pagamentos simulados para desenvolvedores 
    recarrega no ledger escolhido: saldo, extrato, pagamento, produto e chave.
    Saque e estorno tambem passam a sair do ledger LIVE.
 
-Loja **suspensa** para de movimentar dinheiro por conta propria: nao cobra, e a
-intencao e que tambem nao saque nem estorne. O saldo continua sendo dela -- o
-que muda e quem executa. Retirada de loja suspensa passa a ser trabalho da mesa,
-por chamado, como num gateway de verdade. Decidido em `2026-09-08`; o gate do
-saque e a via do operador ainda nao existem, e o `CURRENT_STATE` registra a
-lacuna.
+Loja **suspensa** para de movimentar dinheiro por conta propria: nao cobra, nao
+saca e nao estorna. O saldo continua sendo dela -- o que muda e quem executa.
+Retirada de loja suspensa e trabalho da mesa, por chamado, como num gateway de
+verdade. Decidido em `2026-09-08` e entregue em `2026-09-09`, nas duas metades
+que a decisao exigia: o gate, que fecha a saida, e a via do operador, que e por
+onde o dinheiro sai. Uma sem a outra seria porta trancada sem chave.
+
+A mesa move esse dinheiro com motivo obrigatorio e trilha, e ainda sem tela: o
+operador faz por API enquanto a superficie nao existe.
 
 Loja sem habilitacao ve a opcao LIVE **desabilitada, e nao escondida**, com o
 estado atual e o caminho para pedir. Ver a porta fechada e como o lojista
