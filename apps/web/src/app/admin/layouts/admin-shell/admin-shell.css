@@ -4,10 +4,21 @@
   background: var(--adm-ground);
 }
 
+/* A moldura da mesa: uma linha só, do tamanho da janela.
+
+   A linha é explícita — e `minmax(0, 1fr)` e não `auto` — porque uma linha
+   automática cresce com o conteúdo. Quando isso acontecia, `.work` ficava mais
+   alto que a janela, `.canvas` herdava essa altura e deixava de ser container
+   de rolagem: a tela cortava embaixo e a roda do mouse não movia nada, já que
+   o `overscroll-behavior: contain` do `.canvas` recusa encadear a rolagem para
+   o documento. Só aparecia em tela alta (o detalhe de loja), porque as outras
+   cabiam na janela. */
 .shell {
   display: grid;
   grid-template-columns: var(--adm-rail-w) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   height: 100dvh;
+  overflow: hidden;
 }
 
 /* ═══ A área de trabalho ═══════════════════════════════════════════════════ */
@@ -15,6 +26,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  min-height: 0;
 }
 
 .topbar {
@@ -55,7 +67,10 @@
   gap: 0.25rem;
 }
 
+/* O único lugar que rola. `min-height: 0` é o que permite ele encolher abaixo
+   do conteúdo dentro da grade — sem isso, ele volta a crescer. */
 .canvas {
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
