@@ -1,0 +1,360 @@
+<section class="adm-panel investigation">
+  <div class="adm-panel-head">
+    <h2 class="adm-panel-title">Investigação</h2>
+
+    <div class="head-controls">
+      <div class="adm-seg seg-env" role="group" aria-label="Ambiente investigado">
+        @for (env of environments; track env) {
+          <button
+            type="button"
+            [class.is-active]="environment() === env"
+            [attr.aria-pressed]="environment() === env"
+            (click)="selectEnvironment(env)"
+          >
+            {{ env }}
+          </button>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="adm-btn adm-btn-quiet adm-btn-icon adm-btn-sm"
+        (click)="reload()"
+        title="Recarregar"
+        aria-label="Recarregar"
+      >
+        <ng-icon name="lucideRefreshCcw" size="13px" strokeWidth="1.8" />
+      </button>
+    </div>
+  </div>
+
+  <div class="investigation-body">
+    <p class="env-note" data-testid="env-note">
+      Lendo o ambiente <strong>{{ environment() }}</strong> — a mesa escolhe, a sessão não decide
+      por ela.
+    </p>
+
+    <div class="adm-seg seg-tabs" role="tablist" aria-label="O que investigar">
+      @for (option of tabs; track option.value) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="tab() === option.value"
+          [class.is-active]="tab() === option.value"
+          (click)="selectTab(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    <!-- ─── Pagamentos ────────────────────────────────────────────────── -->
+    @if (tab() === 'payments') {
+      @if (reads.payments.error(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (reads.payments.isLoading()) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo pagamentos…" />
+      } @else if (reads.payments.data(); as result) {
+        @if (result.payments.length === 0) {
+          <adm-page-state
+            variant="empty"
+            frame="bare"
+            icon="lucideReceipt"
+            heading="Sem cobranças neste ambiente"
+            [message]="'Nenhum pagamento em ' + environment() + ' para esta loja.'"
+          />
+        } @else {
+          <div class="sub-panel">
+            <div class="adm-table-scroll adm-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th class="adm-col-num">Bruto</th>
+                    <th class="adm-col-num">Taxa</th>
+                    <th class="adm-col-num">Líquido</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (payment of result.payments; track payment.id) {
+                    <tr class="adm-row-click" (click)="openTimeline(payment)">
+                      <td>
+                        <span class="adm-cell">
+                          <span class="adm-cell-title adm-num">{{
+                            payment.createdAt | date: 'dd/MM/yy'
+                          }}</span>
+                          <span class="adm-cell-sub adm-mono">{{
+                            payment.createdAt | date: 'HH:mm'
+                          }}</span>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="adm-cell">
+                          <span class="adm-cell-title">{{
+                            payment.description || 'Cobrança Pix'
+                          }}</span>
+                          <span class="adm-cell-sub adm-mono">{{ payment.id }}</span>
+                        </span>
+                      </td>
+                      <td class="adm-col-num">{{ payment.amount / 100 | currency: 'BRL' }}</td>
+                      <td class="adm-col-num">{{ payment.fee / 100 | currency: 'BRL' }}</td>
+                      <td class="adm-col-num">{{ payment.netAmount / 100 | currency: 'BRL' }}</td>
+                      <td><adm-status-chip [status]="payment.status" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="adm-listfoot">
+              <span class="adm-listfoot-count">
+                {{ result.payments.length }} de {{ result.total }} · página {{ result.page }} de
+                {{ result.totalPages }}
+              </span>
+              <span class="adm-listfoot-actions">
+                <button
+                  type="button"
+                  class="adm-btn adm-btn-quiet adm-btn-sm"
+                  [disabled]="result.page <= 1"
+                  (click)="goToPaymentsPage(result.page - 1)"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  class="adm-btn adm-btn-quiet adm-btn-sm"
+                  [disabled]="result.page >= result.totalPages"
+                  (click)="goToPaymentsPage(result.page + 1)"
+                >
+                  Próxima
+                </button>
+              </span>
+            </div>
+          </div>
+        }
+      }
+    }
+
+    <!-- ─── Saldo e extrato ───────────────────────────────────────────── -->
+    @if (tab() === 'ledger') {
+      @if (reads.account.error(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (reads.account.isLoading()) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo o ledger…" />
+      } @else if (reads.account.data(); as result) {
+        <dl class="adm-facts ledger" data-testid="ledger">
+          <div class="adm-fact adm-fact-lg">
+            <dt>Disponível</dt>
+            <dd>{{ result.account.available / 100 | currency: 'BRL' }}</dd>
+          </div>
+          <div class="adm-fact adm-fact-lg">
+            <dt>A liberar</dt>
+            <dd>{{ result.account.pending / 100 | currency: 'BRL' }}</dd>
+          </div>
+          <div class="adm-fact adm-fact-lg">
+            <dt>Bloqueado</dt>
+            <dd>{{ result.account.blocked / 100 | currency: 'BRL' }}</dd>
+          </div>
+          <div class="adm-fact adm-fact-lg">
+            <dt>Total no ledger {{ result.account.environment }}</dt>
+            <dd>{{ ledgerTotal() / 100 | currency: 'BRL' }}</dd>
+          </div>
+        </dl>
+      }
+
+      @if (reads.transactions.error(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (reads.transactions.isLoading()) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo o extrato…" />
+      } @else if (reads.transactions.data(); as result) {
+        @if (result.data.length === 0) {
+          <adm-page-state
+            variant="empty"
+            frame="bare"
+            heading="Extrato vazio"
+            [message]="'Nenhuma transação em ' + environment() + '.'"
+          />
+        } @else {
+          <div class="sub-panel">
+            <div class="adm-table-scroll adm-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th class="adm-col-num">Valor</th>
+                    <th class="adm-col-num">Saldo depois</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (transaction of result.data; track transaction.id) {
+                    <tr>
+                      <td class="adm-num">{{ transaction.createdAt | date: 'dd/MM/yy HH:mm' }}</td>
+                      <td>
+                        <span class="adm-chip adm-chip-bare adm-mono">{{ transaction.type }}</span>
+                      </td>
+                      <td>{{ transaction.description || '—' }}</td>
+                      <td class="adm-col-num">{{ transaction.amount / 100 | currency: 'BRL' }}</td>
+                      <td class="adm-col-num">
+                        {{ transaction.balanceAfter / 100 | currency: 'BRL' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="adm-listfoot">
+              <span class="adm-listfoot-count">
+                página {{ result.meta.page }} de {{ result.meta.totalPages }} ·
+                {{ result.meta.total }} transações
+              </span>
+              <span class="adm-listfoot-actions">
+                <button
+                  type="button"
+                  class="adm-btn adm-btn-quiet adm-btn-sm"
+                  [disabled]="result.meta.page <= 1"
+                  (click)="goToTransactionsPage(result.meta.page - 1)"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  class="adm-btn adm-btn-quiet adm-btn-sm"
+                  [disabled]="result.meta.page >= result.meta.totalPages"
+                  (click)="goToTransactionsPage(result.meta.page + 1)"
+                >
+                  Próxima
+                </button>
+              </span>
+            </div>
+          </div>
+        }
+      }
+    }
+
+    <!-- ─── Webhooks ──────────────────────────────────────────────────── -->
+    @if (tab() === 'webhooks') {
+      <p class="adm-notice" data-tone="warn" data-testid="secret-notice">
+        <ng-icon name="lucideEyeOff" size="14px" strokeWidth="1.8" aria-hidden="true" />
+        <span>
+          <strong>Segredo de webhook não é visível para operador.</strong> A mesa investiga entrega
+          e log, não credencial. O prefixo abaixo identifica a configuração sem expor o segredo, e
+          não existe rota de operador para chave de API — ela não é filtrada, ela não existe.
+        </span>
+      </p>
+
+      @if (reads.webhooks.error(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (reads.webhooks.isLoading()) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo os destinos…" />
+      } @else if (reads.webhooks.data(); as result) {
+        @if (result.webhooks.length === 0) {
+          <adm-page-state
+            variant="empty"
+            frame="bare"
+            icon="lucideWebhook"
+            heading="Sem destino configurado"
+            message="Esta loja não recebe webhook."
+          />
+        } @else {
+          @for (config of result.webhooks; track config.id) {
+            <div class="hook">
+              <div class="hook-head">
+                <span class="hook-url adm-mono">{{ config.url }}</span>
+                <span class="adm-chip" [attr.data-tone]="config.isActive ? 'ok' : 'neutral'">
+                  {{ config.isActive ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+              <dl class="adm-facts">
+                <div class="adm-fact">
+                  <dt>Prefixo</dt>
+                  <dd class="adm-mono">{{ config.prefix }}</dd>
+                </div>
+                <div class="adm-fact">
+                  <dt>Segredo</dt>
+                  <dd class="secret-hidden" data-testid="secret-field">
+                    não visível para operador
+                  </dd>
+                </div>
+                <div class="adm-fact">
+                  <dt>Eventos</dt>
+                  <dd class="adm-mono">{{ config.events.join(', ') }}</dd>
+                </div>
+              </dl>
+            </div>
+          }
+        }
+      }
+
+      @if (reads.webhookLogs.error(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (reads.webhookLogs.isLoading()) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo as entregas…" />
+      } @else if (reads.webhookLogs.data(); as result) {
+        @if (result.logs.length > 0) {
+          <div class="sub-panel">
+            <div class="adm-table-scroll adm-scroll">
+              <table class="adm-table">
+                <thead>
+                  <tr>
+                    <th>Quando</th>
+                    <th>Evento</th>
+                    <th class="adm-col-num">HTTP</th>
+                    <th class="adm-col-num">Tentativa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of result.logs; track log.id) {
+                    <tr>
+                      <td class="adm-num">{{ log.createdAt | date: 'dd/MM/yy HH:mm:ss' }}</td>
+                      <td class="adm-mono">{{ log.eventType }}</td>
+                      <td class="adm-col-num">{{ log.responseStatus ?? '—' }}</td>
+                      <td class="adm-col-num">{{ log.attempt }} / {{ log.maxAttempts }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    }
+  </div>
+</section>
+
+<!-- ─── Linha do tempo de um pagamento ───────────────────────────────────── -->
+@if (timelineFor(); as payment) {
+  <adm-sheet
+    [open]="true"
+    size="wide"
+    eyebrow="Linha do tempo"
+    [heading]="payment.description || 'Cobrança Pix'"
+    [description]="payment.id + ' · ' + environment()"
+    (closed)="closeTimeline()"
+  >
+    @if (isTimelineLoading()) {
+      <adm-page-state variant="loading" frame="bare" message="Lendo a linha do tempo…" />
+    } @else if (timeline(); as result) {
+      <ol class="adm-timeline">
+        @for (event of result.timeline; track event.id) {
+          <li>
+            <div class="adm-timeline-head">
+              <span class="adm-timeline-label">{{ event.title }}</span>
+              <span class="adm-timeline-when adm-mono">{{
+                event.occurredAt | date: 'dd/MM/yy HH:mm:ss'
+              }}</span>
+            </div>
+            @if (event.description) {
+              <p class="adm-timeline-note">{{ event.description }}</p>
+            }
+            <span class="adm-timeline-meta adm-mono">{{ event.type }}</span>
+          </li>
+        }
+      </ol>
+    }
+  </adm-sheet>
+}

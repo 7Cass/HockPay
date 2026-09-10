@@ -1,0 +1,72 @@
+/* Cabeçalho de tela do admin: título, contexto e as ações da tela numa linha. */
+
+:host {
+  display: block;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-bottom: 0.4rem;
+  margin-left: -0.15rem;
+  font-size: 12px;
+  color: var(--adm-text-3);
+  text-decoration: none;
+  transition: color 0.15s var(--adm-ease);
+}
+
+.back:hover {
+  color: var(--adm-text);
+}
+
+.head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.head-text {
+  min-width: 0;
+  flex: 1 1 20rem;
+}
+
+.head-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.625rem;
+}
+
+/* Sans, não serifa. O título nomeia a tela e sai da frente. */
+h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--adm-text);
+}
+
+.head-desc {
+  max-width: 78ch;
+  margin: 0.3rem 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  /* Alinha os botões com a linha do título, não com o topo do bloco de texto. */
+  margin-top: 1px;
+}
+
+.head-actions:empty {
+  display: none;
+}

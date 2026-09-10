@@ -7,7 +7,7 @@ import {
 } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { AuthService } from '../services/auth.service';
-import { OperatorAuthService } from '../services/operator-auth.service';
+import { OperatorAuthService } from '../../admin/services/operator-auth.service';
 import { authInterceptor } from './auth.interceptor';
 
 const API = 'http://localhost:3000/api/v1';

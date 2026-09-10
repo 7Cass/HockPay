@@ -1,0 +1,59 @@
+<div class="shell">
+  <aside class="side">
+    <a routerLink="/operator" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <span class="brand-bar"></span>
+        <span class="brand-bar"></span>
+        <span class="brand-dot"></span>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">hockpay</span>
+        <span class="brand-tag">admin</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Navegação do admin">
+      @for (item of nav; track item.route) {
+        <a
+          class="adm-nav-item"
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: !!item.exact }"
+        >
+          <ng-icon [name]="item.icon" size="15px" strokeWidth="1.8" aria-hidden="true" />
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="who">
+      <span class="who-avatar" aria-hidden="true">{{
+        initials(operatorAuth.currentOperator()?.name)
+      }}</span>
+
+      <span class="who-text">
+        <span class="who-name">{{ operatorAuth.currentOperator()?.name ?? '—' }}</span>
+        <span class="who-mail">{{ operatorAuth.currentOperator()?.email ?? '' }}</span>
+      </span>
+
+      <button
+        type="button"
+        class="adm-btn adm-btn-ghost adm-btn-icon adm-btn-sm who-exit"
+        (click)="logout()"
+        [disabled]="isLeaving()"
+        aria-label="Sair do admin"
+        title="Sair do admin"
+      >
+        <ng-icon name="lucideLogOut" size="14px" strokeWidth="1.8" />
+      </button>
+    </div>
+  </aside>
+
+  <main class="work adm-scroll">
+    <div class="work-inner">
+      <router-outlet />
+    </div>
+  </main>
+</div>
+
+<hlm-toaster position="bottom-right" richColors="true" />
