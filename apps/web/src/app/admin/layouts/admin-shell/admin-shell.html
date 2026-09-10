@@ -1,59 +1,99 @@
 <div class="shell">
-  <aside class="side">
-    <a routerLink="/operator" class="brand">
-      <span class="brand-mark" aria-hidden="true">
-        <span class="brand-bar"></span>
-        <span class="brand-bar"></span>
-        <span class="brand-dot"></span>
-      </span>
-      <span class="brand-text">
-        <span class="brand-name">hockpay</span>
-        <span class="brand-tag">admin</span>
-      </span>
-    </a>
+  <app-admin-rail
+    [operator]="operatorAuth.currentOperator()"
+    [isLeaving]="isLeaving()"
+    (search)="openPalette()"
+    (shortcuts)="isShortcutsOpen.set(true)"
+    (leave)="logout()"
+  />
 
-    <nav class="nav" aria-label="Navegação do admin">
-      @for (item of nav; track item.route) {
-        <a
-          class="adm-nav-item"
-          [routerLink]="item.route"
-          routerLinkActive="is-active"
-          [routerLinkActiveOptions]="{ exact: !!item.exact }"
+  <div class="work">
+    <header class="topbar">
+      <span class="crumbs">
+        <span class="crumb-root">Mesa</span>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <span class="crumb-now">{{ section() }}</span>
+      </span>
+
+      <span class="topbar-actions">
+        <button
+          admButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          (click)="openPalette()"
+          aria-label="Buscar (comando K)"
+          title="Buscar — ⌘K"
         >
-          <ng-icon [name]="item.icon" size="15px" strokeWidth="1.8" aria-hidden="true" />
-          {{ item.label }}
-        </a>
-      }
-    </nav>
+          <ng-icon name="lucideCommand" size="13px" strokeWidth="1.8" aria-hidden="true" />
+          <span class="topbar-search-label">Buscar</span>
+        </button>
 
-    <div class="who">
-      <span class="who-avatar" aria-hidden="true">{{
-        initials(operatorAuth.currentOperator()?.name)
-      }}</span>
-
-      <span class="who-text">
-        <span class="who-name">{{ operatorAuth.currentOperator()?.name ?? '—' }}</span>
-        <span class="who-mail">{{ operatorAuth.currentOperator()?.email ?? '' }}</span>
+        <button
+          admButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          iconOnly
+          (click)="theme.toggleTheme()"
+          [attr.aria-label]="theme.theme() === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'"
+          [title]="theme.theme() === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'"
+        >
+          <ng-icon
+            [name]="theme.theme() === 'dark' ? 'lucideSun' : 'lucideMoon'"
+            size="14px"
+            strokeWidth="1.8"
+          />
+        </button>
       </span>
+    </header>
 
-      <button
-        type="button"
-        class="adm-btn adm-btn-ghost adm-btn-icon adm-btn-sm who-exit"
-        (click)="logout()"
-        [disabled]="isLeaving()"
-        aria-label="Sair do admin"
-        title="Sair do admin"
-      >
-        <ng-icon name="lucideLogOut" size="14px" strokeWidth="1.8" />
-      </button>
-    </div>
-  </aside>
-
-  <main class="work adm-scroll">
-    <div class="work-inner">
-      <router-outlet />
-    </div>
-  </main>
+    <main class="canvas adm-scroll">
+      <div class="canvas-inner">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
 </div>
 
-<hlm-toaster position="bottom-right" richColors="true" />
+<adm-command-palette
+  [open]="isPaletteOpen()"
+  [commands]="commands()"
+  (queryChange)="onPaletteQuery($event)"
+  (closed)="isPaletteOpen.set(false)"
+/>
+
+@if (isShortcutsOpen()) {
+  <adm-sheet
+    [open]="true"
+    side="center"
+    heading="Atalhos"
+    description="A mesa foi desenhada para ser operada sem tirar a mão do teclado."
+    (closed)="isShortcutsOpen.set(false)"
+  >
+    <dl class="shortcuts">
+      <div>
+        <dt><adm-kbd>⌘</adm-kbd><adm-kbd>K</adm-kbd></dt>
+        <dd>Buscar destino, ação ou id de loja</dd>
+      </div>
+      @for (item of nav; track item.route) {
+        <div>
+          <dt>
+            <adm-kbd>g</adm-kbd><adm-kbd>{{ item.key }}</adm-kbd>
+          </dt>
+          <dd>Ir para {{ item.label }} — {{ item.hint }}</dd>
+        </div>
+      }
+      <div>
+        <dt><adm-kbd>?</adm-kbd></dt>
+        <dd>Esta lista</dd>
+      </div>
+      <div>
+        <dt><adm-kbd>esc</adm-kbd></dt>
+        <dd>Fechar o painel aberto</dd>
+      </div>
+    </dl>
+  </adm-sheet>
+}
+
+<adm-toaster />

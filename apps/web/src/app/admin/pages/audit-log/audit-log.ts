@@ -7,7 +7,15 @@ import { Subscription } from 'rxjs';
 
 import { OperatorAuditLog, OperatorAuditService } from '../../services/operator-audit.service';
 import { OperatorAuthService } from '../../services/operator-auth.service';
-import { AdmPageHeader, AdmPageState } from '../../ui';
+import {
+  AdmButton,
+  AdmChip,
+  AdmPageHeader,
+  AdmPageState,
+  AdmPagination,
+  AdmPanel,
+  AdmSkeletonRows,
+} from '../../ui';
 import { actionLabel, actionTone, readableChanges } from '../../domain/audit-vocabulary';
 
 const LIMIT = 50;
@@ -26,7 +34,18 @@ const LIMIT = 50;
 @Component({
   selector: 'app-operator-audit-log',
   standalone: true,
-  imports: [DatePipe, NgIcon, RouterLink, AdmPageHeader, AdmPageState],
+  imports: [
+    DatePipe,
+    NgIcon,
+    RouterLink,
+    AdmButton,
+    AdmChip,
+    AdmPageHeader,
+    AdmPageState,
+    AdmPagination,
+    AdmPanel,
+    AdmSkeletonRows,
+  ],
   providers: [provideIcons({ lucideRefreshCcw, lucideScrollText })],
   templateUrl: './audit-log.html',
   styleUrl: './audit-log.css',
@@ -40,7 +59,6 @@ export class OperatorAuditLogPage implements OnInit, OnDestroy {
 
   protected readonly actionLabel = actionLabel;
   protected readonly actionTone = actionTone;
-  protected readonly skeletonRows = [1, 2, 3, 4, 5, 6];
 
   protected readonly mineOnly = signal(false);
   protected readonly offset = signal(0);
@@ -50,7 +68,7 @@ export class OperatorAuditLogPage implements OnInit, OnDestroy {
   protected readonly range = computed(() => {
     const count = this.trail.logs().length;
     if (count === 0) return '';
-    return `${this.offset() + 1}–${this.offset() + count}`;
+    return `${this.offset() + 1}–${this.offset() + count} · página ${this.page()}`;
   });
 
   ngOnInit(): void {

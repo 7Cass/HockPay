@@ -54,7 +54,7 @@ describe('OperatorQueue', () => {
 
   function confirmButton() {
     return sheet()!.querySelector<HTMLButtonElement>(
-      '.sheet-foot .adm-btn-primary, .sheet-foot .adm-btn-danger',
+      '.sheet-foot [data-variant="primary"], .sheet-foot [data-variant="danger"]',
     )!;
   }
 
@@ -69,9 +69,9 @@ describe('OperatorQueue', () => {
     const request = await open();
 
     expect(request.request.params.get('liveStatus')).toBe('PENDING');
-    expect(el.querySelector('.adm-seg button[aria-selected="true"]')?.textContent?.trim()).toBe(
-      'Pendentes',
-    );
+    expect(
+      el.querySelector('adm-segmented button[aria-selected="true"]')?.textContent?.trim(),
+    ).toBe('Pendentes');
   });
 
   it('asks the API for the state in the URL', async () => {
@@ -162,7 +162,7 @@ describe('OperatorQueue', () => {
     );
 
     const [previous, next] = Array.from(
-      el.querySelectorAll<HTMLButtonElement>('.adm-listfoot-actions button'),
+      el.querySelectorAll<HTMLButtonElement>('adm-pagination button'),
     );
     expect(previous.disabled).toBe(true);
     expect(next.disabled).toBe(false);
@@ -176,8 +176,6 @@ describe('OperatorQueue', () => {
     request.flush({ data: [store()], limit: 20, offset: 20 });
     await settle();
 
-    expect(el.querySelectorAll<HTMLButtonElement>('.adm-listfoot-actions button')[1].disabled).toBe(
-      true,
-    );
+    expect(el.querySelectorAll<HTMLButtonElement>('adm-pagination button')[1].disabled).toBe(true);
   });
 });

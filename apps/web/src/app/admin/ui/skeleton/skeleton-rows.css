@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  height: var(--adm-row);
+  padding: 0 var(--adm-pad);
+  border-bottom: 1px solid var(--adm-line);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+/* A primeira barra é a coluna que carrega o nome: ela manda na largura, as
+   outras seguram o próprio tamanho. */
+.row > adm-skeleton:first-child {
+  flex: 1 1 auto;
+  max-width: 32%;
+}

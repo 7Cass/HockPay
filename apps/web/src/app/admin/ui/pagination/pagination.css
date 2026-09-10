@@ -1,0 +1,28 @@
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem var(--adm-pad);
+  border-top: 1px solid var(--adm-line);
+  background: var(--adm-surface-2);
+}
+
+:host(.is-bare) {
+  border-top: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+
+.count {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-3);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}

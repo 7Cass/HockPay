@@ -1,0 +1,108 @@
+/* Global de propósito: estes seletores alcançam `<th>` e `<td>` escritos pela
+   página, do outro lado da projeção. Tudo está preso a `adm-table`, que só este
+   componente escreve. */
+
+adm-table {
+  display: block;
+  min-width: 0;
+}
+
+adm-table > .scroll {
+  overflow-x: auto;
+}
+
+adm-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+adm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 1.875rem;
+  padding: 0 var(--adm-pad);
+  border-bottom: 1px solid var(--adm-line);
+  background: var(--adm-surface-2);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--adm-text-3);
+}
+
+adm-table.is-plain thead th {
+  position: static;
+}
+
+adm-table tbody td {
+  height: var(--adm-row);
+  padding: var(--adm-cell-y) var(--adm-pad);
+  border-bottom: 1px solid var(--adm-line);
+  color: var(--adm-text-2);
+  vertical-align: middle;
+}
+
+adm-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+adm-table tbody tr:hover td {
+  background: var(--adm-surface-2);
+}
+
+/* A linha inteira abre alguma coisa. O cursor avisa; o realce confirma. */
+adm-table tbody tr.is-clickable {
+  cursor: pointer;
+}
+
+adm-table tbody tr.is-clickable:focus-visible {
+  outline: 2px solid var(--adm-ring);
+  outline-offset: -2px;
+}
+
+/* ── Célula de duas linhas ───────────────────────────────────────────────
+   Título e subtítulo no mesmo `<td>`: o nome e o identificador, a data e a
+   hora. É o que evita uma coluna a mais para cada metade de um mesmo fato. */
+adm-table .adm-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+adm-table .adm-cell-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--adm-text);
+}
+
+adm-table .adm-cell-sub {
+  font-size: 11.5px;
+  color: var(--adm-text-3);
+}
+
+adm-table a.adm-cell {
+  text-decoration: none;
+}
+
+adm-table a.adm-cell:hover .adm-cell-title {
+  color: var(--adm-accent);
+}
+
+/* Ações de linha.
+
+   Elas ficam acesas o tempo todo, e isso é uma correção de rota: escondê-las
+   até o hover é o padrão de tabela de conteúdo, onde a ação é exceção. Aqui a
+   ação é o trabalho — a fila existe para ser decidida —, e uma coluna de botões
+   apagados numa mesa de operação parece controle desabilitado. */
+adm-table .adm-cell-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}

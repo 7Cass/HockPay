@@ -1,0 +1,57 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface-2);
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.625rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--adm-text-2);
+  cursor: pointer;
+  transition:
+    background-color var(--adm-fast) var(--adm-ease),
+    color var(--adm-fast) var(--adm-ease);
+}
+
+:host([data-size='sm']) button {
+  height: 1.375rem;
+  padding: 0 0.45rem;
+  font-size: 11.5px;
+}
+
+button:hover:not(.is-active) {
+  color: var(--adm-text);
+}
+
+/* O ativo sobe para o papel do painel. É a mesma elevação da superfície de
+   trabalho: o que está escolhido está "na frente". */
+button.is-active {
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow-sm);
+  color: var(--adm-text);
+}
+
+.count {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-text-3);
+}
+
+button.is-active .count {
+  color: var(--adm-text-2);
+}

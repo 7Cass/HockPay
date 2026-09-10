@@ -1,11 +1,6 @@
 @if (desk.storeError(); as message) {
   <adm-page-state variant="error" [message]="message">
-    <button
-      pageStateAction
-      type="button"
-      class="adm-btn adm-btn-quiet adm-btn-sm"
-      (click)="reload()"
-    >
+    <button pageStateAction admButton type="button" variant="quiet" size="sm" (click)="reload()">
       Tentar de novo
     </button>
   </adm-page-state>
@@ -18,14 +13,16 @@
     backTo="/operator"
     backLabel="Fila"
   >
-    <span pageStatus class="adm-chip" [attr.data-tone]="statusTone[store.liveStatus]">
+    <adm-chip pageStatus [tone]="statusTone[store.liveStatus]">
       {{ statusLabel[store.liveStatus] }}
-    </span>
+    </adm-chip>
 
     <ng-container pageActions>
       <button
+        admButton
         type="button"
-        class="adm-btn adm-btn-quiet adm-btn-icon"
+        variant="quiet"
+        iconOnly
         (click)="reload()"
         title="Recarregar"
         aria-label="Recarregar"
@@ -36,126 +33,110 @@
   </adm-page-header>
 
   <!-- ─── Identidade ──────────────────────────────────────────────────── -->
-  <section class="adm-panel">
-    <div class="adm-panel-head"><h2 class="adm-panel-title">A loja</h2></div>
-    <div class="adm-panel-body">
-      <dl class="adm-facts">
-        <div class="adm-fact">
-          <dt>Estado da loja</dt>
-          <dd>{{ store.isActive ? 'Ativa' : 'Inativa' }}</dd>
-        </div>
-        <div class="adm-fact">
-          <dt>Habilitação LIVE</dt>
-          <dd>{{ statusLabel[store.liveStatus] }}</dd>
-        </div>
-        <div class="adm-fact">
-          <dt>Última decisão</dt>
-          <dd>
-            @if (store.liveStatusChangedAt) {
-              {{ store.liveStatusChangedAt | date: 'dd/MM/yy HH:mm' }}
-            } @else {
-              —
-            }
-          </dd>
-        </div>
-        <div class="adm-fact">
-          <dt>Criada em</dt>
-          <dd>{{ store.createdAt | date: 'dd/MM/yy' }}</dd>
-        </div>
-      </dl>
+  <adm-panel heading="A loja">
+    <ng-container panelActions>
+      <span class="id">
+        <span class="adm-mono">{{ store.id }}</span>
+        <adm-copy [value]="store.id" label="Copiar id da loja" />
+      </span>
+    </ng-container>
 
-      @if (store.liveStatusReason) {
-        <div class="last-reason">
-          <span class="adm-overline">Motivo da última decisão</span>
-          <p>{{ store.liveStatusReason }}</p>
-        </div>
-      }
-    </div>
-  </section>
+    <adm-facts>
+      <adm-fact label="Estado da loja">{{ store.isActive ? 'Ativa' : 'Inativa' }}</adm-fact>
+      <adm-fact label="Habilitação LIVE">{{ statusLabel[store.liveStatus] }}</adm-fact>
+      <adm-fact label="Última decisão">
+        @if (store.liveStatusChangedAt) {
+          {{ store.liveStatusChangedAt | date: 'dd/MM/yy HH:mm' }}
+        } @else {
+          —
+        }
+      </adm-fact>
+      <adm-fact label="Criada em">{{ store.createdAt | date: 'dd/MM/yy' }}</adm-fact>
+    </adm-facts>
+
+    @if (store.liveStatusReason) {
+      <div class="last-reason">
+        <span class="adm-overline">Motivo da última decisão</span>
+        <p>{{ store.liveStatusReason }}</p>
+      </div>
+    }
+  </adm-panel>
 
   <!-- ─── Condição comercial ──────────────────────────────────────────── -->
-  <section class="adm-panel">
-    <div class="adm-panel-head">
-      <h2 class="adm-panel-title">Condição comercial</h2>
-      <span class="adm-panel-note">vale daqui para frente</span>
-    </div>
-
-    <div class="adm-panel-body terms">
+  <adm-panel heading="Condição comercial" note="vale daqui para frente">
+    <div class="terms">
       <p class="terms-lead">
         Os três campos mudam juntos: não existe mudança parcial, porque a trilha guarda a condição
         inteira dos dois lados. Cobranças já gravadas não mudam — a taxa delas é um retrato tirado
         no momento da cobrança.
       </p>
 
-      <div class="adm-form-row adm-form-row-3">
-        <div class="adm-field" [class.is-changed]="fieldChanged('feePercent')">
-          <label class="adm-field-label" for="fee-percent">Taxa variável (%)</label>
-          <div class="adm-control">
-            <input
-              id="fee-percent"
-              type="number"
-              step="0.01"
-              [min]="range.feePercent.min"
-              [max]="range.feePercent.max"
-              [value]="draft().feePercent"
-              (input)="setField('feePercent', $event)"
-              [attr.aria-invalid]="outOfRange().includes('feePercent')"
-            />
-          </div>
-          <span class="adm-field-note">
+      <div class="terms-grid">
+        <adm-field
+          label="Taxa variável (%)"
+          for="fee-percent"
+          [changed]="fieldChanged('feePercent')"
+          [error]="outOfRange().includes('feePercent') ? 'fora da faixa aceita' : ''"
+        >
+          <input
+            id="fee-percent"
+            type="number"
+            step="0.01"
+            [min]="range.feePercent.min"
+            [max]="range.feePercent.max"
+            [value]="draft().feePercent"
+            (input)="setField('feePercent', $event)"
+            [attr.aria-invalid]="outOfRange().includes('feePercent')"
+          />
+          <span fieldHint>
             atual <strong>{{ store.feePercent | number: '1.0-2' }}%</strong> · faixa
             {{ range.feePercent.min }}–{{ range.feePercent.max }}%
           </span>
-          @if (outOfRange().includes('feePercent')) {
-            <span class="adm-field-error" role="alert">fora da faixa aceita</span>
-          }
-        </div>
+        </adm-field>
 
-        <div class="adm-field" [class.is-changed]="fieldChanged('feeFixed')">
-          <label class="adm-field-label" for="fee-fixed">Taxa fixa (centavos)</label>
-          <div class="adm-control">
-            <input
-              id="fee-fixed"
-              type="number"
-              step="1"
-              [min]="range.feeFixed.min"
-              [max]="range.feeFixed.max"
-              [value]="draft().feeFixed"
-              (input)="setField('feeFixed', $event)"
-              [attr.aria-invalid]="outOfRange().includes('feeFixed')"
-            />
-          </div>
-          <span class="adm-field-note">
+        <adm-field
+          label="Taxa fixa (centavos)"
+          for="fee-fixed"
+          [changed]="fieldChanged('feeFixed')"
+          [error]="outOfRange().includes('feeFixed') ? 'inteiro, dentro da faixa' : ''"
+        >
+          <input
+            id="fee-fixed"
+            type="number"
+            step="1"
+            [min]="range.feeFixed.min"
+            [max]="range.feeFixed.max"
+            [value]="draft().feeFixed"
+            (input)="setField('feeFixed', $event)"
+            [attr.aria-invalid]="outOfRange().includes('feeFixed')"
+          />
+          <span fieldHint>
             atual <strong>{{ store.feeFixed / 100 | currency: 'BRL' }}</strong> · faixa
             {{ range.feeFixed.min }}–{{ range.feeFixed.max }} centavos
           </span>
-          @if (outOfRange().includes('feeFixed')) {
-            <span class="adm-field-error" role="alert">inteiro, dentro da faixa</span>
-          }
-        </div>
+        </adm-field>
 
-        <div class="adm-field" [class.is-changed]="fieldChanged('settlementDays')">
-          <label class="adm-field-label" for="settlement-days">Prazo de liquidação (dias)</label>
-          <div class="adm-control">
-            <input
-              id="settlement-days"
-              type="number"
-              step="1"
-              [min]="range.settlementDays.min"
-              [max]="range.settlementDays.max"
-              [value]="draft().settlementDays"
-              (input)="setField('settlementDays', $event)"
-              [attr.aria-invalid]="outOfRange().includes('settlementDays')"
-            />
-          </div>
-          <span class="adm-field-note">
+        <adm-field
+          label="Prazo de liquidação (dias)"
+          for="settlement-days"
+          [changed]="fieldChanged('settlementDays')"
+          [error]="outOfRange().includes('settlementDays') ? 'inteiro, dentro da faixa' : ''"
+        >
+          <input
+            id="settlement-days"
+            type="number"
+            step="1"
+            [min]="range.settlementDays.min"
+            [max]="range.settlementDays.max"
+            [value]="draft().settlementDays"
+            (input)="setField('settlementDays', $event)"
+            [attr.aria-invalid]="outOfRange().includes('settlementDays')"
+          />
+          <span fieldHint>
             atual <strong>{{ store.settlementDays }} dias</strong> · faixa
             {{ range.settlementDays.min }}–{{ range.settlementDays.max }}
           </span>
-          @if (outOfRange().includes('settlementDays')) {
-            <span class="adm-field-error" role="alert">inteiro, dentro da faixa</span>
-          }
-        </div>
+        </adm-field>
       </div>
 
       <!-- ── Antes e depois ────────────────────────────────────────────── -->
@@ -163,81 +144,82 @@
         @if (changed()) {
           <div class="diff" data-testid="terms-diff">
             <span class="adm-overline">O que vai para a trilha</span>
-            <table class="adm-table diff-table">
-              <thead>
-                <tr>
-                  <th>Campo</th>
-                  <th class="adm-col-num">Antes</th>
-                  <th class="adm-col-num">Depois</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr [class.is-changed]="fieldChanged('feePercent')">
-                  <td>Taxa variável</td>
-                  <td class="adm-col-num">{{ store.feePercent | number: '1.0-2' }}%</td>
-                  <td class="adm-col-num">{{ next.feePercent | number: '1.0-2' }}%</td>
-                </tr>
-                <tr [class.is-changed]="fieldChanged('feeFixed')">
-                  <td>Taxa fixa</td>
-                  <td class="adm-col-num">{{ store.feeFixed / 100 | currency: 'BRL' }}</td>
-                  <td class="adm-col-num">{{ next.feeFixed / 100 | currency: 'BRL' }}</td>
-                </tr>
-                <tr [class.is-changed]="fieldChanged('settlementDays')">
-                  <td>Prazo</td>
-                  <td class="adm-col-num">{{ store.settlementDays }} dias</td>
-                  <td class="adm-col-num">{{ next.settlementDays }} dias</td>
-                </tr>
-              </tbody>
-            </table>
+            <adm-table [sticky]="false">
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th>Campo</th>
+                    <th class="adm-col-num">Antes</th>
+                    <th class="adm-col-num">Depois</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr [class.is-changed]="fieldChanged('feePercent')">
+                    <td>Taxa variável</td>
+                    <td class="adm-col-num">{{ store.feePercent | number: '1.0-2' }}%</td>
+                    <td class="adm-col-num">{{ next.feePercent | number: '1.0-2' }}%</td>
+                  </tr>
+                  <tr [class.is-changed]="fieldChanged('feeFixed')">
+                    <td>Taxa fixa</td>
+                    <td class="adm-col-num">{{ store.feeFixed / 100 | currency: 'BRL' }}</td>
+                    <td class="adm-col-num">{{ next.feeFixed / 100 | currency: 'BRL' }}</td>
+                  </tr>
+                  <tr [class.is-changed]="fieldChanged('settlementDays')">
+                    <td>Prazo</td>
+                    <td class="adm-col-num">{{ store.settlementDays }} dias</td>
+                    <td class="adm-col-num">{{ next.settlementDays }} dias</td>
+                  </tr>
+                </tbody>
+              </table>
+            </adm-table>
           </div>
         }
       }
 
       @if (shortensSettlement()) {
-        <p class="adm-notice" data-tone="warn" data-testid="settlement-warning">
-          <span>
-            Encurtar o prazo antecipa a liberação de pagamentos que já estão pendentes. O prazo é
-            promessa da loja, não do pagamento — e é a única parte desta condição que alcança o que
-            já foi cobrado.
-          </span>
-        </p>
+        <adm-notice tone="warn" data-testid="settlement-warning">
+          Encurtar o prazo antecipa a liberação de pagamentos que já estão pendentes. O prazo é
+          promessa da loja, não do pagamento — e é a única parte desta condição que alcança o que já
+          foi cobrado.
+        </adm-notice>
       }
 
-      <div class="adm-field">
-        <label class="adm-field-label" for="terms-reason">Motivo</label>
-        <div class="adm-control">
-          <textarea
-            id="terms-reason"
-            rows="3"
-            maxlength="500"
-            placeholder="O que sustenta a nova condição."
-            [value]="reason()"
-            (input)="setReason($event)"
-          ></textarea>
-        </div>
-        <span class="adm-field-note">
-          Obrigatório. A trilha guarda o antes, o depois e este motivo, na mesma transação que muda
-          a loja.
-        </span>
-      </div>
+      <adm-field
+        label="Motivo"
+        for="terms-reason"
+        hint="Obrigatório. A trilha guarda o antes, o depois e este motivo, na mesma transação que muda a loja."
+      >
+        <textarea
+          id="terms-reason"
+          rows="3"
+          maxlength="500"
+          placeholder="O que sustenta a nova condição."
+          [value]="reason()"
+          (input)="setReason($event)"
+        ></textarea>
+      </adm-field>
 
       <div class="terms-actions">
         <button
+          admButton
           type="button"
-          class="adm-btn adm-btn-quiet adm-btn-sm"
+          variant="quiet"
+          size="sm"
           (click)="discard()"
           [disabled]="isSaving() || (!changed() && !reason())"
         >
           Descartar
         </button>
         <button
+          admButton
           type="button"
-          class="adm-btn adm-btn-primary adm-btn-sm"
-          (click)="save()"
+          variant="primary"
+          size="sm"
+          [loading]="isSaving()"
           [disabled]="!canSave()"
+          (click)="save()"
         >
           @if (isSaving()) {
-            <ng-icon name="lucideLoader2" size="14px" class="animate-spin" aria-hidden="true" />
             Registrando…
           } @else {
             Mudar condição
@@ -245,7 +227,7 @@
         </button>
       </div>
     </div>
-  </section>
+  </adm-panel>
 
   <!-- ─── Investigação ────────────────────────────────────────────────── -->
   <app-operator-investigation [storeId]="store.id" />

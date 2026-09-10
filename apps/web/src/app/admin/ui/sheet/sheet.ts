@@ -11,6 +11,8 @@ import {
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
 
+import { AdmButton } from '../button/button';
+
 /**
  * Painel modal — lateral para leitura longa, centrado para uma decisão.
  *
@@ -18,10 +20,10 @@ import { lucideX } from '@ng-icons/lucide';
  *              heading="Aprovar habilitação LIVE"
  *              description="A loja passa a poder cobrar em LIVE."
  *              (closed)="close()">
- *     <div class="adm-form-stack">…</div>
+ *     <adm-field label="Motivo">…</adm-field>
  *     <ng-container sheetActions>
- *       <button class="adm-btn adm-btn-quiet">Cancelar</button>
- *       <button class="adm-btn adm-btn-primary">Aprovar</button>
+ *       <button admButton>Cancelar</button>
+ *       <button admButton variant="primary">Aprovar</button>
  *     </ng-container>
  *   </adm-sheet>
  *
@@ -31,7 +33,7 @@ import { lucideX } from '@ng-icons/lucide';
 @Component({
   selector: 'adm-sheet',
   standalone: true,
-  imports: [NgIcon],
+  imports: [AdmButton, NgIcon],
   providers: [provideIcons({ lucideX })],
   templateUrl: './sheet.html',
   styleUrl: './sheet.css',

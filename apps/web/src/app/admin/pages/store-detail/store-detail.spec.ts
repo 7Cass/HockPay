@@ -77,7 +77,7 @@ describe('OperatorStoreDetail', () => {
   }
 
   function saveButton(): HTMLButtonElement {
-    return el.querySelector<HTMLButtonElement>('.terms-actions .adm-btn-primary')!;
+    return el.querySelector<HTMLButtonElement>('.terms-actions [data-variant="primary"]')!;
   }
 
   afterEach(() => httpMock.verify());
@@ -185,7 +185,7 @@ describe('OperatorStoreDetail', () => {
     await type('fee-percent', '9');
     await type('terms-reason', 'Testando.');
 
-    el.querySelector<HTMLButtonElement>('.terms-actions .adm-btn-quiet')!.click();
+    el.querySelector<HTMLButtonElement>('.terms-actions [data-variant="quiet"]')!.click();
     await settle();
 
     expect(field('fee-percent').value).toBe('1.5');

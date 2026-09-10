@@ -144,7 +144,7 @@ describe('OperatorAuditLogPage', () => {
     );
 
     const [previous, next] = Array.from(
-      el.querySelectorAll<HTMLButtonElement>('.adm-listfoot-actions button'),
+      el.querySelectorAll<HTMLButtonElement>('adm-pagination button'),
     );
     expect(previous.disabled).toBe(true);
 
@@ -156,8 +156,6 @@ describe('OperatorAuditLogPage', () => {
     request.flush({ data: [log()], limit: 50, offset: 50 });
     await settle();
 
-    expect(el.querySelectorAll<HTMLButtonElement>('.adm-listfoot-actions button')[1].disabled).toBe(
-      true,
-    );
+    expect(el.querySelectorAll<HTMLButtonElement>('adm-pagination button')[1].disabled).toBe(true);
   });
 });

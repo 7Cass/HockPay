@@ -1,8 +1,8 @@
 /* Vazio, carregando e erro — o mesmo bloco, três conteúdos.
 
-   Bem mais baixo que o equivalente do lojista de propósito: um estado vazio
-   que ocupa meia tela é aceitável numa tela que se visita; numa que se
-   recarrega o dia inteiro, ele só empurra o resto para longe. */
+   Bem mais baixo que o equivalente do lojista de propósito: um estado vazio que
+   ocupa meia tela é aceitável numa tela que se visita; numa que se recarrega o
+   dia inteiro, ele só empurra o resto para longe. */
 
 :host {
   display: flex;
@@ -23,7 +23,7 @@
   padding: 2rem 1rem;
 }
 
-.state-icon {
+.icon {
   display: grid;
   place-items: center;
   width: 2rem;
@@ -34,9 +34,25 @@
   color: var(--adm-text-3);
 }
 
-:host([data-variant='error']) .state-icon {
+:host([data-variant='error']) .icon {
   background: var(--adm-bad-soft);
   color: var(--adm-bad);
+}
+
+.spin {
+  width: 1rem;
+  height: 1rem;
+  margin-bottom: 0.25rem;
+  border: 2px solid var(--adm-line-strong);
+  border-top-color: var(--adm-text-2);
+  border-radius: 50%;
+  animation: adm-state-spin 0.7s linear infinite;
+}
+
+@keyframes adm-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 h3 {
@@ -54,10 +70,10 @@ p {
   color: var(--adm-text-2);
 }
 
-.state-action:empty {
-  display: none;
+.action {
+  margin-top: 0.5rem;
 }
 
-.state-action {
-  margin-top: 0.5rem;
+.action:empty {
+  display: none;
 }

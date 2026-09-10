@@ -1,0 +1,40 @@
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+button {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 0;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  color: var(--adm-text-3);
+  cursor: pointer;
+  opacity: 0.45;
+  transition:
+    opacity var(--adm-fast) var(--adm-ease),
+    color var(--adm-fast) var(--adm-ease);
+}
+
+/* Acende quando a linha que hospeda o botão recebe o ponteiro ou o teclado.
+   Fora daí ele fica meio apagado: presente para quem procura, quieto para quem
+   está lendo a coluna ao lado. */
+:host-context(tr:hover) button,
+:host-context(tr:focus-within) button,
+button:focus-visible,
+button:hover {
+  opacity: 1;
+}
+
+button:hover {
+  background: var(--adm-surface-3);
+  color: var(--adm-text);
+}
+
+:host(.is-copied) button {
+  opacity: 1;
+  color: var(--adm-ok);
+}

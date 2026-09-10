@@ -1,0 +1,80 @@
+<a routerLink="/operator" class="brand">
+  <adm-brand-mark />
+  <span class="brand-text">
+    <span class="brand-name">hockpay</span>
+    <span class="brand-tag">admin</span>
+  </span>
+</a>
+
+<button type="button" class="rail-search" (click)="search.emit()">
+  <ng-icon name="lucideSearch" size="14px" strokeWidth="1.8" aria-hidden="true" />
+  <span class="rail-search-label">Buscar</span>
+  <span class="rail-search-keys">
+    <adm-kbd>⌘</adm-kbd>
+    <adm-kbd>K</adm-kbd>
+  </span>
+</button>
+
+<nav class="nav" aria-label="Navegação do admin">
+  @for (item of nav; track item.route) {
+    <a
+      class="adm-nav-item"
+      [routerLink]="item.route"
+      routerLinkActive="is-active"
+      [routerLinkActiveOptions]="{ exact: !!item.exact }"
+    >
+      <ng-icon [name]="item.icon" size="15px" strokeWidth="1.8" aria-hidden="true" />
+      <span class="nav-label">{{ item.label }}</span>
+      <span class="nav-key" aria-hidden="true">g {{ item.key }}</span>
+    </a>
+  }
+</nav>
+
+<adm-menu class="who" align="start" side="top">
+  <button type="button" menuTrigger class="who-trigger">
+    <adm-avatar [name]="operator()?.name" />
+    <span class="who-text">
+      <span class="who-name">{{ operator()?.name ?? '—' }}</span>
+      <span class="who-mail">{{ operator()?.email ?? '' }}</span>
+    </span>
+  </button>
+
+  <div menuItems>
+    <div class="menu-who">
+      <span class="menu-who-name">{{ operator()?.name ?? '—' }}</span>
+      <span class="menu-who-mail">{{ operator()?.email ?? '' }}</span>
+    </div>
+
+    <hr />
+
+    <button type="button" (click)="theme.toggleTheme()">
+      <ng-icon
+        [name]="theme.theme() === 'dark' ? 'lucideMoon' : 'lucideSun'"
+        size="13px"
+        strokeWidth="1.8"
+        aria-hidden="true"
+      />
+      Tema
+      <span class="state">{{ theme.theme() === 'dark' ? 'escuro' : 'claro' }}</span>
+    </button>
+
+    <button type="button" (click)="theme.toggleDensity()">
+      <ng-icon name="lucideRows3" size="13px" strokeWidth="1.8" aria-hidden="true" />
+      Densidade
+      <span class="state">{{ theme.density() === 'cozy' ? 'confortável' : 'compacta' }}</span>
+    </button>
+
+    <button type="button" (click)="shortcuts.emit()">
+      <ng-icon name="lucideKeyboard" size="13px" strokeWidth="1.8" aria-hidden="true" />
+      Atalhos
+      <span class="state">?</span>
+    </button>
+
+    <hr />
+
+    <button type="button" class="who-exit" (click)="leave.emit()" [disabled]="isLeaving()">
+      <ng-icon name="lucideLogOut" size="13px" strokeWidth="1.8" aria-hidden="true" />
+      Sair do admin
+    </button>
+  </div>
+</adm-menu>

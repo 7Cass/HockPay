@@ -1,0 +1,135 @@
+/* O estilo é global de propósito: o seletor é de atributo (`button[admButton]`),
+   então o host é o `<button>` da página e não um elemento do componente — e o
+   conteúdo projetado (texto, ícone) precisa herdar cor de qualquer forma. Tudo
+   aqui está preso a `.adm-btn`, que só este componente escreve. */
+
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--adm-radius);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--adm-text);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--adm-fast) var(--adm-ease),
+    border-color var(--adm-fast) var(--adm-ease),
+    color var(--adm-fast) var(--adm-ease),
+    box-shadow var(--adm-fast) var(--adm-ease);
+}
+
+/* O deslocamento de 1px no clique é o único movimento do botão. É pouco, e é
+   o suficiente para o dedo saber que a mesa recebeu. */
+.adm-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.adm-btn:disabled,
+.adm-btn.is-loading {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.adm-btn[data-size='sm'] {
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  font-size: 12px;
+}
+
+.adm-btn.is-icon {
+  width: 2rem;
+  padding: 0;
+}
+
+.adm-btn.is-icon[data-size='sm'] {
+  width: 1.75rem;
+}
+
+.adm-btn.is-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ── Peles ──────────────────────────────────────────────────────────────── */
+
+.adm-btn[data-variant='primary'] {
+  background: var(--adm-action);
+  color: var(--adm-action-text);
+  box-shadow: var(--adm-shadow-sm);
+}
+
+.adm-btn[data-variant='primary']:hover:not(:disabled) {
+  background: var(--adm-action-hover);
+}
+
+.adm-btn[data-variant='quiet'] {
+  border-color: var(--adm-line-strong);
+  background: var(--adm-surface);
+  color: var(--adm-text);
+}
+
+.adm-btn[data-variant='quiet']:hover:not(:disabled) {
+  background: var(--adm-surface-2);
+  border-color: var(--adm-text-3);
+}
+
+.adm-btn[data-variant='ghost'] {
+  color: var(--adm-text-2);
+}
+
+.adm-btn[data-variant='ghost']:hover:not(:disabled) {
+  background: var(--adm-surface-3);
+  color: var(--adm-text);
+}
+
+.adm-btn[data-variant='accent'] {
+  border-color: var(--adm-accent);
+  background: var(--adm-accent-soft);
+  color: var(--adm-accent);
+}
+
+.adm-btn[data-variant='accent']:hover:not(:disabled) {
+  border-color: var(--adm-accent-hover);
+  color: var(--adm-accent-hover);
+}
+
+.adm-btn[data-variant='danger'] {
+  border-color: var(--adm-bad-line);
+  background: var(--adm-bad-soft);
+  color: var(--adm-bad);
+}
+
+.adm-btn[data-variant='danger']:hover:not(:disabled) {
+  border-color: var(--adm-bad);
+}
+
+/* ── Giro ───────────────────────────────────────────────────────────────── */
+
+.adm-btn > .spin {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  flex: none;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0.85;
+  animation: adm-btn-spin 0.65s linear infinite;
+}
+
+@keyframes adm-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

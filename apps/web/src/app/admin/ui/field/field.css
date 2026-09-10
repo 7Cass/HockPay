@@ -1,0 +1,132 @@
+/* Global de propósito: alcança o `<input>`/`<textarea>`/`<select>` que a página
+   projetou. Tudo preso a `adm-field`. */
+
+adm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+adm-field .adm-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--adm-text);
+}
+
+adm-field .adm-field-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--adm-accent);
+}
+
+adm-field .adm-field-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+adm-field input,
+adm-field textarea,
+adm-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--adm-line-strong);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--adm-text);
+  transition:
+    border-color var(--adm-fast) var(--adm-ease),
+    box-shadow var(--adm-fast) var(--adm-ease);
+}
+
+adm-field input {
+  height: 2rem;
+}
+
+adm-field textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+adm-field input::placeholder,
+adm-field textarea::placeholder {
+  color: var(--adm-text-3);
+}
+
+adm-field input:hover:not(:focus),
+adm-field textarea:hover:not(:focus) {
+  border-color: var(--adm-text-3);
+}
+
+adm-field input:focus,
+adm-field textarea:focus,
+adm-field select:focus {
+  outline: none;
+  border-color: var(--adm-accent);
+  box-shadow: 0 0 0 3px var(--adm-accent-soft);
+}
+
+adm-field.is-invalid input,
+adm-field.is-invalid textarea {
+  border-color: var(--adm-bad);
+}
+
+/* Número é dinheiro ou prazo: tabular, e sem a setinha que muda o valor por
+   acidente de rolagem. */
+adm-field input[type='number'] {
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+adm-field input[type='number']::-webkit-outer-spin-button,
+adm-field input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* O que se pendura dentro do campo — o olho de mostrar senha, uma unidade. */
+adm-field [fieldSuffix] {
+  position: absolute;
+  right: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--adm-text-3);
+}
+
+adm-field:has([fieldSuffix]) input {
+  padding-right: 2.25rem;
+}
+
+adm-field .adm-field-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--adm-text-3);
+}
+
+adm-field .adm-field-hint strong {
+  font-weight: 600;
+  color: var(--adm-text-2);
+}
+
+adm-field .adm-field-error {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--adm-bad);
+}
+
+/* A dica projetada existe para o caso em que ela tem ênfase dentro ("atual
+   2,5%"), que um `input` de texto não carrega. Vazia, ela não gasta o respiro
+   da pilha. */
+adm-field .adm-field-hint:empty {
+  display: none;
+}

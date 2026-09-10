@@ -1,0 +1,263 @@
+/* A coluna é o host: `app-admin-rail` recebe a classe `rail` e o `.shell` do
+   pai a coloca na primeira coluna da grade. */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 0.625rem;
+  background: var(--adm-rail);
+  border-right: 1px solid var(--adm-rail-line);
+  color: var(--adm-rail-text);
+}
+
+/* ── Marca ──────────────────────────────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.375rem 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.brand-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--adm-rail-text-2);
+}
+
+/* ── Busca ──────────────────────────────────────────────────────────────── */
+.rail-search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  height: 1.875rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--adm-rail-line);
+  border-radius: var(--adm-radius);
+  background: var(--adm-rail-2);
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--adm-rail-text-2);
+  cursor: pointer;
+  transition: border-color var(--adm-fast) var(--adm-ease);
+}
+
+.rail-search:hover {
+  border-color: var(--adm-rail-text-2);
+  color: var(--adm-rail-text);
+}
+
+.rail-search-keys {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* As teclas na coluna escura seguem a coluna, não o painel. */
+.rail-search-keys adm-kbd {
+  border-color: var(--adm-rail-line);
+  background: var(--adm-rail);
+  color: var(--adm-rail-text-2);
+}
+
+/* ── Navegação ──────────────────────────────────────────────────────────── */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.adm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: var(--adm-radius);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--adm-rail-text-2);
+  transition:
+    background-color var(--adm-fast) var(--adm-ease),
+    color var(--adm-fast) var(--adm-ease);
+}
+
+.adm-nav-item:hover {
+  background: var(--adm-rail-2);
+  color: var(--adm-rail-text);
+}
+
+/* A única coisa azul da coluna responde "onde eu estou". */
+.adm-nav-item.is-active {
+  position: relative;
+  background: var(--adm-rail-2);
+  color: var(--adm-rail-text);
+}
+
+.adm-nav-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: -0.625rem;
+  top: 50%;
+  width: 2px;
+  height: 1rem;
+  transform: translateY(-50%);
+  border-radius: 0 2px 2px 0;
+  background: var(--adm-accent);
+}
+
+.nav-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-key {
+  font-family: var(--font-code);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: transparent;
+  transition: color var(--adm-fast) var(--adm-ease);
+}
+
+/* O atalho só aparece com a mão por perto: escrito sempre, vira ruído. */
+.nav:hover .nav-key,
+.adm-nav-item:focus-visible .nav-key {
+  color: var(--adm-rail-text-2);
+}
+
+/* ── Quem está de plantão ───────────────────────────────────────────────── */
+.who {
+  margin-top: auto;
+  width: 100%;
+}
+
+.who-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem;
+  border: 1px solid transparent;
+  border-radius: var(--adm-radius);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--adm-fast) var(--adm-ease),
+    border-color var(--adm-fast) var(--adm-ease);
+}
+
+.who-trigger:hover {
+  background: var(--adm-rail-2);
+  border-color: var(--adm-rail-line);
+}
+
+.who-trigger adm-avatar {
+  background: var(--adm-rail-2);
+  border: 1px solid var(--adm-rail-line);
+  color: var(--adm-rail-text);
+}
+
+.who-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.who-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--adm-rail-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who-mail {
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--adm-rail-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O cabeçalho do menu repete o crachá, agora sobre papel claro: o menu abre
+   por cima da área de trabalho, e o nome precisa da cor de lá. */
+.menu-who {
+  padding: 0.4rem 0.45rem 0.5rem;
+}
+
+.menu-who-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+.menu-who-mail {
+  display: block;
+  font-size: 11px;
+  color: var(--adm-text-3);
+  overflow-wrap: anywhere;
+}
+
+/* ═══ Telas estreitas ══════════════════════════════════════════════════════
+   A coluna encolhe para os ícones antes de sumir: uma mesa é operada em
+   monitor, mas o chamado às vezes chega no notebook de 13". */
+@media (max-width: 1080px) {
+  :host {
+    padding-inline: 0.5rem;
+    align-items: center;
+  }
+
+  .brand-text,
+  .nav-label,
+  .nav-key,
+  .who-text,
+  .rail-search-label,
+  .rail-search-keys {
+    display: none;
+  }
+
+  .rail-search {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .adm-nav-item {
+    justify-content: center;
+    padding: 0;
+    width: 2.5rem;
+  }
+
+  .adm-nav-item.is-active::before {
+    left: -0.5rem;
+  }
+
+  .who-trigger {
+    justify-content: center;
+  }
+}

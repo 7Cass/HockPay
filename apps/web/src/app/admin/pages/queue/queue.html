@@ -4,8 +4,10 @@
 >
   <ng-container pageActions>
     <button
+      admButton
       type="button"
-      class="adm-btn adm-btn-quiet adm-btn-icon"
+      variant="quiet"
+      iconOnly
       (click)="reload()"
       title="Atualizar"
       aria-label="Atualizar"
@@ -15,41 +17,23 @@
   </ng-container>
 </adm-page-header>
 
-<div class="adm-seg" role="tablist" aria-label="Estado da habilitação">
-  @for (option of filters; track option.value) {
-    <button
-      type="button"
-      role="tab"
-      [attr.aria-selected]="filter() === option.value"
-      [class.is-active]="filter() === option.value"
-      (click)="selectFilter(option.value)"
-    >
-      {{ option.label }}
-    </button>
-  }
-</div>
+<adm-segmented
+  [options]="filters"
+  [value]="filter()"
+  (valueChange)="selectFilter($event)"
+  ariaLabel="Estado da habilitação"
+/>
 
 @if (queue.error(); as message) {
   <adm-page-state variant="error" [message]="message">
-    <button
-      pageStateAction
-      type="button"
-      class="adm-btn adm-btn-quiet adm-btn-sm"
-      (click)="reload()"
-    >
+    <button pageStateAction admButton type="button" variant="quiet" size="sm" (click)="reload()">
       Tentar de novo
     </button>
   </adm-page-state>
 } @else if (queue.isLoading()) {
-  <section class="adm-panel">
-    @for (row of skeletonRows; track row) {
-      <div class="row-skeleton">
-        <div class="adm-skeleton" style="height: 0.8rem; width: 28%"></div>
-        <div class="adm-skeleton" style="height: 1.375rem; width: 5.5rem"></div>
-        <div class="adm-skeleton" style="height: 0.8rem; width: 4rem"></div>
-      </div>
-    }
-  </section>
+  <adm-panel flush>
+    <adm-skeleton-rows [rows]="6" [widths]="['28%', '5.5rem', '4rem']" />
+  </adm-panel>
 } @else if (queue.stores().length === 0) {
   <adm-page-state
     variant="empty"
@@ -58,9 +42,9 @@
     [message]="emptyMessage()"
   />
 } @else {
-  <section class="adm-panel">
-    <div class="adm-table-scroll adm-scroll">
-      <table class="adm-table queue-table">
+  <adm-panel flush>
+    <adm-table>
+      <table class="queue-table">
         <thead>
           <tr>
             <th>Loja</th>
@@ -74,21 +58,26 @@
           @for (store of queue.stores(); track store.id) {
             <tr>
               <td>
-                <a class="adm-cell" [routerLink]="['/operator/stores', store.id]">
-                  <span class="adm-cell-title">{{ store.name }}</span>
-                  <span class="adm-cell-sub adm-mono">{{ store.slug }}</span>
-                </a>
+                <span class="store">
+                  <a class="adm-cell" [routerLink]="['/operator/stores', store.id]">
+                    <span class="adm-cell-title">{{ store.name }}</span>
+                    <span class="adm-cell-sub adm-mono">{{ store.slug }}</span>
+                  </a>
+                  <adm-copy [value]="store.id" label="Copiar id da loja" />
+                </span>
               </td>
 
               <td>
-                <span class="adm-chip" [attr.data-tone]="statusTone[store.liveStatus]">
+                <adm-chip [tone]="statusTone[store.liveStatus]">
                   {{ statusLabel[store.liveStatus] }}
-                </span>
+                </adm-chip>
               </td>
 
               <td class="col-reason">
                 @if (store.liveStatusReason) {
-                  <span class="reason">{{ store.liveStatusReason }}</span>
+                  <span class="reason" [title]="store.liveStatusReason">{{
+                    store.liveStatusReason
+                  }}</span>
                 } @else {
                   <span class="adm-cell-sub">—</span>
                 }
@@ -113,10 +102,11 @@
                 <span class="adm-cell-actions">
                   @for (spec of decisionsFor(store.liveStatus); track spec.decision) {
                     <button
+                      admButton
                       type="button"
-                      class="adm-btn adm-btn-sm"
-                      [class.adm-btn-primary]="spec.decision === 'approve'"
-                      [class.adm-btn-quiet]="spec.decision !== 'approve'"
+                      size="sm"
+                      [variant]="spec.decision === 'approve' ? 'primary' : 'quiet'"
+                      [title]="spec.consequence"
                       (click)="ask(store, spec)"
                     >
                       {{ spec.label }}
@@ -130,30 +120,16 @@
           }
         </tbody>
       </table>
-    </div>
+    </adm-table>
 
-    <div class="adm-listfoot">
-      <span class="adm-listfoot-count">{{ range() }} · página {{ page() }}</span>
-      <span class="adm-listfoot-actions">
-        <button
-          type="button"
-          class="adm-btn adm-btn-quiet adm-btn-sm"
-          [disabled]="offset() === 0"
-          (click)="goToOffset(offset() - queue.limit())"
-        >
-          Anterior
-        </button>
-        <button
-          type="button"
-          class="adm-btn adm-btn-quiet adm-btn-sm"
-          [disabled]="!queue.hasMore()"
-          (click)="goToOffset(offset() + queue.limit())"
-        >
-          Próxima
-        </button>
-      </span>
-    </div>
-  </section>
+    <adm-pagination
+      [label]="range()"
+      [canPrev]="offset() > 0"
+      [canNext]="queue.hasMore()"
+      (previous)="goToOffset(offset() - queue.limit())"
+      (next)="goToOffset(offset() + queue.limit())"
+    />
+  </adm-panel>
 }
 
 @if (pending(); as ask) {
@@ -165,9 +141,30 @@
     [description]="ask.consequence"
     (closed)="closeSheet()"
   >
-    <div class="adm-field">
-      <label class="adm-field-label" for="decision-reason">Motivo</label>
-      <div class="adm-control">
+    <div class="ask">
+      <dl class="ask-diff">
+        <div>
+          <dt>Hoje</dt>
+          <dd>
+            <adm-chip [tone]="statusTone[ask.store.liveStatus]">
+              {{ statusLabel[ask.store.liveStatus] }}
+            </adm-chip>
+          </dd>
+        </div>
+        <span class="ask-arrow" aria-hidden="true">→</span>
+        <div>
+          <dt>Depois</dt>
+          <dd>
+            <adm-chip [tone]="statusTone[ask.to]">{{ statusLabel[ask.to] }}</adm-chip>
+          </dd>
+        </div>
+      </dl>
+
+      <adm-field
+        label="Motivo"
+        for="decision-reason"
+        hint="Obrigatório. Vai para a trilha junto com o antes e o depois — é o que separa uma mesa auditável de um log."
+      >
         <textarea
           id="decision-reason"
           rows="4"
@@ -176,32 +173,21 @@
           [value]="reason()"
           (input)="setReason($event)"
         ></textarea>
-      </div>
-      <span class="adm-field-note">
-        Obrigatório. Vai para a trilha junto com o antes e o depois — é o que separa uma mesa
-        auditável de um log.
-      </span>
+      </adm-field>
     </div>
 
     <ng-container sheetActions>
-      <button
-        type="button"
-        class="adm-btn adm-btn-quiet"
-        (click)="closeSheet()"
-        [disabled]="isDeciding()"
-      >
+      <button admButton type="button" (click)="closeSheet()" [disabled]="isDeciding()">
         Cancelar
       </button>
       <button
+        admButton
         type="button"
-        class="adm-btn"
-        [class.adm-btn-primary]="ask.decision === 'approve'"
-        [class.adm-btn-danger]="ask.decision !== 'approve'"
+        [variant]="ask.decision === 'approve' ? 'primary' : 'danger'"
+        [loading]="isDeciding()"
         (click)="confirm()"
-        [disabled]="isDeciding()"
       >
         @if (isDeciding()) {
-          <ng-icon name="lucideLoader2" size="14px" class="animate-spin" aria-hidden="true" />
           Registrando…
         } @else {
           {{ ask.label }}
