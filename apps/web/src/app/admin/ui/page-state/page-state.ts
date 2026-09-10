@@ -16,7 +16,7 @@ const DEFAULTS: Record<AdmPageStateVariant, { icon: string; heading?: string; me
  *
  *   <adm-page-state variant="loading" message="Lendo a fila…" />
  *   <adm-page-state variant="error" [message]="svc.error()!">
- *     <button pageStateAction class="adm-btn adm-btn-quiet adm-btn-sm">Tentar de novo</button>
+ *     <button pageStateAction admButton size="sm">Tentar de novo</button>
  *   </adm-page-state>
  *
  * `frame="bare"` tira a moldura, para quando o bloco já está dentro de um
@@ -28,9 +28,30 @@ const DEFAULTS: Record<AdmPageStateVariant, { icon: string; heading?: string; me
   standalone: true,
   imports: [NgIcon],
   providers: [provideIcons({ lucideInbox, lucideTriangleAlert })],
-  templateUrl: './page-state.html',
+  template: `
+    @if (variant() === 'loading') {
+      <span class="spin" aria-hidden="true"></span>
+    } @else if (iconName(); as name) {
+      <span class="icon" aria-hidden="true">
+        <ng-icon [name]="name" size="17px" strokeWidth="1.6" />
+      </span>
+    }
+
+    @if (headingText(); as text) {
+      <h3>{{ text }}</h3>
+    }
+
+    @if (messageText(); as text) {
+      <p>{{ text }}</p>
+    }
+
+    <div class="action">
+      <ng-content select="[pageStateAction]" />
+    </div>
+  `,
   styleUrl: './page-state.css',
   host: {
+    class: 'adm-page-state',
     '[attr.data-variant]': 'variant()',
     '[class.is-bare]': "frame() === 'bare'",
     role: 'status',

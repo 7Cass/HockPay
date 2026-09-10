@@ -1,41 +1,86 @@
-/* A fila. O empilhamento e o espaçamento entre os blocos vêm da casca
-   (`.work-inner`), então aqui só sobra o que é da tabela desta tela. */
-
-.queue-table .col-reason {
-  max-width: 26rem;
+:host {
+  display: contents;
 }
 
-/* O motivo é prosa dentro de uma tabela: duas linhas no máximo, e o resto some
-   com reticências. Quem precisa do texto inteiro abre a loja — e abrir é o
-   gesto que deixa linha na trilha, o que é justamente o desenho pretendido. */
+/* O filtro tem a largura do que ele oferece. Numa coluna de blocos que ocupam
+   a linha inteira, um controle esticado promete campo de busca e entrega seis
+   botões. */
+adm-segmented {
+  align-self: flex-start;
+}
+
+/* A loja e o botão de copiar o id andam juntos: o id não aparece na célula
+   (ele não diz nada a quem lê), mas é o que o operador cola no chamado. */
+.store {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* ── Colunas ────────────────────────────────────────────────────────────────
+   O motivo é a coluna elástica: ele é a única parte da linha cujo tamanho não
+   dá para prever, e é o primeiro texto a ser cortado quando a janela aperta. */
+.col-reason {
+  width: 38%;
+  min-width: 12rem;
+}
+
 .reason {
   display: -webkit-box;
-  -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 12.5px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--adm-text-2);
 }
 
-/* A coluna de decisão não quebra: dois botões lado a lado, sempre. */
-.queue-table td.col-actions {
+.col-actions {
   width: 1%;
 }
 
-/* ── Carregando ───────────────────────────────────────────────────────────
-   As linhas fantasmas têm a altura da linha real, para a tabela não pular
-   quando os dados chegam. */
-.row-skeleton {
+/* ── O painel da decisão ──────────────────────────────────────────────────── */
+.ask {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  height: var(--adm-row);
-  padding: 0 0.875rem;
-  border-bottom: 1px solid var(--adm-line);
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.row-skeleton:last-child {
-  border-bottom: 0;
+/* O antes e o depois, lado a lado, antes do campo de motivo. A decisão que o
+   operador está prestes a assinar aparece escrita, e não só implícita no
+   rótulo do botão. */
+.ask-diff {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-2);
+}
+
+.ask-diff dt {
+  margin-bottom: 0.3rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-text-3);
+}
+
+.ask-diff dd {
+  margin: 0;
+}
+
+.ask-arrow {
+  margin-top: 0.75rem;
+  color: var(--adm-text-3);
+}
+
+@media (max-width: 720px) {
+  .col-reason {
+    display: none;
+  }
 }

@@ -43,11 +43,22 @@ describe('AdminShell', () => {
     const fixture = TestBed.createComponent(AdminShell);
     await fixture.whenStable();
 
+    const el = fixture.nativeElement as HTMLElement;
+
     return {
       operatorAuth,
-      el: fixture.nativeElement as HTMLElement,
+      el,
       settle: async () => {
         await fixture.whenStable();
+      },
+      /**
+       * Sair mora dentro do menu do crachá, e o menu só existe no DOM depois de
+       * aberto. É o mesmo caminho que o operador faz.
+       */
+      openExit: () => {
+        el.querySelector<HTMLButtonElement>('.who-trigger')!.click();
+        fixture.detectChanges();
+        return el.querySelector<HTMLButtonElement>('.who-exit')!;
       },
     };
   }
@@ -57,7 +68,7 @@ describe('AdminShell', () => {
 
     expect(el.querySelector('.who-name')?.textContent?.trim()).toBe('Ana Mesa');
     expect(el.querySelector('.who-mail')?.textContent?.trim()).toBe('ana@hockpay.dev');
-    expect(el.querySelector('.who-avatar')?.textContent?.trim()).toBe('AM');
+    expect(el.querySelector('adm-avatar')?.textContent?.trim()).toBe('AM');
     expect(el.querySelector('.brand-tag')?.textContent?.trim()).toBe('admin');
   });
 
@@ -73,34 +84,34 @@ describe('AdminShell', () => {
   });
 
   it('leaves through the operator endpoint and lands on the desk login', async () => {
-    const { el } = await render();
+    const { openExit } = await render();
     api.post.mockReturnValueOnce(of(undefined));
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-    el.querySelector<HTMLButtonElement>('.who-exit')!.click();
+    openExit().click();
 
     expect(api.post).toHaveBeenCalledWith('/operator/auth/logout', {});
     expect(navigate).toHaveBeenCalledWith(['/operator/login']);
   });
 
   it('keeps the merchant session untouched when the desk logs out', async () => {
-    const { el } = await render();
+    const { openExit } = await render();
     const merchant = TestBed.inject(AuthService);
     merchant.isAuthenticated.set(true);
 
     api.post.mockReturnValueOnce(of(undefined));
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
-    el.querySelector<HTMLButtonElement>('.who-exit')!.click();
+    openExit().click();
 
     expect(merchant.isAuthenticated()).toBe(true);
   });
 
   it('lets the operator try again when leaving fails', async () => {
-    const { el, settle } = await render();
+    const { openExit, settle } = await render();
     api.post.mockReturnValueOnce(throwError(() => new Error('boom')));
 
-    const exit = el.querySelector<HTMLButtonElement>('.who-exit')!;
+    const exit = openExit();
     exit.click();
     await settle();
 

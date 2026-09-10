@@ -3,7 +3,6 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideEyeOff, lucideReceipt, lucideRefreshCcw, lucideWebhook } from '@ng-icons/lucide';
-import { toast } from 'ngx-sonner';
 
 import {
   OPERATOR_ENVIRONMENTS,
@@ -11,15 +10,37 @@ import {
   type OperatorEnvironment,
 } from '../../../services/operator-investigation.service';
 import type { GetPaymentTimelineResponseDto, PaymentObject } from '../../../domain/api-contracts';
-import { AdmPageState, AdmSheet, AdmStatusChip } from '../../../ui';
+import {
+  AdmButton,
+  AdmChip,
+  AdmFact,
+  AdmFacts,
+  AdmNotice,
+  AdmPageState,
+  AdmPagination,
+  AdmPanel,
+  AdmSegmented,
+  type AdmSegmentedOption,
+  AdmSheet,
+  AdmStatusChip,
+  AdmTable,
+  AdmTimeline,
+  type AdmTimelineEvent,
+  AdmToastService,
+} from '../../../ui';
 
 type Tab = 'payments' | 'ledger' | 'webhooks';
 
-const TABS: ReadonlyArray<{ value: Tab; label: string }> = [
+const TABS: readonly AdmSegmentedOption<Tab>[] = [
   { value: 'payments', label: 'Pagamentos' },
   { value: 'ledger', label: 'Saldo e extrato' },
   { value: 'webhooks', label: 'Webhooks' },
 ];
+
+/** TEST e LIVE, no formato que o segmentado espera. */
+const ENVIRONMENTS: readonly AdmSegmentedOption<OperatorEnvironment>[] = OPERATOR_ENVIRONMENTS.map(
+  (environment) => ({ value: environment, label: environment }),
+);
 
 /**
  * A leitura que a mesa faz de uma loja para investigar um chamado.
@@ -37,7 +58,24 @@ const TABS: ReadonlyArray<{ value: Tab; label: string }> = [
 @Component({
   selector: 'app-operator-investigation',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, NgIcon, AdmPageState, AdmSheet, AdmStatusChip],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    NgIcon,
+    AdmButton,
+    AdmChip,
+    AdmFact,
+    AdmFacts,
+    AdmNotice,
+    AdmPageState,
+    AdmPagination,
+    AdmPanel,
+    AdmSegmented,
+    AdmSheet,
+    AdmStatusChip,
+    AdmTable,
+    AdmTimeline,
+  ],
   providers: [provideIcons({ lucideEyeOff, lucideReceipt, lucideRefreshCcw, lucideWebhook })],
   templateUrl: './investigation.html',
   styleUrl: './investigation.css',
@@ -46,12 +84,12 @@ export class OperatorInvestigation {
   readonly storeId = input.required<string>();
 
   protected readonly reads = inject(OperatorInvestigationService);
+  private readonly toast = inject(AdmToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   protected readonly tabs = TABS;
-  protected readonly environments = OPERATOR_ENVIRONMENTS;
-  protected readonly skeletonRows = [1, 2, 3, 4, 5];
+  protected readonly environmentOptions = ENVIRONMENTS;
 
   protected readonly tab = signal<Tab>('payments');
   protected readonly environment = signal<OperatorEnvironment>('TEST');
@@ -127,9 +165,26 @@ export class OperatorInvestigation {
       error: () => {
         this.isTimelineLoading.set(false);
         this.timelineFor.set(null);
-        toast.error('Não foi possível abrir a linha do tempo.');
+        this.toast.bad('Não foi possível abrir a linha do tempo.');
       },
     });
+  }
+
+  /**
+   * A linha do tempo da API na forma que o componente desenha.
+   *
+   * A tradução é de uma linha por campo e mora aqui, e não no componente: o
+   * `adm-timeline` não deveria conhecer o DTO de pagamento para servir também à
+   * próxima coisa que tiver história — um saque, uma disputa.
+   */
+  protected timelineEvents(result: GetPaymentTimelineResponseDto): readonly AdmTimelineEvent[] {
+    return result.timeline.map((event) => ({
+      id: event.id,
+      title: event.title,
+      at: event.occurredAt,
+      description: event.description,
+      meta: event.type,
+    }));
   }
 
   protected closeTimeline(): void {

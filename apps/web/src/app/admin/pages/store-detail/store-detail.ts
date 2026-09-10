@@ -3,15 +3,27 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideLoader2, lucideRefreshCcw } from '@ng-icons/lucide';
+import { lucideRefreshCcw } from '@ng-icons/lucide';
 import { Subscription } from 'rxjs';
-import { toast } from 'ngx-sonner';
 
 import {
   COMMERCIAL_TERMS_RANGE,
   OperatorStoreService,
 } from '../../services/operator-store.service';
-import { AdmPageHeader, AdmPageState } from '../../ui';
+import {
+  AdmButton,
+  AdmChip,
+  AdmCopy,
+  AdmFact,
+  AdmFacts,
+  AdmField,
+  AdmNotice,
+  AdmPageHeader,
+  AdmPageState,
+  AdmPanel,
+  AdmTable,
+  AdmToastService,
+} from '../../ui';
 import { OperatorInvestigation } from './investigation/investigation';
 import { LIVE_STATUS_LABEL, LIVE_STATUS_TONE } from '../../domain/live-status';
 
@@ -37,16 +49,26 @@ interface TermsDraft {
     DatePipe,
     DecimalPipe,
     NgIcon,
+    AdmButton,
+    AdmChip,
+    AdmCopy,
+    AdmFact,
+    AdmFacts,
+    AdmField,
+    AdmNotice,
     AdmPageHeader,
     AdmPageState,
+    AdmPanel,
+    AdmTable,
     OperatorInvestigation,
   ],
-  providers: [provideIcons({ lucideLoader2, lucideRefreshCcw })],
+  providers: [provideIcons({ lucideRefreshCcw })],
   templateUrl: './store-detail.html',
   styleUrl: './store-detail.css',
 })
 export class OperatorStoreDetail implements OnInit, OnDestroy {
   protected readonly desk = inject(OperatorStoreService);
+  private readonly toast = inject(AdmToastService);
   private readonly route = inject(ActivatedRoute);
   private routeSub?: Subscription;
 
@@ -194,11 +216,14 @@ export class OperatorStoreDetail implements OnInit, OnDestroy {
         next: () => {
           this.isSaving.set(false);
           this.reason.set('');
-          toast.success('Condição comercial registrada, com linha na trilha.');
+          this.toast.ok(
+            'Condição comercial registrada.',
+            'A trilha guarda o antes, o depois e o motivo.',
+          );
         },
         error: (err: HttpErrorResponse) => {
           this.isSaving.set(false);
-          toast.error(err.error?.error?.message || 'Não foi possível mudar a condição.');
+          this.toast.bad(err.error?.error?.message || 'Não foi possível mudar a condição.');
         },
       });
   }

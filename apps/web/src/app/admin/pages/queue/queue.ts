@@ -3,13 +3,27 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideInbox, lucideLoader2, lucideRefreshCcw } from '@ng-icons/lucide';
+import { lucideInbox, lucideRefreshCcw } from '@ng-icons/lucide';
 import { Subscription } from 'rxjs';
-import { toast } from 'ngx-sonner';
 
 import { OperatorStoreService } from '../../services/operator-store.service';
 import type { AdminStoreListItem, StoreLiveStatus } from '../../domain/store';
-import { AdmPageHeader, AdmPageState, AdmSheet } from '../../ui';
+import {
+  AdmButton,
+  AdmChip,
+  AdmCopy,
+  AdmField,
+  AdmPageHeader,
+  AdmPageState,
+  AdmPagination,
+  AdmPanel,
+  AdmSegmented,
+  type AdmSegmentedOption,
+  AdmSheet,
+  AdmSkeletonRows,
+  AdmTable,
+  AdmToastService,
+} from '../../ui';
 import {
   LIVE_STATUS_LABEL,
   LIVE_STATUS_TONE,
@@ -19,7 +33,9 @@ import {
 
 const LIMIT = 20;
 
-const FILTERS: ReadonlyArray<{ value: StoreLiveStatus | 'all'; label: string }> = [
+type QueueFilter = StoreLiveStatus | 'all';
+
+const FILTERS: readonly AdmSegmentedOption<QueueFilter>[] = [
   { value: 'PENDING', label: 'Pendentes' },
   { value: 'APPROVED', label: 'Aprovadas' },
   { value: 'SUSPENDED', label: 'Suspensas' },
@@ -48,13 +64,30 @@ const VALID_STATUSES = FILTERS.map((filter) => filter.value);
 @Component({
   selector: 'app-operator-queue',
   standalone: true,
-  imports: [DatePipe, NgIcon, RouterLink, AdmPageHeader, AdmPageState, AdmSheet],
-  providers: [provideIcons({ lucideInbox, lucideLoader2, lucideRefreshCcw })],
+  imports: [
+    DatePipe,
+    NgIcon,
+    RouterLink,
+    AdmButton,
+    AdmChip,
+    AdmCopy,
+    AdmField,
+    AdmPageHeader,
+    AdmPageState,
+    AdmPagination,
+    AdmPanel,
+    AdmSegmented,
+    AdmSheet,
+    AdmSkeletonRows,
+    AdmTable,
+  ],
+  providers: [provideIcons({ lucideInbox, lucideRefreshCcw })],
   templateUrl: './queue.html',
   styleUrl: './queue.css',
 })
 export class OperatorQueue implements OnInit, OnDestroy {
   protected readonly queue = inject(OperatorStoreService);
+  private readonly toast = inject(AdmToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private routeSub?: Subscription;
@@ -62,9 +95,8 @@ export class OperatorQueue implements OnInit, OnDestroy {
   protected readonly filters = FILTERS;
   protected readonly statusLabel = LIVE_STATUS_LABEL;
   protected readonly statusTone = LIVE_STATUS_TONE;
-  protected readonly skeletonRows = [1, 2, 3, 4, 5, 6];
 
-  protected readonly filter = signal<StoreLiveStatus | 'all'>('PENDING');
+  protected readonly filter = signal<QueueFilter>('PENDING');
   protected readonly offset = signal(0);
 
   /** A loja e a decisão que o painel está pedindo motivo para. */
@@ -73,6 +105,7 @@ export class OperatorQueue implements OnInit, OnDestroy {
     decision: LiveEnablementDecision;
     label: string;
     consequence: string;
+    to: StoreLiveStatus;
   } | null>(null);
 
   protected readonly reason = signal('');
@@ -85,14 +118,14 @@ export class OperatorQueue implements OnInit, OnDestroy {
    *
    * A API pagina por offset e não devolve total (a fila é pilha de trabalho,
    * não relatório), então não há "de N". O que dá para dizer com honestidade é
-   * onde se está, e é melhor do que o "página 2" solto que estava aqui: ele não
-   * respondia nem quantas lojas havia na tela.
+   * onde se está, e é melhor do que o "página 2" solto: ele não responde nem
+   * quantas lojas há na tela.
    */
   protected readonly range = computed(() => {
     const count = this.queue.stores().length;
     if (count === 0) return '';
     const first = this.offset() + 1;
-    return `${first}–${this.offset() + count}`;
+    return `${first}–${this.offset() + count} · página ${this.page()}`;
   });
 
   ngOnInit(): void {
@@ -111,7 +144,7 @@ export class OperatorQueue implements OnInit, OnDestroy {
     this.load();
   }
 
-  protected selectFilter(value: StoreLiveStatus | 'all'): void {
+  protected selectFilter(value: QueueFilter): void {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { liveStatus: value === 'all' ? null : value, offset: null },
@@ -133,7 +166,12 @@ export class OperatorQueue implements OnInit, OnDestroy {
 
   protected ask(
     store: AdminStoreListItem,
-    spec: { decision: LiveEnablementDecision; label: string; consequence: string },
+    spec: {
+      decision: LiveEnablementDecision;
+      label: string;
+      consequence: string;
+      to: StoreLiveStatus;
+    },
   ): void {
     this.reason.set('');
     this.pending.set({ store, ...spec });
@@ -155,7 +193,7 @@ export class OperatorQueue implements OnInit, OnDestroy {
     if (!pending || this.isDeciding()) return;
 
     if (!reason) {
-      toast.error('O motivo é obrigatório — ele é a trilha.');
+      this.toast.bad('O motivo é obrigatório — ele é a trilha.');
       return;
     }
 
@@ -165,13 +203,14 @@ export class OperatorQueue implements OnInit, OnDestroy {
       next: (store) => {
         this.isDeciding.set(false);
         this.pending.set(null);
-        toast.success(
+        this.toast.ok(
           `${pending.store.name}: ${this.statusLabel[store.liveStatus].toLowerCase()}.`,
+          'A linha já está na trilha, com o motivo.',
         );
       },
       error: (err: HttpErrorResponse) => {
         this.isDeciding.set(false);
-        toast.error(err.error?.error?.message || 'Não foi possível registrar a decisão.');
+        this.toast.bad(err.error?.error?.message || 'Não foi possível registrar a decisão.');
       },
     });
   }
@@ -191,7 +230,7 @@ export class OperatorQueue implements OnInit, OnDestroy {
     });
   }
 
-  private parseFilter(value: string | null): StoreLiveStatus | 'all' {
+  private parseFilter(value: string | null): QueueFilter {
     return VALID_STATUSES.includes(value as StoreLiveStatus)
       ? (value as StoreLiveStatus)
       : value === 'all'

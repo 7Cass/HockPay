@@ -1,0 +1,163 @@
+.palette {
+  position: fixed;
+  inset: 0;
+  margin: 8vh auto auto;
+  padding: 0;
+  border: 0;
+  width: min(34rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100dvh - 16vh);
+  background: transparent;
+  color: var(--adm-text);
+}
+
+.palette::backdrop {
+  background: var(--adm-scrim);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .palette[open] {
+    animation: adm-palette-in 0.16s var(--adm-ease);
+  }
+}
+
+@keyframes adm-palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.99);
+  }
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 16vh);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius-lg);
+  background: var(--adm-surface);
+  box-shadow: var(--adm-shadow-lg);
+  overflow: clip;
+}
+
+/* ── Campo ──────────────────────────────────────────────────────────────── */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--adm-line);
+  color: var(--adm-text-3);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--adm-text);
+}
+
+.search input:focus {
+  outline: none;
+}
+
+.search input::placeholder {
+  color: var(--adm-text-3);
+}
+
+/* ── Lista ──────────────────────────────────────────────────────────────── */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.35rem;
+}
+
+.group + .group {
+  margin-top: 0.25rem;
+}
+
+.group > .adm-overline {
+  padding: 0.4rem 0.5rem 0.25rem;
+}
+
+.list button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 2.125rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--adm-radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+
+/* O realce é da linha ativa, e ela é a mesma para a seta e para o ponteiro:
+   duas marcas de seleção competindo é como se perde a fila com o teclado. */
+.list button.is-active {
+  background: var(--adm-surface-3);
+  color: var(--adm-text);
+}
+
+.list button ng-icon {
+  flex: none;
+  color: var(--adm-text-3);
+}
+
+.list button.is-active ng-icon {
+  color: var(--adm-accent);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--adm-text);
+}
+
+.hint {
+  flex: none;
+  font-size: 11px;
+  color: var(--adm-text-3);
+}
+
+.none {
+  margin: 0;
+  padding: 1.5rem 0.75rem;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--adm-text-3);
+}
+
+/* ── Pé ─────────────────────────────────────────────────────────────────── */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: none;
+  padding: 0.45rem 0.75rem;
+  border-top: 1px solid var(--adm-line);
+  background: var(--adm-surface-2);
+  font-size: 11px;
+  color: var(--adm-text-3);
+}
+
+.foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}

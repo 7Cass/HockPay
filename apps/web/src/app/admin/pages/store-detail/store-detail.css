@@ -1,94 +1,101 @@
-/* A loja aberta. */
+:host {
+  display: contents;
+}
 
-/* ── Motivo da última decisão ─────────────────────────────────────────────
-   Separado dos fatos por uma linha: ele é prosa, e prosa dentro de uma grade
-   de pares rótulo/valor quebra a leitura em coluna que a grade existe para dar. */
+/* O id da loja no cabeçalho do painel: é o que vai para o chamado, e é o único
+   lugar da tela onde ele aparece inteiro. */
+.id {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 11.5px;
+  color: var(--adm-text-3);
+}
+
 .last-reason {
-  margin-top: 0.875rem;
+  margin-top: 1rem;
   padding-top: 0.875rem;
   border-top: 1px solid var(--adm-line);
 }
 
 .last-reason p {
-  margin: 0.25rem 0 0;
-  max-width: 80ch;
+  margin: 0.3rem 0 0;
+  max-width: 78ch;
   font-size: 12.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--adm-text-2);
 }
 
-/* ── Condição comercial ───────────────────────────────────────────────── */
+/* ═══ Condição comercial ═══════════════════════════════════════════════════ */
 .terms {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 1.125rem;
 }
 
 .terms-lead {
-  max-width: 80ch;
   margin: 0;
+  max-width: 78ch;
   font-size: 12.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--adm-text-2);
 }
 
-/* Um campo tocado ganha um ponto âmbar colado no rótulo; o resto fica quieto.
-   Antes era a palavra "alterado" em caixa alta ao lado do label — informação
-   correta, mas que empurrava o label e competia com ele. O ponto diz a mesma
-   coisa sem disputar a linha. */
-.adm-field.is-changed .adm-field-label::after {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-left: 0.35rem;
-  vertical-align: 1px;
-  border-radius: 50%;
-  background: var(--adm-warn);
+.terms-grid {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-/* ── Antes e depois ───────────────────────────────────────────────────── */
+@media (min-width: 720px) {
+  .terms-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ── O antes e o depois ─────────────────────────────────────────────────────
+   Não é confirmação de segurança, é revisão: três números mudam juntos, e ler
+   os três lado a lado é mais rápido do que reconferir três campos. */
 .diff {
   border: 1px solid var(--adm-line);
-  border-radius: var(--adm-radius);
+  border-radius: var(--adm-radius-sm);
   background: var(--adm-surface-2);
-  padding: 0.6rem 0.75rem 0.25rem;
+  overflow: clip;
 }
 
-.diff .adm-overline {
-  margin-bottom: 0.35rem;
+.diff > .adm-overline {
+  padding: 0.5rem 0.75rem 0.35rem;
 }
 
-/* A tabela do diff mora dentro de um bloco que já tem fundo: ela empresta o
-   dele em vez de pintar o próprio. */
-.diff-table thead th,
-.diff-table tbody td {
-  background: transparent;
-  padding-left: 0;
-  padding-right: 0;
+.diff-table {
+  font-size: 12.5px;
 }
 
 .diff-table thead th {
-  position: static;
+  height: 1.625rem;
+  padding-inline: 0.75rem;
+  background: transparent;
+}
+
+.diff-table tbody td {
+  height: 1.875rem;
+  padding-inline: 0.75rem;
+  border-bottom-color: transparent;
 }
 
 .diff-table tbody tr:hover td {
   background: transparent;
 }
 
-.diff-table tbody td {
-  border-bottom-color: transparent;
-}
-
-/* A linha que mudou fica em tinta cheia; a que não mudou recua. É o contraste
-   entre as duas que faz o diff ser lido num relance. */
+/* A linha que mudou é a única que ganha peso — as outras estão ali para dar
+   contexto, e escurecer as três esconde qual delas é a mudança. */
 .diff-table tbody tr.is-changed td {
   color: var(--adm-text);
-  font-weight: 500;
+  font-weight: 550;
 }
 
-.diff-table tbody tr:not(.is-changed) td {
-  color: var(--adm-text-3);
+.diff-table tbody tr.is-changed td:last-child {
+  color: var(--adm-accent);
 }
 
 .terms-actions {

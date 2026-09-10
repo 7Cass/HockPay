@@ -1,0 +1,61 @@
+<dialog #dlg class="palette" (close)="closed.emit()" (click)="onBackdrop($event)">
+  <div class="box">
+    <div class="search">
+      <ng-icon name="lucideSearch" size="15px" strokeWidth="1.8" aria-hidden="true" />
+      <input
+        #field
+        type="text"
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="adm-command-list"
+        aria-label="Buscar comando"
+        autocomplete="off"
+        spellcheck="false"
+        [placeholder]="placeholder()"
+        [value]="query()"
+        (input)="onInput($event)"
+        (keydown)="onKeydown($event)"
+      />
+      <adm-kbd>esc</adm-kbd>
+    </div>
+
+    <div id="adm-command-list" class="list adm-scroll" role="listbox">
+      @for (group of groups(); track group.name) {
+        <div class="group">
+          <span class="adm-overline">{{ group.name }}</span>
+
+          @for (command of group.commands; track command.id) {
+            <button
+              type="button"
+              role="option"
+              [attr.aria-selected]="indexOf(command) === active()"
+              [class.is-active]="indexOf(command) === active()"
+              (mouseenter)="active.set(indexOf(command))"
+              (click)="pick(command)"
+            >
+              @if (command.icon; as icon) {
+                <ng-icon [name]="icon" size="14px" strokeWidth="1.8" aria-hidden="true" />
+              }
+              <span class="label">{{ command.label }}</span>
+              @if (command.hint; as hint) {
+                <span class="hint">{{ hint }}</span>
+              }
+            </button>
+          }
+        </div>
+      } @empty {
+        <p class="none">Nada com esse nome.</p>
+      }
+    </div>
+
+    <div class="foot">
+      <span><adm-kbd>↑</adm-kbd><adm-kbd>↓</adm-kbd> navegar</span>
+      <span>
+        <adm-kbd>
+          <ng-icon name="lucideCornerDownLeft" size="9px" strokeWidth="2.5" aria-hidden="true" />
+        </adm-kbd>
+        abrir
+      </span>
+    </div>
+  </div>
+</dialog>

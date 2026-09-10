@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+ol {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  position: relative;
+  padding: 0 0 1rem 1.25rem;
+  border-left: 1px solid var(--adm-line);
+}
+
+li:last-child {
+  padding-bottom: 0;
+  border-left-color: transparent;
+}
+
+li::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--adm-surface);
+  box-shadow: 0 0 0 1.5px var(--adm-line-strong);
+}
+
+/* O evento mais recente é o que interessa primeiro; ele ganha o ponto cheio. */
+li:first-child::before {
+  background: var(--adm-action);
+  box-shadow: 0 0 0 1.5px var(--adm-action);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--adm-text);
+}
+
+.when {
+  font-size: 11px;
+  color: var(--adm-text-3);
+}
+
+.note {
+  margin: 0.2rem 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+.meta {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 10.5px;
+  color: var(--adm-text-3);
+}

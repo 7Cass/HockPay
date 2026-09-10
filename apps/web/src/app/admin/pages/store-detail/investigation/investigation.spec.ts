@@ -204,7 +204,7 @@ describe('OperatorInvestigation', () => {
       },
     ]);
 
-    click('tbody tr.adm-row-click');
+    click('tbody tr.is-clickable');
     await settle();
 
     const request = expectRead('/payments/pay-1/timeline');
@@ -222,7 +222,7 @@ describe('OperatorInvestigation', () => {
     });
     await settle();
 
-    expect(el.querySelector('adm-sheet .adm-timeline-label')?.textContent?.trim()).toBe(
+    expect(el.querySelector('adm-sheet adm-timeline .label')?.textContent?.trim()).toBe(
       'Cobrança criada',
     );
   });

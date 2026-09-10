@@ -4,18 +4,20 @@
 >
   <ng-container pageActions>
     <button
+      admButton
       type="button"
-      class="adm-btn adm-btn-sm"
-      [class.adm-btn-primary]="mineOnly()"
-      [class.adm-btn-quiet]="!mineOnly()"
+      size="sm"
+      [variant]="mineOnly() ? 'primary' : 'quiet'"
       [attr.aria-pressed]="mineOnly()"
       (click)="toggleMine()"
     >
       Só as minhas
     </button>
     <button
+      admButton
       type="button"
-      class="adm-btn adm-btn-quiet adm-btn-icon"
+      variant="quiet"
+      iconOnly
       (click)="reload()"
       title="Atualizar"
       aria-label="Atualizar"
@@ -27,24 +29,14 @@
 
 @if (trail.error(); as message) {
   <adm-page-state variant="error" [message]="message">
-    <button
-      pageStateAction
-      type="button"
-      class="adm-btn adm-btn-quiet adm-btn-sm"
-      (click)="reload()"
-    >
+    <button pageStateAction admButton type="button" variant="quiet" size="sm" (click)="reload()">
       Tentar de novo
     </button>
   </adm-page-state>
 } @else if (trail.isLoading()) {
-  <section class="adm-panel">
-    @for (row of skeletonRows; track row) {
-      <div class="row-skeleton">
-        <div class="adm-skeleton" style="height: 0.8rem; width: 4.5rem"></div>
-        <div class="adm-skeleton" style="height: 0.8rem; width: 40%"></div>
-      </div>
-    }
-  </section>
+  <adm-panel flush>
+    <adm-skeleton-rows [rows]="6" [widths]="['4.5rem', '40%']" />
+  </adm-panel>
 } @else if (trail.logs().length === 0) {
   <adm-page-state
     variant="empty"
@@ -57,7 +49,7 @@
     "
   />
 } @else {
-  <section class="adm-panel">
+  <adm-panel flush>
     <ol class="trail">
       @for (log of trail.logs(); track log.id) {
         <li class="trail-row">
@@ -68,9 +60,7 @@
 
           <div class="trail-body">
             <div class="trail-head">
-              <span class="adm-chip" [attr.data-tone]="actionTone(log.action)">
-                {{ actionLabel(log.action) }}
-              </span>
+              <adm-chip [tone]="actionTone(log.action)">{{ actionLabel(log.action) }}</adm-chip>
 
               @if (storeLink(log); as link) {
                 <a class="adm-link adm-mono" [routerLink]="link">loja {{ log.targetId }}</a>
@@ -108,26 +98,12 @@
       }
     </ol>
 
-    <div class="adm-listfoot">
-      <span class="adm-listfoot-count">{{ range() }} · página {{ page() }}</span>
-      <span class="adm-listfoot-actions">
-        <button
-          type="button"
-          class="adm-btn adm-btn-quiet adm-btn-sm"
-          [disabled]="offset() === 0"
-          (click)="goToOffset(offset() - trail.limit())"
-        >
-          Anterior
-        </button>
-        <button
-          type="button"
-          class="adm-btn adm-btn-quiet adm-btn-sm"
-          [disabled]="!trail.hasMore()"
-          (click)="goToOffset(offset() + trail.limit())"
-        >
-          Próxima
-        </button>
-      </span>
-    </div>
-  </section>
+    <adm-pagination
+      [label]="range()"
+      [canPrev]="offset() > 0"
+      [canNext]="trail.hasMore()"
+      (previous)="goToOffset(offset() - trail.limit())"
+      (next)="goToOffset(offset() + trail.limit())"
+    />
+  </adm-panel>
 }

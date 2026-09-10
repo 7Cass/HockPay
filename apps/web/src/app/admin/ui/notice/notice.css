@@ -1,0 +1,61 @@
+/* Global de propósito: o `<strong>` e os links do aviso vêm projetados da
+   página. Tudo preso a `adm-notice`. */
+
+adm-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid var(--adm-line);
+  border-left: 3px solid var(--adm-text-3);
+  border-radius: var(--adm-radius-sm);
+  padding: 0.6rem 0.75rem;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+  background: var(--adm-surface-2);
+}
+
+adm-notice ng-icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+adm-notice strong {
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+adm-notice[data-tone='warn'] {
+  border-color: var(--adm-warn-line);
+  border-left-color: var(--adm-warn);
+  background: var(--adm-warn-soft);
+  color: var(--adm-warn);
+}
+
+adm-notice[data-tone='bad'] {
+  border-color: var(--adm-bad-line);
+  border-left-color: var(--adm-bad);
+  background: var(--adm-bad-soft);
+  color: var(--adm-bad);
+}
+
+adm-notice[data-tone='info'] {
+  border-color: var(--adm-info-line);
+  border-left-color: var(--adm-accent);
+  background: var(--adm-info-soft);
+  color: var(--adm-info);
+}
+
+adm-notice[data-tone='ok'] {
+  border-color: var(--adm-ok-line);
+  border-left-color: var(--adm-ok);
+  background: var(--adm-ok-soft);
+  color: var(--adm-ok);
+}
+
+adm-notice[data-tone='warn'] strong,
+adm-notice[data-tone='bad'] strong,
+adm-notice[data-tone='info'] strong,
+adm-notice[data-tone='ok'] strong {
+  color: inherit;
+}

@@ -1,25 +1,32 @@
 <div class="gate">
-  <div class="gate-card">
-    <div class="gate-brand">
-      <span class="brand-mark" aria-hidden="true">
-        <span class="brand-bar"></span>
-        <span class="brand-bar"></span>
-        <span class="brand-dot"></span>
-      </span>
+  <aside class="gate-side">
+    <span class="brand">
+      <adm-brand-mark size="lg" />
       <span class="brand-name">hockpay</span>
       <span class="brand-tag">admin</span>
-    </div>
+    </span>
 
-    <h1 class="gate-title">Entrar no admin</h1>
-
-    <p class="gate-desc">
-      Acesso de operador. Uma sessão de lojista não abre esta porta, e esta não abre a dele.
+    <p class="gate-claim">
+      A mesa de operação. Habilitação LIVE, condição comercial e investigação de loja — cada uma com
+      uma linha na trilha, assinada por quem decidiu.
     </p>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="gate-form" novalidate>
-      <div class="adm-field">
-        <label class="adm-field-label" for="operator-email">E-mail</label>
-        <div class="adm-control">
+    <ul class="gate-notes">
+      <li>Sessão de operador, separada da sessão do lojista.</li>
+      <li>Toda decisão pede motivo, e o motivo vai junto do antes e do depois.</li>
+      <li>Segredo de webhook e chave de API não passam por aqui.</li>
+    </ul>
+  </aside>
+
+  <main class="gate-main">
+    <div class="gate-card">
+      <h1 class="gate-title">Entrar no admin</h1>
+      <p class="gate-desc">
+        Acesso de operador. Uma sessão de lojista não abre esta porta, e esta não abre a dele.
+      </p>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="gate-form" novalidate>
+        <adm-field label="E-mail" for="operator-email" [error]="error('email')">
           <input
             id="operator-email"
             type="email"
@@ -29,26 +36,22 @@
             autocapitalize="none"
             autocorrect="off"
             spellcheck="false"
-            [attr.aria-invalid]="showError('email')"
+            [attr.aria-invalid]="!!error('email')"
           />
-        </div>
-        @if (showError('email')) {
-          <span class="adm-field-error" role="alert">Informe um e-mail válido.</span>
-        }
-      </div>
+        </adm-field>
 
-      <div class="adm-field">
-        <label class="adm-field-label" for="operator-password">Senha</label>
-        <div class="adm-control adm-control-toggle">
+        <adm-field label="Senha" for="operator-password" [error]="error('password')">
           <input
             id="operator-password"
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="current-password"
-            [attr.aria-invalid]="showError('password')"
+            [attr.aria-invalid]="!!error('password')"
           />
           <button
+            fieldSuffix
             type="button"
+            class="peek"
             [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
             [attr.aria-pressed]="showPassword()"
             (click)="togglePassword()"
@@ -59,24 +62,23 @@
               aria-hidden="true"
             />
           </button>
-        </div>
-        @if (showError('password')) {
-          <span class="adm-field-error" role="alert">A senha é obrigatória.</span>
-        }
-      </div>
+        </adm-field>
 
-      <button type="submit" class="adm-btn adm-btn-primary gate-submit" [disabled]="isLoading()">
-        @if (isLoading()) {
-          <ng-icon name="lucideLoader2" size="15px" class="animate-spin" aria-hidden="true" />
-          Entrando…
-        } @else {
-          Entrar
-        }
-      </button>
-    </form>
-  </div>
+        <button admButton type="submit" variant="primary" block [loading]="isLoading()">
+          @if (isLoading()) {
+            Entrando…
+          } @else {
+            Entrar
+          }
+        </button>
+      </form>
 
-  <p class="gate-foot">Toda decisão daqui em diante entra na trilha, assinada.</p>
+      <p class="gate-foot">
+        <ng-icon name="lucideShieldCheck" size="13px" strokeWidth="1.8" aria-hidden="true" />
+        Toda decisão daqui em diante entra na trilha, assinada.
+      </p>
+    </div>
+  </main>
 </div>
 
-<hlm-toaster position="bottom-right" richColors="true" />
+<adm-toaster />

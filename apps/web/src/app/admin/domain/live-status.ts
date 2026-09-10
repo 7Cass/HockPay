@@ -31,6 +31,8 @@ interface DecisionSpec {
   readonly label: string;
   /** Estados a partir dos quais o domínio aceita esta decisão. */
   readonly from: readonly StoreLiveStatus[];
+  /** Onde a loja vai parar. É o "depois" que o painel mostra antes de perguntar. */
+  readonly to: StoreLiveStatus;
   /** O que muda para o lojista. A tela diz antes de perguntar o motivo. */
   readonly consequence: string;
 }
@@ -47,18 +49,21 @@ export const LIVE_DECISIONS: readonly DecisionSpec[] = [
     decision: 'approve',
     label: 'Aprovar',
     from: ['PENDING', 'SUSPENDED'],
+    to: 'APPROVED',
     consequence: 'A loja passa a poder cobrar em LIVE, e o ledger LIVE dela começa a receber.',
   },
   {
     decision: 'reject',
     label: 'Rejeitar',
     from: ['PENDING'],
+    to: 'REJECTED',
     consequence: 'A loja continua só em TEST. Ela pode pedir de novo depois.',
   },
   {
     decision: 'suspend',
     label: 'Suspender',
     from: ['APPROVED'],
+    to: 'SUSPENDED',
     consequence: 'A loja para de cobrar em LIVE agora. O saldo LIVE que ela já tem não some.',
   },
 ];

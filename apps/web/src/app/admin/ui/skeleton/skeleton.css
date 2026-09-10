@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  flex: none;
+  border-radius: var(--adm-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--adm-surface-2) 25%,
+    var(--adm-surface-3) 37%,
+    var(--adm-surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: adm-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes adm-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}

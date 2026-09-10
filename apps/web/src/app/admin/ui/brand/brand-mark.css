@@ -1,0 +1,58 @@
+:host {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-rail-2);
+  border: 1px solid var(--adm-rail-line);
+}
+
+.bar {
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--adm-rail-text);
+}
+
+.bar + .bar {
+  left: 11px;
+  top: 8px;
+  height: 5px;
+}
+
+.dot {
+  position: absolute;
+  left: 15px;
+  top: 8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--adm-accent);
+}
+
+:host([data-size='lg']) {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+:host([data-size='lg']) .bar {
+  left: 8px;
+  top: 6px;
+  height: 9px;
+}
+
+:host([data-size='lg']) .bar + .bar {
+  left: 12px;
+  top: 10px;
+  height: 5px;
+}
+
+:host([data-size='lg']) .dot {
+  left: 17px;
+  top: 10px;
+}
