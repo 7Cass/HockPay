@@ -1,0 +1,63 @@
+/* Vazio, carregando e erro — o mesmo bloco, três conteúdos.
+
+   Bem mais baixo que o equivalente do lojista de propósito: um estado vazio
+   que ocupa meia tela é aceitável numa tela que se visita; numa que se
+   recarrega o dia inteiro, ele só empurra o resto para longe. */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 2.25rem 1.25rem;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface);
+  text-align: center;
+}
+
+:host(.is-bare) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2rem 1rem;
+}
+
+.state-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.15rem;
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface-3);
+  color: var(--adm-text-3);
+}
+
+:host([data-variant='error']) .state-icon {
+  background: var(--adm-bad-soft);
+  color: var(--adm-bad);
+}
+
+h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+p {
+  max-width: 52ch;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+.state-action:empty {
+  display: none;
+}
+
+.state-action {
+  margin-top: 0.5rem;
+}

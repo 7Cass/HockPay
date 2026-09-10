@@ -1,0 +1,98 @@
+/* A loja aberta. */
+
+/* ── Motivo da última decisão ─────────────────────────────────────────────
+   Separado dos fatos por uma linha: ele é prosa, e prosa dentro de uma grade
+   de pares rótulo/valor quebra a leitura em coluna que a grade existe para dar. */
+.last-reason {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--adm-line);
+}
+
+.last-reason p {
+  margin: 0.25rem 0 0;
+  max-width: 80ch;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+/* ── Condição comercial ───────────────────────────────────────────────── */
+.terms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.terms-lead {
+  max-width: 80ch;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+/* Um campo tocado ganha um ponto âmbar colado no rótulo; o resto fica quieto.
+   Antes era a palavra "alterado" em caixa alta ao lado do label — informação
+   correta, mas que empurrava o label e competia com ele. O ponto diz a mesma
+   coisa sem disputar a linha. */
+.adm-field.is-changed .adm-field-label::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 0.35rem;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: var(--adm-warn);
+}
+
+/* ── Antes e depois ───────────────────────────────────────────────────── */
+.diff {
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius);
+  background: var(--adm-surface-2);
+  padding: 0.6rem 0.75rem 0.25rem;
+}
+
+.diff .adm-overline {
+  margin-bottom: 0.35rem;
+}
+
+/* A tabela do diff mora dentro de um bloco que já tem fundo: ela empresta o
+   dele em vez de pintar o próprio. */
+.diff-table thead th,
+.diff-table tbody td {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.diff-table thead th {
+  position: static;
+}
+
+.diff-table tbody tr:hover td {
+  background: transparent;
+}
+
+.diff-table tbody td {
+  border-bottom-color: transparent;
+}
+
+/* A linha que mudou fica em tinta cheia; a que não mudou recua. É o contraste
+   entre as duas que faz o diff ser lido num relance. */
+.diff-table tbody tr.is-changed td {
+  color: var(--adm-text);
+  font-weight: 500;
+}
+
+.diff-table tbody tr:not(.is-changed) td {
+  color: var(--adm-text-3);
+}
+
+.terms-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}

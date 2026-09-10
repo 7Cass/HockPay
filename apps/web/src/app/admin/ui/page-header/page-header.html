@@ -1,0 +1,25 @@
+<header class="head">
+  @if (backTo(); as back) {
+    <a class="back" [routerLink]="back">
+      <ng-icon name="lucideChevronLeft" size="13px" strokeWidth="2" aria-hidden="true" />
+      {{ backLabel() }}
+    </a>
+  }
+
+  <div class="head-row">
+    <div class="head-text">
+      <div class="head-title">
+        <h1>{{ heading() }}</h1>
+        <ng-content select="[pageStatus]" />
+      </div>
+
+      @if (description(); as text) {
+        <p class="head-desc">{{ text }}</p>
+      }
+    </div>
+
+    <div class="head-actions">
+      <ng-content select="[pageActions]" />
+    </div>
+  </div>
+</header>

@@ -4,8 +4,6 @@ import { DashboardLayout } from './shared/layouts/dashboard-layout/dashboard-lay
 import { AuthLayout } from './shared/layouts/auth-layout/auth-layout';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
-import { operatorGuard, operatorGuestGuard } from './core/guards/operator.guard';
-import { OperatorLayout } from './shared/layouts/operator-layout/operator-layout';
 
 export const routes: Routes = [
     {
@@ -33,41 +31,17 @@ export const routes: Routes = [
             },
         ],
     },
-    // ─── Mesa de operação ───────────────────────────────────────────────
+    // ─── Admin ──────────────────────────────────────────────────────────
     // Fora do dashboard de propósito: outra sessão, outro guard, outra casca.
     // Os cookies já têm paths próprios no backend, então as duas convivem no
     // mesmo browser sem que uma saiba da outra.
-    {
-        path: 'operator/login',
-        canActivate: [operatorGuestGuard],
-        loadComponent: () =>
-            import('./features/operator/pages/login/login').then(m => m.OperatorLogin),
-    },
+    //
+    // Um `loadChildren` e não rotas soltas: assim nada do admin entra no bundle
+    // de quem só abre o painel do lojista, e a fronteira da pasta `admin/`
+    // também é a fronteira do que se baixa.
     {
         path: 'operator',
-        component: OperatorLayout,
-        canActivate: [operatorGuard],
-        children: [
-            {
-                path: '',
-                loadComponent: () =>
-                    import('./features/operator/pages/queue/queue').then(m => m.OperatorQueue),
-            },
-            {
-                path: 'audit-logs',
-                loadComponent: () =>
-                    import('./features/operator/pages/audit-log/audit-log').then(
-                        m => m.OperatorAuditLogPage,
-                    ),
-            },
-            {
-                path: 'stores/:id',
-                loadComponent: () =>
-                    import('./features/operator/pages/store-detail/store-detail').then(
-                        m => m.OperatorStoreDetail,
-                    ),
-            },
-        ],
+        loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES),
     },
     {
         path: 'dashboard',

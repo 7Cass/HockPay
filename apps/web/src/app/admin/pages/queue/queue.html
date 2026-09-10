@@ -1,0 +1,212 @@
+<adm-page-header
+  heading="Fila de habilitação"
+  description="Quem pediu LIVE, quem já opera, e quem foi recusado. Toda decisão pede motivo."
+>
+  <ng-container pageActions>
+    <button
+      type="button"
+      class="adm-btn adm-btn-quiet adm-btn-icon"
+      (click)="reload()"
+      title="Atualizar"
+      aria-label="Atualizar"
+    >
+      <ng-icon name="lucideRefreshCcw" size="14px" strokeWidth="1.8" />
+    </button>
+  </ng-container>
+</adm-page-header>
+
+<div class="adm-seg" role="tablist" aria-label="Estado da habilitação">
+  @for (option of filters; track option.value) {
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="filter() === option.value"
+      [class.is-active]="filter() === option.value"
+      (click)="selectFilter(option.value)"
+    >
+      {{ option.label }}
+    </button>
+  }
+</div>
+
+@if (queue.error(); as message) {
+  <adm-page-state variant="error" [message]="message">
+    <button
+      pageStateAction
+      type="button"
+      class="adm-btn adm-btn-quiet adm-btn-sm"
+      (click)="reload()"
+    >
+      Tentar de novo
+    </button>
+  </adm-page-state>
+} @else if (queue.isLoading()) {
+  <section class="adm-panel">
+    @for (row of skeletonRows; track row) {
+      <div class="row-skeleton">
+        <div class="adm-skeleton" style="height: 0.8rem; width: 28%"></div>
+        <div class="adm-skeleton" style="height: 1.375rem; width: 5.5rem"></div>
+        <div class="adm-skeleton" style="height: 0.8rem; width: 4rem"></div>
+      </div>
+    }
+  </section>
+} @else if (queue.stores().length === 0) {
+  <adm-page-state
+    variant="empty"
+    icon="lucideInbox"
+    heading="Fila vazia"
+    [message]="emptyMessage()"
+  />
+} @else {
+  <section class="adm-panel">
+    <div class="adm-table-scroll adm-scroll">
+      <table class="adm-table queue-table">
+        <thead>
+          <tr>
+            <th>Loja</th>
+            <th>Estado</th>
+            <th>Motivo da última decisão</th>
+            <th>Desde</th>
+            <th class="adm-col-end col-actions">Decisão</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (store of queue.stores(); track store.id) {
+            <tr>
+              <td>
+                <a class="adm-cell" [routerLink]="['/operator/stores', store.id]">
+                  <span class="adm-cell-title">{{ store.name }}</span>
+                  <span class="adm-cell-sub adm-mono">{{ store.slug }}</span>
+                </a>
+              </td>
+
+              <td>
+                <span class="adm-chip" [attr.data-tone]="statusTone[store.liveStatus]">
+                  {{ statusLabel[store.liveStatus] }}
+                </span>
+              </td>
+
+              <td class="col-reason">
+                @if (store.liveStatusReason) {
+                  <span class="reason">{{ store.liveStatusReason }}</span>
+                } @else {
+                  <span class="adm-cell-sub">—</span>
+                }
+              </td>
+
+              <td>
+                @if (store.liveStatusChangedAt) {
+                  <span class="adm-cell">
+                    <span class="adm-cell-title adm-num">{{
+                      store.liveStatusChangedAt | date: 'dd/MM/yy'
+                    }}</span>
+                    <span class="adm-cell-sub adm-mono">{{
+                      store.liveStatusChangedAt | date: 'HH:mm'
+                    }}</span>
+                  </span>
+                } @else {
+                  <span class="adm-cell-sub">criada {{ store.createdAt | date: 'dd/MM/yy' }}</span>
+                }
+              </td>
+
+              <td class="adm-col-end col-actions">
+                <span class="adm-cell-actions">
+                  @for (spec of decisionsFor(store.liveStatus); track spec.decision) {
+                    <button
+                      type="button"
+                      class="adm-btn adm-btn-sm"
+                      [class.adm-btn-primary]="spec.decision === 'approve'"
+                      [class.adm-btn-quiet]="spec.decision !== 'approve'"
+                      (click)="ask(store, spec)"
+                    >
+                      {{ spec.label }}
+                    </button>
+                  } @empty {
+                    <span class="adm-cell-sub">nada a decidir</span>
+                  }
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="adm-listfoot">
+      <span class="adm-listfoot-count">{{ range() }} · página {{ page() }}</span>
+      <span class="adm-listfoot-actions">
+        <button
+          type="button"
+          class="adm-btn adm-btn-quiet adm-btn-sm"
+          [disabled]="offset() === 0"
+          (click)="goToOffset(offset() - queue.limit())"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="adm-btn adm-btn-quiet adm-btn-sm"
+          [disabled]="!queue.hasMore()"
+          (click)="goToOffset(offset() + queue.limit())"
+        >
+          Próxima
+        </button>
+      </span>
+    </div>
+  </section>
+}
+
+@if (pending(); as ask) {
+  <adm-sheet
+    [open]="true"
+    side="center"
+    [eyebrow]="ask.store.name"
+    [heading]="ask.label + ' habilitação LIVE'"
+    [description]="ask.consequence"
+    (closed)="closeSheet()"
+  >
+    <div class="adm-field">
+      <label class="adm-field-label" for="decision-reason">Motivo</label>
+      <div class="adm-control">
+        <textarea
+          id="decision-reason"
+          rows="4"
+          maxlength="500"
+          placeholder="O que sustenta esta decisão."
+          [value]="reason()"
+          (input)="setReason($event)"
+        ></textarea>
+      </div>
+      <span class="adm-field-note">
+        Obrigatório. Vai para a trilha junto com o antes e o depois — é o que separa uma mesa
+        auditável de um log.
+      </span>
+    </div>
+
+    <ng-container sheetActions>
+      <button
+        type="button"
+        class="adm-btn adm-btn-quiet"
+        (click)="closeSheet()"
+        [disabled]="isDeciding()"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="adm-btn"
+        [class.adm-btn-primary]="ask.decision === 'approve'"
+        [class.adm-btn-danger]="ask.decision !== 'approve'"
+        (click)="confirm()"
+        [disabled]="isDeciding()"
+      >
+        @if (isDeciding()) {
+          <ng-icon name="lucideLoader2" size="14px" class="animate-spin" aria-hidden="true" />
+          Registrando…
+        } @else {
+          {{ ask.label }}
+        }
+      </button>
+    </ng-container>
+  </adm-sheet>
+}

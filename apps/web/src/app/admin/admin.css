@@ -1,0 +1,893 @@
+/* HockPay — a camada de design do admin.
+   ---------------------------------------------------------------------------
+   Esta é a fronteira. O lojista tem `styles/primitives.css`, com o sistema
+   paper/ink: creme quente, serifa de display, botão em pílula. É um sistema de
+   marca, feito para quem escolhe a HockPay.
+
+   O admin não vende nada. Aqui trabalha o operador, o dia inteiro, decidindo
+   sobre dinheiro de terceiros — e o que uma tela dessas precisa não é
+   personalidade, é densidade, alinhamento e estado legível de longe. Por isso
+   este arquivo não estende as primitivas do lojista: ele as substitui.
+
+   Regras da casa:
+   - todo seletor daqui começa com `adm-`. Nada de nome compartilhado com o
+     lojista, então nada de colisão — e o dia em que o admin virar `apps/admin`
+     este arquivo vai junto, sozinho, sem desmontar nada.
+   - a cor tem um só trabalho: dizer estado (ok / bad / warn / info). O resto é
+     cinza frio. Um console que pinta o que não é estado ensina o olho a ignorar
+     a cor exatamente onde ela importa.
+   - a borda é a ferramenta de separação; a sombra é só de coisa que flutua
+     (modal, menu). Painel com sombra é decoração, e decoração come densidade.
+   - tudo aqui vive em `@layer components`, então:
+       utilitário Tailwind no template  > primitiva do admin
+       CSS do componente (sem layer)    > tudo
+     ou seja: dá para sobrescrever qualquer coisa daqui sem `!important`.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* ── Superfícies ────────────────────────────────────────────────────────
+     Três camadas, do fundo para a frente: o chão da área de trabalho, o papel
+     do painel, e o preenchimento discreto de dentro do painel. */
+  --adm-ground: #f6f7f9;
+  --adm-surface: #ffffff;
+  --adm-surface-2: #f4f6f8;
+  --adm-surface-3: #eceff2;
+
+  /* ── Linhas ─────────────────────────────────────────────────────────────
+     `line` separa o que é irmão; `line-strong` desenha o que se pode tocar
+     (campo, botão) e por isso precisa se anunciar. */
+  --adm-line: #e4e8ec;
+  --adm-line-strong: #cfd6dd;
+
+  /* ── Texto ──────────────────────────────────────────────────────────────
+     Três níveis bastam. O quarto nível que todo design system inventa acaba
+     usado para esconder informação que devia ter sido cortada. */
+  --adm-text: #10151a;
+  --adm-text-2: #5a6672;
+  --adm-text-3: #8b96a1;
+
+  /* ── Ação ───────────────────────────────────────────────────────────────
+     O botão primário é quase preto, não azul: numa tela onde a cor significa
+     estado, um botão azul disputa atenção com um aviso de verdade. O azul fica
+     reservado para foco e para o item de navegação ativo — os dois lugares
+     onde ele responde "onde eu estou", não "o que aconteceu". */
+  --adm-action: #10151a;
+  --adm-action-hover: #262f38;
+  --adm-accent: #1f6feb;
+  --adm-accent-soft: #eaf2fe;
+
+  /* ── Estado ─────────────────────────────────────────────────────────────
+     Pares de texto e fundo, calibrados para o chip: o texto passa contraste
+     AA sobre o próprio fundo, o que mantém o chip legível impresso, em
+     projetor e em tela ruim de suporte. */
+  --adm-ok: #05683f;
+  --adm-ok-soft: #e7f7ef;
+  --adm-ok-line: #a8e3c6;
+  --adm-bad: #a92218;
+  --adm-bad-soft: #fdedeb;
+  --adm-bad-line: #f6c3bd;
+  --adm-warn: #8a4b04;
+  --adm-warn-soft: #fdf3e3;
+  --adm-warn-line: #f3d6a4;
+  --adm-info: #14539a;
+  --adm-info-soft: #eaf2fe;
+  --adm-info-line: #bcd8fb;
+
+  /* ── Métricas ───────────────────────────────────────────────────────────
+     O raio é 6px e não muda por tamanho: um sistema com quatro raios diferentes
+     não fica mais rico, fica menos reconhecível. */
+  --adm-radius: 6px;
+  --adm-radius-sm: 4px;
+
+  /* A altura de linha da tabela. É o número que decide quantas decisões cabem
+     numa tela, então ele é um token e não um valor solto. */
+  --adm-row: 2.25rem;
+
+  --adm-sidebar: 14rem;
+  --adm-topbar: 3.25rem;
+
+  /* Sombra só de coisa que flutua. */
+  --adm-shadow: 0 1px 2px rgb(16 21 26 / 0.04), 0 8px 24px -8px rgb(16 21 26 / 0.12);
+  --adm-shadow-lg: 0 1px 3px rgb(16 21 26 / 0.06), 0 24px 48px -12px rgb(16 21 26 / 0.22);
+
+  --adm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer components {
+  /* ═══ Tipografia ═══════════════════════════════════════════════════════ */
+
+  /* Identificador, prefixo, hash: coisa que se compara caractere a caractere
+     e às vezes se lê em voz alta para outra pessoa. */
+  .adm-mono {
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9em;
+    letter-spacing: 0.01em;
+  }
+
+  /* Dinheiro, contagem, data. Tabular porque coluna de número que não alinha
+     obriga a ler dígito por dígito. */
+  .adm-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+
+  /* O micro-rótulo do console: caixa alta, pequena, espaçada. É o que dá a
+     uma seção um nome sem gastar uma linha de título. */
+  .adm-overline {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--adm-text-3);
+  }
+
+  .adm-link {
+    color: var(--adm-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s var(--adm-ease);
+  }
+
+  .adm-link:hover {
+    border-bottom-color: currentColor;
+  }
+
+  /* ═══ Botões ═══════════════════════════════════════════════════════════
+     `.adm-btn` dá a caixa; o modificador dá a pele. Sem pílula: o raio de 6px
+     é o mesmo do campo e do painel, e é isso que faz a tela parecer uma peça
+     só em vez de uma coleção de controles. */
+  .adm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2rem;
+    padding: 0 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--adm-radius);
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    color: var(--adm-text);
+    cursor: pointer;
+    transition:
+      background-color 0.15s var(--adm-ease),
+      border-color 0.15s var(--adm-ease),
+      color 0.15s var(--adm-ease);
+  }
+
+  .adm-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  /* A ação que fecha o assunto. Uma por tela — se houver duas, uma delas não
+     era primária. */
+  .adm-btn-primary {
+    background: var(--adm-action);
+    color: #fff;
+  }
+
+  .adm-btn-primary:hover:not(:disabled) {
+    background: var(--adm-action-hover);
+  }
+
+  /* O botão de todo dia: contornado, discreto, legível. */
+  .adm-btn-quiet {
+    border-color: var(--adm-line-strong);
+    background: var(--adm-surface);
+    color: var(--adm-text);
+  }
+
+  .adm-btn-quiet:hover:not(:disabled) {
+    background: var(--adm-surface-2);
+    border-color: var(--adm-text-3);
+  }
+
+  /* Sem contorno, para barra de ferramentas e cabeçalho de painel, onde uma
+     borda a mais só adiciona ruído. */
+  .adm-btn-ghost {
+    color: var(--adm-text-2);
+  }
+
+  .adm-btn-ghost:hover:not(:disabled) {
+    background: var(--adm-surface-3);
+    color: var(--adm-text);
+  }
+
+  /* Destrutivo: contornado, não preenchido. Um botão vermelho sólido numa mesa
+     de operação vira o elemento mais chamativo da tela e convida ao clique
+     justamente onde o clique custa. */
+  .adm-btn-danger {
+    border-color: var(--adm-bad-line);
+    background: var(--adm-bad-soft);
+    color: var(--adm-bad);
+  }
+
+  .adm-btn-danger:hover:not(:disabled) {
+    background: #fbdedb;
+    border-color: var(--adm-bad);
+  }
+
+  .adm-btn-sm {
+    height: 1.75rem;
+    padding: 0 0.55rem;
+    font-size: 12px;
+  }
+
+  .adm-btn-icon {
+    width: 2rem;
+    padding: 0;
+  }
+
+  .adm-btn-icon.adm-btn-sm {
+    width: 1.75rem;
+  }
+
+  /* ═══ Foco ═════════════════════════════════════════════════════════════
+     Um anel só, azul, em tudo que recebe teclado. Um console é operado por
+     teclado por quem trabalha nele oito horas; foco invisível é um bug. */
+  .adm-btn:focus-visible,
+  .adm-seg > button:focus-visible,
+  .adm-nav-item:focus-visible,
+  .adm-link:focus-visible,
+  .adm-control input:focus-visible,
+  .adm-control textarea:focus-visible,
+  .adm-control select:focus-visible {
+    outline: 2px solid var(--adm-accent);
+    outline-offset: 1px;
+  }
+
+  /* ═══ Painel ═══════════════════════════════════════════════════════════
+     A única caixa do admin. Borda, sem sombra: a hierarquia vem do fundo da
+     área de trabalho ser mais escuro que o papel do painel. */
+  .adm-panel {
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface);
+  }
+
+  .adm-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.7rem 0.875rem;
+    border-bottom: 1px solid var(--adm-line);
+  }
+
+  .adm-panel-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--adm-text);
+  }
+
+  .adm-panel-note {
+    font-size: 11.5px;
+    color: var(--adm-text-3);
+  }
+
+  .adm-panel-body {
+    padding: 0.875rem;
+  }
+
+  /* ═══ Tabela ═══════════════════════════════════════════════════════════
+     Onde o operador passa o dia. Linha de 36px, cabeçalho grudado no topo na
+     rolagem, número à direita. */
+  .adm-table-scroll {
+    overflow-x: auto;
+  }
+
+  .adm-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+  }
+
+  .adm-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    height: 2rem;
+    padding: 0 0.875rem;
+    border-bottom: 1px solid var(--adm-line);
+    background: var(--adm-surface-2);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+    color: var(--adm-text-3);
+  }
+
+  .adm-table tbody td {
+    height: var(--adm-row);
+    padding: 0.4rem 0.875rem;
+    border-bottom: 1px solid var(--adm-line);
+    color: var(--adm-text-2);
+    vertical-align: middle;
+  }
+
+  .adm-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .adm-table tbody tr:hover td {
+    background: var(--adm-surface-2);
+  }
+
+  /* Coluna de número: à direita, para o olho comparar ordens de grandeza
+     descendo a coluna em vez de lendo cada valor. */
+  .adm-table .adm-col-num,
+  .adm-table td.adm-col-num,
+  .adm-table th.adm-col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .adm-table th.adm-col-end,
+  .adm-table td.adm-col-end {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .adm-table tbody tr.adm-row-click {
+    cursor: pointer;
+  }
+
+  /* ── Células ────────────────────────────────────────────────────────── */
+  .adm-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .adm-cell-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--adm-text);
+  }
+
+  .adm-cell-sub {
+    font-size: 11.5px;
+    color: var(--adm-text-3);
+  }
+
+  a.adm-cell {
+    text-decoration: none;
+  }
+
+  a.adm-cell:hover .adm-cell-title {
+    color: var(--adm-accent);
+  }
+
+  .adm-cell-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  /* ═══ Chip de estado ═══════════════════════════════════════════════════
+     Ponto mais texto, num fundo lavado — não pílula sólida. Numa tabela de
+     trinta linhas, trinta pílulas saturadas viram um vitral e nenhuma delas
+     se destaca; o ponto carrega a cor num pixel e deixa o texto legível. */
+  .adm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 1.375rem;
+    padding: 0 0.45rem;
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius-sm);
+    background: var(--adm-surface-2);
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--adm-text-2);
+  }
+
+  .adm-chip::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    flex: none;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Sem ponto: para quando o chip carrega um enum técnico e não um estado
+     (o `type` de uma transação, por exemplo). */
+  .adm-chip-bare::before {
+    display: none;
+  }
+
+  .adm-chip[data-tone='ok'] {
+    border-color: var(--adm-ok-line);
+    background: var(--adm-ok-soft);
+    color: var(--adm-ok);
+  }
+
+  .adm-chip[data-tone='bad'] {
+    border-color: var(--adm-bad-line);
+    background: var(--adm-bad-soft);
+    color: var(--adm-bad);
+  }
+
+  .adm-chip[data-tone='warn'] {
+    border-color: var(--adm-warn-line);
+    background: var(--adm-warn-soft);
+    color: var(--adm-warn);
+  }
+
+  .adm-chip[data-tone='info'] {
+    border-color: var(--adm-info-line);
+    background: var(--adm-info-soft);
+    color: var(--adm-info);
+  }
+
+  /* ═══ Fatos ════════════════════════════════════════════════════════════
+     Pares rótulo/valor. É a forma de ler uma entidade sem inventar uma tabela
+     de uma linha só. */
+  .adm-facts {
+    display: grid;
+    gap: 0.875rem 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    margin: 0;
+  }
+
+  .adm-fact {
+    min-width: 0;
+  }
+
+  .adm-fact dt {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--adm-text-3);
+  }
+
+  .adm-fact dd {
+    margin: 0.2rem 0 0;
+    font-size: 13px;
+    color: var(--adm-text);
+    overflow-wrap: anywhere;
+  }
+
+  /* Fato de dinheiro: o valor cresce, porque saldo é o que se lê primeiro. */
+  .adm-fact-lg dd {
+    font-size: 1.0625rem;
+    font-weight: 550;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ═══ Campos ═══════════════════════════════════════════════════════════ */
+  .adm-form-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .adm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  .adm-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--adm-text);
+  }
+
+  .adm-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .adm-control input,
+  .adm-control textarea,
+  .adm-control select {
+    width: 100%;
+    min-width: 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--adm-line-strong);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--adm-text);
+    transition:
+      border-color 0.15s var(--adm-ease),
+      background-color 0.15s var(--adm-ease);
+  }
+
+  .adm-control input {
+    height: 2rem;
+  }
+
+  .adm-control textarea {
+    resize: vertical;
+    min-height: 4.5rem;
+  }
+
+  .adm-control input::placeholder,
+  .adm-control textarea::placeholder {
+    color: var(--adm-text-3);
+  }
+
+  .adm-control input:hover:not(:focus),
+  .adm-control textarea:hover:not(:focus) {
+    border-color: var(--adm-text-3);
+  }
+
+  .adm-control input:focus,
+  .adm-control textarea:focus,
+  .adm-control select:focus {
+    outline: none;
+    border-color: var(--adm-accent);
+  }
+
+  .adm-control input[aria-invalid='true'],
+  .adm-control textarea[aria-invalid='true'] {
+    border-color: var(--adm-bad);
+  }
+
+  /* Número é dinheiro ou prazo: tabular, e sem a setinha que muda valor por
+     acidente de scroll. */
+  .adm-control input[type='number'] {
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+  }
+
+  .adm-control input[type='number']::-webkit-outer-spin-button,
+  .adm-control input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* O olho de "mostrar senha", dentro do próprio campo. */
+  .adm-control-toggle input {
+    padding-right: 2.25rem;
+  }
+
+  .adm-control-toggle > button {
+    position: absolute;
+    right: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    border: 0;
+    border-radius: var(--adm-radius-sm);
+    background: transparent;
+    color: var(--adm-text-3);
+    cursor: pointer;
+  }
+
+  .adm-control-toggle > button:hover {
+    background: var(--adm-surface-3);
+    color: var(--adm-text);
+  }
+
+  .adm-field-note {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--adm-text-3);
+  }
+
+  .adm-field-note strong {
+    font-weight: 600;
+    color: var(--adm-text-2);
+  }
+
+  .adm-field-error {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--adm-bad);
+  }
+
+  .adm-form-row {
+    display: grid;
+    gap: 0.875rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 720px) {
+    .adm-form-row-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* ═══ Segmentado ═══════════════════════════════════════════════════════
+     O filtro que sempre tem uma opção escolhida. Um trilho, botões dentro,
+     o ativo em papel elevado — o padrão que todo console usa porque mostra as
+     alternativas ao mesmo tempo que mostra a escolha. */
+  .adm-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--adm-line);
+    border-radius: var(--adm-radius);
+    background: var(--adm-surface-2);
+  }
+
+  .adm-seg > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 1.625rem;
+    padding: 0 0.6rem;
+    border: 0;
+    border-radius: var(--adm-radius-sm);
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--adm-text-2);
+    cursor: pointer;
+    transition:
+      background-color 0.15s var(--adm-ease),
+      color 0.15s var(--adm-ease);
+  }
+
+  .adm-seg > button:hover:not(.is-active) {
+    color: var(--adm-text);
+  }
+
+  .adm-seg > button.is-active {
+    background: var(--adm-surface);
+    box-shadow: 0 1px 2px rgb(16 21 26 / 0.06);
+    color: var(--adm-text);
+  }
+
+  /* Contador dentro da aba: quantos itens aquele filtro tem. */
+  .adm-seg-count {
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--adm-text-3);
+  }
+
+  .adm-seg > button.is-active .adm-seg-count {
+    color: var(--adm-text-2);
+  }
+
+  /* ═══ Aviso ════════════════════════════════════════════════════════════
+     Faixa com filete colorido à esquerda. O filete é o que deixa o aviso
+     reconhecível de longe sem pintar o bloco inteiro. */
+  .adm-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border: 1px solid var(--adm-line);
+    border-left: 3px solid var(--adm-text-3);
+    border-radius: var(--adm-radius-sm);
+    padding: 0.6rem 0.75rem;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--adm-text-2);
+    background: var(--adm-surface-2);
+  }
+
+  .adm-notice strong {
+    font-weight: 600;
+    color: var(--adm-text);
+  }
+
+  .adm-notice[data-tone='warn'] {
+    border-color: var(--adm-warn-line);
+    border-left-color: var(--adm-warn);
+    background: var(--adm-warn-soft);
+    color: #6f3d05;
+  }
+
+  .adm-notice[data-tone='bad'] {
+    border-color: var(--adm-bad-line);
+    border-left-color: var(--adm-bad);
+    background: var(--adm-bad-soft);
+    color: #8a1c14;
+  }
+
+  .adm-notice[data-tone='info'] {
+    border-color: var(--adm-info-line);
+    border-left-color: var(--adm-accent);
+    background: var(--adm-info-soft);
+    color: var(--adm-info);
+  }
+
+  .adm-notice ng-icon {
+    flex: none;
+    margin-top: 1px;
+  }
+
+  /* ═══ Rodapé de listagem ═══════════════════════════════════════════════
+     Onde mora a consciência de posição: quantos, quais, e como andar. */
+  .adm-listfoot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.55rem 0.875rem;
+    border-top: 1px solid var(--adm-line);
+    background: var(--adm-surface-2);
+  }
+
+  .adm-listfoot-count {
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--adm-text-3);
+  }
+
+  .adm-listfoot-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  /* ═══ Carregamento ═════════════════════════════════════════════════════ */
+  .adm-skeleton {
+    border-radius: var(--adm-radius-sm);
+    background: linear-gradient(
+      90deg,
+      var(--adm-surface-2) 25%,
+      var(--adm-surface-3) 37%,
+      var(--adm-surface-2) 63%
+    );
+    background-size: 400% 100%;
+    animation: adm-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes adm-shimmer {
+    from {
+      background-position: 100% 50%;
+    }
+    to {
+      background-position: 0 50%;
+    }
+  }
+
+  .adm-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--adm-line-strong);
+    border-top-color: var(--adm-text-2);
+    border-radius: 50%;
+    animation: adm-spin 0.7s linear infinite;
+  }
+
+  @keyframes adm-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* ═══ Rolagem ══════════════════════════════════════════════════════════
+     Barra fina, que só aparece com o ponteiro por cima. */
+  .adm-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .adm-scroll:hover {
+    scrollbar-color: var(--adm-line-strong) transparent;
+  }
+
+  .adm-scroll::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .adm-scroll::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+    background-color: transparent;
+  }
+
+  .adm-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: var(--adm-line-strong);
+  }
+
+  /* ═══ Linha do tempo ═══════════════════════════════════════════════════
+     A vida de um pagamento, de cima para baixo, num trilho de 1px. */
+  .adm-timeline {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .adm-timeline > li {
+    position: relative;
+    padding: 0 0 1rem 1.25rem;
+    border-left: 1px solid var(--adm-line);
+  }
+
+  .adm-timeline > li:last-child {
+    padding-bottom: 0;
+    border-left-color: transparent;
+  }
+
+  .adm-timeline > li::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--adm-line-strong);
+  }
+
+  /* O evento mais recente é o que interessa primeiro; ele ganha o ponto cheio. */
+  .adm-timeline > li:first-child::before {
+    background: var(--adm-action);
+  }
+
+  .adm-timeline-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+  }
+
+  .adm-timeline-label {
+    font-size: 13px;
+    font-weight: 550;
+    color: var(--adm-text);
+  }
+
+  .adm-timeline-when {
+    font-size: 11px;
+    color: var(--adm-text-3);
+  }
+
+  .adm-timeline-note {
+    margin: 0.2rem 0 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--adm-text-2);
+  }
+
+  .adm-timeline-meta {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-size: 10.5px;
+    color: var(--adm-text-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .adm-skeleton,
+    .adm-spinner {
+      animation: none;
+    }
+
+    .adm-btn,
+    .adm-seg > button,
+    .adm-control input,
+    .adm-control textarea {
+      transition: none;
+    }
+  }
+}

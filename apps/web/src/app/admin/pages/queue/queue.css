@@ -1,0 +1,41 @@
+/* A fila. O empilhamento e o espaçamento entre os blocos vêm da casca
+   (`.work-inner`), então aqui só sobra o que é da tabela desta tela. */
+
+.queue-table .col-reason {
+  max-width: 26rem;
+}
+
+/* O motivo é prosa dentro de uma tabela: duas linhas no máximo, e o resto some
+   com reticências. Quem precisa do texto inteiro abre a loja — e abrir é o
+   gesto que deixa linha na trilha, o que é justamente o desenho pretendido. */
+.reason {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--adm-text-2);
+}
+
+/* A coluna de decisão não quebra: dois botões lado a lado, sempre. */
+.queue-table td.col-actions {
+  width: 1%;
+}
+
+/* ── Carregando ───────────────────────────────────────────────────────────
+   As linhas fantasmas têm a altura da linha real, para a tabela não pular
+   quando os dados chegam. */
+.row-skeleton {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: var(--adm-row);
+  padding: 0 0.875rem;
+  border-bottom: 1px solid var(--adm-line);
+}
+
+.row-skeleton:last-child {
+  border-bottom: 0;
+}

@@ -2,7 +2,7 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { OperatorAuthService } from '../services/operator-auth.service';
+import { OperatorAuthService } from '../../admin/services/operator-auth.service';
 
 /**
  * HTTP Interceptor — Handles authentication concerns at the HTTP LAYER ONLY.
@@ -20,6 +20,12 @@ import { OperatorAuthService } from '../services/operator-auth.service';
  * decision about *which* session is being renewed, not a shared session with a
  * flag: a 401 on `/operator/...` must never renew — nor invalidate — the
  * merchant's, and the reverse holds just as strictly.
+ *
+ * This is the one place outside `admin/` that imports from it, and it is on
+ * purpose: knowing about both sessions is this file's entire job. It is also
+ * the reason the split into `apps/admin` gets a *second* interceptor rather
+ * than a shared one — with one session per app, the branch below disappears
+ * instead of being copied.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);

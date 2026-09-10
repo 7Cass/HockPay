@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 @import './styles/primitives.css';
+/* A camada do admin. Nada aqui colide com as primitivas acima: todo seletor de
+   `admin.css` começa com `adm-`, e todo token com `--adm-`. Veja o cabeçalho do
+   arquivo para o porquê de ser substituição e não extensão. */
+@import './app/admin/admin.css';
 
 @theme {
   --color-background: var(--background);

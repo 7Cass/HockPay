@@ -1,0 +1,82 @@
+<div class="gate">
+  <div class="gate-card">
+    <div class="gate-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <span class="brand-bar"></span>
+        <span class="brand-bar"></span>
+        <span class="brand-dot"></span>
+      </span>
+      <span class="brand-name">hockpay</span>
+      <span class="brand-tag">admin</span>
+    </div>
+
+    <h1 class="gate-title">Entrar no admin</h1>
+
+    <p class="gate-desc">
+      Acesso de operador. Uma sessão de lojista não abre esta porta, e esta não abre a dele.
+    </p>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="gate-form" novalidate>
+      <div class="adm-field">
+        <label class="adm-field-label" for="operator-email">E-mail</label>
+        <div class="adm-control">
+          <input
+            id="operator-email"
+            type="email"
+            formControlName="email"
+            placeholder="operador@hockpay.dev"
+            autocomplete="email"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
+            [attr.aria-invalid]="showError('email')"
+          />
+        </div>
+        @if (showError('email')) {
+          <span class="adm-field-error" role="alert">Informe um e-mail válido.</span>
+        }
+      </div>
+
+      <div class="adm-field">
+        <label class="adm-field-label" for="operator-password">Senha</label>
+        <div class="adm-control adm-control-toggle">
+          <input
+            id="operator-password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            [attr.aria-invalid]="showError('password')"
+          />
+          <button
+            type="button"
+            [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+            [attr.aria-pressed]="showPassword()"
+            (click)="togglePassword()"
+          >
+            <ng-icon
+              [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'"
+              size="15px"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        @if (showError('password')) {
+          <span class="adm-field-error" role="alert">A senha é obrigatória.</span>
+        }
+      </div>
+
+      <button type="submit" class="adm-btn adm-btn-primary gate-submit" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <ng-icon name="lucideLoader2" size="15px" class="animate-spin" aria-hidden="true" />
+          Entrando…
+        } @else {
+          Entrar
+        }
+      </button>
+    </form>
+  </div>
+
+  <p class="gate-foot">Toda decisão daqui em diante entra na trilha, assinada.</p>
+</div>
+
+<hlm-toaster position="bottom-right" richColors="true" />
