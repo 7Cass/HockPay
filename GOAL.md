@@ -1,110 +1,122 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-09`
-Scope: **a definir**
-Status: `sem goal ativa`
+Last reviewed: `2026-09-10`
+Ordering: leitura antes de escrita; rota antes de tela; saque antes de estorno
+Scope: a mesa saca e estorna pela loja **pela tela**, e nao mais por `curl`
+Status: `em andamento`
 
-A passagem anterior (arquivada em `docs/goals/2026-09-09-suspended-store-money.md`)
-fechou a correcao que o `CURRENT_STATE` registrava desde `2026-09-08`: loja sem
-habilitacao LIVE parou de sacar e de estornar por conta propria, e a mesa ganhou as
-duas rotas que movem esse dinheiro por chamado, com motivo, trilha e idempotencia.
-
-Este arquivo volta a ser o tracker executavel quando a proxima goal for escolhida.
-
-## Onde o projeto esta
-
-Cinco das seis fatias do PRD pai estao no runtime, e a mesa tem quatro poderes:
-
-| Fatia | Estado         | O que deu                                                                      |
-| ----- | -------------- | ------------------------------------------------------------------------------ |
-| 1     | `concluido`    | Principal `Operator`, segredo e cookies proprios, trilha append-only           |
-| 2     | `concluido`    | `Account` unica por `storeId + environment`                                    |
-| 3     | `concluido`    | `Store.liveStatus`, a mesa que decide, e a simulacao em LIVE que isso destrava |
-| 4     | `concluido`    | Condicao comercial -- taxa, fixo e prazo, auditados e com faixa no dominio     |
-| 5     | `concluido`    | Leitura cross-merchant para investigar chamado, sem secret                     |
-| 6     | `nao iniciado` | Antifraude como modulo, alimentando a fila de revisao                          |
-
-Fora do PRD pai: o ambiente da sessao mora em `Merchant.currentEnvironment`, saque e
-estorno alcancam o ledger LIVE, e -- desde `2026-09-09` -- a habilitacao LIVE fecha
-os **dois sentidos** do dinheiro, com a mesa como saida da loja fechada.
-
-## Candidatas a proxima passagem
-
-Nenhuma escolhida. A opcao A e a continuacao direta do que acabou de entrar, e a
-mais barata: o backend existe e so falta a superficie.
-
-### A. A tela da mesa para mover dinheiro
-
-As duas rotas de saque e estorno pela loja existem e nao tem tela. Um chamado de
+A passagem de `2026-09-09` (arquivada em `docs/goals/2026-09-09-suspended-store-money.md`)
+fechou o backend: loja sem habilitacao LIVE parou de sacar e de estornar por conta
+propria, e a mesa ganhou `POST /operator/stores/:id/withdrawals` e `/refunds`, com
+motivo, trilha e idempotencia. A tela ficou de fora por escopo, e um chamado de
 retirada de loja suspensa se resolve hoje por `curl`.
 
-- **A favor:** e exatamente o argumento que justificou a passagem de `2026-09-08` --
-  capacidade que so existe por `curl` e capacidade que ninguem opera. O backend esta
-  pronto, testado e com a trilha ja legivel na propria superficie da mesa, entao a
-  passagem e quase toda tela.
-- **Contra:** e a primeira tela da mesa que **move dinheiro**, e ela precisa de
-  confirmacao explicita, do saldo na frente de quem decide, e de um jeito de nao
-  fazer duas vezes o que a idempotencia so protege se a chave for a mesma.
+O argumento e o mesmo que justificou a passagem de `2026-09-08`: capacidade que so
+existe por `curl` e capacidade que ninguem opera. O design system do admin (#15)
+entrou depois dessa decisao, e ja tem as pecas de que esta tela precisa -- `sheet`,
+`field`, `button`, `notice`, `toast`.
 
-### B. Versionar os smokes que ja rodaram
+## O que falta, de verdade
 
-O `GOAL` anterior ja apontava que os dois ciclos de `2026-09-08` foram script
-descartavel. Agora ha uma terceira superficie sem smoke, e ela escreve no ledger.
+Nao e so tela. **A mesa nao tem como escolher o destino do saque.** A rota exige
+`bankAccountId`, e nenhuma leitura de operador devolve os destinos Pix da loja: as
+seis sub-leituras sao pagamentos, linha do tempo, conta, extrato, webhooks e
+entregas. Sem uma leitura nova, a tela teria de pedir um id colado de fora -- que e o
+`curl` com botao.
 
-- **A favor:** trabalho pequeno com valor permanente. Nao existe `smoke:operator`,
-  nem `smoke:environment`, nem nada que cubra a mesa movendo dinheiro.
-- **Contra:** nao muda invariante nem destrava capacidade; e seguro puro.
+## Fatias
 
-### C. Fatia 6 -- antifraude e a fila de revisao
+| Fatia | Estado         | Entrega                                                                          |
+| ----- | -------------- | -------------------------------------------------------------------------------- |
+| P0    | `nao iniciado` | `GET /operator/stores/:id/bank-accounts`, pura, no molde das outras sub-leituras |
+| P1    | `nao iniciado` | Servico de dinheiro no admin, com a chave de idempotencia presa a intencao       |
+| P2    | `nao iniciado` | Saque pela loja, na aba "Saldo e extrato" da investigacao                        |
+| P3    | `nao iniciado` | Estorno pela loja, a partir da linha do tempo do pagamento                       |
+| P4    | `nao iniciado` | `CURRENT_STATE`, validacao contra a API de verdade e arquivamento                |
 
-O ultimo passo do PRD pai, e a unica fatia que ainda precisa de PRD do zero.
+### P0 -- A leitura dos destinos
 
-- **A favor:** fecha o PRD pai, e a pre-condicao existe -- a mesa tem tela, trilha e
-  leitura de dado de loja.
-- **Contra:** e a maior das restantes, e trabalho de modelagem, nao de superficie.
+- `GET /operator/stores/:id/bank-accounts` reusa `ListBankAccountsUseCase` e
+  serializa por `BankAccountResponseDto.fromUsageList`, a mesma forma que o lojista
+  recebe. Nao existe leitura paralela, pela razao da fatia 5.
+- Sem `environment`: `BankAccount` e escopado por loja e nao tem coluna de ambiente,
+  e pedir um parametro que a rota ignora e a mentira pequena que `webhooks` ja evita.
+- Pura: nao grava na trilha. Quem entra na loja ja gravou `store.investigated`.
+- A varredura `operator-read-no-secrets.spec.ts` pega a rota sozinha, por reflexao, e
+  precisa de um mock de `listBankAccountsUseCase` para chegar a forma da resposta.
 
-### D. Acabamento da mesa
+### P1 -- O servico
 
-Total nas paginacoes da fila e da trilha, validacao de `limit`/`offset` nas duas
-rotas que fazem parse a mao, e retencao da trilha.
+- Servico proprio no admin (`operator-money.service.ts`), e nao metodos a mais na
+  investigacao: o backend separou o controller de dinheiro por custo, e a tela segue.
+- Os tipos (`BankAccount`, `Withdrawal`, `RefundObject`) passam pela costura
+  `domain/api-contracts.ts`, e por nenhum outro lugar.
+- **A chave de idempotencia e da intencao, e nao do clique nem da abertura do
+  painel.** Ela e presa a impressao digital do corpo (loja, ambiente, destino ou
+  pagamento, valor, motivo): mesmo corpo reenviado leva a mesma chave, inclusive
+  depois de fechar e reabrir o painel; corpo diferente leva chave nova; sucesso
+  descarta. Chave nova por abertura deixaria a mesa sacar duas vezes quando a
+  resposta se perde; chave unica por painel faria a API recusar a correcao de um
+  valor digitado errado.
 
-- **A favor:** barato, e a mesa e a superficie mais nova do produto.
-- **Contra:** nenhum item sozinho justifica uma passagem.
+### P2 -- O saque
 
-## Corrigidos fora de passagem
+- Mora na aba "Saldo e extrato": o saldo do ambiente ja esta na frente de quem
+  decide, e o ambiente e o que o seletor da investigacao ja mostra.
+- Painel central, em dois passos: preencher e **confirmar**. A confirmacao repete em
+  prosa o que vai acontecer -- quanto sai, de qual ledger, para qual chave, com qual
+  taxa e qual liquido -- e o botao carrega o valor e o ambiente.
+- Destinos nao verificados aparecem e nao sao escolhiveis, com a razao; lista vazia
+  diz que a loja nao tem destino, em vez de um select em branco.
+- Valor em reais, convertido para centavos por texto e nunca por multiplicacao de
+  ponto flutuante. Faixa e taxa vem da mesma politica que o lojista ve; a tela avisa
+  antes, a API decide.
+- Sucesso recarrega conta e extrato, e diz o id do saque e que a trilha registrou.
 
-- **Logout de merchant nao revogava o refresh token no banco** -- corrigido em
-  `2026-09-08`. O `LogoutUseCase` nunca era chamado, porque `hockpay_rt` tem path
-  `/api/v1/auth/refresh` e o browser nao o manda para `/api/v1/auth/logout`. A rota
-  respondia `204` e a sessao seguia viva por sete dias.
+### P3 -- O estorno
+
+- Entra pela linha do tempo do pagamento, que ja e onde a mesa investiga um
+  pagamento. So aparece para `CONFIRMED` e `RELEASED` com saldo estornavel.
+- O valor comeca no estornavel restante (`amount - totalRefunded`). A tela diz de
+  onde o dinheiro sai: `pending` se o pagamento ainda nao liberou, `available` se ja.
+- `environment` vai como o ambiente investigado, que e conferencia e nao instrucao: a
+  API recusa se ele divergir do pagamento.
+- Mesmo painel em dois passos e mesma regra de chave do saque.
+
+### P4 -- Fechamento
+
+- `CURRENT_STATE`: a lacuna "A via da mesa nao tem tela" fecha; a trilha registra
+  nove acoes, e nao sete; a matriz de superficies ganha a leitura de destinos.
+- Validacao contra a API de verdade, com operador, loja com saldo e os dois
+  movimentos, conferindo a trilha e o ledger depois. Nenhuma tela da mesa foi
+  exercitada assim ainda.
+
+## Fica fora
+
+- Listagem de saques da loja na mesa. O extrato ja mostra `WITHDRAWAL_RESERVED`, e a
+  confirmacao diz o id; uma aba de saques e passagem propria se o chamado pedir.
+- Papeis dentro do operador, limite por operador ou aprovacao em dois. A mesa continua
+  sem papeis, e a trilha e o controle.
+- Smoke dedicado da mesa (opcao B da escolha anterior).
 
 ## Achados abertos, sem dono
 
-- **Nada revoga um access token em voo.** Trocar de ambiente nao invalida o access
-  anterior (so o refresh), e o mesmo vale para a suspensao e para o "ambiente por
-  sessao, nao por aba". Nao e defeito: e consequencia de D1/D2 do PRD do seletor.
-  Desde `2026-09-09` a janela **nao custa mais dinheiro** -- todo caminho que move
-  dinheiro rele a loja --, mas ela continua existindo para tudo que nao e dinheiro.
-- **A via da mesa nao tem tela.** Ver a opcao A.
+- **Nada revoga um access token em voo.** Consequencia de D1/D2 do PRD do seletor.
+  Desde `2026-09-09` a janela nao custa dinheiro, porque todo caminho que move
+  dinheiro rele a loja.
 - **`@IsEnum` recebendo array em vez de enum** em `operator-store.dto.ts`
-  (`decision`): valida certo, mas a mensagem de erro lista os valores aceitos
-  **vazia**.
+  (`decision`): valida certo, mas a mensagem de erro lista os valores aceitos vazia.
 - **Deletar store com saque falha mesmo com tudo em CASCADE** --
-  `withdrawals.bank_account_id` e `RESTRICT` e o cascade tenta apagar o destino Pix
-  antes do saque. So aparece em delete de store, que a aplicacao nao faz.
-- **O exemplo de saque no `RUNBOOK` esta errado** -- usa
-  `Authorization: Bearer hk_test_xxx`, e saque e JWT-only desde a fatia de
-  autorizacao. O `RUNBOOK` tambem nao documenta nenhuma rota de operador.
-- **A decisao da mesa nao revoga a sessao do lojista.**
-  `DecideLiveEnablementUseCase` nao mexe em token nem em `currentEnvironment`; quem
-  rebaixa e o proximo login ou refresh.
-- **`?limit=abc` vira `NaN`** na fila e na trilha, as duas rotas de operador que
-  fazem parse de paginacao a mao.
-- **Ambiente e por sessao, e nao por aba.** O cookie e do browser inteiro; abas ja
-  renderizadas seguem mostrando o ambiente anterior ate recarregarem.
-- **Nenhum teste cobre texto de tela.** Ja aconteceu duas vezes: `financials.html`
-  na fatia 2, e a descricao do saldo na fatia 3.
+  `withdrawals.bank_account_id` e `RESTRICT`. So aparece em delete de store, que a
+  aplicacao nao faz.
+- **O exemplo de saque no `RUNBOOK` esta errado** -- usa API key, e saque e JWT-only.
+  O `RUNBOOK` tambem nao documenta nenhuma rota de operador.
+- **A decisao da mesa nao revoga a sessao do lojista.** Quem rebaixa e o proximo
+  login ou refresh.
+- **`?limit=abc` vira `NaN`** na fila e na trilha.
+- **Ambiente e por sessao, e nao por aba.**
+- **Nenhum teste cobre texto de tela.**
 - **Trilha de operador cresce sem retencao.** Decisao registrada, nao esquecida.
 
 ## Passagens anteriores
