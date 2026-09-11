@@ -1,0 +1,29 @@
+<footer class="footer">
+  <div class="footer-top">
+    <p class="footer-note">
+      HockPay não processa dinheiro real. Pix, Payment Links, checkout e saques existem como
+      simulação local para desenvolvimento, demonstração e estudo.
+    </p>
+    <nav class="footer-links" aria-label="Rodapé">
+      @for (link of links(); track link.href) {
+        <a [href]="link.href" class="roll" [attr.data-text]="link.label">
+          <span>{{ link.label }}</span>
+        </a>
+      }
+      <a routerLink="/register" class="roll" data-text="Criar conta"><span>Criar conta</span></a>
+      <a routerLink="/login" class="roll" data-text="Entrar"><span>Entrar</span></a>
+    </nav>
+  </div>
+
+  <p appReveal class="wordmark" aria-hidden="true">
+    @for (ch of wordmark; track $index) {
+      <span class="wm-ch" [style.--i]="$index">{{ ch }}</span>
+    }
+  </p>
+
+  <div class="footer-base">
+    <span>© 2026 hockpay · MIT</span>
+    <span>São Paulo · {{ clock() }}</span>
+    <a href="#top" class="roll" data-text="Voltar ao topo ↑"><span>Voltar ao topo ↑</span></a>
+  </div>
+</footer>

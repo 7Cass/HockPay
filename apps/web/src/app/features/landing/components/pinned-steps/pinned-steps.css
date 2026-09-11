@@ -1,0 +1,221 @@
+/* Empilhado por padrão; `.is-pinned` (tela larga, com movimento) vira a trilha
+   horizontal presa na tela. */
+
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
+}
+
+.track {
+  display: grid;
+  gap: 1rem;
+  padding: 6rem 1.25rem;
+}
+
+.slab {
+  padding: 2rem 0;
+}
+
+.kicker {
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-bone-faint);
+}
+
+.title {
+  margin-top: 1.4rem;
+  font-size: clamp(2.6rem, 6vw, 6rem);
+  font-weight: 700;
+  font-variation-settings: 'wdth' 78;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+.accent {
+  font-weight: 300;
+  font-variation-settings: 'wdth' 100;
+  color: var(--accent);
+}
+
+.hint {
+  display: none;
+  margin-top: 2rem;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--color-bone-faint);
+}
+
+.hint-arrow {
+  display: inline-block;
+  animation: nudge 1.6s var(--ease) infinite;
+}
+
+@keyframes nudge {
+  50% {
+    translate: 6px 0;
+  }
+}
+
+.step {
+  border-top: 1px solid var(--color-night-line);
+}
+
+/* O número vazado se enche com a cor da página quando o passo chega. */
+.num {
+  display: block;
+  font-size: clamp(5rem, 14vw, 13rem);
+  font-weight: 800;
+  font-variation-settings: 'wdth' 75;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-bone-faint);
+  transition:
+    color 0.8s var(--ease),
+    -webkit-text-stroke-color 0.8s;
+}
+
+.step.is-active .num {
+  color: var(--accent);
+  -webkit-text-stroke-color: var(--accent);
+}
+
+.art {
+  width: min(100%, 15rem);
+  margin: 1.8rem 0 1.4rem;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.art [pathLength] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s var(--ease) 0.2s;
+}
+
+.step.is-active .art [pathLength] {
+  stroke-dashoffset: 0;
+}
+
+.art .ok {
+  stroke: var(--color-ok-bright);
+}
+.art .bad {
+  stroke: var(--color-bad-bright);
+}
+.art .warn {
+  stroke: var(--color-warn-bright);
+}
+
+.art .dot {
+  stroke: none;
+  fill: var(--accent);
+  opacity: 0;
+  transition: opacity 0.5s 1.2s;
+}
+
+.art .dot.ok {
+  fill: var(--color-ok-bright);
+}
+.art .dot.bad {
+  fill: var(--color-bad-bright);
+}
+.art .dot.warn {
+  fill: var(--color-warn-bright);
+}
+
+.step.is-active .art .dot {
+  opacity: 1;
+}
+
+.step-title {
+  font-size: clamp(1.5rem, 2.4vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.step-body {
+  max-width: 26rem;
+  margin-top: 0.8rem;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-bone-soft);
+}
+
+.progress {
+  display: none;
+}
+
+/* ── Trilha presa ─────────────────────────────────────────────────────── */
+:host(.is-pinned) .pin {
+  height: 320vh;
+}
+
+:host(.is-pinned) .frame {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+:host(.is-pinned) .track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  height: 100%;
+  padding: 0;
+  will-change: transform;
+}
+
+:host(.is-pinned) .slab {
+  flex: none;
+  padding: 0 4vw;
+}
+
+:host(.is-pinned) .intro {
+  width: 44vw;
+  padding-left: max(2rem, calc((100vw - 76rem) / 2));
+}
+
+:host(.is-pinned) .step {
+  width: 56vw;
+  padding-top: 0;
+  border-top: 0;
+  border-left: 1px solid var(--color-night-line);
+}
+
+:host(.is-pinned) .hint {
+  display: block;
+}
+
+:host(.is-pinned) .progress {
+  position: absolute;
+  right: 2rem;
+  bottom: 2.4rem;
+  left: 2rem;
+  display: block;
+  height: 1px;
+  background: var(--color-night-line);
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-arrow {
+    animation: none;
+  }
+}

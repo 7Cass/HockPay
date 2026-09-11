@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.text {
+  font-size: clamp(1.9rem, 4.4vw, 4rem);
+  font-weight: 500;
+  font-variation-settings: 'wdth' 88;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-wrap: pretty;
+}
+
+/* Cada palavra acende quando o progresso passa do seu índice. */
+.w {
+  opacity: clamp(0.14, calc(var(--p, 0) * var(--n) * 1.2 - var(--i)), 1);
+  transition: opacity 0.15s linear;
+}
+
+.w.hl {
+  color: var(--accent);
+}
