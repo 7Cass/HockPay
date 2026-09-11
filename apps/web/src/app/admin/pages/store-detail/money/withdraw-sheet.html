@@ -1,0 +1,166 @@
+<adm-sheet
+  [open]="true"
+  side="center"
+  eyebrow="Sacar pela loja"
+  [heading]="step() === 'fill' ? 'Para onde, e quanto' : 'Confirme o saque'"
+  [description]="storeName() + ' · ledger ' + environment()"
+  (closed)="closed.emit()"
+>
+  @if (step() === 'fill') {
+    <div class="form" data-testid="withdraw-fill">
+      <p class="env-line">
+        Sai do disponível <strong>{{ environment() }}</strong
+        >, que agora tem <strong>{{ available() / 100 | currency: 'BRL' }}</strong
+        >.
+      </p>
+
+      @if (destinationsError(); as message) {
+        <adm-page-state variant="error" frame="bare" [message]="message" />
+      } @else if (destinations() === null) {
+        <adm-page-state variant="loading" frame="bare" message="Lendo os destinos Pix…" />
+      } @else if (verifiedCount() === 0) {
+        <adm-notice tone="warn" data-testid="no-destination">
+          @if (destinations()!.length === 0) {
+            A loja não tem destino Pix cadastrado.
+          } @else {
+            Nenhum destino Pix da loja está verificado.
+          }
+          O saque só vai para um destino verificado da própria loja, e a mesa não cadastra destino
+          por ela.
+        </adm-notice>
+      } @else {
+        <adm-field label="Destino" for="wd-destination">
+          <select id="wd-destination" (change)="setDestination($event)">
+            <option value="" disabled [selected]="!bankAccountId()">Escolha um destino</option>
+            @for (account of destinations(); track account.id) {
+              <option
+                [value]="account.id"
+                [disabled]="!account.isVerified"
+                [selected]="account.id === bankAccountId()"
+              >
+                {{ account.holderName }} · {{ account.pixKeyType }} {{ account.pixKey
+                }}{{ account.isVerified ? '' : ' — não verificado' }}
+              </option>
+            }
+          </select>
+          <span fieldHint>
+            {{ verifiedCount() }} de {{ destinations()!.length }} verificado(s). Destino não
+            verificado aparece e não recebe.
+          </span>
+        </adm-field>
+
+        <adm-field label="Valor (R$)" for="wd-amount" [error]="amountError()">
+          <input
+            id="wd-amount"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="0,00"
+            [value]="amountText()"
+            (input)="setAmount($event)"
+            [attr.aria-invalid]="!!amountError()"
+          />
+          <span fieldHint>
+            de {{ policy.minAmountInCents / 100 | currency: 'BRL' }} a
+            {{ policy.maxAmountInCents / 100 | currency: 'BRL' }} · taxa de
+            {{ policy.feeInCents / 100 | currency: 'BRL' }} por saque
+          </span>
+        </adm-field>
+
+        <adm-field
+          label="Motivo"
+          for="wd-reason"
+          hint="Obrigatório. Vai para a trilha junto com o saldo antes e depois, na mesma transação do saque."
+        >
+          <textarea
+            id="wd-reason"
+            rows="3"
+            maxlength="500"
+            placeholder="O chamado, e o que ele pede."
+            [value]="reason()"
+            (input)="setReason($event)"
+          ></textarea>
+        </adm-field>
+      }
+    </div>
+  } @else if (destination(); as target) {
+    <div class="form" data-testid="withdraw-confirm">
+      <p class="lead">
+        Sacar <strong>{{ amount()! / 100 | currency: 'BRL' }}</strong> do disponível
+        <strong>{{ environment() }}</strong> de {{ storeName() }}, para a chave
+        {{ target.pixKeyType }} <span class="adm-mono">{{ target.pixKey }}</span> de
+        {{ target.holderName }}.
+      </p>
+
+      <adm-facts>
+        <adm-fact label="Sai do disponível">{{ amount()! / 100 | currency: 'BRL' }}</adm-fact>
+        <adm-fact label="Taxa de saque">{{ policy.feeInCents / 100 | currency: 'BRL' }}</adm-fact>
+        <adm-fact label="Chega na chave">{{ net() / 100 | currency: 'BRL' }}</adm-fact>
+        <adm-fact [label]="'Disponível ' + environment() + ' depois'">
+          {{ (available() - amount()!) / 100 | currency: 'BRL' }}
+        </adm-fact>
+      </adm-facts>
+
+      <div class="quoted">
+        <span class="adm-overline">Motivo, como vai para a trilha</span>
+        <p>{{ reason().trim() }}</p>
+      </div>
+
+      @if (environment() === 'LIVE') {
+        <adm-notice tone="warn" data-testid="live-warning">
+          É o ledger LIVE da loja. Simulado como todo o Hockpay, mas é o saldo de produção dela.
+        </adm-notice>
+      }
+
+      @if (sendError(); as message) {
+        <adm-notice tone="bad" data-testid="send-error">{{ message }}</adm-notice>
+      }
+    </div>
+  }
+
+  <ng-container sheetActions>
+    @if (step() === 'fill') {
+      <button admButton type="button" variant="quiet" size="sm" (click)="closed.emit()">
+        Cancelar
+      </button>
+      <button
+        admButton
+        type="button"
+        variant="primary"
+        size="sm"
+        data-testid="withdraw-review"
+        [disabled]="!canReview()"
+        (click)="review()"
+      >
+        Revisar
+      </button>
+    } @else {
+      <button
+        admButton
+        type="button"
+        variant="quiet"
+        size="sm"
+        [disabled]="isSending()"
+        (click)="back()"
+      >
+        Voltar
+      </button>
+      <button
+        admButton
+        type="button"
+        variant="primary"
+        size="sm"
+        data-testid="withdraw-confirm-button"
+        [loading]="isSending()"
+        [disabled]="isSending()"
+        (click)="confirm()"
+      >
+        @if (isSending()) {
+          Sacando…
+        } @else {
+          Confirmar saque de {{ amount()! / 100 | currency: 'BRL' }} em {{ environment() }}
+        }
+      </button>
+    }
+  </ng-container>
+</adm-sheet>

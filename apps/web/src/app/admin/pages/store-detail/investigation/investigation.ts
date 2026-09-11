@@ -9,7 +9,16 @@ import {
   OperatorInvestigationService,
   type OperatorEnvironment,
 } from '../../../services/operator-investigation.service';
-import type { GetPaymentTimelineResponseDto, PaymentObject } from '../../../domain/api-contracts';
+import type {
+  OperatorRefundResult,
+  OperatorWithdrawalResult,
+} from '../../../services/operator-money.service';
+import {
+  PaymentStatus,
+  type GetPaymentTimelineResponseDto,
+  type PaymentObject,
+} from '../../../domain/api-contracts';
+import { WITHDRAWAL_POLICY, formatCents } from '../../../domain/money';
 import {
   AdmButton,
   AdmChip,
@@ -28,6 +37,8 @@ import {
   type AdmTimelineEvent,
   AdmToastService,
 } from '../../../ui';
+import { OperatorRefundSheet } from '../money/refund-sheet';
+import { OperatorWithdrawSheet } from '../money/withdraw-sheet';
 
 type Tab = 'payments' | 'ledger' | 'webhooks';
 
@@ -42,6 +53,12 @@ const ENVIRONMENTS: readonly AdmSegmentedOption<OperatorEnvironment>[] = OPERATO
   (environment) => ({ value: environment, label: environment }),
 );
 
+/** Os únicos estados que o `CreateRefundUseCase` aceita estornar. */
+const REFUNDABLE_STATUSES: readonly PaymentStatus[] = [
+  PaymentStatus.CONFIRMED,
+  PaymentStatus.RELEASED,
+];
+
 /**
  * A leitura que a mesa faz de uma loja para investigar um chamado.
  *
@@ -54,6 +71,11 @@ const ENVIRONMENTS: readonly AdmSegmentedOption<OperatorEnvironment>[] = OPERATO
  * existe aba de chaves de API, e o segredo do webhook aparece como "não
  * visível para operador" e não como campo em branco. Campo vazio parece bug;
  * a frase é a regra.
+ *
+ * Mover dinheiro pela loja sai daqui, e não de botões soltos na página: o
+ * saque mora na aba de saldo, onde o disponível do ambiente já está na frente
+ * de quem decide; o estorno mora na linha do tempo do pagamento, que é onde a
+ * mesa já está quando descobre que ele precisa voltar.
  */
 @Component({
   selector: 'app-operator-investigation',
@@ -75,6 +97,8 @@ const ENVIRONMENTS: readonly AdmSegmentedOption<OperatorEnvironment>[] = OPERATO
     AdmStatusChip,
     AdmTable,
     AdmTimeline,
+    OperatorRefundSheet,
+    OperatorWithdrawSheet,
   ],
   providers: [provideIcons({ lucideEyeOff, lucideReceipt, lucideRefreshCcw, lucideWebhook })],
   templateUrl: './investigation.html',
@@ -82,6 +106,7 @@ const ENVIRONMENTS: readonly AdmSegmentedOption<OperatorEnvironment>[] = OPERATO
 })
 export class OperatorInvestigation {
   readonly storeId = input.required<string>();
+  readonly storeName = input.required<string>();
 
   protected readonly reads = inject(OperatorInvestigationService);
   private readonly toast = inject(AdmToastService);
@@ -90,6 +115,7 @@ export class OperatorInvestigation {
 
   protected readonly tabs = TABS;
   protected readonly environmentOptions = ENVIRONMENTS;
+  protected readonly withdrawalPolicy = WITHDRAWAL_POLICY;
 
   protected readonly tab = signal<Tab>('payments');
   protected readonly environment = signal<OperatorEnvironment>('TEST');
@@ -99,13 +125,20 @@ export class OperatorInvestigation {
   protected readonly timelineFor = signal<PaymentObject | null>(null);
   protected readonly isTimelineLoading = signal(false);
 
+  protected readonly isWithdrawOpen = signal(false);
+
+  /** O pagamento sendo estornado, ou `null` com o painel fechado. */
+  protected readonly refundFor = signal<PaymentObject | null>(null);
+
   constructor() {
     this.route.queryParamMap.subscribe((params) => {
       this.tab.set(parseTab(params.get('tab')));
       this.environment.set(params.get('env') === 'LIVE' ? 'LIVE' : 'TEST');
     });
 
-    // Trocar de loja, de aba ou de ambiente é sempre uma leitura nova.
+    // Trocar de loja, de aba ou de ambiente é sempre uma leitura nova — e
+    // fecha o que estava movendo dinheiro, que foi decidido sobre o que saiu
+    // da tela.
     effect(() => {
       const storeId = this.storeId();
       const tab = this.tab();
@@ -115,6 +148,8 @@ export class OperatorInvestigation {
 
       this.timeline.set(null);
       this.timelineFor.set(null);
+      this.isWithdrawOpen.set(false);
+      this.refundFor.set(null);
       this.loadTab(storeId, tab, environment);
     });
   }
@@ -190,6 +225,48 @@ export class OperatorInvestigation {
   protected closeTimeline(): void {
     this.timeline.set(null);
     this.timelineFor.set(null);
+  }
+
+  /**
+   * O saque entrou. O saldo na tela ficou velho no mesmo instante — o valor
+   * saiu do disponível para o bloqueado —, então a aba relê conta e extrato em
+   * vez de remendar o número à mão.
+   */
+  protected onWithdrawn(result: OperatorWithdrawalResult): void {
+    this.isWithdrawOpen.set(false);
+    this.toast.ok(
+      `Saque de ${formatCents(result.withdrawal.amount)} criado pela loja.`,
+      `Saiu do disponível ${this.environment()} e está bloqueado até o envio. ` +
+        `A trilha registrou o saldo antes e depois. Saque ${result.withdrawal.id}.`,
+    );
+    this.reads.loadAccount(this.storeId(), this.environment());
+    this.reads.loadTransactions(this.storeId(), this.environment());
+  }
+
+  /** Estornável é o que a API aceitaria estornar: o estado certo, e sobra. */
+  protected canRefund(payment: PaymentObject): boolean {
+    return (
+      REFUNDABLE_STATUSES.includes(payment.status) &&
+      payment.amount - (payment.totalRefunded ?? 0) > 0
+    );
+  }
+
+  /**
+   * O estorno entrou. A linha do tempo reabre com o pagamento que a API
+   * devolveu — com o estornado novo, e com o evento do estorno —, e a lista
+   * relê a página em que estava.
+   */
+  protected onRefunded(result: OperatorRefundResult): void {
+    this.refundFor.set(null);
+    this.toast.ok(
+      `Estorno de ${formatCents(result.refund.amount)} criado pela loja.`,
+      `O pagamento tem agora ${formatCents(result.payment.totalRefunded ?? 0)} estornado. ` +
+        'A trilha registrou o antes e o depois.',
+    );
+    this.reads.loadPayments(this.storeId(), this.environment(), {
+      page: this.reads.payments.data()?.page,
+    });
+    this.openTimeline(result.payment);
   }
 
   private loadTab(storeId: string, tab: Tab, environment: OperatorEnvironment): void {
