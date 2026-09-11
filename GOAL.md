@@ -1,7 +1,7 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-10`
+Last reviewed: `2026-09-11`
 Scope: **a definir**
 Status: `sem goal ativa`
 
@@ -9,7 +9,8 @@ A passagem anterior (arquivada em `docs/goals/2026-09-10-desk-money-screen.md`) 
 tela ao que a de `2026-09-09` deixou so por `curl`: a mesa saca e estorna pela loja
 de dentro da investigacao, com dois passos, motivo na trilha e a chave de
 idempotencia presa a intencao. Para isso a mesa ganhou a leitura dos destinos Pix da
-loja, que nao existia.
+loja, que nao existia. No caminho, o parser de reais do painel do lojista -- que lia
+`10.50` como R$ 1.050,00 -- foi trocado pelo parser estrito da mesa, agora em `core/`.
 
 Este arquivo volta a ser o tracker executavel quando a proxima goal for escolhida.
 
@@ -58,20 +59,16 @@ rotas que fazem parse a mao, retencao da trilha e a mensagem vazia do `@IsEnum`.
 - **A favor:** barato, e a mesa e a superficie mais nova do produto.
 - **Contra:** nenhum item sozinho justifica uma passagem.
 
-### E. O parser de reais do painel do lojista
+## Corrigidos fora de passagem
 
-`parseBrlToCents` le `10.50` como R$ 1.050,00 e esta copiado em quatro paginas. O
-admin ja tem um parser estrito e testado em `admin/domain/money.ts`.
-
-- **A favor:** e o unico achado aberto que erra valor de dinheiro na frente do
-  usuario, e o conserto ja existe do outro lado da costura.
-- **Contra:** o painel do lojista nao pode importar de `admin/`; o parser tem de
-  morar num lugar que os dois alcancem, e escolher esse lugar e a decisao de verdade.
+- **O painel do lojista lia `10.50` como R$ 1.050,00** -- corrigido em `2026-09-11`,
+  no mesmo PR da tela da mesa. As quatro paginas que convertem reais (produtos,
+  Payment Links, saques e estorno) usam o parser estrito de `core/money/reais.ts`.
+  Valor fora do formato continua valendo zero para as validacoes de cada pagina, que
+  ja recusavam zero: o formulario nao ganhou mensagem nova de formato.
 
 ## Achados abertos, sem dono
 
-- **O parser de reais do painel do lojista le `10.50` como R$ 1.050,00.** Ver a
-  opcao E. Copiado em `products`, `payment-links`, `withdrawals` e `payment-detail`.
 - **Nada revoga um access token em voo.** Consequencia de D1/D2 do PRD do seletor.
   Desde `2026-09-09` a janela nao custa dinheiro, porque todo caminho que move
   dinheiro rele a loja.

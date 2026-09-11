@@ -56,10 +56,12 @@ tela nao tinha como dispensar.
 
 ## Achados que mudaram o plano
 
-- **O parser de reais do painel do lojista le `10.50` como R$ 1.050,00.** Ele trata
-  `.` como separador de milhar e converte por `Math.round(valor * 100)`. Esta copiado
-  em quatro paginas (`products`, `payment-links`, `withdrawals`, `payment-detail`).
-  Nao foi reusado aqui, e nao foi corrigido la: e achado aberto, sem dono.
+- **O parser de reais do painel do lojista lia `10.50` como R$ 1.050,00.** Ele
+  tratava `.` como separador de milhar e convertia por `Math.round(valor * 100)`, e
+  estava copiado em quatro paginas (`products`, `payment-links`, `withdrawals`,
+  `payment-detail`). Nao foi reusado aqui; em `2026-09-11`, no mesmo PR, o parser
+  estrito da mesa foi para `core/money/reais.ts` e as quatro paginas passaram a usa-lo.
+  O admin recebe o mesmo pela costura.
 - **Estorno parcial nao muda o status do pagamento.** Ele continua `CONFIRMED` ou
   `RELEASED` e so vira `REFUNDED` quando o estornado cobre o total. O botao de
   estorno depende do estornavel restante, e nao so do status.
