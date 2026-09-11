@@ -30,6 +30,7 @@ import {
   GetPaymentTimelineUseCase,
   GetAccountUseCase,
   ListTransactionsUseCase,
+  ListBankAccountsUseCase,
   ListWebhookConfigsUseCase,
   ListWebhookLogsUseCase,
   DecideLiveEnablementUseCase,
@@ -92,6 +93,7 @@ export type ApiE2eMocks = {
   operatorGetPaymentTimelineUseCase: { execute: jest.Mock };
   operatorGetAccountUseCase: { execute: jest.Mock };
   operatorListTransactionsUseCase: { execute: jest.Mock };
+  operatorListBankAccountsUseCase: { execute: jest.Mock };
   operatorListWebhookConfigsUseCase: { execute: jest.Mock };
   operatorListWebhookLogsUseCase: { execute: jest.Mock };
   createWithdrawalUseCase: { executeInTransaction: jest.Mock };
@@ -180,6 +182,7 @@ export async function createApiE2eTestApp(): Promise<{
     operatorGetPaymentTimelineUseCase: { execute: jest.fn() },
     operatorGetAccountUseCase: { execute: jest.fn() },
     operatorListTransactionsUseCase: { execute: jest.fn() },
+    operatorListBankAccountsUseCase: { execute: jest.fn() },
     operatorListWebhookConfigsUseCase: { execute: jest.fn() },
     operatorListWebhookLogsUseCase: { execute: jest.fn() },
     createWithdrawalUseCase: { executeInTransaction: jest.fn() },
@@ -389,6 +392,10 @@ export async function createApiE2eTestApp(): Promise<{
       {
         provide: ListTransactionsUseCase,
         useValue: mocks.operatorListTransactionsUseCase,
+      },
+      {
+        provide: ListBankAccountsUseCase,
+        useValue: mocks.operatorListBankAccountsUseCase,
       },
       {
         provide: ListWebhookConfigsUseCase,

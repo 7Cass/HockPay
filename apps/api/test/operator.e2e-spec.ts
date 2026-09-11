@@ -97,6 +97,7 @@ describe('Operator surface boundary (e2e)', () => {
         '/api/v1/operator/stores/store-1/payments/pay-1/timeline?environment=LIVE',
         '/api/v1/operator/stores/store-1/account?environment=LIVE',
         '/api/v1/operator/stores/store-1/transactions?environment=LIVE',
+        '/api/v1/operator/stores/store-1/bank-accounts',
         '/api/v1/operator/stores/store-1/webhooks',
         '/api/v1/operator/stores/store-1/webhooks/logs',
       ];
@@ -292,6 +293,50 @@ describe('Operator surface boundary (e2e)', () => {
       expect(response.body.webhooks[0].prefix).toBe('whsec_PLANT');
       expect(JSON.stringify(response.body)).not.toContain('whsec_LEAKED');
       expect(response.body.webhooks[0].secret).toBeUndefined();
+    });
+
+    it('reads the Pix destinations of the store, which have no environment', async () => {
+      // Without this read the desk can only withdraw to an id pasted from
+      // somewhere else. A destination belongs to the store, not to a ledger,
+      // so asking for an environment here would be a parameter the route
+      // then ignores.
+      mocks.operatorListBankAccountsUseCase.execute.mockResolvedValue([
+        {
+          bankAccount: {
+            id: 'bank-1',
+            storeId: 'store-1',
+            pixKey: 'financeiro@atelie.example',
+            pixKeyType: 'EMAIL',
+            holderName: 'Ateliê Corvo',
+            holderDocument: '12345678000190',
+            isDefault: true,
+            isVerified: true,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          hasWithdrawals: true,
+          hasActiveWithdrawals: false,
+          withdrawalCount: 2,
+          activeWithdrawalCount: 0,
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get('/api/v1/operator/stores/store-1/bank-accounts')
+        .set('Cookie', OPERATOR_COOKIE)
+        .expect(200);
+
+      expect(
+        mocks.operatorListBankAccountsUseCase.execute,
+      ).toHaveBeenCalledWith('store-1');
+      expect(response.body.bankAccounts).toEqual([
+        expect.objectContaining({
+          id: 'bank-1',
+          pixKey: 'financeiro@atelie.example',
+          isVerified: true,
+          withdrawalCount: 2,
+        }),
+      ]);
     });
   });
 
