@@ -8,29 +8,58 @@ import {
   signal,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideShieldCheck } from '@ng-icons/lucide';
+import { lucideCheck, lucideClock, lucideShieldCheck, lucideX } from '@ng-icons/lucide';
 
 /** The three endings a developer can force on a simulated charge. */
 type Outcome = 'confirmed' | 'failed' | 'expired';
 type SimStatus = 'idle' | 'pending' | Outcome;
+type Tone = 'neutral' | 'ok' | 'bad' | 'warn';
 
 interface SimEvent {
   readonly id: number;
   readonly name: string;
   readonly note: string;
-  readonly tone: 'neutral' | 'ok' | 'bad' | 'warn';
+  readonly tone: Tone;
+  readonly time: string;
 }
 
 interface StatusFace {
   readonly label: string;
   readonly caption: string;
-  readonly chip: string;
-  readonly dot: string;
-  readonly accent: string;
+  readonly tone: Tone;
 }
 
 const CHARGE_ID = 'pay_3f8Ka92LmQ';
 const COUNTDOWN_SECONDS = 300;
+const QR_SIZE = 25;
+
+/**
+ * A QR look-alike: the three finder squares plus seeded noise, as one SVG path.
+ * Pure decoration: it encodes nothing, and the seed keeps it identical per render.
+ */
+function qrPath(size: number, seed: number): string {
+  let state = seed;
+  const noise = () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 2 ** 32 < 0.47;
+  const corners = [
+    [0, 0],
+    [size - 7, 0],
+    [0, size - 7],
+  ];
+
+  let d = '';
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const corner = corners.find(
+        ([cx, cy]) => x >= cx - 1 && x <= cx + 7 && y >= cy - 1 && y <= cy + 7,
+      );
+      // Finder: ring 3 is the outer square, ring <= 1 the core, ring 4 the separator.
+      const ring = corner ? Math.max(Math.abs(x - corner[0] - 3), Math.abs(y - corner[1] - 3)) : -1;
+      const dark = corner ? ring === 3 || ring <= 1 : noise();
+      if (dark) d += `M${x} ${y}h1v1h-1z`;
+    }
+  }
+  return d;
+}
 
 /**
  * The landing's centerpiece: a Pix charge whose ending the visitor picks.
@@ -41,7 +70,7 @@ const COUNTDOWN_SECONDS = 300;
 @Component({
   selector: 'app-payment-simulator',
   imports: [NgIcon],
-  providers: [provideIcons({ lucideShieldCheck })],
+  providers: [provideIcons({ lucideCheck, lucideClock, lucideShieldCheck, lucideX })],
   templateUrl: './payment-simulator.html',
   styleUrl: './payment-simulator.css',
 })
@@ -52,6 +81,8 @@ export class PaymentSimulator {
   private touched = false;
 
   readonly chargeId = CHARGE_ID;
+  readonly qrSize = QR_SIZE;
+  readonly qr = qrPath(QR_SIZE, 0x3f8a92);
 
   readonly status = signal<SimStatus>('idle');
   readonly events = signal<readonly SimEvent[]>([]);
@@ -59,9 +90,9 @@ export class PaymentSimulator {
   readonly secondsLeft = signal(COUNTDOWN_SECONDS);
 
   readonly outcomes = [
-    { id: 'confirmed' as const, action: 'confirm', label: 'Confirmar' },
-    { id: 'failed' as const, action: 'fail', label: 'Recusar' },
-    { id: 'expired' as const, action: 'expire', label: 'Expirar' },
+    { id: 'confirmed' as const, action: 'confirm', label: 'Confirmar', tone: 'ok' },
+    { id: 'failed' as const, action: 'fail', label: 'Recusar', tone: 'bad' },
+    { id: 'expired' as const, action: 'expire', label: 'Expirar', tone: 'warn' },
   ];
 
   readonly settled = computed(() => {
@@ -74,48 +105,32 @@ export class PaymentSimulator {
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
   });
 
+  /** The mark stamped over the QR once the charge has an ending. */
+  readonly stamp = computed(() => {
+    switch (this.status()) {
+      case 'confirmed':
+        return 'lucideCheck';
+      case 'failed':
+        return 'lucideX';
+      case 'expired':
+        return 'lucideClock';
+      default:
+        return null;
+    }
+  });
+
   readonly face = computed<StatusFace>(() => {
     switch (this.status()) {
       case 'confirmed':
-        return {
-          label: 'CONFIRMED',
-          caption: 'Liquidado · líquido R$ 248,50',
-          chip: 'bg-ok-soft text-ok',
-          dot: 'bg-ok',
-          accent: 'border-ok/35',
-        };
+        return { label: 'CONFIRMED', caption: 'Liquidado · líquido R$ 248,50', tone: 'ok' };
       case 'failed':
-        return {
-          label: 'FAILED',
-          caption: 'Recusado · insufficient_funds',
-          chip: 'bg-bad-soft text-bad',
-          dot: 'bg-bad',
-          accent: 'border-bad/35',
-        };
+        return { label: 'FAILED', caption: 'Recusado · insufficient_funds', tone: 'bad' };
       case 'expired':
-        return {
-          label: 'EXPIRED',
-          caption: 'QR vencido · nada foi cobrado',
-          chip: 'bg-warn-soft text-warn',
-          dot: 'bg-warn',
-          accent: 'border-warn/35',
-        };
+        return { label: 'EXPIRED', caption: 'QR vencido · nada foi cobrado', tone: 'warn' };
       case 'pending':
-        return {
-          label: 'PENDING',
-          caption: 'Aguardando desfecho',
-          chip: 'bg-ink/[0.06] text-ink-soft',
-          dot: 'bg-ink-faint',
-          accent: 'border-hairline',
-        };
+        return { label: 'PENDING', caption: 'Aguardando desfecho', tone: 'neutral' };
       default:
-        return {
-          label: 'IDLE',
-          caption: 'Nenhuma cobrança criada',
-          chip: 'bg-ink/[0.06] text-ink-faint',
-          dot: 'bg-ink-faint/60',
-          accent: 'border-hairline',
-        };
+        return { label: 'IDLE', caption: 'Nenhuma cobrança criada', tone: 'neutral' };
     }
   });
 
@@ -215,8 +230,9 @@ export class PaymentSimulator {
     }, 1500);
   }
 
-  private push(name: string, note: string, tone: SimEvent['tone']): void {
-    this.events.update((list) => [...list, { id: ++this.sequence, name, note, tone }]);
+  private push(name: string, note: string, tone: Tone): void {
+    const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+    this.events.update((list) => [...list, { id: ++this.sequence, name, note, tone, time }]);
   }
 
   private startCountdown(): void {

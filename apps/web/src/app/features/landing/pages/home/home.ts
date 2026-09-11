@@ -1,4 +1,13 @@
-import { Component, DestroyRef, afterNextRender, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DOCUMENT,
+  DestroyRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { Meta } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -19,6 +28,11 @@ import { PaymentSimulator } from '../../components/payment-simulator/payment-sim
 import { Reveal } from '../../../../shared/directives/reveal';
 
 const CHARGE_ID = 'pay_3f8Ka92LmQ';
+
+/** O chão da landing escura; o resto do produto segue no papel claro. */
+const NIGHT = '#09090b';
+
+type Tone = 'ok' | 'bad' | 'warn' | 'neutral';
 
 @Component({
   selector: 'app-home',
@@ -130,36 +144,47 @@ Content-Type: application/json
     () => this.tabs.find((tab) => tab.id === this.activeTab())?.code ?? '',
   );
 
-  protected readonly activeLines = computed(() => this.activeCode().split('\n'));
+  /** Linhas de comentário saem apagadas; o resto do código fica em primeiro plano. */
+  protected readonly activeLines = computed(() =>
+    this.activeCode()
+      .split('\n')
+      .map((text) => ({ text, comment: /^\s*(#|\/\/)/.test(text) })),
+  );
 
   // ── Static content ────────────────────────────────────────────────────────
-  protected readonly scenarios = [
+  protected readonly scenarios: readonly {
+    action: string;
+    state: string;
+    tone: Tone;
+    event: string;
+    validates: string;
+  }[] = [
     {
       action: 'confirm',
       state: 'CONFIRMED',
-      chip: 'bg-ok-soft text-ok',
+      tone: 'ok',
       event: 'payment.confirmed',
       validates: 'Liberação de acesso, recibo, saldo e fechamento do pedido.',
     },
     {
       action: 'fail',
       state: 'FAILED',
-      chip: 'bg-bad-soft text-bad',
+      tone: 'bad',
       event: 'payment.failed',
       validates: 'Mensagem de erro, nova tentativa e carrinho intacto.',
     },
     {
       action: 'expire',
       state: 'EXPIRED',
-      chip: 'bg-warn-soft text-warn',
+      tone: 'warn',
       event: 'payment.expired',
       validates: 'Timer, tela de expiração e geração de uma nova cobrança.',
     },
     {
       action: 'replay',
       state: 'IDEMPOTENT',
-      chip: 'bg-ink/[0.06] text-ink-soft',
-      event: '— nenhum —',
+      tone: 'neutral',
+      event: '— nenhum evento —',
       validates: 'Mesma Idempotency-Key devolve o mesmo Payment, nunca dois.',
     },
   ];
@@ -228,19 +253,37 @@ Content-Type: application/json
 
   constructor() {
     const destroyRef = inject(DestroyRef);
+    const document = inject(DOCUMENT);
+    const meta = inject(Meta);
 
     const onScroll = () => {
       const next = window.scrollY > 12;
       if (next !== this.scrolled()) this.scrolled.set(next);
     };
 
+    // A landing é a única tela escura: o overscroll, a barra de rolagem e a
+    // barra do navegador acompanham enquanto ela estiver montada, e voltam depois.
+    const root = document.documentElement;
+    const previous = {
+      background: document.body.style.backgroundColor,
+      scheme: root.style.colorScheme,
+      themeColor: meta.getTag('name="theme-color"')?.content,
+    };
+
     afterNextRender(() => {
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
+      document.body.style.backgroundColor = NIGHT;
+      root.style.colorScheme = 'dark';
+      meta.updateTag({ name: 'theme-color', content: NIGHT });
     });
 
     destroyRef.onDestroy(() => {
       window.removeEventListener('scroll', onScroll);
+      document.body.style.backgroundColor = previous.background;
+      root.style.colorScheme = previous.scheme;
+      if (previous.themeColor)
+        meta.updateTag({ name: 'theme-color', content: previous.themeColor });
       for (const id of this.timers) clearTimeout(id);
       this.timers.clear();
     });
@@ -269,5 +312,13 @@ Content-Type: application/json
 
   protected toggleMenu(): void {
     this.menuOpen.update((open) => !open);
+  }
+
+  /** Leva o holofote do card até o ponteiro. */
+  protected spot(event: PointerEvent): void {
+    const card = event.currentTarget as HTMLElement;
+    const box = card.getBoundingClientRect();
+    card.style.setProperty('--x', `${event.clientX - box.left}px`);
+    card.style.setProperty('--y', `${event.clientY - box.top}px`);
   }
 }

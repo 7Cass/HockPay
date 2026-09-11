@@ -1,47 +1,51 @@
-<div class="mb-3 flex items-end justify-between gap-4 px-1">
-  <p class="label">Simulador ao vivo</p>
-  <p class="font-code text-[11px] text-ink-faint">
-    {{ settled() ? 'escolha outro final ↓' : 'você decide o final ↓' }}
-  </p>
+<div class="glow" [attr.data-tone]="face().tone" aria-hidden="true"></div>
+
+<div class="relative mb-3 flex items-end justify-between gap-4 px-1">
+  <p class="kicker">Simulador ao vivo</p>
+  <p class="meta">{{ settled() ? 'escolha outro final ↓' : 'você decide o final ↓' }}</p>
 </div>
 
-<div
-  class="stage relative overflow-hidden rounded-[22px] border bg-paper transition-colors duration-700"
-  [class]="face().accent"
->
+<div class="stage" [attr.data-tone]="face().tone">
   @if (busy()) {
     <span class="progress-line" aria-hidden="true"></span>
   }
 
-  <div class="grid gap-px bg-hairline lg:grid-cols-[1.05fr_1fr]">
+  <div class="grid divide-y divide-night-line lg:grid-cols-[1.05fr_1fr] lg:divide-x lg:divide-y-0">
     <!-- Charge -->
-    <div class="bg-paper p-6 sm:p-8">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="label">Cobrança Pix</p>
-          <p class="mt-2 font-display text-[2.6rem] leading-none tracking-[-0.02em] text-ink">
-            R$ 250,00
-          </p>
-          <p class="mt-2 font-code text-[11px] text-ink-faint">{{ chargeId }}</p>
+    <div class="p-6 sm:p-8">
+      <div class="flex items-start justify-between gap-5">
+        <div class="min-w-0">
+          <p class="kicker">Cobrança Pix</p>
+          <p class="amount mt-3">R$ 250,00</p>
+          <p class="meta mt-3">{{ chargeId }}</p>
         </div>
 
-        <span
-          class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-code text-[10.5px] font-medium tracking-[0.08em] transition-colors duration-500"
-          [class]="face().chip"
-          role="status"
-          aria-live="polite"
+        <div
+          class="qr"
+          [attr.data-status]="status()"
+          [attr.data-tone]="face().tone"
+          aria-hidden="true"
         >
-          <span
-            class="size-1.5 rounded-full transition-colors duration-500"
-            [class]="face().dot"
-          ></span>
-          {{ face().label }}
-        </span>
+          <svg [attr.viewBox]="'0 0 ' + qrSize + ' ' + qrSize" shape-rendering="crispEdges">
+            <path [attr.d]="qr" />
+          </svg>
+          @if (status() === 'pending') {
+            <span class="qr-scan"></span>
+          }
+          @if (stamp(); as icon) {
+            <span class="qr-stamp"><ng-icon [name]="icon" size="16px" /></span>
+          }
+        </div>
       </div>
 
-      <p class="mt-4 min-h-5 text-[13.5px] text-ink-soft">{{ face().caption }}</p>
+      <div class="mt-5 flex flex-wrap items-center gap-3">
+        <span class="tone-chip" [attr.data-tone]="face().tone" role="status" aria-live="polite">
+          {{ face().label }}
+        </span>
+        <p class="text-[13.5px] text-mist-soft">{{ face().caption }}</p>
+      </div>
 
-      <dl class="mt-6 divide-y divide-hairline border-y border-hairline">
+      <dl class="mt-6 divide-y divide-night-line border-y border-night-line">
         <div class="row">
           <dt>Taxa simulada</dt>
           <dd>R$ 1,50</dd>
@@ -52,7 +56,7 @@
         </div>
         <div class="row">
           <dt>Expira em</dt>
-          <dd [class.text-ink-faint]="status() !== 'pending'">
+          <dd [class.is-off]="status() !== 'pending'">
             {{ status() === 'pending' ? clock() : '—' }}
           </dd>
         </div>
@@ -64,39 +68,40 @@
             type="button"
             class="outcome"
             [class.is-active]="status() === outcome.id"
-            [attr.data-tone]="outcome.id"
+            [attr.data-tone]="outcome.tone"
             [disabled]="busy()"
             (click)="settle(outcome.id)"
           >
-            <span class="font-code text-[11px] tracking-[0.04em]">{{ outcome.action }}()</span>
+            <span class="font-geist-mono text-[11.5px]">{{ outcome.action }}()</span>
             <span class="hidden sm:inline">{{ outcome.label }}</span>
           </button>
         }
         <button type="button" class="outcome ml-auto" [disabled]="busy()" (click)="reset()">
-          <span class="font-code text-[11px]">reset</span>
+          <span class="font-geist-mono text-[11.5px]">reset</span>
         </button>
       </div>
     </div>
 
     <!-- Event stream -->
-    <div class="bg-paper-2/60 p-6 sm:p-8">
+    <div class="console p-6 sm:p-8">
       <div class="flex items-center justify-between">
-        <p class="label">Eventos entregues</p>
-        <span class="font-code text-[11px] text-ink-faint">{{ events().length }}/3</span>
+        <p class="kicker">Eventos entregues</p>
+        <span class="meta">{{ events().length }}/3</span>
       </div>
 
-      <ol class="mt-5 space-y-2.5">
+      <ol class="mt-5 space-y-2">
         @for (event of events(); track event.id) {
           <li class="event" [attr.data-tone]="event.tone">
+            <span class="event-time">{{ event.time }}</span>
             <span class="event-mark" aria-hidden="true"></span>
             <div class="min-w-0">
-              <p class="font-code text-[12.5px] font-medium text-ink">{{ event.name }}</p>
-              <p class="mt-0.5 truncate text-[12.5px] text-ink-soft">{{ event.note }}</p>
+              <p class="font-geist-mono text-[12.5px] font-medium text-mist">{{ event.name }}</p>
+              <p class="mt-0.5 truncate text-[12.5px] text-mist-soft">{{ event.note }}</p>
             </div>
           </li>
         } @empty {
-          <li class="rounded-xl border border-dashed border-hairline px-4 py-8 text-center">
-            <p class="text-[13px] text-ink-faint">
+          <li class="rounded-xl border border-dashed border-night-line px-4 py-10 text-center">
+            <p class="text-[13px] text-mist-faint">
               Nenhum evento ainda. Dispare um desfecho ao lado.
             </p>
           </li>
@@ -104,14 +109,8 @@
       </ol>
 
       @if (settled()) {
-        <p class="event mt-5 border-none bg-transparent p-0 text-[12.5px] text-ink-soft">
-          <ng-icon
-            hlm
-            name="lucideShieldCheck"
-            size="xs"
-            class="mt-0.5 text-ok"
-            aria-hidden="true"
-          />
+        <p class="note mt-5">
+          <ng-icon name="lucideShieldCheck" size="14px" class="text-ok-bright" aria-hidden="true" />
           Payload assinado com HMAC e reentregue até 200 OK.
         </p>
       }
