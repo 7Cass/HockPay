@@ -14,6 +14,7 @@ import {
   TransactionObject,
 } from '../../../../core/services/payment.service';
 import { RefundService } from '../../../../core/services/refund.service';
+import { parseReaisToCents } from '../../../../core/money/reais';
 import {
   CopyValue,
   PageHeader,
@@ -23,13 +24,9 @@ import {
   type Tone,
 } from '../../../../shared/ui';
 
-function parseBrlToCents(value: string | number | null | undefined): number {
-  if (typeof value === 'number') return Math.round(value * 100);
-  const raw = String(value ?? '').trim();
-  if (!raw) return 0;
-  const normalized = raw.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
-  const amount = Number(normalized);
-  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+/** Vazio ou fora do formato vale zero, e zero é o que as validações recusam. */
+function parseBrlToCents(value: string): number {
+  return parseReaisToCents(value) ?? 0;
 }
 
 /** A timeline fala em `completed`/`pending`/`failed`; o design fala em tons. */

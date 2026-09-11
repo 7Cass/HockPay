@@ -24,6 +24,7 @@
 export { ApiClientService } from '../../core/services/api-client.service';
 export { toHttpParams } from '../../core/http/list-query';
 export { createIdempotencyKey } from '../../core/http/idempotency-key';
+export { centsToReaisText, parseReaisToCents } from '../../core/money/reais';
 
 export type {
   GetPaymentTimelineResponseDto,

@@ -85,4 +85,26 @@ describe('PaymentDetail', () => {
         expect(refundService.create).not.toHaveBeenCalled();
         expect(component.refundError()).toBe('O valor passa do que ainda dá para estornar.');
     });
+
+    it('does not read a dot as thousands, so 10.50 is refused instead of refunding R$ 1.050,00', () => {
+        const { component, refundService } = createComponent();
+
+        component.openRefundDialog(component.paymentService.currentTimeline()!.payment);
+        component.refundForm.controls.amount.setValue('10.50');
+        component.refundForm.controls.amount.markAsTouched();
+
+        expect(component.canSubmitRefund()).toBe(false);
+        component.submitRefund();
+
+        expect(refundService.create).not.toHaveBeenCalled();
+    });
+
+    it('still reads the amount the dialog fills in by itself', () => {
+        const { component } = createComponent();
+
+        component.openRefundDialog(component.paymentService.currentTimeline()!.payment);
+
+        expect(component.refundForm.controls.amount.value).toBe('40,00');
+        expect(component.canSubmitRefund()).toBe(true);
+    });
 });
