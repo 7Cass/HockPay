@@ -1,0 +1,82 @@
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+:host(.is-on) {
+  opacity: 1;
+}
+
+.dot,
+.trail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  will-change: transform;
+  /* Branco em `difference`: inverte o que estiver embaixo, claro ou escuro. */
+  mix-blend-mode: difference;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: #fff;
+}
+
+.trail {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1px solid #fff;
+  transition:
+    width 0.4s var(--ease),
+    height 0.4s var(--ease),
+    margin 0.4s var(--ease),
+    background 0.3s,
+    scale 0.2s var(--ease);
+}
+
+.trail.is-hover {
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  background: #fff;
+}
+
+/* Com rótulo, o anel vira uma etiqueta legível: sai do `difference`. */
+.trail.has-label {
+  width: 92px;
+  height: 92px;
+  margin: -46px 0 0 -46px;
+  border-color: transparent;
+  background: var(--color-bone);
+  mix-blend-mode: normal;
+}
+
+.trail.is-down {
+  scale: 0.82;
+}
+
+.label {
+  max-width: 80%;
+  font-family: var(--font-code);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-night);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.has-label .label {
+  opacity: 1;
+}

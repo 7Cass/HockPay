@@ -66,4 +66,17 @@ describe('PaymentSimulator', () => {
     expect(simulator.events()).toEqual([]);
     expect(simulator.settled()).toBe(false);
   });
+
+  it('lets the first click take over a demo that is mid-flight', () => {
+    const simulator = createComponent();
+
+    simulator.charge(false);
+    expect(simulator.busy()).toBe(true);
+    expect(simulator.locked()).toBe(false);
+
+    simulator.settle('failed');
+    vi.advanceTimersByTime(420 + 700 + 760);
+
+    expect(simulator.status()).toBe('failed');
+  });
 });

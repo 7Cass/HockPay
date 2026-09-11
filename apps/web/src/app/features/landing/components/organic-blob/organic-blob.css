@@ -1,0 +1,90 @@
+/* O organismo pinta com `--accent`, que a home troca conforme o desfecho. */
+
+:host {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 100%;
+}
+
+.halo {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--accent) 42%, transparent),
+    transparent 72%
+  );
+  filter: blur(34px);
+  opacity: 0.75;
+  transition: opacity 0.9s;
+}
+
+:host([data-mood='idle']) .halo,
+:host([data-mood='expired']) .halo {
+  opacity: 0.22;
+}
+
+.shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.body {
+  fill: var(--accent);
+  transition: fill-opacity 0.8s;
+}
+
+:host([data-mood='idle']) .body {
+  fill-opacity: 0.05;
+}
+
+:host([data-mood='pending']) .body {
+  fill-opacity: 0.16;
+}
+
+/* Um reflexo do próprio corpo, menor e deslocado: dá volume sem filtro. */
+.shine {
+  fill: #fff;
+  opacity: 0.2;
+  transform: translate(-26px, -34px) scale(0.56);
+  transition: opacity 0.8s;
+}
+
+:host([data-mood='idle']) .shine,
+:host([data-mood='pending']) .shine {
+  opacity: 0;
+}
+
+.rim {
+  fill: none;
+  stroke: var(--color-bone);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+  stroke-dasharray: 2 7;
+  animation: crawl 24s linear infinite;
+}
+
+@keyframes crawl {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+.core {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rim {
+    animation: none;
+  }
+}

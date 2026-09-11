@@ -1,0 +1,14 @@
+<div class="tiles">
+  @for (feature of features(); track feature.title; let i = $index) {
+    <div [appReveal]="(i % 3) * 80">
+      <article class="tile" appTilt>
+        <div class="tile-top">
+          <span class="tile-n">0{{ i + 1 }}</span>
+          <ng-icon [name]="feature.icon" size="18px" class="tile-icon" aria-hidden="true" />
+        </div>
+        <h3 class="tile-title">{{ feature.title }}</h3>
+        <p class="tile-body">{{ feature.body }}</p>
+      </article>
+    </div>
+  }
+</div>

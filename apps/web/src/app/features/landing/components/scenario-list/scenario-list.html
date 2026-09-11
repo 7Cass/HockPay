@@ -1,0 +1,28 @@
+<ol class="rows" (pointermove)="follow($event)" (pointerleave)="active.set(-1)">
+  @for (row of scenarios(); track row.action; let i = $index) {
+    <li
+      class="row"
+      data-cursor="ver payload"
+      [attr.data-tone]="row.tone"
+      [class.is-active]="active() === i"
+      (pointerenter)="active.set(i)"
+    >
+      <span class="n">0{{ i + 1 }}</span>
+      <span class="state">{{ row.state }}</span>
+      <span class="action">{{ row.action }}()</span>
+      <span class="detail">
+        <span class="event">{{ row.event }}</span>
+        {{ row.validates }}
+      </span>
+    </li>
+  }
+</ol>
+
+<div #peek class="peek" [class.is-on]="active() >= 0" aria-hidden="true">
+  @if (current(); as row) {
+    <p class="peek-head" [attr.data-tone]="row.tone">
+      <span class="peek-dot"></span>{{ row.event }}
+    </p>
+    <pre class="peek-code">{{ row.payload }}</pre>
+  }
+</div>

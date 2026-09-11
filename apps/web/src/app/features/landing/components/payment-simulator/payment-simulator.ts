@@ -5,72 +5,39 @@ import {
   afterNextRender,
   computed,
   inject,
+  output,
   signal,
 } from '@angular/core';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideClock, lucideShieldCheck, lucideX } from '@ng-icons/lucide';
+import { Magnetic } from '../../motion/magnetic';
+import { EventReceipt, ReceiptLine } from '../event-receipt/event-receipt';
+import { OrganicBlob } from '../organic-blob/organic-blob';
 
 /** The three endings a developer can force on a simulated charge. */
 type Outcome = 'confirmed' | 'failed' | 'expired';
-type SimStatus = 'idle' | 'pending' | Outcome;
-type Tone = 'neutral' | 'ok' | 'bad' | 'warn';
-
-interface SimEvent {
-  readonly id: number;
-  readonly name: string;
-  readonly note: string;
-  readonly tone: Tone;
-  readonly time: string;
-}
+export type SimStatus = 'idle' | 'pending' | Outcome;
+type Tone = ReceiptLine['tone'];
 
 interface StatusFace {
   readonly label: string;
   readonly caption: string;
-  readonly tone: Tone;
 }
 
 const CHARGE_ID = 'pay_3f8Ka92LmQ';
 const COUNTDOWN_SECONDS = 300;
-const QR_SIZE = 25;
 
-/**
- * A QR look-alike: the three finder squares plus seeded noise, as one SVG path.
- * Pure decoration: it encodes nothing, and the seed keeps it identical per render.
- */
-function qrPath(size: number, seed: number): string {
-  let state = seed;
-  const noise = () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 2 ** 32 < 0.47;
-  const corners = [
-    [0, 0],
-    [size - 7, 0],
-    [0, size - 7],
-  ];
-
-  let d = '';
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const corner = corners.find(
-        ([cx, cy]) => x >= cx - 1 && x <= cx + 7 && y >= cy - 1 && y <= cy + 7,
-      );
-      // Finder: ring 3 is the outer square, ring <= 1 the core, ring 4 the separator.
-      const ring = corner ? Math.max(Math.abs(x - corner[0] - 3), Math.abs(y - corner[1] - 3)) : -1;
-      const dark = corner ? ring === 3 || ring <= 1 : noise();
-      if (dark) d += `M${x} ${y}h1v1h-1z`;
-    }
-  }
-  return d;
-}
+/** Until someone takes over, the stage keeps showing every ending, in turn. */
+const DEMO_CYCLE: readonly Outcome[] = ['confirmed', 'failed', 'expired'];
 
 /**
  * The landing's centerpiece: a Pix charge whose ending the visitor picks.
  *
- * It plays one happy path on its own the first time it scrolls into view, then
- * stops autoplaying for good and hands the controls over.
+ * While nobody has touched it and it is on screen, it cycles through the
+ * endings on its own; it pauses when scrolled away. The first click hands the
+ * controls over for good.
  */
 @Component({
   selector: 'app-payment-simulator',
-  imports: [NgIcon],
-  providers: [provideIcons({ lucideCheck, lucideClock, lucideShieldCheck, lucideX })],
+  imports: [OrganicBlob, EventReceipt, Magnetic],
   templateUrl: './payment-simulator.html',
   styleUrl: './payment-simulator.css',
 })
@@ -78,16 +45,22 @@ export class PaymentSimulator {
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private countdown: ReturnType<typeof setInterval> | null = null;
   private sequence = 0;
-  private touched = false;
+  private readonly touched = signal(false);
+  private visible = false;
+  private demoStep = 0;
 
   readonly chargeId = CHARGE_ID;
-  readonly qrSize = QR_SIZE;
-  readonly qr = qrPath(QR_SIZE, 0x3f8a92);
 
   readonly status = signal<SimStatus>('idle');
-  readonly events = signal<readonly SimEvent[]>([]);
+  readonly events = signal<readonly ReceiptLine[]>([]);
   readonly busy = signal(false);
   readonly secondsLeft = signal(COUNTDOWN_SECONDS);
+
+  /** The buttons lock only while the visitor's own action runs: the demo never blocks a click. */
+  readonly locked = computed(() => this.busy() && this.touched());
+
+  /** Every change of status, so the page around the stage can take the ending's color. */
+  readonly statusChange = output<SimStatus>();
 
   readonly outcomes = [
     { id: 'confirmed' as const, action: 'confirm', label: 'Confirmar', tone: 'ok' },
@@ -105,58 +78,43 @@ export class PaymentSimulator {
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
   });
 
-  /** The mark stamped over the QR once the charge has an ending. */
-  readonly stamp = computed(() => {
-    switch (this.status()) {
-      case 'confirmed':
-        return 'lucideCheck';
-      case 'failed':
-        return 'lucideX';
-      case 'expired':
-        return 'lucideClock';
-      default:
-        return null;
-    }
-  });
-
   readonly face = computed<StatusFace>(() => {
     switch (this.status()) {
       case 'confirmed':
-        return { label: 'CONFIRMED', caption: 'Liquidado · líquido R$ 248,50', tone: 'ok' };
+        return { label: 'CONFIRMED', caption: 'Liquidado · líquido R$ 248,50' };
       case 'failed':
-        return { label: 'FAILED', caption: 'Recusado · insufficient_funds', tone: 'bad' };
+        return { label: 'FAILED', caption: 'Recusado · insufficient_funds' };
       case 'expired':
-        return { label: 'EXPIRED', caption: 'QR vencido · nada foi cobrado', tone: 'warn' };
+        return { label: 'EXPIRED', caption: 'QR vencido · nada foi cobrado' };
       case 'pending':
-        return { label: 'PENDING', caption: 'Aguardando desfecho', tone: 'neutral' };
+        return { label: 'PENDING', caption: 'Aguardando o seu desfecho' };
       default:
-        return { label: 'IDLE', caption: 'Nenhuma cobrança criada', tone: 'neutral' };
+        return { label: 'IDLE', caption: 'Nenhuma cobrança criada' };
     }
   });
 
   constructor() {
     const host = inject(ElementRef).nativeElement as HTMLElement;
     const destroyRef = inject(DestroyRef);
-    let autoplay: IntersectionObserver | undefined;
+    let observer: IntersectionObserver | undefined;
 
     afterNextRender(() => {
       if (typeof IntersectionObserver === 'undefined') return;
 
-      autoplay = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            autoplay?.disconnect();
-            this.later(() => this.demo(), 600);
-          }
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          this.visible = entry.isIntersecting;
+          if (this.touched()) return;
+          if (this.visible) this.later(() => this.demo(), 600);
+          else this.pause();
         },
-        { threshold: 0.35 },
+        { threshold: 0.25 },
       );
-      autoplay.observe(host);
+      observer.observe(host);
     });
 
     destroyRef.onDestroy(() => {
-      autoplay?.disconnect();
+      observer?.disconnect();
       this.stopCountdown();
       this.clearTimers();
     });
@@ -164,14 +122,14 @@ export class PaymentSimulator {
 
   /** Creates the charge and leaves it hanging, waiting for a chosen ending. */
   charge(manual = true): void {
-    if (manual) this.touched = true;
+    if (manual) this.takeOver();
     this.clearTimers();
     this.busy.set(true);
-    this.status.set('idle');
+    this.setStatus('idle');
     this.events.set([]);
 
     this.later(() => {
-      this.status.set('pending');
+      this.setStatus('pending');
       this.push('payment.created', 'Cobrança Pix gerada · QR válido por 5 min', 'neutral');
       this.busy.set(false);
       this.startCountdown();
@@ -180,7 +138,7 @@ export class PaymentSimulator {
 
   /** Forces one of the three endings, streaming the events it produces. */
   settle(outcome: Outcome, manual = true): void {
-    if (manual) this.touched = true;
+    if (manual) this.takeOver();
     if (this.busy()) return;
 
     if (this.status() === 'idle') {
@@ -194,7 +152,7 @@ export class PaymentSimulator {
     this.stopCountdown();
 
     this.later(() => {
-      this.status.set(outcome);
+      this.setStatus(outcome);
       this.busy.set(false);
 
       if (outcome === 'confirmed') {
@@ -213,21 +171,45 @@ export class PaymentSimulator {
   }
 
   reset(): void {
-    this.touched = true;
+    this.takeOver();
     this.clearTimers();
     this.stopCountdown();
     this.busy.set(false);
-    this.status.set('idle');
+    this.setStatus('idle');
     this.events.set([]);
     this.secondsLeft.set(COUNTDOWN_SECONDS);
   }
 
+  /** The first touch stops the demo wherever it is, so that click is never swallowed. */
+  private takeOver(): void {
+    if (this.touched()) return;
+    this.touched.set(true);
+    this.clearTimers();
+    this.stopCountdown();
+    this.busy.set(false);
+  }
+
   private demo(): void {
-    if (this.touched) return;
+    if (this.touched() || !this.visible) return;
+    const outcome = DEMO_CYCLE[this.demoStep++ % DEMO_CYCLE.length];
+
     this.charge(false);
     this.later(() => {
-      if (!this.touched) this.settle('confirmed', false);
-    }, 1500);
+      this.settle(outcome, false);
+      this.later(() => this.demo(), 3800);
+    }, 1400);
+  }
+
+  /** Freezes the demo where it is; it picks up with a fresh charge when back on screen. */
+  private pause(): void {
+    this.clearTimers();
+    this.stopCountdown();
+    this.busy.set(false);
+  }
+
+  private setStatus(status: SimStatus): void {
+    this.status.set(status);
+    this.statusChange.emit(status);
   }
 
   private push(name: string, note: string, tone: Tone): void {

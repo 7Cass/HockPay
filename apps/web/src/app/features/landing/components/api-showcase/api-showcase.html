@@ -1,0 +1,50 @@
+<div class="split">
+  <div>
+    <p appReveal class="kicker">(03) Integração</p>
+    <h2 [appReveal]="60" class="h2">
+      Uma chave, um POST, <span class="soft">o final que você quiser.</span>
+    </h2>
+    <p [appReveal]="120" class="lede">
+      REST, JSON e cabeçalhos que você já conhece. Se sua integração funciona aqui, ela funciona no
+      gateway real — porque o contrato é o mesmo.
+    </p>
+
+    <ul [appReveal]="180" class="checks">
+      @for (item of checks; track item; let i = $index) {
+        <li class="check" [style.--i]="i">
+          <svg class="tick" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M4 10.5l4 4 8-9" pathLength="1" />
+          </svg>
+          {{ item }}
+        </li>
+      }
+    </ul>
+  </div>
+
+  <div [appReveal]="100" class="code-card">
+    <div class="bar">
+      <div class="tabs" role="tablist" [style.--at]="tabIndex()">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            class="tab"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [class.is-active]="activeTab() === tab.id"
+            (click)="selectTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+        <span class="tab-ink" aria-hidden="true"></span>
+      </div>
+      <button type="button" class="copy" data-cursor="copiar" (click)="copyCode()">
+        {{ copied() ? 'copiado ✓' : 'copiar' }}
+      </button>
+    </div>
+
+    <pre
+      class="code"
+    ><code>@for (line of activeLines(); track activeTab() + $index) {<span class="line" [style.--i]="$index">@for (token of line; track $index) {<span [class]="'t-' + token.kind">{{ token.text }}</span>}</span>}</code></pre>
+  </div>
+</div>

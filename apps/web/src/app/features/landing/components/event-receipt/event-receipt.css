@@ -1,0 +1,165 @@
+/* Papel térmico: osso sobre o carvão da página, a única superfície clara. */
+
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ink: #1b1a17;
+  display: block;
+  /* A sombra mora no host: a máscara do serrilhado cortaria um box-shadow. */
+  filter: drop-shadow(0 26px 30px rgb(0 0 0 / 0.55));
+}
+
+.paper {
+  position: relative;
+  padding: 1.5rem 1.4rem 2.4rem;
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.03) 0 1px, transparent 1px 3px), var(--color-bone);
+  color: var(--ink);
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  line-height: 1.55;
+  rotate: -1.6deg;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
+  transition: rotate 0.6s var(--ease);
+}
+
+.paper:hover {
+  rotate: 0deg;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.dim {
+  color: rgb(27 26 23 / 0.55);
+}
+
+.rule {
+  margin: 0.9rem 0;
+  border-top: 1px dashed rgb(27 26 23 / 0.4);
+}
+
+.lines {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 7.5rem;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.8rem;
+  animation: print 0.55s steps(6) both;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+}
+
+.name::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink);
+  background: var(--tone, transparent);
+}
+
+.line[data-tone='ok'] {
+  --tone: #7cc23b;
+}
+.line[data-tone='bad'] {
+  --tone: #e5533a;
+}
+.line[data-tone='warn'] {
+  --tone: #e0a52b;
+}
+
+.note {
+  grid-column: 2;
+  color: rgb(27 26 23 / 0.62);
+}
+
+@keyframes print {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+.caret {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.sum div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.total {
+  margin-top: 0.3rem;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.foot {
+  margin-top: 1.1rem;
+  text-align: center;
+  letter-spacing: 0.1em;
+  color: rgb(27 26 23 / 0.55);
+}
+
+/* O carimbo cai de cima, torto, e tinge o papel como tinta. */
+.stamp {
+  position: absolute;
+  right: 1.1rem;
+  top: 42%;
+  padding: 0.15rem 0.7rem;
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  font-family: var(--font-brico);
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  rotate: -14deg;
+  opacity: 0.82;
+  mix-blend-mode: multiply;
+  animation: thump 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.stamp[data-status='confirmed'] {
+  color: #3d7a14;
+}
+.stamp[data-status='failed'] {
+  color: #c23a1f;
+}
+.stamp[data-status='expired'] {
+  color: #9a6300;
+}
+
+@keyframes thump {
+  from {
+    opacity: 0;
+    transform: scale(1.9) rotate(10deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .caret,
+  .stamp {
+    animation: none;
+  }
+}

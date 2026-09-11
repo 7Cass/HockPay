@@ -1,0 +1,43 @@
+<div class="paper">
+  <header class="text-center">
+    <p class="brand">HOCKPAY <span aria-hidden="true">✳</span> COMPROVANTE</p>
+    <p class="dim">MODO TEST · {{ today }}</p>
+  </header>
+
+  <p class="rule" aria-hidden="true"></p>
+
+  <ol class="lines" aria-live="polite">
+    @for (line of lines(); track line.id) {
+      <li class="line" [attr.data-tone]="line.tone">
+        <span class="dim">{{ line.time }}</span>
+        <span class="name">{{ line.name }}</span>
+        <span class="note">{{ line.note }}</span>
+      </li>
+    } @empty {
+      <li class="dim">aguardando o primeiro evento<span class="caret">_</span></li>
+    }
+  </ol>
+
+  <p class="rule" aria-hidden="true"></p>
+
+  <dl class="sum">
+    <div>
+      <dt>VALOR</dt>
+      <dd>R$ 250,00</dd>
+    </div>
+    <div>
+      <dt>TAXA SIMULADA</dt>
+      <dd>R$ 1,50</dd>
+    </div>
+    <div class="total">
+      <dt>LÍQUIDO</dt>
+      <dd>R$ 248,50</dd>
+    </div>
+  </dl>
+
+  <p class="foot">*** nenhum centavo real ***</p>
+
+  @if (stamp()) {
+    <p class="stamp" [attr.data-status]="status()" aria-hidden="true">{{ stamp() }}</p>
+  }
+</div>

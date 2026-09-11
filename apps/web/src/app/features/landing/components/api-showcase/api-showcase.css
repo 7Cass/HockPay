@@ -1,0 +1,219 @@
+:host {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  display: block;
+}
+
+.split {
+  display: grid;
+  gap: 3.5rem;
+}
+
+@media (min-width: 1024px) {
+  .split {
+    grid-template-columns: 0.85fr 1.15fr;
+    align-items: center;
+    gap: 5rem;
+  }
+}
+
+.kicker {
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-bone-faint);
+}
+
+.h2 {
+  margin-top: 1.2rem;
+  font-size: clamp(2.3rem, 4.8vw, 4.4rem);
+  font-weight: 700;
+  font-variation-settings: 'wdth' 80;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.soft {
+  font-weight: 300;
+  font-variation-settings: 'wdth' 100;
+  color: var(--color-bone-soft);
+}
+
+.lede {
+  max-width: 28rem;
+  margin-top: 1.4rem;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-bone-soft);
+}
+
+.checks {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 2.2rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 15px;
+}
+
+/* Os vistos se desenham em sequência quando a lista entra na tela. */
+.tick {
+  flex: none;
+  width: 1.1rem;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.7s var(--ease);
+  transition-delay: calc(0.4s + var(--i) * 0.18s);
+}
+
+.reveal-in .tick path {
+  stroke-dashoffset: 0;
+}
+
+/* ── Painel de código ─────────────────────────────────────────────────── */
+.code-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-night-line);
+  border-radius: 22px;
+  background: var(--color-night-2);
+  box-shadow: 0 50px 90px -50px rgb(0 0 0 / 0.9);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 0 0.5rem;
+  border-bottom: 1px solid var(--color-night-line);
+}
+
+.tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 5.5rem);
+}
+
+.tab {
+  height: 3rem;
+  font-size: 13.5px;
+  color: var(--color-bone-faint);
+  transition: color 0.25s;
+}
+
+.tab:hover,
+.tab.is-active {
+  color: var(--color-bone);
+}
+
+.tab-ink {
+  position: absolute;
+  bottom: -1px;
+  left: 1.25rem;
+  width: 3rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  translate: calc(var(--at, 0) * 5.5rem) 0;
+  transition: translate 0.5s var(--ease);
+}
+
+.copy {
+  font-family: var(--font-code);
+  font-size: 11.5px;
+  color: var(--color-bone-faint);
+  transition: color 0.2s;
+}
+
+.copy:hover {
+  color: var(--color-bone);
+}
+
+.code {
+  counter-reset: line;
+  overflow-x: auto;
+  padding: 1.4rem 1.4rem 1.6rem;
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--color-bone);
+  scrollbar-width: thin;
+}
+
+.line {
+  display: block;
+  min-height: 1.75em;
+  white-space: pre;
+  animation: type-in 0.45s var(--ease) both;
+  animation-delay: calc(var(--i) * 22ms);
+}
+
+.line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2ch;
+  margin-right: 1.6ch;
+  text-align: right;
+  color: rgb(236 230 218 / 0.22);
+}
+
+@keyframes type-in {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
+
+.t-str {
+  color: var(--accent);
+  transition: color 0.9s;
+}
+
+.t-comment {
+  color: var(--color-bone-faint);
+  font-style: italic;
+}
+
+/* ── Revelação ao rolar ───────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.8s var(--ease),
+    transform 0.8s var(--ease);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .line {
+    animation: none;
+  }
+}

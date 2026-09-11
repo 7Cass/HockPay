@@ -48,21 +48,21 @@
   --color-warn-soft: #f8f0da;
   /* Superfície das caixas do dashboard: papel um tom acima do fundo. */
   --color-surface: #ffffff;
-  /* ── HockPay landing: night system ─────────────────────────────────
-     A landing escura, em Geist. Marca monocromática (claro sobre quase-preto);
-     cor só para estado de pagamento, em versões que leem bem no escuro. */
-  --color-night: #09090b;
-  --color-night-2: #0d0d10;
-  --color-night-3: #141418;
-  --color-night-line: rgb(255 255 255 / 0.08);
-  --color-mist: #f4f4f5;
-  --color-mist-soft: #a1a1aa;
-  --color-mist-faint: #80808a;
-  --color-ok-bright: #34d399;
-  --color-bad-bright: #f87171;
-  --color-warn-bright: #fbbf24;
-  --font-geist: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-geist-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* ── HockPay landing: carvão e osso ────────────────────────────────
+     A landing escura e quente, em Bricolage Grotesque. A cor de destaque não
+     é fixa: é a do desfecho que o visitante escolhe no simulador. */
+  --color-night: #11110f;
+  --color-night-2: #181815;
+  --color-night-3: #22221e;
+  --color-night-line: rgb(236 230 218 / 0.12);
+  --color-bone: #ece6da;
+  --color-bone-soft: #b5afa3;
+  --color-bone-faint: #8a857b;
+  --color-ok-bright: #b8f36b;
+  --color-bad-bright: #ff6b4a;
+  --color-warn-bright: #f4b942;
+  --font-brico:
+    'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
   --font-display: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
   --font-code:
@@ -75,6 +75,21 @@
 }
 
 /* You can add global styles to this file, and also import other style files */
+
+/* A cor de destaque da landing transiciona entre desfechos, e só uma custom
+   property registrada anima. */
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ece6da;
+}
+
+/* Com o cursor próprio da landing ativo, o do sistema some — inclusive dentro
+   dos componentes filhos, que o estilo encapsulado da home não alcança. */
+html.lp-cursor,
+html.lp-cursor * {
+  cursor: none !important;
+}
 
 :root {
   color-scheme: light;

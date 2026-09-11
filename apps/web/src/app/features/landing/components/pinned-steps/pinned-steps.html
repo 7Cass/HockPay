@@ -1,0 +1,46 @@
+<div #pin class="pin">
+  <div class="frame">
+    <div #track class="track">
+      <div class="slab intro">
+        <p class="kicker">(04) Como funciona</p>
+        <h2 class="title">Do zero ao <span class="accent">webhook</span> entregue.</h2>
+        <p class="hint" aria-hidden="true">continue rolando <span class="hint-arrow">→</span></p>
+      </div>
+
+      @for (step of steps(); track step.n; let i = $index) {
+        <article class="slab step" [class.is-active]="active() >= i">
+          <span class="num" aria-hidden="true">{{ step.n }}</span>
+
+          <svg class="art" viewBox="0 0 240 140" aria-hidden="true">
+            @switch (i) {
+              @case (0) {
+                <circle cx="62" cy="70" r="28" pathLength="1" />
+                <circle class="dot" cx="62" cy="70" r="7" />
+                <path d="M90 70h112v26M176 70v18M152 70v12" pathLength="1" />
+              }
+              @case (1) {
+                <path d="M44 22h112l36 36v64H44z" pathLength="1" />
+                <path d="M156 22v36h36" pathLength="1" />
+                <path d="M66 70h66M66 90h98M66 108h44" pathLength="1" />
+              }
+              @default {
+                <path d="M16 70h74" pathLength="1" />
+                <path class="ok" d="M90 70c44 0 52-44 116-44" pathLength="1" />
+                <path class="bad" d="M90 70h116" pathLength="1" />
+                <path class="warn" d="M90 70c44 0 52 44 116 44" pathLength="1" />
+                <circle class="dot ok" cx="212" cy="26" r="6" />
+                <circle class="dot bad" cx="212" cy="70" r="6" />
+                <circle class="dot warn" cx="212" cy="114" r="6" />
+              }
+            }
+          </svg>
+
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-body">{{ step.body }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="progress" aria-hidden="true"><span class="bar"></span></div>
+  </div>
+</div>

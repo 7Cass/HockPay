@@ -1,0 +1,57 @@
+:host {
+  display: block;
+  overflow: hidden;
+  padding-block: 1.4rem;
+  border-block: 1px solid var(--color-night-line);
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.item {
+  font-size: clamp(3rem, 9vw, 8.5rem);
+  font-weight: 700;
+  font-variation-settings: 'wdth' 75;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-bone);
+}
+
+.item.hollow {
+  font-weight: 400;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--color-bone);
+}
+
+.star {
+  flex: none;
+  width: clamp(1.8rem, 4vw, 3.4rem);
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  animation: spin 9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star {
+    animation: none;
+  }
+}
