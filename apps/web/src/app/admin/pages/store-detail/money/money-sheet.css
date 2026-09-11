@@ -1,0 +1,41 @@
+/* O corpo dos dois painéis que movem dinheiro: saque e estorno. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* O ambiente abre o painel, antes de qualquer campo: o valor digitado abaixo
+   sai deste ledger, e só deste. */
+.env-line,
+.lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--adm-text-2);
+}
+
+.env-line strong,
+.lead strong {
+  font-weight: 600;
+  color: var(--adm-text);
+}
+
+/* O motivo aparece como vai para a trilha: citado, e não como campo. */
+.quoted {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem;
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius-sm);
+  background: var(--adm-surface-2);
+}
+
+.quoted p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--adm-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

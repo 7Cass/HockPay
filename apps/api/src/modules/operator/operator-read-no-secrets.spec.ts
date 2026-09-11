@@ -171,6 +171,31 @@ function plantedUseCases(): Record<
         meta: { page: 1, limit: 20, total: 1, totalPages: 1 },
       }),
     },
+    listBankAccountsUseCase: {
+      // A Pix destination is where money goes, not a credential: the key and
+      // the holder document are what the desk needs to choose one. What must
+      // not ride along is anything the store authenticates with.
+      execute: async () => [
+        {
+          bankAccount: {
+            id: 'bank-1',
+            storeId: 'store-1',
+            pixKey: 'financeiro@atelie.example',
+            pixKeyType: 'EMAIL',
+            holderName: 'Ateliê Corvo',
+            holderDocument: '12345678000190',
+            isDefault: true,
+            isVerified: true,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          hasWithdrawals: false,
+          hasActiveWithdrawals: false,
+          withdrawalCount: 0,
+          activeWithdrawalCount: 0,
+        },
+      ],
+    },
     listWebhookConfigsUseCase: {
       execute: async () => ({
         webhookConfigs: configs,

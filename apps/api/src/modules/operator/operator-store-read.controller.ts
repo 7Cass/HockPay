@@ -4,6 +4,7 @@ import {
   GetAccountUseCase,
   GetPaymentTimelineUseCase,
   GetStoreForOperatorUseCase,
+  ListBankAccountsUseCase,
   ListPaymentsUseCase,
   ListTransactionsUseCase,
   ListWebhookConfigsUseCase,
@@ -20,6 +21,7 @@ import {
   OperatorListTransactionsQueryDto,
   OperatorListWebhookLogsQueryDto,
 } from './dtos/operator-store-read.dto';
+import { BankAccountResponseDto } from '../bank-account/dtos/bank-account-response.dto';
 import { getRequestId } from '../../common/request-id';
 
 /**
@@ -47,6 +49,7 @@ export class OperatorStoreReadController {
     private readonly getPaymentTimelineUseCase: GetPaymentTimelineUseCase,
     private readonly getAccountUseCase: GetAccountUseCase,
     private readonly listTransactionsUseCase: ListTransactionsUseCase,
+    private readonly listBankAccountsUseCase: ListBankAccountsUseCase,
     private readonly listWebhookConfigsUseCase: ListWebhookConfigsUseCase,
     private readonly listWebhookLogsUseCase: ListWebhookLogsUseCase,
   ) {}
@@ -134,6 +137,28 @@ export class OperatorStoreReadController {
       limit: query.limit,
       type: query.type,
     });
+  }
+
+  /**
+   * GET /operator/stores/:id/bank-accounts
+   *
+   * The Pix destinations a withdrawal by the desk can go to. Without this read,
+   * withdrawing for a store would mean pasting a destination id found somewhere
+   * else -- which is `curl` with a button.
+   *
+   * No `environment`, for the reason the webhook routes below give: a
+   * destination belongs to the store, not to a ledger. Each item is the
+   * merchant's own response shape, so the desk sees what the merchant sees.
+   * The Pix key and the holder document are where money goes, not a credential,
+   * and choosing a destination without them would be choosing blind.
+   */
+  @Get(':id/bank-accounts')
+  async listBankAccounts(@Param('id') id: string) {
+    const bankAccounts = await this.listBankAccountsUseCase.execute(id);
+
+    return {
+      bankAccounts: BankAccountResponseDto.fromUsageList(bankAccounts),
+    };
   }
 
   /**

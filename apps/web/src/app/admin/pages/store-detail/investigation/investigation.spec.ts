@@ -16,7 +16,7 @@ const STORE = `${API}/operator/stores/store-1`;
 @Component({
   standalone: true,
   imports: [OperatorInvestigation],
-  template: '<app-operator-investigation [storeId]="storeId()" />',
+  template: '<app-operator-investigation [storeId]="storeId()" storeName="Ateliê Corvo" />',
 })
 class Host {
   readonly storeId = signal('store-1');
@@ -225,6 +225,98 @@ describe('OperatorInvestigation', () => {
     expect(el.querySelector('adm-sheet adm-timeline .label')?.textContent?.trim()).toBe(
       'Cobrança criada',
     );
+  });
+
+  async function openLedger(url: string, available: number, environment = 'TEST') {
+    await open(url);
+    await flushPayments();
+
+    tab('Saldo e extrato').click();
+    await settle();
+
+    expectRead('/account').flush({
+      account: {
+        id: 'acc-1',
+        storeId: 'store-1',
+        environment,
+        available,
+        pending: 0,
+        blocked: 0,
+        currency: 'BRL',
+        updatedAt: '2026-09-07T10:00:00.000Z',
+      },
+    });
+    expectRead('/transactions').flush({
+      data: [],
+      meta: { page: 1, limit: 20, total: 0, totalPages: 1 },
+    });
+    await settle();
+  }
+
+  it('opens the withdrawal on the ledger of the environment on screen', async () => {
+    await openLedger('/operator/stores/store-1?env=LIVE', 25000, 'LIVE');
+
+    click('[data-testid="open-withdraw"]');
+    await settle();
+
+    expectRead('/bank-accounts').flush({ bankAccounts: [] });
+    await settle();
+
+    const sheet = el.querySelector('app-operator-withdraw-sheet')!;
+    expect(sheet.textContent).toContain('Ateliê Corvo · ledger LIVE');
+    expect(sheet.textContent).toMatch(/250[.,]00/);
+  });
+
+  it('does not offer a withdrawal below the minimum a withdrawal can be', async () => {
+    await openLedger('/operator/stores/store-1', 500);
+
+    const button = el.querySelector<HTMLButtonElement>('[data-testid="open-withdraw"]')!;
+    expect(button.disabled).toBe(true);
+    expect(el.querySelector('.ledger-actions')?.textContent).toContain('abaixo do mínimo');
+  });
+
+  async function openTimelineOf(payment: Record<string, unknown>) {
+    await open();
+    await flushPayments([
+      {
+        id: 'pay-1',
+        amount: 10000,
+        fee: 165,
+        netAmount: 9835,
+        description: 'Camiseta',
+        createdAt: '2026-09-05T12:00:00.000Z',
+        ...payment,
+      },
+    ]);
+
+    click('tbody tr.is-clickable');
+    await settle();
+
+    expectRead('/payments/pay-1/timeline').flush({ timeline: [] });
+    await settle();
+  }
+
+  it('offers a refund from the timeline of a payment that still has something to return', async () => {
+    await openTimelineOf({ status: 'CONFIRMED', totalRefunded: 2500 });
+
+    click('[data-testid="open-refund"]');
+    await settle();
+
+    const sheet = el.querySelector('app-operator-refund-sheet')!;
+    expect(sheet.textContent).toContain('Ateliê Corvo · ledger TEST');
+    expect(sheet.querySelector<HTMLInputElement>('#rf-amount')!.value).toBe('75,00');
+  });
+
+  it('offers no refund for a payment already returned in full', async () => {
+    await openTimelineOf({ status: 'REFUNDED', totalRefunded: 10000 });
+
+    expect(el.querySelector('[data-testid="open-refund"]')).toBeNull();
+  });
+
+  it('offers no refund for a payment that never confirmed', async () => {
+    await openTimelineOf({ status: 'PENDING' });
+
+    expect(el.querySelector('[data-testid="open-refund"]')).toBeNull();
   });
 
   it('offers no route to API keys, because none exists', async () => {

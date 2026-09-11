@@ -1,0 +1,141 @@
+<adm-sheet
+  [open]="true"
+  side="center"
+  eyebrow="Estornar pela loja"
+  [heading]="step() === 'fill' ? 'Quanto volta ao pagador' : 'Confirme o estorno'"
+  [description]="storeName() + ' · ledger ' + environment()"
+  (closed)="closed.emit()"
+>
+  @if (step() === 'fill') {
+    <div class="form" data-testid="refund-fill">
+      <p class="lead">
+        {{ payment().description || 'Cobrança Pix' }} de
+        <strong>{{ payment().amount / 100 | currency: 'BRL' }}</strong> em
+        <strong>{{ environment() }}</strong
+        >. Já estornado {{ (payment().totalRefunded ?? 0) / 100 | currency: 'BRL' }}; estornável
+        <strong>{{ refundable() / 100 | currency: 'BRL' }}</strong
+        >.
+      </p>
+
+      <adm-field label="Valor (R$)" for="rf-amount" [error]="amountError()">
+        <input
+          id="rf-amount"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [value]="amountText()"
+          (input)="setAmount($event)"
+          [attr.aria-invalid]="!!amountError()"
+        />
+        <span fieldHint>
+          Volta ao pagador. Sai do {{ source() }} {{ environment() }} da loja, menos a parte da taxa
+          que volta junto.
+        </span>
+      </adm-field>
+
+      <adm-field
+        label="Motivo"
+        for="rf-reason"
+        hint="Obrigatório. Vai para a trilha junto com o estado do pagamento antes e depois, na mesma transação do estorno."
+      >
+        <textarea
+          id="rf-reason"
+          rows="3"
+          maxlength="500"
+          placeholder="O chamado, e o que ele pede."
+          [value]="reason()"
+          (input)="setReason($event)"
+        ></textarea>
+      </adm-field>
+    </div>
+  } @else {
+    <div class="form" data-testid="refund-confirm">
+      <p class="lead">
+        Estornar <strong>{{ amount()! / 100 | currency: 'BRL' }}</strong> de
+        {{ payment().description || 'Cobrança Pix' }}
+        (<span class="adm-mono">{{ payment().id }}</span
+        >), no ledger <strong>{{ environment() }}</strong> de {{ storeName() }}.
+      </p>
+
+      <adm-facts>
+        <adm-fact label="Volta ao pagador">{{ amount()! / 100 | currency: 'BRL' }}</adm-fact>
+        <adm-fact label="Taxa que volta junto">{{
+          feeRefunded() / 100 | currency: 'BRL'
+        }}</adm-fact>
+        <adm-fact [label]="'Sai do ' + source() + ' ' + environment()">
+          {{ deduction() / 100 | currency: 'BRL' }}
+        </adm-fact>
+        <adm-fact label="Estornável depois">
+          {{ (refundable() - amount()!) / 100 | currency: 'BRL' }}
+        </adm-fact>
+      </adm-facts>
+
+      @if (isFull()) {
+        <adm-notice tone="info" data-testid="full-refund">
+          Estorno total: o pagamento passa a estornado e não aceita outro.
+        </adm-notice>
+      }
+
+      <div class="quoted">
+        <span class="adm-overline">Motivo, como vai para a trilha</span>
+        <p>{{ reason().trim() }}</p>
+      </div>
+
+      @if (environment() === 'LIVE') {
+        <adm-notice tone="warn" data-testid="live-warning">
+          É o ledger LIVE da loja. Simulado como todo o Hockpay, mas é o saldo de produção dela.
+        </adm-notice>
+      }
+
+      @if (sendError(); as message) {
+        <adm-notice tone="bad" data-testid="send-error">{{ message }}</adm-notice>
+      }
+    </div>
+  }
+
+  <ng-container sheetActions>
+    @if (step() === 'fill') {
+      <button admButton type="button" variant="quiet" size="sm" (click)="closed.emit()">
+        Cancelar
+      </button>
+      <button
+        admButton
+        type="button"
+        variant="primary"
+        size="sm"
+        data-testid="refund-review"
+        [disabled]="!canReview()"
+        (click)="review()"
+      >
+        Revisar
+      </button>
+    } @else {
+      <button
+        admButton
+        type="button"
+        variant="quiet"
+        size="sm"
+        [disabled]="isSending()"
+        (click)="back()"
+      >
+        Voltar
+      </button>
+      <button
+        admButton
+        type="button"
+        variant="primary"
+        size="sm"
+        data-testid="refund-confirm-button"
+        [loading]="isSending()"
+        [disabled]="isSending()"
+        (click)="confirm()"
+      >
+        @if (isSending()) {
+          Estornando…
+        } @else {
+          Confirmar estorno de {{ amount()! / 100 | currency: 'BRL' }} em {{ environment() }}
+        }
+      </button>
+    }
+  </ng-container>
+</adm-sheet>

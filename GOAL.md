@@ -2,106 +2,76 @@
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-10`
-Ordering: leitura antes de escrita; rota antes de tela; saque antes de estorno
-Scope: a mesa saca e estorna pela loja **pela tela**, e nao mais por `curl`
-Status: `em andamento`
+Scope: **a definir**
+Status: `sem goal ativa`
 
-A passagem de `2026-09-09` (arquivada em `docs/goals/2026-09-09-suspended-store-money.md`)
-fechou o backend: loja sem habilitacao LIVE parou de sacar e de estornar por conta
-propria, e a mesa ganhou `POST /operator/stores/:id/withdrawals` e `/refunds`, com
-motivo, trilha e idempotencia. A tela ficou de fora por escopo, e um chamado de
-retirada de loja suspensa se resolve hoje por `curl`.
+A passagem anterior (arquivada em `docs/goals/2026-09-10-desk-money-screen.md`) deu
+tela ao que a de `2026-09-09` deixou so por `curl`: a mesa saca e estorna pela loja
+de dentro da investigacao, com dois passos, motivo na trilha e a chave de
+idempotencia presa a intencao. Para isso a mesa ganhou a leitura dos destinos Pix da
+loja, que nao existia.
 
-O argumento e o mesmo que justificou a passagem de `2026-09-08`: capacidade que so
-existe por `curl` e capacidade que ninguem opera. O design system do admin (#15)
-entrou depois dessa decisao, e ja tem as pecas de que esta tela precisa -- `sheet`,
-`field`, `button`, `notice`, `toast`.
+Este arquivo volta a ser o tracker executavel quando a proxima goal for escolhida.
 
-## O que falta, de verdade
+## Onde o projeto esta
 
-Nao e so tela. **A mesa nao tem como escolher o destino do saque.** A rota exige
-`bankAccountId`, e nenhuma leitura de operador devolve os destinos Pix da loja: as
-seis sub-leituras sao pagamentos, linha do tempo, conta, extrato, webhooks e
-entregas. Sem uma leitura nova, a tela teria de pedir um id colado de fora -- que e o
-`curl` com botao.
+Cinco das seis fatias do PRD pai estao no runtime, e a mesa tem quatro poderes, todos
+com tela: habilitar LIVE, condicao comercial, leitura para investigar e mover dinheiro
+pela loja.
 
-## Fatias
+| Fatia | Estado         | O que deu                                                                      |
+| ----- | -------------- | ------------------------------------------------------------------------------ |
+| 1     | `concluido`    | Principal `Operator`, segredo e cookies proprios, trilha append-only           |
+| 2     | `concluido`    | `Account` unica por `storeId + environment`                                    |
+| 3     | `concluido`    | `Store.liveStatus`, a mesa que decide, e a simulacao em LIVE que isso destrava |
+| 4     | `concluido`    | Condicao comercial -- taxa, fixo e prazo, auditados e com faixa no dominio     |
+| 5     | `concluido`    | Leitura cross-merchant para investigar chamado, sem secret                     |
+| 6     | `nao iniciado` | Antifraude como modulo, alimentando a fila de revisao                          |
 
-| Fatia | Estado         | Entrega                                                                          |
-| ----- | -------------- | -------------------------------------------------------------------------------- |
-| P0    | `nao iniciado` | `GET /operator/stores/:id/bank-accounts`, pura, no molde das outras sub-leituras |
-| P1    | `nao iniciado` | Servico de dinheiro no admin, com a chave de idempotencia presa a intencao       |
-| P2    | `nao iniciado` | Saque pela loja, na aba "Saldo e extrato" da investigacao                        |
-| P3    | `nao iniciado` | Estorno pela loja, a partir da linha do tempo do pagamento                       |
-| P4    | `nao iniciado` | `CURRENT_STATE`, validacao contra a API de verdade e arquivamento                |
+## Candidatas a proxima passagem
 
-### P0 -- A leitura dos destinos
+Nenhuma escolhida.
 
-- `GET /operator/stores/:id/bank-accounts` reusa `ListBankAccountsUseCase` e
-  serializa por `BankAccountResponseDto.fromUsageList`, a mesma forma que o lojista
-  recebe. Nao existe leitura paralela, pela razao da fatia 5.
-- Sem `environment`: `BankAccount` e escopado por loja e nao tem coluna de ambiente,
-  e pedir um parametro que a rota ignora e a mentira pequena que `webhooks` ja evita.
-- Pura: nao grava na trilha. Quem entra na loja ja gravou `store.investigated`.
-- A varredura `operator-read-no-secrets.spec.ts` pega a rota sozinha, por reflexao, e
-  precisa de um mock de `listBankAccountsUseCase` para chegar a forma da resposta.
+### B. Versionar os smokes que ja rodaram
 
-### P1 -- O servico
+Tres ciclos de validacao contra a API de verdade -- dois em `2026-09-08` e o da mesa
+movendo dinheiro em `2026-09-10` -- foram script descartavel.
 
-- Servico proprio no admin (`operator-money.service.ts`), e nao metodos a mais na
-  investigacao: o backend separou o controller de dinheiro por custo, e a tela segue.
-- Os tipos (`BankAccount`, `Withdrawal`, `RefundObject`) passam pela costura
-  `domain/api-contracts.ts`, e por nenhum outro lugar.
-- **A chave de idempotencia e da intencao, e nao do clique nem da abertura do
-  painel.** Ela e presa a impressao digital do corpo (loja, ambiente, destino ou
-  pagamento, valor, motivo): mesmo corpo reenviado leva a mesma chave, inclusive
-  depois de fechar e reabrir o painel; corpo diferente leva chave nova; sucesso
-  descarta. Chave nova por abertura deixaria a mesa sacar duas vezes quando a
-  resposta se perde; chave unica por painel faria a API recusar a correcao de um
-  valor digitado errado.
+- **A favor:** o ultimo script ja e o esqueleto de um `smoke:operator`, com 21
+  assercoes que cobrem leitura, saque, replay, conflito de chave, estorno e trilha.
+  Nao existe smoke nenhum da mesa, e ela escreve no ledger.
+- **Contra:** nao muda invariante nem destrava capacidade; e seguro puro.
 
-### P2 -- O saque
+### C. Fatia 6 -- antifraude e a fila de revisao
 
-- Mora na aba "Saldo e extrato": o saldo do ambiente ja esta na frente de quem
-  decide, e o ambiente e o que o seletor da investigacao ja mostra.
-- Painel central, em dois passos: preencher e **confirmar**. A confirmacao repete em
-  prosa o que vai acontecer -- quanto sai, de qual ledger, para qual chave, com qual
-  taxa e qual liquido -- e o botao carrega o valor e o ambiente.
-- Destinos nao verificados aparecem e nao sao escolhiveis, com a razao; lista vazia
-  diz que a loja nao tem destino, em vez de um select em branco.
-- Valor em reais, convertido para centavos por texto e nunca por multiplicacao de
-  ponto flutuante. Faixa e taxa vem da mesma politica que o lojista ve; a tela avisa
-  antes, a API decide.
-- Sucesso recarrega conta e extrato, e diz o id do saque e que a trilha registrou.
+O ultimo passo do PRD pai, e a unica fatia que ainda precisa de PRD do zero.
 
-### P3 -- O estorno
+- **A favor:** fecha o PRD pai, e a pre-condicao existe -- a mesa tem tela, trilha,
+  leitura de dado de loja e agora os dois movimentos de dinheiro.
+- **Contra:** e a maior das restantes, e trabalho de modelagem, nao de superficie.
 
-- Entra pela linha do tempo do pagamento, que ja e onde a mesa investiga um
-  pagamento. So aparece para `CONFIRMED` e `RELEASED` com saldo estornavel.
-- O valor comeca no estornavel restante (`amount - totalRefunded`). A tela diz de
-  onde o dinheiro sai: `pending` se o pagamento ainda nao liberou, `available` se ja.
-- `environment` vai como o ambiente investigado, que e conferencia e nao instrucao: a
-  API recusa se ele divergir do pagamento.
-- Mesmo painel em dois passos e mesma regra de chave do saque.
+### D. Acabamento da mesa
 
-### P4 -- Fechamento
+Total nas paginacoes da fila e da trilha, validacao de `limit`/`offset` nas duas
+rotas que fazem parse a mao, retencao da trilha e a mensagem vazia do `@IsEnum`.
 
-- `CURRENT_STATE`: a lacuna "A via da mesa nao tem tela" fecha; a trilha registra
-  nove acoes, e nao sete; a matriz de superficies ganha a leitura de destinos.
-- Validacao contra a API de verdade, com operador, loja com saldo e os dois
-  movimentos, conferindo a trilha e o ledger depois. Nenhuma tela da mesa foi
-  exercitada assim ainda.
+- **A favor:** barato, e a mesa e a superficie mais nova do produto.
+- **Contra:** nenhum item sozinho justifica uma passagem.
 
-## Fica fora
+### E. O parser de reais do painel do lojista
 
-- Listagem de saques da loja na mesa. O extrato ja mostra `WITHDRAWAL_RESERVED`, e a
-  confirmacao diz o id; uma aba de saques e passagem propria se o chamado pedir.
-- Papeis dentro do operador, limite por operador ou aprovacao em dois. A mesa continua
-  sem papeis, e a trilha e o controle.
-- Smoke dedicado da mesa (opcao B da escolha anterior).
+`parseBrlToCents` le `10.50` como R$ 1.050,00 e esta copiado em quatro paginas. O
+admin ja tem um parser estrito e testado em `admin/domain/money.ts`.
+
+- **A favor:** e o unico achado aberto que erra valor de dinheiro na frente do
+  usuario, e o conserto ja existe do outro lado da costura.
+- **Contra:** o painel do lojista nao pode importar de `admin/`; o parser tem de
+  morar num lugar que os dois alcancem, e escolher esse lugar e a decisao de verdade.
 
 ## Achados abertos, sem dono
 
+- **O parser de reais do painel do lojista le `10.50` como R$ 1.050,00.** Ver a
+  opcao E. Copiado em `products`, `payment-links`, `withdrawals` e `payment-detail`.
 - **Nada revoga um access token em voo.** Consequencia de D1/D2 do PRD do seletor.
   Desde `2026-09-09` a janela nao custa dinheiro, porque todo caminho que move
   dinheiro rele a loja.
@@ -118,6 +88,8 @@ entregas. Sem uma leitura nova, a tela teria de pedir um id colado de fora -- qu
 - **Ambiente e por sessao, e nao por aba.**
 - **Nenhum teste cobre texto de tela.**
 - **Trilha de operador cresce sem retencao.** Decisao registrada, nao esquecida.
+- **A politica de saque existe em tres lugares** -- no core, no painel do lojista e
+  no admin. As telas so avisam; a API decide.
 
 ## Passagens anteriores
 
@@ -129,3 +101,4 @@ entregas. Sem uma leitura nova, a tela teria de pedir um id colado de fora -- qu
 - `docs/goals/2026-09-07-live-onboarding.md`
 - `docs/goals/2026-09-08-operator-desk-and-environment-selector.md`
 - `docs/goals/2026-09-09-suspended-store-money.md`
+- `docs/goals/2026-09-10-desk-money-screen.md`

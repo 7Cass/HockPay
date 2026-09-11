@@ -24,6 +24,23 @@
   color: var(--adm-text);
 }
 
+/* O saque mora abaixo do saldo que ele consome: quem aperta o botão acabou de
+   ler o disponível do ambiente, e não um número de outra aba. */
+.ledger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.ledger-actions-note {
+  margin: 0;
+  flex: 1 1 16rem;
+  font-size: 12px;
+  color: var(--adm-text-3);
+}
+
 /* A tabela de dentro do painel ganha a própria moldura: sem ela, uma tabela
    colada no fundo do painel parece continuar para fora dele. */
 .sub-panel {

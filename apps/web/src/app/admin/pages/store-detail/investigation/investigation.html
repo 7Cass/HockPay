@@ -139,6 +139,40 @@
             {{ ledgerTotal() / 100 | currency: 'BRL' }}
           </adm-fact>
         </adm-facts>
+
+        <div class="ledger-actions">
+          <p class="ledger-actions-note">
+            @if (result.account.available < withdrawalPolicy.minAmountInCents) {
+              O disponível {{ environment() }} está abaixo do mínimo de saque, de
+              {{ withdrawalPolicy.minAmountInCents / 100 | currency: 'BRL' }}.
+            } @else {
+              Saque pela loja, por chamado: sai do disponível {{ environment() }}, com motivo na
+              trilha.
+            }
+          </p>
+          <button
+            admButton
+            type="button"
+            variant="primary"
+            size="sm"
+            data-testid="open-withdraw"
+            [disabled]="result.account.available < withdrawalPolicy.minAmountInCents"
+            (click)="isWithdrawOpen.set(true)"
+          >
+            Sacar pela loja
+          </button>
+        </div>
+
+        @if (isWithdrawOpen()) {
+          <app-operator-withdraw-sheet
+            [storeId]="storeId()"
+            [storeName]="storeName()"
+            [environment]="environment()"
+            [available]="result.account.available"
+            (done)="onWithdrawn($event)"
+            (closed)="isWithdrawOpen.set(false)"
+          />
+        }
       }
 
       @if (reads.transactions.error(); as message) {
@@ -304,5 +338,32 @@
     } @else if (timeline(); as result) {
       <adm-timeline [events]="timelineEvents(result)" />
     }
+
+    <ng-container sheetActions>
+      @if (canRefund(payment)) {
+        <button
+          admButton
+          type="button"
+          variant="primary"
+          size="sm"
+          data-testid="open-refund"
+          (click)="refundFor.set(payment)"
+        >
+          Estornar pela loja
+        </button>
+      }
+    </ng-container>
   </adm-sheet>
+}
+
+<!-- ─── Estorno pela loja ────────────────────────────────────────────────── -->
+@if (refundFor(); as payment) {
+  <app-operator-refund-sheet
+    [storeId]="storeId()"
+    [storeName]="storeName()"
+    [environment]="environment()"
+    [payment]="payment"
+    (done)="onRefunded($event)"
+    (closed)="refundFor.set(null)"
+  />
 }

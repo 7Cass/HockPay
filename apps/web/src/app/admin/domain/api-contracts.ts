@@ -23,11 +23,16 @@
  */
 export { ApiClientService } from '../../core/services/api-client.service';
 export { toHttpParams } from '../../core/http/list-query';
+export { createIdempotencyKey } from '../../core/http/idempotency-key';
 
 export type {
   GetPaymentTimelineResponseDto,
   PaymentObject,
-  PaymentStatus,
+  RefundObject,
 } from '../../core/services/payment.service';
+// Valor, e não só tipo: é um enum, e comparar status pede os membros.
+export { PaymentStatus } from '../../core/services/payment.service';
 export type { WebhookConfig, WebhookLog } from '../../core/services/webhook.service';
 export type { TransactionObject } from '../../core/models/transaction';
+export type { BankAccount } from '../../core/services/bank-account.service';
+export type { Withdrawal } from '../../core/services/withdrawal.service';

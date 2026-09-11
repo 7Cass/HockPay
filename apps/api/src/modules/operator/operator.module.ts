@@ -8,6 +8,7 @@ import {
   GetAccountUseCase,
   GetPaymentTimelineUseCase,
   GetStoreForOperatorUseCase,
+  ListBankAccountsUseCase,
   ListPaymentsUseCase,
   ListStoresForOperatorUseCase,
   ListTransactionsUseCase,
@@ -123,6 +124,9 @@ import {
       'ITransactionRepository',
       'IAccountRepository',
     ]),
+    // Where a withdrawal by the desk can go. Without it the desk would withdraw
+    // to a destination id pasted from somewhere else.
+    provideUseCase(ListBankAccountsUseCase, ['IBankAccountRepository']),
     provideUseCase(ListWebhookConfigsUseCase, [
       'IWebhookConfigRepository',
       WEBHOOK_CIRCUIT_BREAKER,
