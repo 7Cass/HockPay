@@ -27,6 +27,7 @@ import {
     PaymentLinkStatus,
 } from '../../../../core/services/payment-link.service';
 import { ProductItem, ProductService } from '../../../../core/services/product.service';
+import { parseReaisToCents } from '../../../../core/money/reais';
 import {
     PageHeader,
     PageState,
@@ -63,19 +64,9 @@ const FILTERS: PaymentLinkFilter[] = [
     { id: 'cancelled', label: 'Cancelados', status: 'CANCELLED' },
 ];
 
-function parseBrlToCents(value: string | number | null | undefined): number {
-    if (typeof value === 'number') return Math.round(value * 100);
-
-    const raw = String(value ?? '').trim();
-    if (!raw) return 0;
-
-    const normalized = raw
-        .replace(/[^\d,.-]/g, '')
-        .replace(/\./g, '')
-        .replace(',', '.');
-    const amount = Number(normalized);
-
-    return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+/** Vazio ou fora do formato vale zero, e zero e o que as validacoes recusam. */
+function parseBrlToCents(value: string): number {
+    return parseReaisToCents(value ?? '') ?? 0;
 }
 
 function brlAmountValidator(control: AbstractControl): ValidationErrors | null {
