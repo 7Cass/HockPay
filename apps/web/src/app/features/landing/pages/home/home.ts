@@ -1,15 +1,7 @@
-import {
-  Component,
-  DOCUMENT,
-  DestroyRef,
-  afterNextRender,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
-import { Meta } from '@angular/platform-browser';
+import { Component, DestroyRef, afterNextRender, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Reveal } from '../../../../shared/directives/reveal';
+import { applyNightChrome } from '../../../../shared/night-chrome';
 import { ApiShowcase } from '../../components/api-showcase/api-showcase';
 import { CustomCursor } from '../../components/custom-cursor/custom-cursor';
 import { FeatureTiles } from '../../components/feature-tiles/feature-tiles';
@@ -23,9 +15,6 @@ import { MOODS, blobPath } from '../../motion/blob';
 import { Magnetic } from '../../motion/magnetic';
 
 const CHARGE_ID = 'pay_3f8Ka92LmQ';
-
-/** O chão da landing; o resto do produto segue no papel claro. */
-const NIGHT = '#11110f';
 
 /** A página toma a cor do desfecho escolhido no simulador. */
 const ACCENTS: Record<SimStatus, string> = {
@@ -237,8 +226,6 @@ Idempotency-Replayed: true
 
   constructor() {
     const destroyRef = inject(DestroyRef);
-    const document = inject(DOCUMENT);
-    const meta = inject(Meta);
     let lastY = 0;
     let ticker: ReturnType<typeof setInterval> | undefined;
 
@@ -251,14 +238,7 @@ Idempotency-Replayed: true
       }
     };
 
-    // A landing é a única tela escura: o overscroll, a barra de rolagem e a
-    // barra do navegador acompanham enquanto ela estiver montada, e voltam depois.
-    const root = document.documentElement;
-    const previous = {
-      background: document.body.style.backgroundColor,
-      scheme: root.style.colorScheme,
-      themeColor: meta.getTag('name="theme-color"')?.content,
-    };
+    applyNightChrome();
 
     const tell = () =>
       this.clock.set(
@@ -268,9 +248,6 @@ Idempotency-Replayed: true
     afterNextRender(() => {
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
-      document.body.style.backgroundColor = NIGHT;
-      root.style.colorScheme = 'dark';
-      meta.updateTag({ name: 'theme-color', content: NIGHT });
       tell();
       ticker = setInterval(tell, 1000);
     });
@@ -278,10 +255,6 @@ Idempotency-Replayed: true
     destroyRef.onDestroy(() => {
       window.removeEventListener('scroll', onScroll);
       clearInterval(ticker);
-      document.body.style.backgroundColor = previous.background;
-      root.style.colorScheme = previous.scheme;
-      if (previous.themeColor)
-        meta.updateTag({ name: 'theme-color', content: previous.themeColor });
     });
   }
 

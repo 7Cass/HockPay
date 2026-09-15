@@ -1,5 +1,7 @@
-/* Shared chrome for the auth forms (login + register).
-   Same paper/ink system as the landing: ink on paper, color only for state. */
+/* O formulário das telas de entrada, no carvão da landing. Campos editoriais:
+   sem caixa, só a linha — que acende quando o campo tem foco, na cor do
+   desfecho. Classes com prefixo `au-`: `field`, `control`, `toggle`, `link`,
+   `eyebrow` e `btn-ink` são globais em primitives.css e vazariam. */
 
 :host {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -7,196 +9,349 @@
   width: 100%;
 }
 
-/* ── Type helpers ─────────────────────────────────────────────────────── */
-.eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* ── Cabeça ───────────────────────────────────────────────────────────── */
+.au-kicker {
   font-family: var(--font-code);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-ink-faint);
+  color: var(--color-bone-faint);
 }
 
-.pulse-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-ok);
-  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ok) 55%, transparent);
-  animation: pulse 2.6s ease-out infinite;
+.au-kicker.is-ok {
+  color: var(--color-ok-bright);
 }
 
-@keyframes pulse {
-  70% {
-    box-shadow: 0 0 0 7px transparent;
+.au-title {
+  margin-top: 1.1rem;
+  font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+  font-weight: 700;
+  font-variation-settings: 'wdth' 80;
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.au-soft {
+  font-weight: 300;
+  font-variation-settings: 'wdth' 100;
+  color: var(--color-bone-soft);
+}
+
+.au-lede {
+  max-width: 25rem;
+  margin-top: 1rem;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--color-bone-soft);
+}
+
+/* ── Campos ───────────────────────────────────────────────────────────── */
+.au-form {
+  display: grid;
+  gap: 1.7rem;
+  margin-top: 2.6rem;
+}
+
+.au-pair {
+  display: grid;
+  gap: 1.7rem;
+}
+
+/* `minmax(0, …)`: com `1fr` puro a largura intrínseca dos inputs alargava a
+   grade e empurrava o formulário inteiro para fora da coluna. */
+@media (min-width: 560px) {
+  .au-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
   }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
 }
 
-/* ── Fields ───────────────────────────────────────────────────────────── */
-.field {
-  display: block;
+.au-field {
+  min-width: 0;
 }
 
-.field-label {
+.au-label {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--color-ink-soft);
+  gap: 0.6rem;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-bone-faint);
 }
 
-.control {
+.au-n {
+  opacity: 0.55;
+}
+
+.au-hint {
+  margin-left: auto;
+  letter-spacing: 0.08em;
+}
+
+.au-control {
   position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 0.3rem;
+  border-bottom: 1px solid var(--color-night-line);
 }
 
-.field input {
-  display: block;
-  width: 100%;
-  height: 2.85rem;
-  padding: 0 0.95rem;
-  border: 1px solid var(--color-hairline);
-  border-radius: 12px;
-  background: var(--color-paper);
-  font-size: 14.5px;
-  color: var(--color-ink);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.field input::placeholder {
-  color: var(--color-ink-faint);
-}
-
-.field input:hover:not(:focus) {
-  border-color: color-mix(in oklab, var(--color-ink) 25%, var(--color-hairline));
-}
-
-.field input:focus {
-  outline: none;
-  border-color: var(--color-ink);
-  box-shadow: 0 0 0 3px rgb(20 20 15 / 0.07);
-}
-
-.field input.is-invalid,
-.field input.ng-invalid.ng-touched {
-  border-color: var(--color-bad);
-}
-
-.field input.is-invalid:focus,
-.field input.ng-invalid.ng-touched:focus {
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-bad) 14%, transparent);
-}
-
-.control.with-toggle input {
-  padding-right: 3rem;
-}
-
-.toggle {
+/* A linha de foco: cresce da esquerda, na cor da página. */
+.au-control::after {
+  content: '';
   position: absolute;
-  top: 50%;
-  right: 0.5rem;
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  color: var(--color-ink-faint);
+  inset: auto 0 -1px;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
   transition:
-    color 0.2s,
-    background 0.2s;
+    transform 0.5s var(--ease),
+    --accent 0.9s var(--ease);
 }
 
-.toggle:hover {
-  color: var(--color-ink);
-  background: rgb(20 20 15 / 0.05);
+.au-control:focus-within::after {
+  transform: none;
 }
 
-.field-note,
-.field-error {
-  display: block;
-  margin-top: 0.5rem;
+.au-field.is-invalid .au-control::after {
+  background: var(--color-bad-bright);
+  transform: none;
+}
+
+.au-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0 0.7rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: clamp(1.2rem, 1.5vw, 1.45rem);
+  font-weight: 500;
+  font-variation-settings: 'wdth' 90;
+  letter-spacing: -0.01em;
+  color: var(--color-bone);
+  caret-color: var(--color-bone);
+}
+
+.au-input:focus {
+  outline: none;
+}
+
+.au-input::placeholder {
+  color: rgb(236 230 218 / 0.22);
+}
+
+/* O autofill do navegador pinta o campo de azul-claro; aqui ele some no carvão. */
+.au-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-bone);
+  caret-color: var(--color-bone);
+  box-shadow: 0 0 0 100px var(--color-night) inset;
+  transition: background-color 9999s;
+}
+
+.au-toggle {
+  flex: none;
+  padding: 0.4rem 0 0.4rem 0.9rem;
+  font-family: var(--font-code);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-bone-faint);
+  transition: color 0.2s;
+}
+
+.au-toggle:hover {
+  color: var(--color-bone);
+}
+
+.au-toggle:focus-visible {
+  border-radius: 4px;
+  outline: 1px solid var(--color-bone);
+  outline-offset: 2px;
+  color: var(--color-bone);
+}
+
+.au-note,
+.au-error {
+  margin-top: 0.55rem;
   font-family: var(--font-code);
   font-size: 11px;
   letter-spacing: 0.04em;
 }
 
-.field-note {
-  color: var(--color-ink-faint);
+.au-note {
+  color: var(--color-bone-faint);
 }
 
-.field-error {
-  color: var(--color-bad);
-  animation: nudge 0.35s var(--ease) both;
+.au-error {
+  color: var(--color-bad-bright);
+  animation: au-nudge 0.35s var(--ease) both;
 }
 
-@keyframes nudge {
+@keyframes au-nudge {
   from {
     opacity: 0;
     transform: translateY(-3px);
   }
 }
 
-/* ── Submit ───────────────────────────────────────────────────────────── */
-.btn-ink {
-  display: inline-flex;
+/* ── Envio ────────────────────────────────────────────────────────────── */
+.au-actions {
+  margin-top: 0.4rem;
+}
+
+.au-submit {
+  position: relative;
+  isolation: isolate;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 1rem;
   width: 100%;
-  height: 3rem;
+  height: 3.7rem;
+  padding: 0 0.55rem 0 1.6rem;
+  overflow: hidden;
   border-radius: 999px;
-  background: var(--color-ink);
-  color: var(--color-paper);
-  font-size: 15px;
-  font-weight: 500;
-  transition:
-    transform 0.2s var(--ease),
-    box-shadow 0.2s,
-    opacity 0.2s;
+  background: var(--color-bone);
+  color: var(--color-night);
+  font-size: 16px;
+  font-weight: 600;
+  transition: opacity 0.2s;
 }
 
-.btn-ink:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px -14px rgb(20 20 15 / 0.55);
+/* O hover promete o final bom: enche de baixo na cor do "confirmado". */
+.au-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-ok-bright);
+  transform: translateY(101%);
+  transition: transform 0.5s var(--ease);
 }
 
-.btn-ink:disabled {
-  opacity: 0.5;
+.au-submit:hover:not(:disabled)::before {
+  transform: none;
 }
 
-.arrow {
-  transition: transform 0.3s var(--ease);
+.au-submit:focus-visible {
+  outline: 2px solid var(--color-bone);
+  outline-offset: 3px;
 }
 
-.btn-ink:hover:not(:disabled) .arrow {
-  transform: translateX(3px);
+.au-submit:disabled {
+  cursor: progress;
+  opacity: 0.75;
 }
 
-/* ── Inline links ─────────────────────────────────────────────────────── */
-.link {
-  color: var(--color-ink);
-  font-weight: 500;
-  border-bottom: 1px solid var(--color-hairline);
-  transition: border-color 0.25s;
+.au-submit-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: var(--color-night);
+  color: var(--color-bone);
 }
 
-.link:hover {
-  border-color: var(--color-ink);
+.au-submit-icon svg {
+  width: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  rotate: -45deg;
+  transition: rotate 0.45s var(--ease);
 }
 
-/* ── Scroll reveal ────────────────────────────────────────────────────── */
+.au-submit:hover:not(:disabled) .au-submit-icon svg {
+  rotate: 0deg;
+}
+
+.au-spin {
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: au-spin 0.8s linear infinite;
+}
+
+@keyframes au-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* O erro do servidor fica na tela, e não num toast que some. */
+.au-failure {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--color-bad-bright) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-bad-bright) 8%, transparent);
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-bad-bright);
+  animation: au-nudge 0.35s var(--ease) both;
+}
+
+/* ── Pé ───────────────────────────────────────────────────────────────── */
+.au-switch {
+  margin-top: 2.2rem;
+  font-size: 14px;
+  color: var(--color-bone-soft);
+}
+
+/* O link que rola: o texto sobe e uma cópia entra por baixo, como na landing. */
+.au-roll {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--color-bone);
+}
+
+.au-roll > span,
+.au-roll::after {
+  display: block;
+  transition: translate 0.45s var(--ease);
+}
+
+.au-roll::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  translate: 0 105%;
+  color: var(--color-ok-bright);
+}
+
+.au-roll:hover > span,
+.au-roll:focus-visible > span {
+  translate: 0 -105%;
+}
+
+.au-roll:hover::after,
+.au-roll:focus-visible::after {
+  translate: 0 0;
+}
+
+.au-fine {
+  margin-top: 0.8rem;
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: var(--color-bone-faint);
+}
+
+/* ── Revelação ────────────────────────────────────────────────────────── */
 .reveal {
   opacity: 0;
   transform: translateY(16px);
@@ -217,12 +372,16 @@
     transition: none;
   }
 
-  .pulse-dot,
-  .field-error {
+  .au-error,
+  .au-failure {
     animation: none;
   }
 
-  .btn-ink:hover:not(:disabled) {
-    transform: none;
+  .au-control::after,
+  .au-submit::before,
+  .au-submit-icon svg,
+  .au-roll > span,
+  .au-roll::after {
+    transition: none;
   }
 }
