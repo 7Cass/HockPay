@@ -11,10 +11,15 @@
   color-scheme: dark;
 }
 
+/* `--accent` troca seca aqui na raiz: uma custom property herdada animando
+   no topo recalcula o estilo da página inteira a cada frame — com ela, a hero
+   passava da metade do recálculo de estilo e de um frame de 120 Hz a cada
+   troca de desfecho. Quem pinta com ela na primeira dobra anima a própria
+   cópia; o resto troca seco, porque o simulador — a única fonte da cor —
+   mora na hero e o demo pausa quando ela sai da tela. */
 .page {
   position: relative;
   overflow-x: clip;
-  transition: --accent 0.9s var(--ease);
 }
 
 /* Grão: ruído fixo por cima de tudo, tremendo em passos. */
@@ -114,7 +119,9 @@
   width: 1.7rem;
   height: 1.7rem;
   fill: var(--accent);
-  transition: rotate 0.8s var(--ease);
+  transition:
+    rotate 0.8s var(--ease),
+    --accent 0.9s var(--ease);
 }
 
 .brand:hover .brand-mark {
@@ -337,6 +344,7 @@
   font-weight: 300;
   font-variation-settings: 'wdth' 100;
   color: var(--accent);
+  transition: --accent 0.9s var(--ease);
 }
 
 .word {

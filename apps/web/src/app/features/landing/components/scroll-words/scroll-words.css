@@ -17,6 +17,10 @@
   transition: opacity 0.15s linear;
 }
 
+/* A transição da cor é daqui: na raiz ela troca seco (ver `.page` em home.css). */
 .w.hl {
   color: var(--accent);
+  transition:
+    opacity 0.15s linear,
+    --accent 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }

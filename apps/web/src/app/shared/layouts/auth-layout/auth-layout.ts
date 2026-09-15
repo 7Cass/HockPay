@@ -1,21 +1,35 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeft } from '@ng-icons/lucide';
-import { HlmToaster } from '../../../../../libs/ui/sonner/src';
+import { OrganicBlob } from '../../../features/landing/components/organic-blob/organic-blob';
+import { MOODS, MoodName, blobPath } from '../../../features/landing/motion/blob';
+import { applyNightChrome } from '../../night-chrome';
+import { AuthStage } from './auth-stage';
 
+/** The page takes the color of how the request ended; bone while it hasn't. */
+const ACCENTS: Partial<Record<MoodName, string>> = {
+  confirmed: 'var(--color-ok-bright)',
+  failed: 'var(--color-bad-bright)',
+};
+
+/**
+ * The shell around login and register, in the landing's night: the organism
+ * on one side acting out the request the form on the other side is building.
+ */
 @Component({
   selector: 'app-auth-layout',
-  imports: [RouterOutlet, RouterLink, NgIcon, HlmToaster],
-  providers: [provideIcons({ lucideArrowLeft })],
+  imports: [RouterOutlet, RouterLink, OrganicBlob],
+  providers: [AuthStage],
   templateUrl: './auth-layout.html',
   styleUrl: './auth-layout.css',
 })
 export class AuthLayout {
-  /** A sample of what a fresh sandbox delivers, shown beside the form. */
-  protected readonly proof = [
-    { event: 'payment.confirmed', note: '200 OK · 42ms', tone: 'ok' },
-    { event: 'payment.failed', note: 'reentregue 1×', tone: 'bad' },
-    { event: 'payment.expired', note: 'após 5 min', tone: 'warn' },
-  ] as const;
+  protected readonly stage = inject(AuthStage);
+  protected readonly accent = computed(() => ACCENTS[this.stage.mood()] ?? 'var(--color-bone)');
+
+  /** The brand: a small organism, still, in the page's color. */
+  protected readonly mark = blobPath(MOODS.confirmed, 0.8, 11);
+
+  constructor() {
+    applyNightChrome();
+  }
 }

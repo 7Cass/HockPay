@@ -1,89 +1,54 @@
-<div class="min-h-screen bg-paper text-ink antialiased lg:grid lg:grid-cols-[0.92fr_1.08fr]">
-  <!-- ─── Ink panel ─────────────────────────────────────────────────────── -->
-  <aside
-    class="relative hidden overflow-hidden bg-ink px-10 py-12 text-paper lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between xl:px-14"
-  >
-    <div class="ink-field" aria-hidden="true"></div>
-
-    <a routerLink="/" class="group relative flex items-center gap-2.5 self-start">
-      <span class="mark mark-inverse" aria-hidden="true">
-        <span class="mark-bar"></span>
-        <span class="mark-bar"></span>
-        <span class="mark-dot"></span>
-      </span>
-      <span class="text-[15px] font-semibold tracking-[-0.02em] text-paper">hockpay</span>
-      <span
-        class="rounded-full border border-paper/20 px-2 py-[3px] font-code text-[9px] font-medium tracking-[0.18em] text-paper/50"
-      >
-        TEST
-      </span>
+<div class="au" [style.--accent]="accent()">
+  <header class="au-nav">
+    <a routerLink="/" class="au-brand" aria-label="HockPay, voltar ao site">
+      <svg class="au-brand-mark" viewBox="-14 -14 28 28" aria-hidden="true">
+        <path [attr.d]="mark" />
+      </svg>
+      <span class="au-brand-word">hockpay</span>
+      <span class="au-brand-tag">test</span>
     </a>
 
-    <div class="relative max-w-md py-10">
-      <p class="eyebrow text-paper/45">
-        <span class="pulse-dot"></span>
-        Ambiente TEST
-      </p>
+    <a routerLink="/" class="au-back">
+      <span class="au-back-arrow" aria-hidden="true">←</span>
+      voltar ao site
+    </a>
+  </header>
 
-      <p
-        class="mt-6 font-display text-[clamp(2rem,3.2vw,2.9rem)] leading-[1.02] tracking-[-0.02em] text-paper"
-      >
-        Uma conta, duas chaves,<br />
-        <em class="italic">todos os finais.</em>
-      </p>
+  <!-- O palco: o organismo é o pedido que o formulário ao lado está montando.
+       Só repete o que o formulário já diz, então fica fora da árvore de
+       acessibilidade — os erros de verdade são anunciados no formulário. -->
+  <section class="au-stage" aria-hidden="true">
+    <app-organic-blob class="au-organism" [mood]="stage.mood()">
+      <div class="au-core" [attr.data-mood]="stage.mood()">
+        <p class="au-core-label">{{ stage.face().label }}</p>
+        <p class="au-core-code">{{ stage.face().code }}</p>
+        <p class="au-core-state">{{ stage.face().state }}</p>
+        <p class="au-core-meta">{{ stage.face().meta }}</p>
+      </div>
+    </app-organic-blob>
 
-      <p class="mt-5 text-[14.5px] leading-[1.65] text-paper/60">
-        Sua sandbox nasce com chaves TEST e LIVE isoladas, webhooks assinados e um ledger que fecha.
-        O dinheiro é que não existe.
-      </p>
+    <ol class="au-log">
+      @for (line of stage.lines(); track line.id) {
+        <li class="au-line" [attr.data-tone]="line.tone">
+          <span class="au-line-name">{{ line.name }}</span>
+          <span class="au-line-note">{{ line.note }}</span>
+        </li>
+      } @empty {
+        <li class="au-line-empty">aguardando o primeiro evento<span class="au-caret">_</span></li>
+      }
+    </ol>
+  </section>
 
-      <ol class="mt-9 space-y-2">
-        @for (row of proof; track row.event) {
-          <li class="log" [attr.data-tone]="row.tone">
-            <span class="log-mark" aria-hidden="true"></span>
-            <span class="font-code text-[12px] text-paper/85">{{ row.event }}</span>
-            <span class="ml-auto font-code text-[11px] text-paper/40">{{ row.note }}</span>
-          </li>
-        }
-      </ol>
-    </div>
-
-    <p class="relative font-code text-[11px] tracking-[0.06em] text-paper/35">
-      sem cartão · sem contrato com adquirente · primeira cobrança em 2 minutos
-    </p>
-  </aside>
-
-  <!-- ─── Form side ─────────────────────────────────────────────────────── -->
-  <div class="flex min-h-screen flex-col px-5 py-6 sm:px-8 lg:px-12 xl:px-20">
-    <header class="flex items-center justify-between gap-4">
-      <a routerLink="/" class="group flex items-center gap-2.5 lg:hidden">
-        <span class="mark" aria-hidden="true">
-          <span class="mark-bar"></span>
-          <span class="mark-bar"></span>
-          <span class="mark-dot"></span>
-        </span>
-        <span class="text-[15px] font-semibold tracking-[-0.02em] text-ink">hockpay</span>
-      </a>
-
-      <a routerLink="/" class="back group ml-auto">
-        <ng-icon name="lucideArrowLeft" size="13px" class="arrow-back" aria-hidden="true" />
-        voltar ao site
-      </a>
-    </header>
-
-    <main class="flex flex-1 items-center justify-center py-12">
-      <div class="w-full max-w-[25rem]">
+  <div class="au-side">
+    <main class="au-main">
+      <div class="au-sheet">
         <router-outlet />
       </div>
     </main>
 
-    <footer
-      class="flex flex-wrap items-center justify-between gap-2 font-code text-[11px] tracking-[0.06em] text-ink-faint"
-    >
+    <footer class="au-foot">
       <span>© 2026 hockpay · MIT</span>
       <span>simulação · sem dinheiro real</span>
     </footer>
   </div>
 </div>
-
-<hlm-toaster position="bottom-right" richColors="true" />

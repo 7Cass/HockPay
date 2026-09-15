@@ -1,6 +1,8 @@
-/* O organismo pinta com `--accent`, que a home troca conforme o desfecho. */
+/* O organismo pinta com `--accent`, que a home troca conforme o desfecho —
+   seca na raiz; a transição é daqui (ver `.page` em home.css). */
 
 :host {
+  transition: --accent 0.9s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   display: grid;
   place-items: center;

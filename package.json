@@ -27,6 +27,7 @@
     "smoke:docker": "node scripts/smoke-orchestrate-local.mjs",
     "dlq": "node scripts/dlq.mjs",
     "operator:create": "node --env-file-if-exists=.env scripts/operator-create.mjs",
+    "seed:demo": "node --env-file-if-exists=.env scripts/seed-merchant-demo.mjs",
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "turbo run format:check",

@@ -1,26 +1,19 @@
-<p appReveal class="eyebrow">
-  <span class="pulse-dot"></span>
-  Criar conta
-</p>
+<p appReveal class="au-kicker">(test) criar conta</p>
 
-<h1
-  [appReveal]="60"
-  class="mt-6 font-display text-[clamp(2.1rem,6vw,2.9rem)] leading-[0.98] tracking-[-0.02em] text-ink"
->
-  Sua sandbox em <em class="italic">dois minutos.</em>
-</h1>
+<h1 [appReveal]="60" class="au-title">Sua sandbox em <span class="au-soft">dois minutos.</span></h1>
 
-<p [appReveal]="110" class="mt-4 text-[15px] leading-[1.65] text-ink-soft">
+<p [appReveal]="110" class="au-lede">
   Nome, e-mail e documento. Você sai daqui com um par de chaves TEST e nenhum contrato com
   adquirente.
 </p>
 
-<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="mt-9 space-y-5" novalidate>
-  <div [appReveal]="150" class="field">
-    <label class="field-label" for="name">Nome completo</label>
-    <div class="control">
+<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="au-form" novalidate>
+  <div [appReveal]="150" class="au-field" [class.is-invalid]="showError('name')">
+    <label class="au-label" for="name"><span class="au-n">01</span>Nome completo</label>
+    <div class="au-control">
       <input
         id="name"
+        class="au-input"
         type="text"
         formControlName="name"
         placeholder="João Silva"
@@ -28,18 +21,20 @@
         autocapitalize="words"
         autocorrect="off"
         [attr.aria-invalid]="showError('name')"
+        [attr.aria-describedby]="showError('name') ? 'name-error' : null"
       />
     </div>
     @if (showError('name')) {
-      <span class="field-error" role="alert">use entre 2 e 100 caracteres</span>
+      <p id="name-error" class="au-error" role="alert">use entre 2 e 100 caracteres</p>
     }
   </div>
 
-  <div [appReveal]="185" class="field">
-    <label class="field-label" for="email">E-mail</label>
-    <div class="control">
+  <div [appReveal]="185" class="au-field" [class.is-invalid]="showError('email')">
+    <label class="au-label" for="email"><span class="au-n">02</span>E-mail</label>
+    <div class="au-control">
       <input
         id="email"
+        class="au-input"
         type="email"
         formControlName="email"
         placeholder="voce@empresa.com"
@@ -48,106 +43,104 @@
         autocorrect="off"
         spellcheck="false"
         [attr.aria-invalid]="showError('email')"
+        [attr.aria-describedby]="showError('email') ? 'email-error' : null"
       />
     </div>
     @if (showError('email')) {
-      <span class="field-error" role="alert">informe um e-mail válido</span>
+      <p id="email-error" class="au-error" role="alert">informe um e-mail válido</p>
     }
   </div>
 
-  <div [appReveal]="220" class="field">
-    <label class="field-label" for="document">
-      Documento
-      <span class="font-code text-[10.5px] tracking-[0.12em] text-ink-faint">CPF / CNPJ</span>
+  <div [appReveal]="220" class="au-field" [class.is-invalid]="showError('document')">
+    <label class="au-label" for="document">
+      <span class="au-n">03</span>Documento
+      <span class="au-hint">CPF / CNPJ</span>
     </label>
-    <div class="control">
+    <div class="au-control">
       <input
         id="document"
+        class="au-input"
         type="text"
         inputmode="numeric"
         formControlName="document"
         placeholder="000.000.000-00"
         mask="000.000.000-00||00.000.000/0000-00"
         [attr.aria-invalid]="showError('document')"
+        [attr.aria-describedby]="showError('document') ? 'document-error' : null"
       />
     </div>
     @if (showError('document')) {
-      <span class="field-error" role="alert">informe um CPF ou CNPJ válido</span>
+      <p id="document-error" class="au-error" role="alert">informe um CPF ou CNPJ válido</p>
     }
   </div>
 
-  <div [appReveal]="255" class="field">
-    <label class="field-label" for="password">Senha</label>
-    <div class="control with-toggle">
-      <input
-        id="password"
-        [type]="showPassword() ? 'text' : 'password'"
-        formControlName="password"
-        autocomplete="new-password"
-        [attr.aria-invalid]="showError('password')"
-      />
-      <button
-        type="button"
-        class="toggle"
-        [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
-        [attr.aria-pressed]="showPassword()"
-        (click)="togglePassword()"
-      >
-        <ng-icon
-          hlm
-          [name]="showPassword() ? 'lucideEyeOff' : 'lucideEye'"
-          size="16px"
-          aria-hidden="true"
+  <div [appReveal]="255" class="au-pair">
+    <div class="au-field" [class.is-invalid]="showError('password')">
+      <label class="au-label" for="password"><span class="au-n">04</span>Senha</label>
+      <div class="au-control">
+        <input
+          id="password"
+          class="au-input"
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="new-password"
+          aria-describedby="password-note"
+          [attr.aria-invalid]="showError('password')"
         />
-      </button>
+        <button type="button" class="au-toggle" (click)="togglePassword()">
+          {{ showPassword() ? 'ocultar' : 'mostrar' }}<span class="sr-only"> senha</span>
+        </button>
+      </div>
+      <p id="password-note" [class]="showError('password') ? 'au-error' : 'au-note'">
+        mínimo de 8 caracteres
+      </p>
     </div>
-    @if (showError('password')) {
-      <span class="field-error" role="alert">mínimo de 8 caracteres</span>
-    } @else {
-      <span class="field-note">mínimo de 8 caracteres</span>
-    }
-  </div>
 
-  <div [appReveal]="290" class="field">
-    <label class="field-label" for="confirm-password">Confirmar senha</label>
-    <div class="control">
-      <input
-        id="confirm-password"
-        type="password"
-        formControlName="confirmPassword"
-        autocomplete="new-password"
-        [class.is-invalid]="showMismatch()"
-        [attr.aria-invalid]="showError('confirmPassword') || showMismatch()"
-      />
-    </div>
-    @if (showError('confirmPassword')) {
-      <span class="field-error" role="alert">repita a senha</span>
-    } @else if (showMismatch()) {
-      <span class="field-error" role="alert">as senhas não coincidem</span>
-    }
-  </div>
-
-  <div [appReveal]="325" class="pt-1">
-    <button type="submit" class="btn-ink" [disabled]="isLoading()">
-      @if (isLoading()) {
-        <ng-icon name="lucideLoader2" size="16px" class="animate-spin" aria-hidden="true" />
-        Criando…
-      } @else {
-        Criar minha sandbox
-        <ng-icon name="lucideArrowRight" size="16px" class="arrow" aria-hidden="true" />
+    <div class="au-field" [class.is-invalid]="showError('confirmPassword') || showMismatch()">
+      <label class="au-label" for="confirm-password"><span class="au-n">05</span>Confirmar</label>
+      <div class="au-control">
+        <input
+          id="confirm-password"
+          class="au-input"
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="confirmPassword"
+          autocomplete="new-password"
+          [attr.aria-invalid]="showError('confirmPassword') || showMismatch()"
+          [attr.aria-describedby]="
+            showError('confirmPassword') || showMismatch() ? 'confirm-error' : null
+          "
+        />
+      </div>
+      @if (showError('confirmPassword')) {
+        <p id="confirm-error" class="au-error" role="alert">repita a senha</p>
+      } @else if (showMismatch()) {
+        <p id="confirm-error" class="au-error" role="alert">as senhas não coincidem</p>
       }
+    </div>
+  </div>
+
+  <div [appReveal]="290" class="au-actions">
+    <button type="submit" class="au-submit" [disabled]="isLoading()">
+      <span>{{ isLoading() ? 'Criando…' : 'Criar minha sandbox' }}</span>
+      <span class="au-submit-icon" aria-hidden="true">
+        @if (isLoading()) {
+          <span class="au-spin"></span>
+        } @else {
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        }
+      </span>
     </button>
+    @if (failure()) {
+      <p class="au-failure" role="alert">{{ failure() }}</p>
+    }
   </div>
 </form>
 
-<p [appReveal]="360" class="mt-8 text-[13.5px] text-ink-soft">
+<p [appReveal]="330" class="au-switch">
   Já tem uma conta?
-  <a routerLink="/login" class="link">Entrar</a>
+  <a routerLink="/login" class="au-roll" data-text="Entrar"><span>Entrar</span></a>
 </p>
 
-<p
-  [appReveal]="390"
-  class="mt-3 font-code text-[11px] leading-[1.6] tracking-[0.06em] text-ink-faint"
->
+<p [appReveal]="360" class="au-fine">
   ao criar a conta você ganha chaves TEST · nenhum centavo real circula por aqui
 </p>

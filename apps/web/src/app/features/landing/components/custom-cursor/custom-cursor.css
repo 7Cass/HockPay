@@ -18,7 +18,7 @@
   top: 0;
   left: 0;
   border-radius: 50%;
-  will-change: transform;
+  will-change: translate;
   /* Branco em `difference`: inverte o que estiver embaixo, claro ou escuro. */
   mix-blend-mode: difference;
 }

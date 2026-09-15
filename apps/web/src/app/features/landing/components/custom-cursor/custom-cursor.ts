@@ -57,15 +57,19 @@ export class CustomCursor {
       if (!hasFinePointer() || prefersReducedMotion()) return;
       document.documentElement.classList.add('lp-cursor');
 
+      // A posição vai na propriedade `translate`, não em `transform`: o `scale`
+      // do clique (.is-down) é aplicado depois de `transform` e encolheria o
+      // deslocamento junto, puxando o anel para o canto da tela.
       const move = (event: PointerEvent) => {
         target.x = event.clientX;
         target.y = event.clientY;
-        this.dot().nativeElement.style.transform = `translate3d(${target.x}px, ${target.y}px, 0)`;
+        this.dot().nativeElement.style.translate = `${target.x}px ${target.y}px`;
         if (!this.on()) {
           trail.x = target.x;
           trail.y = target.y;
           this.on.set(true);
         }
+        wake();
       };
       const over = (event: PointerEvent) => {
         const hit = (event.target as Element | null)?.closest?.('[data-cursor], a, button');
@@ -84,7 +88,18 @@ export class CustomCursor {
         const t = damp(14, dt);
         trail.x += (target.x - trail.x) * t;
         trail.y += (target.y - trail.y) * t;
-        this.ring().nativeElement.style.transform = `translate3d(${trail.x}px, ${trail.y}px, 0)`;
+        // Alcançou o ponteiro: encosta e dorme até o próximo movimento.
+        const resting = Math.abs(target.x - trail.x) < 0.1 && Math.abs(target.y - trail.y) < 0.1;
+        if (resting) {
+          trail.x = target.x;
+          trail.y = target.y;
+        }
+        this.ring().nativeElement.style.translate = `${trail.x}px ${trail.y}px`;
+        frame = resting ? 0 : requestAnimationFrame(tick);
+      };
+      const wake = () => {
+        if (frame) return;
+        last = 0;
         frame = requestAnimationFrame(tick);
       };
 
@@ -93,7 +108,6 @@ export class CustomCursor {
       document.addEventListener('pointerout', out, { passive: true });
       window.addEventListener('pointerdown', press, { passive: true });
       window.addEventListener('pointerup', lift, { passive: true });
-      frame = requestAnimationFrame(tick);
 
       cleanup = () => {
         cancelAnimationFrame(frame);
