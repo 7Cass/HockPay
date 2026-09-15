@@ -1,24 +1,61 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-11`
-Scope: **a definir**
-Status: `sem goal ativa`
+Last reviewed: `2026-09-15`
+Ordering: fronteira antes de codigo; dado antes de pele; lista antes de detalhe; limpeza no fim
+Scope: **o console do lojista** -- `app/merchant/`, com arquitetura, desenho e as tres capacidades que o redesign destrava
+Status: `em andamento`. PRD em `docs/PRD_MERCHANT_CONSOLE.md`; nenhuma fatia comecou
 
-A passagem anterior (arquivada em `docs/goals/2026-09-10-desk-money-screen.md`) deu
-tela ao que a de `2026-09-09` deixou so por `curl`: a mesa saca e estorna pela loja
-de dentro da investigacao, com dois passos, motivo na trilha e a chave de
-idempotencia presa a intencao. Para isso a mesa ganhou a leitura dos destinos Pix da
-loja, que nao existia. No caminho, o parser de reais do painel do lojista -- que lia
-`10.50` como R$ 1.050,00 -- foi trocado pelo parser estrito da mesa, agora em `core/`.
+O dashboard e a maior superficie do produto (12.698 linhas, 18 telas) e a unica que
+nunca foi redesenhada. A landing virou noite, as telas de entrada seguiram, e o
+lojista continua em creme com serifa -- o sistema que a marca abandonou. A mesa ja
+resolveu esse problema uma vez, em `2026-09-09`, saindo do sistema de marca do
+lojista para `app/admin/`. Esta passagem faz o mesmo pelo lojista, e aproveita para
+trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 
-Este arquivo volta a ser o tracker executavel quando a proxima goal for escolhida.
+## Fatias
+
+| #  | Fatia                             | Estado         | Entrega                                                                                     |
+| -- | --------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| 0  | Fundacao                          | `nao iniciado` | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.     |
+| 1  | Nucleo de dados                   | `nao iniciado` | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                            |
+| 2  | Kit de ui v1                      | `nao iniciado` | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram. |
+| 3  | Dinheiro                          | `nao iniciado` | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                   |
+| 4  | Cobranca                          | `nao iniciado` | Detalhe do pagamento (o corte morre aqui), Links, Detalhe do link, forcar desfecho.         |
+| 5  | Integracao                        | `nao iniciado` | API, Webhooks, Alertas. Toaster proprio; `ngx-sonner` sai.                                  |
+| 6  | Visao geral                       | `nao iniciado` | Grafico proprio; `apexcharts` sai.                                                          |
+| 7  | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI. |
+
+## Decisoes ja tomadas
+
+- **Pele padrao carvao, com papel disponivel**, guardado por lojista em
+  `.mer-root[data-mer-theme]` -- nunca em `:root`, porque a mesa divide a origem.
+- **Escopo inclui as tres capacidades**: forcar desfecho, o fim do corte de 1440px e
+  o grafico proprio.
+- **A pasta e `app/merchant/`**, pelo criterio que deu `admin` ao operador: a pasta
+  leva o nome de quem entra; a rota continua `/dashboard`.
+- **Nada de `apps/merchant` separado.** Vale a decisao de `2026-09-09`: pasta
+  autocontida agora, app proprio so com motivo de deploy ou seguranca, e
+  `domain/api-contracts.ts` como unica costura.
+
+## O que o diagnostico mediu (2026-09-15)
+
+- `libs/ui` tem 58 componentes spartan (10.740 linhas) e **um** e importado.
+- `apexcharts` custa 900 kB para uma serie de area.
+- `primitives.css` tem 1.329 linhas de classe global; `panel` aparece 215x nos
+  templates e a familia `btn`, ~400x.
+- Servico e store global: `PaymentService` guarda 10 sinais de estado de tela e
+  serve tres paginas, que dividem o mesmo `isLoading`.
+- `httpResource`, `resource`, `rxResource` e os formularios por sinal estao
+  instalados e nao aparecem em nenhum arquivo.
+- `styles.css` carrega tres sistemas de token ao mesmo tempo, um deles (`:root.dark`
+  do shadcn) sem ninguem que ligue a classe.
 
 ## Onde o projeto esta
 
-Cinco das seis fatias do PRD pai estao no runtime, e a mesa tem quatro poderes, todos
-com tela: habilitar LIVE, condicao comercial, leitura para investigar e mover dinheiro
-pela loja.
+Cinco das seis fatias do PRD pai estao no runtime, e a mesa tem quatro poderes,
+todos com tela: habilitar LIVE, condicao comercial, leitura para investigar e mover
+dinheiro pela loja.
 
 | Fatia | Estado         | O que deu                                                                      |
 | ----- | -------------- | ------------------------------------------------------------------------------ |
@@ -29,46 +66,31 @@ pela loja.
 | 5     | `concluido`    | Leitura cross-merchant para investigar chamado, sem secret                     |
 | 6     | `nao iniciado` | Antifraude como modulo, alimentando a fila de revisao                          |
 
-## Candidatas a proxima passagem
+## Candidatas que ficaram para depois
 
-Nenhuma escolhida.
-
-### B. Versionar os smokes que ja rodaram
-
-Tres ciclos de validacao contra a API de verdade -- dois em `2026-09-08` e o da mesa
-movendo dinheiro em `2026-09-10` -- foram script descartavel.
-
-- **A favor:** o ultimo script ja e o esqueleto de um `smoke:operator`, com 21
-  assercoes que cobrem leitura, saque, replay, conflito de chave, estorno e trilha.
-  Nao existe smoke nenhum da mesa, e ela escreve no ledger.
-- **Contra:** nao muda invariante nem destrava capacidade; e seguro puro.
-
-### C. Fatia 6 -- antifraude e a fila de revisao
-
-O ultimo passo do PRD pai, e a unica fatia que ainda precisa de PRD do zero.
-
-- **A favor:** fecha o PRD pai, e a pre-condicao existe -- a mesa tem tela, trilha,
-  leitura de dado de loja e agora os dois movimentos de dinheiro.
-- **Contra:** e a maior das restantes, e trabalho de modelagem, nao de superficie.
-
-### D. Acabamento da mesa
-
-Total nas paginacoes da fila e da trilha, validacao de `limit`/`offset` nas duas
-rotas que fazem parse a mao, retencao da trilha e a mensagem vazia do `@IsEnum`.
-
-- **A favor:** barato, e a mesa e a superficie mais nova do produto.
-- **Contra:** nenhum item sozinho justifica uma passagem.
-
-## Corrigidos fora de passagem
-
-- **O painel do lojista lia `10.50` como R$ 1.050,00** -- corrigido em `2026-09-11`,
-  no mesmo PR da tela da mesa. As quatro paginas que convertem reais (produtos,
-  Payment Links, saques e estorno) usam o parser estrito de `core/money/reais.ts`.
-  Valor fora do formato continua valendo zero para as validacoes de cada pagina, que
-  ja recusavam zero: o formulario nao ganhou mensagem nova de formato.
+- **Versionar os smokes que ja rodaram.** Tres ciclos de validacao contra a API de
+  verdade foram script descartavel; o ultimo ja e o esqueleto de um `smoke:operator`,
+  com 21 assercoes. Nao existe smoke nenhum da mesa, e ela escreve no ledger.
+- **Fatia 6 -- antifraude e a fila de revisao.** O ultimo passo do PRD pai, e a unica
+  fatia que ainda precisa de PRD do zero.
+- **Acabamento da mesa.** Total nas paginacoes da fila e da trilha, validacao de
+  `limit`/`offset`, retencao da trilha e a mensagem vazia do `@IsEnum`.
 
 ## Achados abertos, sem dono
 
+- **`/dashboard/payments/:id` corta conteudo em 1440px.** A area de conteudo tem
+  1.168px e um painel da coluna direita termina em 1.499px; a casca esconde o estouro
+  com `overflow: hidden`, entao o texto some em silencio em vez de rolar. **Fecha na
+  fatia 4.**
+- **O lojista nao forca o desfecho de uma cobranca pela tela.**
+  `POST /payments/:id/simulate/:action` existe na API e nao tem uma ocorrencia no
+  front. Num simulador, e a promessa da landing faltando dentro do produto. **Fecha
+  na fatia 4.**
+- **`GET /dashboard/metrics` e orfao** -- o servico tem o metodo, ninguem chama.
+- **Cliente e so leitura no dashboard**: `PATCH /customers/:externalId` existe na API
+  e nao esta na tela.
+- **`apps/web` fica fora do gate de lint e format da CI** -- nao tem `lint:check` nem
+  `format:check`. **Fecha na fatia 7.**
 - **Nada revoga um access token em voo.** Consequencia de D1/D2 do PRD do seletor.
   Desde `2026-09-09` a janela nao custa dinheiro, porque todo caminho que move
   dinheiro rele a loja.
