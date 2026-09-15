@@ -4,7 +4,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
-    "types": ["vitest/globals"]
+    /* `node` existe para o teste de fronteira (`app/merchant/boundary.spec.ts`),
+       que lê a própria pasta do disco para checar a direção dos imports. Vale
+       só para os specs: o `tsconfig.app.json` continua sem tipos de Node. */
+    "types": ["vitest/globals", "node"]
   },
   "include": ["src/**/*.d.ts", "src/**/*.spec.ts"]
 }

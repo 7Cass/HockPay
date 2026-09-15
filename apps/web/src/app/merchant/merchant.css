@@ -1,0 +1,252 @@
+/* HockPay — a camada de design do console do lojista.
+   ---------------------------------------------------------------------------
+   Este arquivo é duas coisas e mais nada: os tokens, e o mínimo de base que
+   precisa atravessar a fronteira de um componente. Todo o resto do desenho mora
+   junto do componente que o usa, em `merchant/ui/*`, com estilo encapsulado —
+   é o que permite trocar a pele de um botão sem varrer o projeto atrás de quem
+   herdou a classe dele.
+
+   A divisão com as outras duas superfícies:
+
+   - a landing tem `styles/primitives.css` e o sistema da marca. Ela vende.
+   - o admin tem `admin.css`, cinza frio e denso. Lá se julga.
+   - aqui se trabalha. O lojista abre este console para ler dinheiro: quanto
+     entrou, quanto sai, o que falhou e por quê.
+
+   Regras da casa:
+   - todo token começa com `--mer-`, toda classe com `mer-`. Nada de nome
+     compartilhado com a landing ou com a mesa, então nada de colisão.
+   - a pele vive na raiz do console (`.mer-root[data-mer-theme]`), nunca em
+     `:root`. A mesa divide a origem: um lojista que escolhe papel não pode
+     clarear o console de um operador aberto na outra aba.
+   - **carvão é o padrão.** Quem chega no console vem da landing e do login, as
+     duas em carvão. O papel existe porque ler uma coluna de dinheiro por uma
+     hora é outro trabalho, e é escolha do lojista.
+   - a cor tem um trabalho só: dizer estado. O resto é carvão e osso. Um console
+     que pinta o que não é estado ensina o olho a ignorar a cor exatamente onde
+     ela importa.
+   - a borda separa; a sombra só levanta o que flutua (painel modal, menu).
+   --------------------------------------------------------------------------- */
+
+/* ═══ Carvão — a pele padrão ═══════════════════════════════════════════════ */
+.mer-root {
+  color-scheme: dark;
+
+  /* ── Superfícies ──────────────────────────────────────────────────────
+     Do fundo para a frente: o chão da área de trabalho, o papel do painel, o
+     preenchimento de dentro dele e o realce da linha sob o ponteiro. A coluna
+     da esquerda tem superfície própria (`rail`) porque ela é a única parte da
+     tela que nunca muda de conteúdo. */
+  --mer-ground: #0e0e0c;
+  --mer-surface: #151512;
+  --mer-surface-2: #1c1c18;
+  --mer-surface-3: #24241f;
+  --mer-rail: #0b0b09;
+  --mer-rail-line: rgb(236 230 218 / 0.09);
+
+  /* ── Linhas ───────────────────────────────────────────────────────────
+     `line` separa irmãos; `line-strong` desenha o que se pode tocar (campo,
+     botão) e por isso precisa se anunciar. */
+  --mer-line: rgb(236 230 218 / 0.1);
+  --mer-line-strong: rgb(236 230 218 / 0.22);
+
+  /* ── Texto ────────────────────────────────────────────────────────────
+     Três níveis bastam. O quarto que todo design system inventa acaba usado
+     para esconder informação que devia ter sido cortada. */
+  --mer-text: #ece6da;
+  --mer-text-2: #b5afa3;
+  --mer-text-3: #8a857b;
+
+  /* ── Ação ─────────────────────────────────────────────────────────────
+     O botão que fecha o assunto é osso sobre carvão — o inverso do fundo, e
+     não uma cor nova. Numa tela onde a cor significa estado, botão colorido
+     disputa atenção com um aviso de verdade. */
+  --mer-action: #ece6da;
+  --mer-action-hover: #ffffff;
+  --mer-action-text: #11110f;
+  --mer-focus: #b8f36b;
+
+  /* ── Estado ───────────────────────────────────────────────────────────
+     Trios de texto, fundo e borda. O texto passa AA sobre o próprio fundo, o
+     que o mantém legível em tela ruim e em projetor de reunião. */
+  --mer-ok: #b8f36b;
+  --mer-ok-soft: #1a2412;
+  --mer-ok-line: #35501f;
+  --mer-bad: #ff8f79;
+  --mer-bad-soft: #2b1512;
+  --mer-bad-line: #5c2a21;
+  --mer-warn: #f4b942;
+  --mer-warn-soft: #271d0c;
+  --mer-warn-line: #4f3a16;
+
+  /* ── Sombra ───────────────────────────────────────────────────────────
+     Só de coisa que flutua. Painel com sombra é decoração, e decoração come
+     densidade. */
+  --mer-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -12px rgb(0 0 0 / 0.75);
+  --mer-shadow-lg: 0 1px 3px rgb(0 0 0 / 0.5), 0 32px 64px -20px rgb(0 0 0 / 0.85);
+  --mer-scrim: rgb(6 6 5 / 0.66);
+}
+
+/* ═══ Papel — a pele de quem lê coluna de dinheiro o dia todo ══════════════
+   Não é o carvão invertido: o papel é o creme quente da marca, com o verde e o
+   vermelho repintados para contraste sobre fundo claro. Manter aqui o verde do
+   carvão daria um limão que some no branco. */
+.mer-root[data-mer-theme='paper'] {
+  color-scheme: light;
+
+  --mer-ground: #f7f6f2;
+  --mer-surface: #ffffff;
+  --mer-surface-2: #f4f2ec;
+  --mer-surface-3: #ecebe3;
+  --mer-rail: #14140f;
+  --mer-rail-line: rgb(236 230 218 / 0.12);
+
+  --mer-line: #e4e1d8;
+  --mer-line-strong: #cfcabd;
+
+  --mer-text: #14140f;
+  --mer-text-2: #57564e;
+  --mer-text-3: #83817a;
+
+  --mer-action: #14140f;
+  --mer-action-hover: #2c2b24;
+  --mer-action-text: #faf9f6;
+  --mer-focus: #0d7048;
+
+  --mer-ok: #0d7048;
+  --mer-ok-soft: #e6f1ea;
+  --mer-ok-line: #a9d4bf;
+  --mer-bad: #ad3527;
+  --mer-bad-soft: #fbe9e5;
+  --mer-bad-line: #eebeb5;
+  --mer-warn: #86610f;
+  --mer-warn-soft: #f8f0da;
+  --mer-warn-line: #e3cf9b;
+
+  --mer-shadow: 0 1px 2px rgb(20 20 15 / 0.05), 0 10px 28px -14px rgb(20 20 15 / 0.22);
+  --mer-shadow-lg: 0 1px 3px rgb(20 20 15 / 0.07), 0 32px 64px -20px rgb(20 20 15 / 0.3);
+  --mer-scrim: rgb(20 20 15 / 0.35);
+}
+
+/* Enquanto o lojista não escolheu, a pele é a do sistema — mas só para quem
+   pediu claro. O padrão declarado é carvão, e é ele que continua valendo em
+   `prefers-color-scheme: no-preference`. */
+.mer-root[data-mer-theme='system'] {
+  color-scheme: dark;
+}
+
+/* ═══ Métricas ═════════════════════════════════════════════════════════════ */
+.mer-root {
+  /* O raio não muda por tamanho: um sistema com quatro raios diferentes não
+     fica mais rico, fica menos reconhecível. */
+  --mer-radius: 10px;
+  --mer-radius-sm: 7px;
+  --mer-radius-lg: 14px;
+
+  --mer-rail-w: 15.5rem;
+  --mer-rail-w-collapsed: 4.25rem;
+  --mer-topbar-h: 3.25rem;
+  --mer-content-max: 82rem;
+  --mer-gutter: clamp(1rem, 2.5vw, 2rem);
+
+  /* A linha da tabela do lojista: mais alta que a da mesa (2,125rem), porque
+     aqui a linha carrega duas informações — o que foi cobrado e de quem. */
+  --mer-row: 2.75rem;
+
+  --mer-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mer-fast: 0.16s;
+
+  font-family: var(--font-brico);
+  color: var(--mer-text);
+  background: var(--mer-ground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ Base ═════════════════════════════════════════════════════════════════
+   O que precisa atravessar a fronteira de um componente: a tipografia de
+   identificador e de número, o anel de foco, a barra de rolagem e as utilidades
+   de coluna — aplicadas em `<td>` que a página escreve, e não o componente que
+   envolve a tabela. */
+@layer components {
+  .mer-root :focus-visible {
+    outline: 2px solid var(--mer-focus);
+    outline-offset: 1px;
+  }
+
+  /* Identificador, chave, evento: coisa que se compara caractere a caractere e
+     às vezes se lê em voz alta para outra pessoa. */
+  .mer-mono {
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9em;
+    letter-spacing: 0.01em;
+  }
+
+  /* Dinheiro, contagem, data. Tabular porque coluna de número que não alinha
+     obriga a ler dígito por dígito. */
+  .mer-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+
+  /* O micro-rótulo do console: dá nome a uma seção sem gastar uma linha de
+     título. */
+  .mer-overline {
+    display: block;
+    font-family: var(--font-code);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mer-text-3);
+  }
+
+  /* Coluna de número: à direita, para o olho comparar ordens de grandeza
+     descendo a coluna em vez de lendo cada valor. */
+  .mer-col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .mer-col-end {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Barra fina, que só ganha cor com o ponteiro por cima. */
+  .mer-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .mer-scroll:hover {
+    scrollbar-color: var(--mer-line-strong) transparent;
+  }
+
+  .mer-scroll::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .mer-scroll::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+    background-color: transparent;
+  }
+
+  .mer-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: var(--mer-line-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mer-root *,
+  .mer-root *::before,
+  .mer-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

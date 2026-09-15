@@ -357,6 +357,9 @@ importers:
       '@spartan-ng/cli':
         specifier: 0.0.1-alpha.640
         version: 0.0.1-alpha.640(gwaiyozmqtecqehkk7oy7swtre)
+      '@types/node':
+        specifier: ^22
+        version: 22.19.8
       jsdom:
         specifier: ^28.0.0
         version: 28.1.0(@noble/hashes@1.8.0)
@@ -14228,7 +14231,7 @@ snapshots:
 
   '@types/qrcode@1.5.6':
     dependencies:
-      '@types/node': 22.19.8
+      '@types/node': 20.19.33
 
   '@types/qs@6.14.0': {}
 
