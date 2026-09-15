@@ -4,6 +4,7 @@
 }
 
 .footer {
+  container-type: inline-size;
   max-width: 90rem;
   margin-inline: auto;
   padding: 5rem clamp(1.25rem, 3vw, 2.5rem) 2rem;
@@ -66,12 +67,15 @@
   translate: 0 0;
 }
 
-/* O nome sobe letra a letra quando o rodapé entra na tela. */
+/* O nome sobe letra a letra quando o rodapé entra na tela. O tamanho segue a
+   largura do rodapé (`cqi`), não a da janela: o rodapé para em 90rem, e com
+   `vw` o nome passava dele em telas largas e o `overflow` cortava o "y". A
+   palavra mede ~2,67em, então 36cqi ocupa ~96% da linha. */
 .wordmark {
   margin-top: 4rem;
   padding-bottom: 0.14em;
   overflow: hidden;
-  font-size: clamp(4.5rem, 33vw, 40rem);
+  font-size: 36cqi;
   font-weight: 800;
   font-variation-settings: 'wdth' 75;
   letter-spacing: -0.025em;
