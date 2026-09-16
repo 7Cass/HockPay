@@ -1,0 +1,103 @@
+.mer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 2.25rem;
+  padding: 0 0.9rem;
+  border: 1px solid transparent;
+  border-radius: var(--mer-radius-sm);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--mer-fast) var(--mer-ease),
+    border-color var(--mer-fast) var(--mer-ease),
+    color var(--mer-fast) var(--mer-ease);
+}
+
+.mer-btn[data-size='sm'] {
+  height: 1.9rem;
+  padding: 0 0.7rem;
+  font-size: 12.5px;
+}
+
+.mer-btn.is-icon {
+  width: 2.25rem;
+  padding: 0;
+}
+
+.mer-btn.is-icon[data-size='sm'] {
+  width: 1.9rem;
+}
+
+.mer-btn.is-block {
+  width: 100%;
+}
+
+.mer-btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Variantes ─────────────────────────────────────────────────────────── */
+.mer-btn[data-variant='primary'] {
+  background: var(--mer-action);
+  color: var(--mer-action-text);
+}
+
+.mer-btn[data-variant='primary']:hover:not([disabled]) {
+  background: var(--mer-action-hover);
+}
+
+.mer-btn[data-variant='quiet'] {
+  border-color: var(--mer-line-strong);
+  background: var(--mer-surface);
+  color: var(--mer-text);
+}
+
+.mer-btn[data-variant='quiet']:hover:not([disabled]) {
+  background: var(--mer-surface-2);
+}
+
+.mer-btn[data-variant='ghost'] {
+  background: transparent;
+  color: var(--mer-text-2);
+}
+
+.mer-btn[data-variant='ghost']:hover:not([disabled]) {
+  background: var(--mer-surface-2);
+  color: var(--mer-text);
+}
+
+/* Contornado, e não preenchido: vermelho sólido vira o elemento mais chamativo
+   da tela e convida ao clique justamente onde o clique custa. */
+.mer-btn[data-variant='danger'] {
+  border-color: var(--mer-bad-line);
+  background: transparent;
+  color: var(--mer-bad);
+}
+
+.mer-btn[data-variant='danger']:hover:not([disabled]) {
+  background: var(--mer-bad-soft);
+}
+
+/* ── Giro ──────────────────────────────────────────────────────────────── */
+.mer-btn-spin {
+  width: 0.85em;
+  height: 0.85em;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: mer-btn-turn 0.7s linear infinite;
+}
+
+@keyframes mer-btn-turn {
+  to {
+    rotate: 360deg;
+  }
+}

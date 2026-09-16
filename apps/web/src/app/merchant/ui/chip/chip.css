@@ -1,0 +1,44 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--tone-line, var(--mer-line-strong));
+  border-radius: 999px;
+  background: var(--tone-soft, transparent);
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--tone-text, var(--mer-text-2));
+}
+
+/* O ponto existe para quem não distingue as cores: a pílula muda de forma,
+   e não só de matiz. */
+:host::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--tone-text, var(--mer-text-3));
+}
+
+:host([data-tone='ok']) {
+  --tone-text: var(--mer-ok);
+  --tone-soft: var(--mer-ok-soft);
+  --tone-line: var(--mer-ok-line);
+}
+
+:host([data-tone='warn']) {
+  --tone-text: var(--mer-warn);
+  --tone-soft: var(--mer-warn-soft);
+  --tone-line: var(--mer-warn-line);
+}
+
+:host([data-tone='bad']) {
+  --tone-text: var(--mer-bad);
+  --tone-soft: var(--mer-bad-soft);
+  --tone-line: var(--mer-bad-line);
+}

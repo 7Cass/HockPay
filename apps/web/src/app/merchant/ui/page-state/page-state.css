@@ -1,0 +1,59 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 3.5rem 1.5rem;
+  border: 1px solid var(--mer-line);
+  border-radius: var(--mer-radius);
+  background: var(--mer-surface);
+  text-align: center;
+}
+
+:host(.is-bare) {
+  padding: 2.5rem 1rem;
+  border: 0;
+  background: transparent;
+}
+
+h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--mer-text);
+}
+
+p {
+  max-width: 46ch;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-2);
+}
+
+:host([data-variant='error']) h3 {
+  color: var(--mer-bad);
+}
+
+.action:empty {
+  display: none;
+}
+
+.action {
+  margin-top: 0.5rem;
+}
+
+.spin {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1.5px solid var(--mer-line-strong);
+  border-top-color: var(--mer-text-2);
+  border-radius: 50%;
+  animation: mer-state-turn 0.8s linear infinite;
+}
+
+@keyframes mer-state-turn {
+  to {
+    rotate: 360deg;
+  }
+}

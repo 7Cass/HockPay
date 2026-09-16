@@ -1,0 +1,81 @@
+<button
+  type="button"
+  class="env-trigger"
+  (click)="toggle($event)"
+  [attr.aria-expanded]="open()"
+  [disabled]="session.isSwitchingEnvironment()"
+  [title]="
+    session.isLive()
+      ? 'Sua sessão opera em LIVE — saldo e movimento são simulados'
+      : 'Sua sessão opera em TEST'
+  "
+>
+  <mer-chip
+    [status]="session.environment()"
+    [label]="session.environment()"
+    [tone]="session.isLive() ? 'ok' : 'warn'"
+  />
+  @if (session.isLive()) {
+    <span class="env-sim">simulado</span>
+  }
+  <span class="env-caret" aria-hidden="true">⌄</span>
+</button>
+
+@if (open()) {
+  <div class="env-menu" role="menu">
+    <p class="mer-overline env-menu-title">Ambiente da sessão</p>
+
+    <button type="button" class="env-row" role="menuitem" (click)="select('TEST')">
+      <span class="env-check" aria-hidden="true">
+        @if (session.environment() === 'TEST') {
+          ✓
+        }
+      </span>
+      <span class="env-text">
+        <span class="env-label">TEST</span>
+        <span class="env-sub">Sempre disponível, em qualquer estado da loja.</span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      class="env-row"
+      role="menuitem"
+      [disabled]="!session.canSelectLive()"
+      (click)="select('LIVE')"
+    >
+      <span class="env-check" aria-hidden="true">
+        @if (!session.canSelectLive()) {
+          🔒
+        } @else if (session.environment() === 'LIVE') {
+          ✓
+        }
+      </span>
+      <span class="env-text">
+        <span class="env-label">
+          LIVE
+          <span class="env-tag">simulado</span>
+        </span>
+        <span class="env-sub">
+          Ledger separado do TEST. Não existe adquirente — nenhum dinheiro se move.
+        </span>
+      </span>
+    </button>
+
+    <!-- A porta fechada aparece fechada, com o motivo e o caminho para abri-la. -->
+    @if (session.liveBlockedReason(); as reason) {
+      <div class="env-rule"></div>
+      <p class="env-note">{{ reason }}</p>
+      <a class="env-row" role="menuitem" routerLink="/dashboard/settings" (click)="close()">
+        <span class="env-check" aria-hidden="true"></span>
+        <span class="env-text">
+          <span class="env-label">Pedir habilitação em Configurações</span>
+        </span>
+      </a>
+    }
+  </div>
+}
+
+@if (error(); as message) {
+  <p class="env-error" role="alert">{{ message }}</p>
+}

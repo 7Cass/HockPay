@@ -1,0 +1,123 @@
+<mer-page-header
+  heading="Comprovantes"
+  description="O documento que a loja emite quando um pagamento é confirmado."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="receipts.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+  </ng-container>
+</mer-page-header>
+
+<!-- O cabeçalho do painel só existe quando tem o que mostrar. -->
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="filters">
+    <mer-field label="Número do comprovante" grow note="é o que o comprador tem em mãos">
+      <input
+        type="search"
+        placeholder="RCP-20260901-…"
+        [value]="draft()"
+        (input)="draft.set($any($event.target).value)"
+        (keydown.enter)="search()"
+        (blur)="search()"
+      />
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    [message]="error.message"
+    [code]="error.code"
+    heading="Não foi possível ler os comprovantes"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (receipts.isLoading() && page().receipts.length === 0) {
+  <mer-page-state variant="loading" message="Lendo os comprovantes…" />
+} @else if (isEmpty()) {
+  <mer-page-state variant="empty" heading="Nenhum comprovante emitido" [message]="emptyMessage()">
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar busca
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Pagador</th>
+            <th class="mer-col-num">Valor</th>
+            <th>Status</th>
+            <th>Emitido</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (receipt of page().receipts; track receipt.id) {
+            <tr class="is-clickable">
+              <td>
+                <a class="mer-cell" [routerLink]="['/dashboard/receipts', receipt.id]">
+                  <span class="mer-cell-main mer-mono">{{ receipt.receiptNumber }}</span>
+                  <span class="mer-cell-sub mer-mono"
+                    >pgto {{ receipt.paymentId.slice(0, 8) }}…</span
+                  >
+                </a>
+              </td>
+
+              <td class="is-flex">
+                <span class="mer-cell">
+                  <span class="mer-cell-main">{{ payer(receipt) }}</span>
+                  <span class="mer-cell-sub">{{ payerDetail(receipt) }}</span>
+                </span>
+              </td>
+
+              <td class="mer-col-num">
+                {{ receipt.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </td>
+              <td><mer-chip [status]="receipt.status" /></td>
+
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-num">{{
+                    receipt.issuedAt | date: 'dd/MM/yy'
+                  }}</span>
+                  <span class="mer-cell-sub mer-mono">{{ receipt.issuedAt | date: 'HH:mm' }}</span>
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().receipts.length"
+      noun="comprovantes"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}

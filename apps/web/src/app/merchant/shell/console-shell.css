@@ -1,0 +1,79 @@
+:host {
+  display: block;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--mer-ground);
+  color: var(--mer-text);
+}
+
+.shell-rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    grid-template-columns: var(--mer-rail-w) minmax(0, 1fr);
+  }
+
+  .shell-rail {
+    display: block;
+    min-width: 0;
+  }
+}
+
+.shell-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* `clip` e não `hidden`: `hidden` num ancestral cria contexto de rolagem e
+     mata `position: sticky` do cabeçalho da tabela. */
+  overflow: clip;
+}
+
+.shell-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.shell-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  width: 100%;
+  max-width: var(--mer-content-max);
+  /* `min-width: 0` no lugar certo: sem ele, uma tabela larga estica a coluna e
+     empurra o painel da direita para fora da área — foi o que cortou conteúdo
+     no detalhe do pagamento do dashboard antigo. */
+  min-width: 0;
+  margin: 0 auto;
+  padding: 1.5rem var(--mer-gutter) 4rem;
+}
+
+/* ── Gaveta ────────────────────────────────────────────────────────────── */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--mer-scrim);
+}
+
+.drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 41;
+  width: min(var(--mer-rail-w), 86vw);
+  animation: mer-drawer-in 0.22s var(--mer-ease);
+}
+
+@keyframes mer-drawer-in {
+  from {
+    translate: -100% 0;
+  }
+}

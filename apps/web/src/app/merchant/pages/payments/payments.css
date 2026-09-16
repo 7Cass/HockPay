@@ -1,0 +1,17 @@
+:host {
+  display: contents;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+/* Taxa é detalhe: some antes de qualquer outra coluna. */
+@media (max-width: 760px) {
+  .col-fee {
+    display: none;
+  }
+}

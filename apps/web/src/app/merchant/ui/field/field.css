@@ -1,0 +1,112 @@
+/* Global de propósito: precisa alcançar o controle que a página projetou. */
+
+.mer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.mer-field.is-grow {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.mer-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.mer-field-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 12px;
+  color: var(--mer-text-2);
+}
+
+.mer-field-hint {
+  font-family: var(--font-code);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.mer-field-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.mer-field input,
+.mer-field select,
+.mer-field textarea {
+  width: 100%;
+  min-width: 0;
+  height: 2.25rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--mer-line-strong);
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface);
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--mer-text);
+  transition: border-color var(--mer-fast) var(--mer-ease);
+}
+
+.mer-field textarea {
+  height: auto;
+  padding: 0.5rem 0.65rem;
+  resize: vertical;
+}
+
+.mer-field input::placeholder,
+.mer-field textarea::placeholder {
+  color: var(--mer-text-3);
+}
+
+.mer-field input:hover,
+.mer-field select:hover,
+.mer-field textarea:hover {
+  border-color: var(--mer-text-3);
+}
+
+.mer-field.is-invalid input,
+.mer-field.is-invalid select,
+.mer-field.is-invalid textarea {
+  border-color: var(--mer-bad-line);
+}
+
+/* O seletor nativo, com a seta desenhada aqui: trocar o elemento por um menu
+   próprio custaria teclado, leitor de tela e o seletor do sistema no celular. */
+.mer-field select {
+  appearance: none;
+  padding-right: 1.8rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.95rem) calc(50% + 0.1rem),
+    calc(100% - 0.65rem) calc(50% + 0.1rem);
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.mer-field-note,
+.mer-field-error {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--mer-text-3);
+}
+
+.mer-field-error {
+  font-family: var(--font-code);
+  color: var(--mer-bad);
+}
