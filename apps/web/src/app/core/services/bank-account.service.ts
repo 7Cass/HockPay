@@ -5,49 +5,49 @@ import { ApiClientService } from './api-client.service';
 export type PixKeyType = 'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM';
 
 export interface BankAccount {
-    id: string;
-    storeId: string;
-    pixKey: string;
-    pixKeyType: PixKeyType;
-    holderName: string;
-    holderDocument: string;
-    isDefault: boolean;
-    isVerified: boolean;
-    hasWithdrawals: boolean;
-    hasActiveWithdrawals: boolean;
-    withdrawalCount: number;
-    activeWithdrawalCount: number;
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  storeId: string;
+  pixKey: string;
+  pixKeyType: PixKeyType;
+  holderName: string;
+  holderDocument: string;
+  isDefault: boolean;
+  isVerified: boolean;
+  hasWithdrawals: boolean;
+  hasActiveWithdrawals: boolean;
+  withdrawalCount: number;
+  activeWithdrawalCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateBankAccountInput {
-    pixKey: string;
-    pixKeyType: PixKeyType;
-    holderName: string;
-    holderDocument: string;
-    isDefault?: boolean;
+  pixKey: string;
+  pixKeyType: PixKeyType;
+  holderName: string;
+  holderDocument: string;
+  isDefault?: boolean;
 }
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class BankAccountService {
-    private readonly apiClient = inject(ApiClientService);
+  private readonly apiClient = inject(ApiClientService);
 
-    list(): Observable<BankAccount[]> {
-        return this.apiClient.get<BankAccount[]>('/bank-accounts');
-    }
+  list(): Observable<BankAccount[]> {
+    return this.apiClient.get<BankAccount[]>('/bank-accounts');
+  }
 
-    create(input: CreateBankAccountInput): Observable<BankAccount> {
-        return this.apiClient.post<BankAccount>('/bank-accounts', input);
-    }
+  create(input: CreateBankAccountInput): Observable<BankAccount> {
+    return this.apiClient.post<BankAccount>('/bank-accounts', input);
+  }
 
-    setDefault(id: string): Observable<void> {
-        return this.apiClient.patch<void>(`/bank-accounts/${id}/default`, {});
-    }
+  setDefault(id: string): Observable<void> {
+    return this.apiClient.patch<void>(`/bank-accounts/${id}/default`, {});
+  }
 
-    delete(id: string): Observable<void> {
-        return this.apiClient.delete<void>(`/bank-accounts/${id}`);
-    }
+  delete(id: string): Observable<void> {
+    return this.apiClient.delete<void>(`/bank-accounts/${id}`);
+  }
 }

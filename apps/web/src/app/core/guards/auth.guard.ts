@@ -12,23 +12,21 @@ import { AuthService } from '../services/auth.service';
  * - `null`  → first load, call checkAuthStatus() to verify with the server
  */
 export const authGuard: CanActivateFn = () => {
-    const router = inject(Router);
-    const authService = inject(AuthService);
+  const router = inject(Router);
+  const authService = inject(AuthService);
 
-    const state = authService.isAuthenticated();
+  const state = authService.isAuthenticated();
 
-    if (state === true) {
-        return true;
-    }
+  if (state === true) {
+    return true;
+  }
 
-    if (state === false) {
-        return router.createUrlTree(['/login']);
-    }
+  if (state === false) {
+    return router.createUrlTree(['/login']);
+  }
 
-    // Unknown state — verify with the server
-    return authService.checkAuthStatus().pipe(
-        map((isAuthenticated) =>
-            isAuthenticated ? true : router.createUrlTree(['/login'])
-        )
-    );
+  // Unknown state — verify with the server
+  return authService
+    .checkAuthStatus()
+    .pipe(map((isAuthenticated) => (isAuthenticated ? true : router.createUrlTree(['/login']))));
 };

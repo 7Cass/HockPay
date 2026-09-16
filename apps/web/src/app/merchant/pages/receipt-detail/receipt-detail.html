@@ -1,0 +1,139 @@
+@if (failure(); as error) {
+  <mer-page-header heading="Comprovante" backTo="/dashboard/receipts" backLabel="Comprovantes" />
+
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível abrir o comprovante"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="detail.reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else {
+  <mer-page-header
+    [heading]="receipt().receiptNumber || 'Comprovante'"
+    backTo="/dashboard/receipts"
+    backLabel="Comprovantes"
+    [description]="receipt().description || 'Recibo de um pagamento confirmado.'"
+  >
+    <ng-container pageStatus>
+      @if (receipt().status) {
+        <mer-chip [status]="receipt().status" />
+      }
+    </ng-container>
+
+    <ng-container pageActions>
+      <button
+        merButton
+        type="button"
+        variant="ghost"
+        iconOnly
+        aria-label="Atualizar"
+        [loading]="detail.isLoading()"
+        (click)="detail.reload()"
+      >
+        ↻
+      </button>
+      <button merButton type="button" (click)="openPayment()">Ver o pagamento</button>
+    </ng-container>
+  </mer-page-header>
+
+  @if (detail.isLoading() && !receipt().id) {
+    <mer-page-state variant="loading" message="Lendo o comprovante…" />
+  } @else {
+    <!-- O valor, decomposto: é a pergunta que traz alguém aqui. -->
+    <section class="rec-values">
+      <mer-stat label="Valor pago" [value]="money(receipt().amount)" note="O que o pagador pagou" />
+      <mer-stat label="Taxa" [value]="money(receipt().fee)" note="Retida pela HockPay" />
+      <mer-stat
+        label="Líquido"
+        [value]="money(receipt().netAmount)"
+        note="O que entrou no saldo da loja"
+      />
+    </section>
+
+    <div class="rec-split">
+      <mer-panel heading="Pagador" note="Quem pagou, como consta no documento">
+        <dl class="rec-facts">
+          <div>
+            <dt>Nome</dt>
+            <dd>{{ receipt().payerName || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Documento</dt>
+            <dd class="mer-mono">{{ maskDocument(receipt().payerDocument) }}</dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>{{ receipt().payerEmail || '—' }}</dd>
+          </div>
+        </dl>
+      </mer-panel>
+
+      <mer-panel heading="Recebedor" note="A loja, como consta no comprovante">
+        <dl class="rec-facts">
+          <div>
+            <dt>Nome</dt>
+            <dd>{{ receipt().payeeName || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Documento</dt>
+            <dd class="mer-mono">{{ maskDocument(receipt().payeeDocument) }}</dd>
+          </div>
+          <div>
+            <dt>Emitido em</dt>
+            <dd>{{ when(receipt().issuedAt) }}</dd>
+          </div>
+        </dl>
+      </mer-panel>
+    </div>
+
+    @if (items().length) {
+      <mer-panel heading="Itens" [note]="items().length + ' item(ns) no comprovante'" flush>
+        <mer-table>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="mer-col-num">Qtd.</th>
+                <th class="mer-col-num">Unitário</th>
+                <th class="mer-col-num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of items(); track item.name) {
+                <tr>
+                  <td class="is-flex">{{ item.name }}</td>
+                  <td class="mer-col-num">{{ item.quantity }}</td>
+                  <td class="mer-col-num">{{ money(item.unitPrice) }}</td>
+                  <td class="mer-col-num">{{ money(item.totalPrice) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mer-table>
+      </mer-panel>
+    }
+
+    <mer-panel heading="Rastreamento" note="Os identificadores que ligam este recibo ao pagamento">
+      <dl class="rec-facts rec-facts-wide">
+        <div>
+          <dt>Comprovante</dt>
+          <dd><mer-copy [value]="receipt().id" [truncate]="0" /></dd>
+        </div>
+        <div>
+          <dt>Pagamento</dt>
+          <dd><mer-copy [value]="receipt().paymentId" [truncate]="0" /></dd>
+        </div>
+        @if (receipt().customerId) {
+          <div>
+            <dt>Cliente</dt>
+            <dd><mer-copy [value]="receipt().customerId" [truncate]="0" /></dd>
+          </div>
+        }
+      </dl>
+    </mer-panel>
+  }
+}

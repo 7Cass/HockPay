@@ -6,40 +6,40 @@ import { createIdempotencyKey as newIdempotencyKey } from '../http/idempotency-k
 import type { PaymentObject, RefundObject } from './payment.service';
 
 export interface CreateRefundInput {
-    paymentId: string;
-    amount: number;
-    reason?: string;
-    idempotencyKey: string;
+  paymentId: string;
+  amount: number;
+  reason?: string;
+  idempotencyKey: string;
 }
 
 export interface CreateRefundResponse {
-    refund: RefundObject;
-    payment: PaymentObject;
+  refund: RefundObject;
+  payment: PaymentObject;
 }
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class RefundService {
-    private readonly apiClient = inject(ApiClientService);
+  private readonly apiClient = inject(ApiClientService);
 
-    create(input: CreateRefundInput): Observable<CreateRefundResponse> {
-        const headers = new HttpHeaders({
-            'Idempotency-Key': input.idempotencyKey,
-        });
+  create(input: CreateRefundInput): Observable<CreateRefundResponse> {
+    const headers = new HttpHeaders({
+      'Idempotency-Key': input.idempotencyKey,
+    });
 
-        return this.apiClient.post<CreateRefundResponse>(
-            '/refunds',
-            {
-                paymentId: input.paymentId,
-                amount: input.amount,
-                reason: input.reason,
-            },
-            { headers },
-        );
-    }
+    return this.apiClient.post<CreateRefundResponse>(
+      '/refunds',
+      {
+        paymentId: input.paymentId,
+        amount: input.amount,
+        reason: input.reason,
+      },
+      { headers },
+    );
+  }
 
-    createIdempotencyKey(): string {
-        return newIdempotencyKey('refund');
-    }
+  createIdempotencyKey(): string {
+    return newIdempotencyKey('refund');
+  }
 }

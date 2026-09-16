@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { PublicLayout } from './shared/layouts/public-layout/public-layout';
-import { DashboardLayout } from './shared/layouts/dashboard-layout/dashboard-layout';
 import { AuthLayout } from './shared/layouts/auth-layout/auth-layout';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
@@ -71,39 +70,5 @@ export const routes: Routes = [
     path: 'dashboard',
     canActivate: [authGuard],
     loadChildren: () => import('./merchant/merchant.routes').then((m) => m.CONSOLE_ROUTES),
-  },
-  // ─── O que ainda não migrou ─────────────────────────────────────────
-  // Produtos, Configurações e os dois detalhes que sobraram, na casca antiga.
-  // Some inteiro na fatia 7, junto com `features/dashboard/`.
-  {
-    path: 'dashboard',
-    component: DashboardLayout,
-    canActivate: [authGuard],
-    children: [
-      {
-        path: 'receipts/:id',
-        loadComponent: () =>
-          import('./features/dashboard/pages/receipt-detail/receipt-detail').then(
-            (m) => m.ReceiptDetail,
-          ),
-      },
-      {
-        path: 'customers/:id',
-        loadComponent: () =>
-          import('./features/dashboard/pages/customer-detail/customer-detail').then(
-            (m) => m.CustomerDetail,
-          ),
-      },
-      {
-        path: 'products',
-        loadComponent: () =>
-          import('./features/dashboard/pages/products/products').then((m) => m.Products),
-      },
-      {
-        path: 'settings',
-        loadComponent: () =>
-          import('./features/dashboard/pages/settings/settings').then((m) => m.Settings),
-      },
-    ],
   },
 ];

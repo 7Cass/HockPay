@@ -4,59 +4,59 @@ import { Observable } from 'rxjs';
 import { ApiClientService } from './api-client.service';
 
 export interface AccountObject {
-    id: string;
-    storeId: string;
-    available: number;
-    pending: number;
-    blocked: number;
-    currency: string;
-    updatedAt: Date | string;
+  id: string;
+  storeId: string;
+  available: number;
+  pending: number;
+  blocked: number;
+  currency: string;
+  updatedAt: Date | string;
 }
 
 export interface AccountResponseDto {
-    account: AccountObject;
+  account: AccountObject;
 }
 
 export type { TransactionObject, TransactionType } from '../models/transaction';
 import type { TransactionObject, TransactionType } from '../models/transaction';
 
 export interface ListTransactionsResponse {
-    data: TransactionObject[];
-    meta: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-    };
+  data: TransactionObject[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ListTransactionsFilters {
-    page?: number;
-    limit?: number;
-    type?: TransactionType;
-    startDate?: string;
-    endDate?: string;
+  page?: number;
+  limit?: number;
+  type?: TransactionType;
+  startDate?: string;
+  endDate?: string;
 }
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class FinancialService {
-    private readonly apiClient = inject(ApiClientService);
+  private readonly apiClient = inject(ApiClientService);
 
-    getAccount(): Observable<AccountResponseDto> {
-        return this.apiClient.get<AccountResponseDto>('/accounts/me');
-    }
+  getAccount(): Observable<AccountResponseDto> {
+    return this.apiClient.get<AccountResponseDto>('/accounts/me');
+  }
 
-    listTransactions(filters: ListTransactionsFilters = {}): Observable<ListTransactionsResponse> {
-        let params = new HttpParams();
+  listTransactions(filters: ListTransactionsFilters = {}): Observable<ListTransactionsResponse> {
+    let params = new HttpParams();
 
-        if (filters.page) params = params.set('page', String(filters.page));
-        if (filters.limit) params = params.set('limit', String(filters.limit));
-        if (filters.type) params = params.set('type', filters.type);
-        if (filters.startDate) params = params.set('startDate', filters.startDate);
-        if (filters.endDate) params = params.set('endDate', filters.endDate);
+    if (filters.page) params = params.set('page', String(filters.page));
+    if (filters.limit) params = params.set('limit', String(filters.limit));
+    if (filters.type) params = params.set('type', filters.type);
+    if (filters.startDate) params = params.set('startDate', filters.startDate);
+    if (filters.endDate) params = params.set('endDate', filters.endDate);
 
-        return this.apiClient.get<ListTransactionsResponse>('/transactions', { params });
-    }
+    return this.apiClient.get<ListTransactionsResponse>('/transactions', { params });
+  }
 }

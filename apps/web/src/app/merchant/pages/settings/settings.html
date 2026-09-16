@@ -1,0 +1,139 @@
+<mer-page-header
+  heading="Configurações"
+  description="A conta, a loja e as condições que a HockPay cobra dela."
+>
+  <ng-container pageStatus>
+    <mer-chip [status]="liveStatus()" [label]="statusLabel()" [tone]="statusTone()" />
+  </ng-container>
+</mer-page-header>
+
+<div class="set-grid">
+  <div class="set-column">
+    <!-- ─── A loja ─────────────────────────────────────────────────────── -->
+    <mer-panel heading="Loja" note="O nome aparece no checkout e no comprovante">
+      <ng-container panelActions>
+        @if (dirty()) {
+          <button merButton type="button" size="sm" variant="ghost" (click)="fill()">
+            Descartar
+          </button>
+        }
+        <button
+          merButton
+          type="button"
+          size="sm"
+          variant="primary"
+          [disabled]="!dirty()"
+          [loading]="saving()"
+          (click)="save()"
+        >
+          Salvar
+        </button>
+      </ng-container>
+
+      <div class="set-form">
+        <mer-field label="Nome">
+          <input [value]="name()" (input)="name.set($any($event.target).value)" />
+        </mer-field>
+
+        <mer-field label="Cidade" note="opcional">
+          <input
+            placeholder="São Paulo"
+            [value]="city()"
+            (input)="city.set($any($event.target).value)"
+          />
+        </mer-field>
+      </div>
+
+      @if (formError()) {
+        <mer-notice tone="bad">{{ formError() }}</mer-notice>
+      }
+
+      <dl class="set-facts">
+        <div>
+          <dt>Identificador</dt>
+          <dd class="mer-mono">{{ session.storeSlug() || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Store ID</dt>
+          <dd><mer-copy [value]="store()?.id" [truncate]="0" /></dd>
+        </div>
+        <div>
+          <dt>Criada em</dt>
+          <dd>{{ when(store()?.createdAt) }}</dd>
+        </div>
+        <div>
+          <dt>Atualizada em</dt>
+          <dd>{{ when(store()?.updatedAt) }}</dd>
+        </div>
+      </dl>
+    </mer-panel>
+
+    <!-- ─── LIVE ───────────────────────────────────────────────────────── -->
+    <mer-panel heading="Ambiente LIVE" note="Cobrar em TEST não depende de aprovação">
+      <ng-container panelActions>
+        @if (canAskLive()) {
+          <button
+            merButton
+            type="button"
+            size="sm"
+            variant="primary"
+            [loading]="asking()"
+            (click)="requestLive()"
+          >
+            Pedir habilitação
+          </button>
+        }
+      </ng-container>
+
+      <div class="set-live">
+        <mer-chip [status]="liveStatus()" [label]="statusLabel()" [tone]="statusTone()" />
+        <p class="set-note">{{ statusNote() }}</p>
+      </div>
+
+      @if (store()?.liveStatusReason; as reason) {
+        <mer-notice tone="warn" heading="Motivo registrado pela mesa">{{ reason }}</mer-notice>
+      }
+    </mer-panel>
+  </div>
+
+  <div class="set-column">
+    <!-- ─── Condições comerciais ───────────────────────────────────────── -->
+    <mer-panel heading="Condições comerciais" note="Definidas pela HockPay">
+      <div class="set-terms">
+        <mer-stat label="Taxa por Pix" [value]="fee()" note="Sobre cada pagamento confirmado" />
+        <mer-stat
+          label="Liquidação"
+          [value]="settlement()"
+          note="Até o líquido virar saldo disponível"
+        />
+      </div>
+
+      <p class="set-note">
+        Valem para pagamentos novos. A edição fica com o time da HockPay — se a sua operação mudou
+        de tamanho, é com ele que se conversa.
+      </p>
+    </mer-panel>
+
+    <!-- ─── A conta ────────────────────────────────────────────────────── -->
+    <mer-panel heading="Conta" note="Quem está autenticado agora">
+      <dl class="set-facts">
+        <div>
+          <dt>Nome</dt>
+          <dd>{{ session.name() || '—' }}</dd>
+        </div>
+        <div>
+          <dt>E-mail</dt>
+          <dd>{{ session.email() || '—' }}</dd>
+        </div>
+        <div>
+          <dt>{{ session.documentType() }}</dt>
+          <dd class="mer-mono">{{ maskDocument(session.document()) }}</dd>
+        </div>
+        <div>
+          <dt>Conta criada em</dt>
+          <dd>{{ when(user()?.createdAt) }}</dd>
+        </div>
+      </dl>
+    </mer-panel>
+  </div>
+</div>

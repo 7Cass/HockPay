@@ -1,0 +1,292 @@
+<mer-page-header
+  heading="Produtos"
+  description="O catálogo que a API reutiliza nas cobranças e nas checkout sessions."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="products.isLoading()"
+      (click)="products.reload()"
+    >
+      ↻
+    </button>
+    <button merButton type="button" variant="primary" (click)="openNew()">Novo produto</button>
+  </ng-container>
+</mer-page-header>
+
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="prod-filters">
+    <mer-field label="Busca" grow note="nome ou external ID">
+      <input
+        type="search"
+        placeholder="Curso de Pix"
+        [value]="params().q"
+        (keydown.enter)="search($any($event.target).value)"
+        (blur)="search($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Situação">
+      <select [value]="params().situation" (change)="setSituation($any($event.target).value)">
+        @for (option of situations; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler o catálogo"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="products.reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (products.isLoading() && page().products.length === 0) {
+  <mer-page-state variant="loading" message="Lendo o catálogo…" />
+} @else if (isEmpty()) {
+  <mer-page-state
+    variant="empty"
+    heading="Nenhum produto"
+    [message]="
+      query.touched()
+        ? 'Nenhum produto corresponde aos filtros atuais.'
+        : 'Crie o primeiro produto para reutilizá-lo nas cobranças e abrir checkout sessions pela API.'
+    "
+  >
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar filtros
+      </button>
+    } @else {
+      <button pageStateAction merButton type="button" size="sm" (click)="openNew()">
+        Criar produto
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>External ID</th>
+            <th class="mer-col-num">Preço</th>
+            <th>Situação</th>
+            <th>Criado</th>
+            <th class="prod-col-action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of page().products; track product.id) {
+            <tr [class.prod-is-off]="!product.isActive">
+              <td class="is-flex">
+                <span class="prod-cell">
+                  @if (product.imageUrl) {
+                    <img class="prod-thumb" [src]="product.imageUrl" alt="" loading="lazy" />
+                  } @else {
+                    <span class="prod-thumb prod-thumb-blank mer-mono" aria-hidden="true">
+                      {{ product.currency }}
+                    </span>
+                  }
+
+                  <span class="mer-cell">
+                    <span class="mer-cell-main">{{ product.name }}</span>
+                    <span class="mer-cell-sub">{{ product.description || 'Sem descrição' }}</span>
+                  </span>
+                </span>
+              </td>
+
+              <td class="mer-mono mer-cell-quiet">{{ product.externalId || '—' }}</td>
+
+              <td class="mer-col-num">{{ money(product.price) }}</td>
+
+              <td>
+                <mer-chip
+                  [status]="product.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  [label]="product.isActive ? 'ativo' : 'arquivado'"
+                />
+              </td>
+
+              <td class="mer-cell-quiet">{{ when(product.createdAt) }}</td>
+
+              <td class="prod-col-action">
+                <button
+                  merButton
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  (click)="openEdit(product)"
+                >
+                  Editar
+                </button>
+
+                @if (product.isActive) {
+                  <button
+                    merButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    (click)="archiving.set(product)"
+                  >
+                    Arquivar
+                  </button>
+                } @else {
+                  <button
+                    merButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    [loading]="busy() === product.id"
+                    (click)="reactivate(product)"
+                  >
+                    Reativar
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().products.length"
+      noun="produtos"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}
+
+<!-- ─── Novo produto / editar ────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="sheetOpen()"
+  [eyebrow]="editing() ? 'Editar produto' : 'Novo produto'"
+  [heading]="editing() ? (editing()?.name ?? '') : 'Criar produto'"
+  description="O preço é gravado em centavos e vale para cobranças novas."
+  (closed)="closeSheet()"
+>
+  <mer-field label="Nome">
+    <input
+      placeholder="Curso de Pix na prática"
+      [value]="draft().name"
+      (input)="edit('name', $any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Preço" note="em reais, como 49,90">
+    <input
+      inputmode="decimal"
+      placeholder="49,90"
+      [value]="draft().price"
+      (input)="edit('price', $any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="External ID" note="opcional — o id deste produto no seu sistema">
+    <input
+      placeholder="SKU-1024"
+      [value]="draft().externalId"
+      (input)="edit('externalId', $any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Descrição" note="opcional">
+    <input
+      placeholder="Seis aulas gravadas"
+      [value]="draft().description"
+      (input)="edit('description', $any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Imagem" note="opcional — URL pública">
+    <input
+      type="url"
+      placeholder="https://sua-loja.com.br/curso.png"
+      [value]="draft().imageUrl"
+      (input)="edit('imageUrl', $any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Metadata" note='opcional — um objeto JSON, como {"turma": 3}'>
+    <textarea
+      rows="3"
+      placeholder='{"turma": 3}'
+      [value]="draft().metadata"
+      (input)="edit('metadata', $any($event.target).value)"
+    ></textarea>
+  </mer-field>
+
+  @if (preview() > 0) {
+    <p class="prod-preview">
+      Vai ser cobrado <strong>{{ money(preview()) }}</strong> por unidade.
+    </p>
+  }
+
+  @if (formError()) {
+    <mer-notice tone="bad">{{ formError() }}</mer-notice>
+  }
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="saving()" (click)="closeSheet()">Cancelar</button>
+    <button
+      merButton
+      type="button"
+      variant="primary"
+      [disabled]="!!blocker()"
+      [loading]="saving()"
+      (click)="save()"
+    >
+      {{ editing() ? 'Salvar' : 'Criar produto' }}
+    </button>
+  </ng-container>
+</mer-sheet>
+
+<!-- ─── Arquivar ─────────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="!!archiving()"
+  side="center"
+  eyebrow="Arquivar produto"
+  [heading]="'Arquivar ' + (archiving()?.name ?? '') + '?'"
+  description="Ele sai do catálogo ativo e pode voltar depois."
+  (closed)="archiving.set(null)"
+>
+  <p class="prod-confirm">
+    Arquivar não apaga nada: as cobranças que já apontam para este produto continuam válidas, e
+    reativar devolve ele ao catálogo a qualquer momento.
+  </p>
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="!!busy()" (click)="archiving.set(null)">
+      Cancelar
+    </button>
+    <button
+      merButton
+      type="button"
+      variant="danger"
+      [loading]="busy() === archiving()?.id"
+      (click)="confirmArchive()"
+    >
+      Arquivar
+    </button>
+  </ng-container>
+</mer-sheet>

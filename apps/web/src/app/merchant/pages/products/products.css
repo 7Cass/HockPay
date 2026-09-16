@@ -1,0 +1,55 @@
+.prod-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.prod-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.prod-thumb {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mer-line);
+  border-radius: var(--mer-radius-sm);
+  object-fit: cover;
+  background: var(--mer-surface-2);
+}
+
+/* Sem imagem, a moeda no lugar dela: a caixa vazia faria a linha pular de
+   altura conforme o produto tivesse foto ou não. */
+.prod-thumb-blank {
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--mer-text-3);
+}
+
+.prod-col-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.prod-is-off td {
+  opacity: 0.55;
+}
+
+.prod-preview {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mer-text-2);
+}
+
+.prod-confirm {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-2);
+}

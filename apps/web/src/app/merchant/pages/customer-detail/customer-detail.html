@@ -1,0 +1,216 @@
+@if (failure(); as error) {
+  <mer-page-header heading="Cliente" backTo="/dashboard/customers" backLabel="Clientes" />
+
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível abrir o cliente"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else {
+  <mer-page-header
+    [heading]="name() || 'Cliente'"
+    backTo="/dashboard/customers"
+    backLabel="Clientes"
+    [description]="customer().email || 'Pagador identificado pelo documento.'"
+  >
+    <ng-container pageStatus>
+      <mer-chip
+        [status]="customer().documentType"
+        [label]="customer().documentType"
+        tone="neutral"
+      />
+    </ng-container>
+
+    <ng-container pageActions>
+      <button
+        merButton
+        type="button"
+        variant="ghost"
+        iconOnly
+        aria-label="Atualizar"
+        [loading]="detail.isLoading()"
+        (click)="reload()"
+      >
+        ↻
+      </button>
+    </ng-container>
+  </mer-page-header>
+
+  @if (detail.isLoading() && !customer().id) {
+    <mer-page-state variant="loading" message="Lendo o cliente…" />
+  } @else {
+    <section class="cus-stats">
+      <mer-stat
+        label="Pago nas últimas"
+        [value]="money(paid())"
+        note="Soma das cobranças confirmadas listadas abaixo"
+      />
+      <mer-stat
+        label="Cobranças"
+        [value]="payments.value().total.toLocaleString('pt-BR')"
+        note="Total já emitido para este cliente"
+      />
+      <mer-stat
+        label="Comprovantes"
+        [value]="receipts.value().total.toLocaleString('pt-BR')"
+        note="Recibos emitidos"
+      />
+    </section>
+
+    <div class="cus-split">
+      <div class="cus-main">
+        <!-- ─── Pagamentos ───────────────────────────────────────────────── -->
+        <mer-panel heading="Pagamentos" note="As dez cobranças mais recentes deste cliente" flush>
+          @if (payments.value().payments.length === 0) {
+            <mer-page-state
+              variant="empty"
+              heading="Nenhuma cobrança"
+              message="Este cliente ainda não tem cobrança emitida."
+            />
+          } @else {
+            <mer-table>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Quando</th>
+                    <th>Status</th>
+                    <th>Descrição</th>
+                    <th class="mer-col-num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (payment of payments.value().payments; track payment.id) {
+                    <tr class="is-clickable" (click)="openPayment(payment.id)">
+                      <td class="mer-cell-quiet">{{ when(payment.createdAt) }}</td>
+                      <td><mer-chip [status]="payment.status" /></td>
+                      <td class="is-flex">
+                        <span class="mer-cell">
+                          <span class="mer-cell-main">{{ payment.description || '—' }}</span>
+                          <span class="mer-cell-sub mer-mono">{{ payment.id.slice(0, 8) }}…</span>
+                        </span>
+                      </td>
+                      <td class="mer-col-num">{{ money(payment.amount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </mer-table>
+          }
+        </mer-panel>
+
+        <!-- ─── Comprovantes ─────────────────────────────────────────────── -->
+        <mer-panel heading="Comprovantes" note="Recibos emitidos para este cliente" flush>
+          @if (receipts.value().receipts.length === 0) {
+            <mer-page-state
+              variant="empty"
+              heading="Nenhum comprovante"
+              message="O recibo nasce quando um pagamento é confirmado."
+            />
+          } @else {
+            <mer-table>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th>Status</th>
+                    <th>Emitido</th>
+                    <th class="mer-col-num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (receipt of receipts.value().receipts; track receipt.id) {
+                    <tr class="is-clickable" (click)="openReceipt(receipt.id)">
+                      <td class="is-flex mer-mono">{{ receipt.receiptNumber }}</td>
+                      <td><mer-chip [status]="receipt.status" /></td>
+                      <td class="mer-cell-quiet">{{ when(receipt.issuedAt) }}</td>
+                      <td class="mer-col-num">{{ money(receipt.amount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </mer-table>
+          }
+        </mer-panel>
+      </div>
+
+      <div class="cus-side">
+        <!-- ─── Cadastro ─────────────────────────────────────────────────── -->
+        <mer-panel heading="Cadastro" note="O que a loja sabe deste pagador">
+          <dl class="cus-facts">
+            <div>
+              <dt>{{ customer().documentType }}</dt>
+              <dd class="mer-mono">{{ customer().formattedDocument || '—' }}</dd>
+            </div>
+            <div>
+              <dt>E-mail</dt>
+              <dd>{{ customer().email || '—' }}</dd>
+            </div>
+            <div>
+              <dt>Telefone</dt>
+              <dd>{{ customer().phone || '—' }}</dd>
+            </div>
+            @if (customer().externalId) {
+              <div>
+                <dt>External ID</dt>
+                <dd class="mer-mono">{{ customer().externalId }}</dd>
+              </div>
+            }
+            <div>
+              <dt>Cliente desde</dt>
+              <dd>{{ day(customer().createdAt) }}</dd>
+            </div>
+            <div>
+              <dt>ID</dt>
+              <dd><mer-copy [value]="customer().id" /></dd>
+            </div>
+          </dl>
+        </mer-panel>
+
+        <!-- ─── Endereço ─────────────────────────────────────────────────── -->
+        @if (address() || location()) {
+          <mer-panel heading="Endereço" note="Como veio na cobrança">
+            <dl class="cus-facts">
+              @if (address()) {
+                <div>
+                  <dt>Logradouro</dt>
+                  <dd>{{ address() }}</dd>
+                </div>
+              }
+              @if (location()) {
+                <div>
+                  <dt>Cidade</dt>
+                  <dd>{{ location() }}</dd>
+                </div>
+              }
+              @if (customer().country) {
+                <div>
+                  <dt>País</dt>
+                  <dd>{{ customer().country }}</dd>
+                </div>
+              }
+            </dl>
+          </mer-panel>
+        }
+
+        <!-- ─── Metadata ─────────────────────────────────────────────────── -->
+        @if (metadata().length) {
+          <mer-panel heading="Metadata" note="O que a sua aplicação mandou junto">
+            <dl class="cus-facts">
+              @for (entry of metadata(); track entry.key) {
+                <div>
+                  <dt class="mer-mono">{{ entry.key }}</dt>
+                  <dd class="mer-mono">{{ entry.value }}</dd>
+                </div>
+              }
+            </dl>
+          </mer-panel>
+        }
+      </div>
+    </div>
+  }
+}

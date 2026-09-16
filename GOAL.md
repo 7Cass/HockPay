@@ -4,7 +4,7 @@ Source repo: `/Users/jpcass/Documents/2026/hockpay`
 Last reviewed: `2026-09-16`
 Ordering: fronteira antes de codigo; dado antes de pele; lista antes de detalhe; limpeza no fim
 Scope: **o console do lojista** -- `app/merchant/`, com arquitetura, desenho e as tres capacidades que o redesign destrava
-Status: `em andamento`. PRD em `docs/PRD_MERCHANT_CONSOLE.md`; fatias 0 a 5 concluidas
+Status: `concluido`. PRD em `docs/PRD_MERCHANT_CONSOLE.md`; as sete fatias entregues
 
 O dashboard e a maior superficie do produto (12.698 linhas, 18 telas) e a unica que
 nunca foi redesenhada. A landing virou noite, as telas de entrada seguiram, e o
@@ -24,7 +24,7 @@ trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 | 4   | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.                     |
 | 5   | Integracao                        | `concluido`    | API, Webhooks, Alertas. Toaster proprio e espelho de eventos guardado por teste; `ngx-sonner` so sai na fatia 7. |
 | 6   | Visao geral                       | `concluido`    | Grafico proprio em SVG; `apexcharts` e `ng-apexcharts` saem do produto.                                          |
-| 7   | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI.                   |
+| 7   | Produtos, Configuracoes e limpeza | `concluido`    | As quatro ultimas telas migram; `features/dashboard/`, `shared/ui`, `libs/ui` e `ngx-sonner` saem (459 arquivos); web entra no `format:check` da CI.                   |
 
 ## Decisoes ja tomadas
 
@@ -89,8 +89,10 @@ dinheiro pela loja.
 - **`GET /dashboard/metrics` e orfao** -- o servico tem o metodo, ninguem chama.
 - **Cliente e so leitura no dashboard**: `PATCH /customers/:externalId` existe na API
   e nao esta na tela.
-- **`apps/web` fica fora do gate de lint e format da CI** -- nao tem `lint:check` nem
-  `format:check`. **Fecha na fatia 7.**
+- **Nao existe eslint em lugar nenhum do repositorio.** `apps/web` entrou no gate
+  com `format:check` na fatia 7, mas `lint:check` continua sendo uma promessa sem
+  linter por tras: nao ha `.eslintrc` nem `eslint.config` em nenhum app. O gate de
+  lint da CI passa porque nao tem o que checar.
 - **Nada revoga um access token em voo.** Consequencia de D1/D2 do PRD do seletor.
   Desde `2026-09-09` a janela nao custa dinheiro, porque todo caminho que move
   dinheiro rele a loja.

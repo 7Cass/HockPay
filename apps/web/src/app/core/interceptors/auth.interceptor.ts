@@ -28,35 +28,33 @@ import { OperatorAuthService } from '../../admin/services/operator-auth.service'
  * instead of being copied.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-    const authService = inject(AuthService);
-    const operatorAuthService = inject(OperatorAuthService);
+  const authService = inject(AuthService);
+  const operatorAuthService = inject(OperatorAuthService);
 
-    const clonedRequest = req.clone({ withCredentials: true });
-    const isOperatorRoute = isOperatorSurface(req.url);
+  const clonedRequest = req.clone({ withCredentials: true });
+  const isOperatorRoute = isOperatorSurface(req.url);
 
-    return next(clonedRequest).pipe(
-        catchError((error: HttpErrorResponse) => {
-            const isUnauthorized = error.status === 401;
-            const isAuthRoute =
-                req.url.includes('/auth/refresh') ||
-                req.url.includes('/auth/login');
+  return next(clonedRequest).pipe(
+    catchError((error: HttpErrorResponse) => {
+      const isUnauthorized = error.status === 401;
+      const isAuthRoute = req.url.includes('/auth/refresh') || req.url.includes('/auth/login');
 
-            if (isUnauthorized && !isAuthRoute) {
-                const session = isOperatorRoute ? operatorAuthService : authService;
+      if (isUnauthorized && !isAuthRoute) {
+        const session = isOperatorRoute ? operatorAuthService : authService;
 
-                return session.handleTokenRefresh().pipe(
-                    switchMap(() => next(clonedRequest)),
-                    catchError((refreshError) => {
-                        // Refresh failed — state is already set to false by handleTokenRefresh.
-                        // Propagate the error so guards/components can react.
-                        return throwError(() => refreshError);
-                    })
-                );
-            }
+        return session.handleTokenRefresh().pipe(
+          switchMap(() => next(clonedRequest)),
+          catchError((refreshError) => {
+            // Refresh failed — state is already set to false by handleTokenRefresh.
+            // Propagate the error so guards/components can react.
+            return throwError(() => refreshError);
+          }),
+        );
+      }
 
-            return throwError(() => error);
-        })
-    );
+      return throwError(() => error);
+    }),
+  );
 };
 
 /**
@@ -66,6 +64,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
  * or query happened to spell "operator" is not the desk.
  */
 function isOperatorSurface(url: string): boolean {
-    const path = url.split('?')[0];
-    return /(^|\/)operator(\/|$)/.test(path);
+  const path = url.split('?')[0];
+  return /(^|\/)operator(\/|$)/.test(path);
 }
