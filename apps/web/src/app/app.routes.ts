@@ -44,16 +44,42 @@ export const routes: Routes = [
     path: 'operator',
     loadChildren: () => import('./admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
+  // ─── Console do lojista ─────────────────────────────────────────────
+  // A migração é tela a tela, e as duas cascas convivem no mesmo prefixo
+  // `/dashboard`. A URL não muda na travessia, então nenhum link guardado
+  // quebra.
+  //
+  // **O console vem primeiro, e a ordem só passou a poder ser esta depois que a
+  // visão geral migrou.** O roteador trata os dois casos de forma diferente, e
+  // os dois foram medidos aqui em `2026-09-16`:
+  //
+  // - **com segmento sobrando** (`/dashboard/products`): nenhum filho do
+  //   console casa `products`, a rota inteira falha e o roteador **volta
+  //   atrás** e tenta a entrada seguinte. É isto que faz a migração por
+  //   subtração funcionar: uma tela migra saindo da lista de baixo.
+  // - **sem segmento sobrando** (`/dashboard`): o pai casa por prefixo e a rota
+  //   é dada como casada mesmo que nenhum filho case `''` — **não há volta
+  //   atrás**. Quem tiver o `path: ''` primeiro ganha `/dashboard`, e o outro
+  //   renderiza a própria casca com o outlet vazio.
+  //
+  // Foi exatamente esse segundo caso que quebrou a tela duas vezes: primeiro
+  // com o console à frente servindo casca vazia enquanto a visão geral ainda
+  // era da casa antiga, e depois com a casa antiga à frente servindo casca
+  // vazia depois que a visão geral saiu dela. A regra que sobra é simples:
+  // **o bloco que tem o `path: ''` da vez é o que vem primeiro.**
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadChildren: () => import('./merchant/merchant.routes').then((m) => m.CONSOLE_ROUTES),
+  },
+  // ─── O que ainda não migrou ─────────────────────────────────────────
+  // Produtos, Configurações e os dois detalhes que sobraram, na casca antiga.
+  // Some inteiro na fatia 7, junto com `features/dashboard/`.
   {
     path: 'dashboard',
     component: DashboardLayout,
     canActivate: [authGuard],
     children: [
-      {
-        path: '',
-        loadComponent: () =>
-          import('./features/dashboard/pages/overview/overview').then((m) => m.Overview),
-      },
       {
         path: 'receipts/:id',
         loadComponent: () =>
@@ -79,25 +105,5 @@ export const routes: Routes = [
           import('./features/dashboard/pages/settings/settings').then((m) => m.Settings),
       },
     ],
-  },
-  // ─── Console do lojista ─────────────────────────────────────────────
-  // A migração é tela a tela, e as duas cascas convivem no mesmo prefixo.
-  //
-  // A ordem é deliberada: a entrada antiga vem primeiro e continua dona de
-  // `/dashboard` e de tudo que ainda não migrou. Uma tela migra **por
-  // subtração** — sai da lista de filhos acima e passa a ser servida daqui,
-  // porque o roteador, ao não achar o caminho entre os filhos do bloco
-  // anterior, volta atrás e tenta esta entrada.
-  //
-  // O caminho oposto (console primeiro) tem um buraco: o `path: ''` do console
-  // casaria com `/dashboard` e serviria uma casca vazia no lugar da visão
-  // geral, que ainda não migrou. Foi o que aconteceu, e é por isso que está
-  // assim documentado.
-  //
-  // A URL não muda na travessia, então nenhum link guardado quebra.
-  {
-    path: 'dashboard',
-    canActivate: [authGuard],
-    loadChildren: () => import('./merchant/merchant.routes').then((m) => m.CONSOLE_ROUTES),
   },
 ];
