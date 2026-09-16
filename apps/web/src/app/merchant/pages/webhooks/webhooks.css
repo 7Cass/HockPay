@@ -1,0 +1,175 @@
+.hook-warning {
+  margin: 0 0 0.75rem;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-2);
+}
+
+.hook-secret {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--mer-warn-line);
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface-2);
+  overflow-x: auto;
+}
+
+/* Lista à esquerda, investigação à direita. `minmax(0, 1fr)` na coluna larga
+   porque a tabela de entregas é quem dita a largura — sem isso ela empurra o
+   grid e a coluna de status sai da tela. */
+.hook-split {
+  display: grid;
+  grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.hook-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hook-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hook-list li + li .hook-item {
+  border-top: 1px solid var(--mer-line);
+}
+
+.hook-item:hover {
+  background: var(--mer-surface-2);
+}
+
+.hook-item.is-on {
+  border-left-color: var(--mer-action);
+  background: var(--mer-surface-2);
+}
+
+.hook-url {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hook-host {
+  font-size: 12.5px;
+  color: var(--mer-text);
+  overflow-wrap: anywhere;
+}
+
+.hook-path {
+  font-size: 11px;
+  color: var(--mer-text-3);
+  overflow-wrap: anywhere;
+}
+
+.hook-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hook-events {
+  font-size: 11px;
+  color: var(--mer-text-3);
+}
+
+.hook-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.hook-facts {
+  display: grid;
+  /* A trilha fica presa. Sem isso ela e `auto` e cresce ate caber a URL
+     inteira sem quebrar: em 390px empurra as etiquetas para fora, e a casca
+     corta em silencio com `overflow: hidden`. Medido em 623px de largura
+     dentro de uma janela de 390. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.hook-facts dt {
+  margin-bottom: 0.2rem;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.hook-facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.hook-event-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.hook-tag {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--mer-line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--mer-text-2);
+}
+
+.hook-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--mer-line);
+}
+
+.hook-tab {
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--mer-text-3);
+  cursor: pointer;
+}
+
+.hook-tab.is-on {
+  border-bottom-color: var(--mer-action);
+  color: var(--mer-text);
+}
+
+.hook-col-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.hook-confirm {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--mer-text-2);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 960px) {
+  .hook-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

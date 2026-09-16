@@ -1,0 +1,96 @@
+:host {
+  position: fixed;
+  z-index: 60;
+  right: var(--mer-gutter);
+  bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--tone-line, var(--mer-line));
+  border-left-width: 3px;
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface);
+  box-shadow: var(--mer-shadow);
+  font-size: 13px;
+  color: var(--mer-text);
+  pointer-events: auto;
+  animation: mer-toast-in 0.2s var(--mer-ease);
+}
+
+.toast[data-tone='ok'] {
+  --tone-line: var(--mer-ok-line);
+  --tone-text: var(--mer-ok);
+}
+
+.toast[data-tone='warn'] {
+  --tone-line: var(--mer-warn-line);
+  --tone-text: var(--mer-warn);
+}
+
+.toast[data-tone='bad'] {
+  --tone-line: var(--mer-bad-line);
+  --tone-text: var(--mer-bad);
+}
+
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--mer-surface-2);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--tone-text, var(--mer-text-3));
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.message {
+  line-height: 1.45;
+}
+
+.detail {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--mer-text-3);
+  overflow-wrap: anywhere;
+}
+
+.close {
+  margin-left: auto;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--mer-text-3);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--mer-text);
+}
+
+@keyframes mer-toast-in {
+  from {
+    opacity: 0;
+    translate: 0 0.4rem;
+  }
+}

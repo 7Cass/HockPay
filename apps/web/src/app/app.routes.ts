@@ -69,25 +69,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'api',
-        loadComponent: () => import('./features/dashboard/pages/api/api').then((m) => m.Api),
-      },
-      {
-        path: 'api-keys',
-        redirectTo: 'api',
-        pathMatch: 'full',
-      },
-      {
-        path: 'webhooks',
-        loadComponent: () =>
-          import('./features/dashboard/pages/webhooks/webhooks').then((m) => m.Webhooks),
-      },
-      {
-        path: 'alerts',
-        loadComponent: () =>
-          import('./features/dashboard/pages/alerts/alerts').then((m) => m.Alerts),
-      },
-      {
         path: 'products',
         loadComponent: () =>
           import('./features/dashboard/pages/products/products').then((m) => m.Products),

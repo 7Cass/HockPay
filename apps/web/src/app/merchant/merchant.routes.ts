@@ -67,6 +67,24 @@ export const CONSOLE_ROUTES: Routes = [
             (m) => m.ConsoleWithdrawalDetail,
           ),
       },
+      {
+        path: 'api',
+        loadComponent: () => import('./pages/api/api').then((m) => m.ConsoleApi),
+      },
+      {
+        // O endereço antigo da tela de chaves, que ainda circula em link salvo.
+        path: 'api-keys',
+        redirectTo: 'api',
+        pathMatch: 'full',
+      },
+      {
+        path: 'webhooks',
+        loadComponent: () => import('./pages/webhooks/webhooks').then((m) => m.ConsoleWebhooks),
+      },
+      {
+        path: 'alerts',
+        loadComponent: () => import('./pages/alerts/alerts').then((m) => m.ConsoleAlerts),
+      },
     ],
   },
 ];

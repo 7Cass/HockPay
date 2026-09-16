@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { MerchantSession } from '../data/session';
-import { MerThemeService } from '../ui';
+import { MerThemeService, MerToaster } from '../ui';
 import { ConsoleRail } from './rail';
 import { ConsoleTopbar } from './topbar';
 
@@ -22,7 +22,7 @@ import { ConsoleTopbar } from './topbar';
 @Component({
   selector: 'app-console-shell',
   standalone: true,
-  imports: [RouterOutlet, ConsoleRail, ConsoleTopbar],
+  imports: [RouterOutlet, ConsoleRail, ConsoleTopbar, MerToaster],
   templateUrl: './console-shell.html',
   styleUrl: './console-shell.css',
   host: {
