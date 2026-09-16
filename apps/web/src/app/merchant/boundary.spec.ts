@@ -97,13 +97,18 @@ describe('fronteira do console', () => {
   });
 
   it('os templates não herdam classe global do dashboard antigo', () => {
-    // `panel`, `btn`, `chip` e companhia moram em `styles/primitives.css`, que é
-    // global. Usá-las aqui traria a pele antiga de volta pela porta dos fundos.
-    const legacy = /\b(panel|btn|btn-[a-z]+|chip|field|field-label|stat|table|eyebrow)\b/;
+    // As classes de `styles/primitives.css` são globais e vivem em
+    // `@layer components`: o que o componente não sobrescreve vaza para cá. Usar
+    // uma delas traria a pele antiga de volta pela porta dos fundos.
+    //
+    // A comparação é por **token inteiro**, e não por pedaço: `icon-btn` é uma
+    // classe local e encapsulada, e um teste que casasse `btn` dentro dela
+    // proibiria nome legítimo — que foi o primeiro jeito que este teste teve, e
+    // o motivo de ele estar assim documentado.
     const offenders = templates
       .filter((file) =>
         [...readFileSync(file, 'utf8').matchAll(/class="([^"]*)"/g)].some((match) =>
-          match[1].split(/\s+/).some((name) => legacy.test(name) && !name.startsWith('mer-')),
+          match[1].split(/\s+/).some((name) => LEGACY_CLASSES.has(name)),
         ),
       )
       .map(short);
@@ -111,6 +116,106 @@ describe('fronteira do console', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * As classes que `styles/primitives.css` publica no escopo global, extraídas
+ * dele (`grep -ohE '^\s*\.[a-z][a-z0-9-]*'`, 92 nomes em `2026-09-15`).
+ *
+ * A lista é literal de propósito: lê-la do CSS em tempo de teste faria o teste
+ * passar sozinho no dia em que alguém renomeasse a primitiva, que é justamente
+ * o dia em que se quer olhar para cá.
+ */
+const LEGACY_CLASSES = new Set([
+  'arrow',
+  'arrow-back',
+  'arrow-diag',
+  'btn',
+  'btn-danger',
+  'btn-ghost',
+  'btn-icon',
+  'btn-ink',
+  'btn-lg',
+  'btn-paper',
+  'btn-quiet',
+  'btn-sm',
+  'cell-actions',
+  'cell-link',
+  'cell-stack',
+  'cell-sub',
+  'cell-title',
+  'chip',
+  'chip-bare',
+  'control',
+  'control-icon',
+  'detail-column',
+  'detail-grid',
+  'eyebrow',
+  'fact',
+  'fact-stacked',
+  'facts',
+  'facts-split',
+  'field',
+  'field-error',
+  'field-label',
+  'field-note',
+  'filter-actions',
+  'filter-bar',
+  'form-row',
+  'form-stack',
+  'group',
+  'ink-field',
+  'input',
+  'label',
+  'link',
+  'mark',
+  'mark-bar',
+  'mark-dot',
+  'mark-inverse',
+  'menu',
+  'menu-check',
+  'menu-empty',
+  'menu-label',
+  'menu-row',
+  'menu-rule',
+  'menu-sub',
+  'menu-text',
+  'menu-title',
+  'meter',
+  'mono',
+  'notice',
+  'notice-text',
+  'numeric',
+  'panel',
+  'panel-body',
+  'panel-head',
+  'panel-quiet',
+  'panel-title',
+  'pulse-dot',
+  'reveal',
+  'reveal-in',
+  'scroll-thin',
+  'seg',
+  'skeleton',
+  'spinner',
+  'spinner-sm',
+  'stat',
+  'stat-context',
+  'stat-delta',
+  'stat-head',
+  'stat-value',
+  'switch',
+  'switch-label',
+  'switch-track',
+  'table',
+  'table-scroll',
+  'timeline',
+  'timeline-head',
+  'timeline-label',
+  'timeline-meta',
+  'timeline-note',
+  'timeline-when',
+  'toggle',
+]);
 
 function findMerchantDir(): string {
   const candidates = [

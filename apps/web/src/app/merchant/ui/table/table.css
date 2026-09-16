@@ -1,0 +1,105 @@
+/* Estilo global de propósito: as regras precisam alcançar `<th>` e `<td>` que a
+   página escreveu e projetou aqui dentro. Tudo está preso a `.mer-table`. */
+
+.mer-table {
+  display: block;
+  min-width: 0;
+}
+
+.mer-table-scroll {
+  overflow-x: auto;
+}
+
+.mer-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.mer-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.55rem 1.1rem;
+  border-bottom: 1px solid var(--mer-line);
+  background: var(--mer-surface-2);
+  font-family: var(--font-code);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--mer-text-3);
+}
+
+.mer-table.is-plain thead th {
+  position: static;
+}
+
+.mer-table tbody td {
+  height: var(--mer-row);
+  padding: 0.5rem 1.1rem;
+  border-bottom: 1px solid var(--mer-line);
+  color: var(--mer-text);
+  vertical-align: middle;
+}
+
+.mer-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mer-table tbody tr.is-clickable {
+  cursor: pointer;
+}
+
+.mer-table tbody tr.is-clickable:hover td {
+  background: var(--mer-surface-2);
+}
+
+/* ── Célula de duas linhas: o dado e o que o qualifica ─────────────────── */
+.mer-table .mer-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mer-table .mer-cell-main {
+  color: var(--mer-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mer-table .mer-cell-sub {
+  font-size: 11.5px;
+  color: var(--mer-text-3);
+}
+
+.mer-table a.mer-cell {
+  text-decoration: none;
+}
+
+.mer-table a.mer-cell:hover .mer-cell-main {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Valor que desce da coluna: taxa é detalhe, e detalhe fala mais baixo. */
+.mer-table .mer-cell-quiet {
+  color: var(--mer-text-3);
+}
+
+/**
+ * A coluna que cede.
+ *
+ * `max-width: 0` com `width: 100%` é o par que faz a célula respeitar a largura
+ * da tabela em vez de esticá-la: sem ele, uma descrição longa empurra a linha
+ * inteira e a última coluna — o status — sai da área visível. Com ele, o texto
+ * corta com reticência e o status continua onde o olho procura.
+ */
+.mer-table .is-flex {
+  width: 100%;
+  max-width: 0;
+}

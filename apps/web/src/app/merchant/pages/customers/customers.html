@@ -1,0 +1,119 @@
+<mer-page-header
+  heading="Clientes"
+  description="Pagadores identificados nas cobranças e no checkout, agrupados por documento."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="customers.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+  </ng-container>
+</mer-page-header>
+
+<!-- O cabeçalho do painel só existe quando tem o que mostrar. -->
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="filters">
+    <mer-field label="Buscar cliente" grow note="nome, e-mail, documento ou external id">
+      <input
+        type="search"
+        placeholder="ana, 506.213.025-54, cli_00012…"
+        [value]="draft()"
+        (input)="draft.set($any($event.target).value)"
+        (keydown.enter)="search()"
+        (blur)="search()"
+      />
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    [message]="error.message"
+    [code]="error.code"
+    heading="Não foi possível ler os clientes"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (customers.isLoading() && page().customers.length === 0) {
+  <mer-page-state variant="loading" message="Lendo os clientes…" />
+} @else if (isEmpty()) {
+  <mer-page-state variant="empty" heading="Nenhum cliente por aqui" [message]="emptyMessage()">
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar busca
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Documento</th>
+            <th class="col-external">External ID</th>
+            <th>Desde</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (customer of page().customers; track customer.id) {
+            <tr class="is-clickable">
+              <td class="is-flex">
+                <a class="mer-cell" [routerLink]="['/dashboard/customers', customer.id]">
+                  <span class="mer-cell-main">{{ name(customer) }}</span>
+                  <span class="mer-cell-sub">{{ contact(customer) }}</span>
+                </a>
+              </td>
+
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-mono">{{ customer.formattedDocument }}</span>
+                  <span class="mer-cell-sub">{{ customer.documentType }}</span>
+                </span>
+              </td>
+
+              <td class="col-external mer-mono mer-cell-quiet">{{ customer.externalId || '—' }}</td>
+
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-num">{{
+                    customer.createdAt | date: 'dd/MM/yy'
+                  }}</span>
+                  <span class="mer-cell-sub mer-mono">{{
+                    customer.createdAt | date: 'HH:mm'
+                  }}</span>
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().customers.length"
+      noun="clientes"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}

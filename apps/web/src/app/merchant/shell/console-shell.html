@@ -1,0 +1,21 @@
+<div class="shell">
+  <app-console-rail class="shell-rail" />
+
+  <div class="shell-main">
+    <app-console-topbar (openMenu)="openDrawer()" />
+
+    <main class="shell-scroll mer-scroll">
+      <div class="shell-content">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- A gaveta do celular: o mesmo trilho, por cima do conteúdo. -->
+@if (drawerOpen()) {
+  <div class="drawer-scrim" (click)="closeDrawer()"></div>
+  <div class="drawer">
+    <app-console-rail variant="drawer" (navigated)="closeDrawer()" />
+  </div>
+}

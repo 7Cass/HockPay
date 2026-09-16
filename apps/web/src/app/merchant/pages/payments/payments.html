@@ -1,0 +1,147 @@
+<mer-page-header
+  heading="Pagamentos"
+  description="Toda cobrança Pix da loja, com a taxa e o líquido de cada uma."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="payments.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+  </ng-container>
+</mer-page-header>
+
+<!-- O cabeçalho do painel só existe quando tem o que mostrar: uma faixa vazia
+     acima dos filtros é barulho com altura. -->
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="filters">
+    <mer-field label="Busca" grow note="pelo external id da cobrança">
+      <input
+        type="search"
+        placeholder="FIG-11134"
+        [value]="draft()"
+        (input)="draft.set($any($event.target).value)"
+        (keydown.enter)="search()"
+        (blur)="search()"
+      />
+    </mer-field>
+
+    <mer-field label="Status">
+      <select [value]="params().status" (change)="setStatus($any($event.target).value)">
+        @for (option of statusOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </mer-field>
+
+    <mer-field label="Início">
+      <input
+        type="date"
+        [value]="params().startDate"
+        (change)="setStart($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Fim">
+      <input type="date" [value]="params().endDate" (change)="setEnd($any($event.target).value)" />
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    [message]="error.message"
+    [code]="error.code"
+    heading="Não foi possível ler os pagamentos"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (payments.isLoading() && page().payments.length === 0) {
+  <mer-page-state variant="loading" message="Lendo os pagamentos…" />
+} @else if (isEmpty()) {
+  <mer-page-state variant="empty" heading="Nenhum pagamento por aqui" [message]="emptyMessage()">
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar filtros
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th class="mer-col-num">Bruto</th>
+            <th class="mer-col-num col-fee">Taxa</th>
+            <th class="mer-col-num">Líquido</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (payment of page().payments; track payment.id) {
+            <tr class="is-clickable">
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-num">{{
+                    payment.createdAt | date: 'dd/MM/yy'
+                  }}</span>
+                  <span class="mer-cell-sub mer-mono">{{ payment.createdAt | date: 'HH:mm' }}</span>
+                </span>
+              </td>
+
+              <td class="is-flex">
+                <a class="mer-cell" [routerLink]="['/dashboard/payments', payment.id]">
+                  <span class="mer-cell-main">{{ payment.description || 'Cobrança Pix' }}</span>
+                  <span class="mer-cell-sub mer-mono">
+                    {{ short(payment.id) }}
+                    @if (isLinkAttempt(payment)) {
+                      · link
+                    }
+                  </span>
+                </a>
+              </td>
+
+              <td class="mer-col-num">
+                {{ payment.amount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </td>
+              <td class="mer-col-num col-fee mer-cell-quiet">
+                −{{ payment.fee / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </td>
+              <td class="mer-col-num">
+                {{ payment.netAmount / 100 | currency: 'BRL' : 'symbol' : '1.2-2' }}
+              </td>
+              <td><mer-chip [status]="payment.status" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().payments.length"
+      noun="pagamentos"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}
