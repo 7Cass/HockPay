@@ -9,6 +9,9 @@ export interface AreaPoint {
   readonly extra?: number;
 }
 
+/** Cada gráfico precisa do seu degradê: `url(#id)` em SVG é global. */
+let nextGradient = 0;
+
 /**
  * Uma série, desenhada à mão em SVG.
  *
@@ -43,11 +46,22 @@ export interface AreaPoint {
           [attr.aria-label]="resumo()"
           (pointerleave)="active.set(-1)"
         >
+          <defs>
+            <!-- O preenchimento desbota para baixo em vez de ser um bloco de
+                 cor uniforme: a área serve para dar peso à linha, e um bloco
+                 chapado compete com ela e escurece a base do painel. -->
+            <linearGradient [attr.id]="gradientId" x1="0" y1="0" x2="0" y2="1">
+              <stop class="spark-grad-top" offset="0" />
+              <stop class="spark-grad-mid" offset="0.55" />
+              <stop class="spark-grad-end" offset="1" />
+            </linearGradient>
+          </defs>
+
           <!-- A base: onde é zero. Sem ela, uma série que cai não tem contra o
                que cair. -->
           <line class="spark-base" [attr.x1]="0" [attr.y1]="H" [attr.x2]="W" [attr.y2]="H" />
 
-          <path class="spark-fill" [attr.d]="areaPath()" />
+          <path class="spark-fill" [attr.d]="areaPath()" [attr.fill]="'url(#' + gradientId + ')'" />
           <path class="spark-line" [attr.d]="linePath()" vector-effect="non-scaling-stroke" />
 
           @if (activePoint(); as point) {
@@ -59,7 +73,8 @@ export interface AreaPoint {
               [attr.y2]="H"
               vector-effect="non-scaling-stroke"
             />
-            <circle class="spark-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="3" />
+            <circle class="spark-halo" [attr.cx]="point.x" [attr.cy]="point.y" r="7" />
+            <circle class="spark-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="3.5" />
           }
 
           <!-- Uma faixa invisível por ponto: é ela que captura o ponteiro, e
@@ -111,6 +126,8 @@ export class MerAreaChart {
   protected readonly W = 600;
   protected readonly H = 180;
 
+  protected readonly gradientId = `mer-spark-${++nextGradient}`;
+
   protected readonly active = signal(-1);
 
   /**
@@ -119,10 +136,13 @@ export class MerAreaChart {
    * Sempre a partir de zero, e nunca a partir do menor valor: uma série entre
    * 9.800 e 10.000 desenhada de 9.800 vira um penhasco, e quem olha conclui
    * que o faturamento despencou quando ele variou dois por cento.
+   *
+   * Uma folga de 8% no topo impede que o pico encoste na borda do painel e
+   * pareça cortado.
    */
   private readonly top = computed(() => {
     const max = Math.max(...this.points().map((point) => point.value), 0);
-    return max > 0 ? max : 1;
+    return max > 0 ? max * 1.08 : 1;
   });
 
   private readonly coords = computed(() => {
@@ -138,11 +158,7 @@ export class MerAreaChart {
     }));
   });
 
-  protected readonly linePath = computed(() =>
-    this.coords()
-      .map((point, index) => `${index === 0 ? 'M' : 'L'}${round(point.x)},${round(point.y)}`)
-      .join(' '),
-  );
+  protected readonly linePath = computed(() => smooth(this.coords()));
 
   protected readonly areaPath = computed(() => {
     const line = this.linePath();
@@ -192,6 +208,79 @@ export class MerAreaChart {
     const point = index < 0 ? points[points.length + index] : points[index];
     return point ? this.formatLabel()(point.label) : '';
   }
+}
+
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * A curva que passa pelos pontos sem inventar nenhum.
+ *
+ * Suavização ingênua — Catmull-Rom, splines cardinais — faz a curva
+ * **ultrapassar** os pontos para chegar macia no seguinte. Num gráfico de
+ * dinheiro isso é mentira cara: entre dois dias de R$ 1.000 e R$ 3.000 aparece
+ * um pico de R$ 3.400 que não existiu em dia nenhum, e o lojista lê o pico.
+ *
+ * Esta é a interpolação cúbica **monotônica** de Fritsch–Carlson: as tangentes
+ * são reduzidas até garantir que nenhum trecho passe dos dois valores que o
+ * cercam. Onde a série vira, a tangente é zerada, e o topo da curva é
+ * exatamente o ponto medido.
+ */
+function smooth(points: readonly Point[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M${round(points[0].x)},${round(points[0].y)}`;
+
+  const n = points.length;
+  const dx: number[] = [];
+  const slope: number[] = [];
+
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = points[i + 1].x - points[i].x;
+    slope[i] = dx[i] === 0 ? 0 : (points[i + 1].y - points[i].y) / dx[i];
+  }
+
+  // Tangente de cada ponto: a média das inclinações vizinhas, e zero onde a
+  // série muda de direção — é aí que o overshoot nasceria.
+  const tangent: number[] = new Array(n);
+  tangent[0] = slope[0];
+  tangent[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    tangent[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  }
+
+  // O corte de Fritsch–Carlson: encolhe as tangentes até o trecho caber entre
+  // os dois pontos.
+  for (let i = 0; i < n - 1; i++) {
+    if (slope[i] === 0) {
+      tangent[i] = 0;
+      tangent[i + 1] = 0;
+      continue;
+    }
+
+    const a = tangent[i] / slope[i];
+    const b = tangent[i + 1] / slope[i];
+    const s = a * a + b * b;
+
+    if (s > 9) {
+      const fator = 3 / Math.sqrt(s);
+      tangent[i] = fator * a * slope[i];
+      tangent[i + 1] = fator * b * slope[i];
+    }
+  }
+
+  let d = `M${round(points[0].x)},${round(points[0].y)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const terco = dx[i] / 3;
+    const c1x = points[i].x + terco;
+    const c1y = points[i].y + tangent[i] * terco;
+    const c2x = points[i + 1].x - terco;
+    const c2y = points[i + 1].y - tangent[i + 1] * terco;
+    d += ` C${round(c1x)},${round(c1y)} ${round(c2x)},${round(c2y)} ${round(points[i + 1].x)},${round(points[i + 1].y)}`;
+  }
+
+  return d;
 }
 
 function round(value: number): number {
