@@ -67,7 +67,7 @@
     </button>
   </mer-page-state>
 } @else {
-  <!-- ─── Os cinco números ─────────────────────────────────────────────── -->
+  <!-- ─── Os números de abertura ───────────────────────────────────────── -->
   <section class="ov-stats">
     @for (card of cards(); track card.label) {
       <mer-stat
@@ -80,12 +80,36 @@
     }
   </section>
 
+  @if (previousLabel()) {
+    <p class="ov-versus">As variações acima comparam com o período {{ previousLabel() }}.</p>
+  }
+
   <!-- ─── A série, em largura inteira ──────────────────────────────────── -->
   <!-- Ela responde a pergunta que traz o lojista aqui — "como vai a loja" —,
-       e por isso ocupa a linha sozinha. Dividindo a linha com os painéis de
-       conversão, ela ficava com dois terços da largura e metade da altura
-       deles, e sobrava um vão morto embaixo. -->
+       e por isso ocupa a linha sozinha. -->
   <mer-panel heading="Volume e vendas" note="Volume líquido por dia; vendas no balão">
+    <ng-container panelActions>
+      <!-- A conta do periodo, onde ela pertence: ao lado da serie que a
+           desenha. Bruto menos taxa e igual ao liquido — o console mostrava so
+           o liquido, que responde metade da pergunta. -->
+      <dl class="ov-flow">
+        <div>
+          <dt>Bruto</dt>
+          <dd class="mer-num">{{ money(flow().gross) }}</dd>
+        </div>
+        <div class="ov-flow-op" aria-hidden="true">−</div>
+        <div>
+          <dt>Taxas</dt>
+          <dd class="mer-num ov-flow-fee">{{ money(flow().fees) }}</dd>
+        </div>
+        <div class="ov-flow-op" aria-hidden="true">=</div>
+        <div>
+          <dt>Líquido</dt>
+          <dd class="mer-num">{{ money(flow().net) }}</dd>
+        </div>
+      </dl>
+    </ng-container>
+
     @if (overview.isLoading() && series().length === 0) {
       <mer-page-state variant="loading" message="Lendo o período…" />
     } @else if (isEmptyPeriod()) {
@@ -101,53 +125,59 @@
         [formatLabel]="day"
         extraLabel="vendas aprovadas"
       />
+
+      @if (flow().feeShare > 0) {
+        <p class="ov-quiet ov-fee-note">
+          As taxas ficaram com {{ rate(flow().feeShare) }} do bruto no período.
+        </p>
+      }
     }
   </mer-panel>
 
-  <!-- ─── Os quatro diagnósticos ───────────────────────────────────────── -->
-  <!-- Mesmo peso, mesma caixa: conversão de link, aprovação de cobrança, o que
-       pede ação e a saúde das integrações. -->
+  <!-- ─── Os três diagnósticos ─────────────────────────────────────────── -->
   <section class="ov-cells">
-    <mer-panel heading="Links" note="Criados que viraram pagamento">
-      <p class="ov-rate">{{ rate(links().linkConversionRate) }}</p>
-
-      @if (links().linksCreated === 0) {
+    <!-- Funil: uma taxa sozinha diz que se perde, não onde. -->
+    <mer-panel heading="Links" note="De criado a pago">
+      @if (funnel().length === 0) {
         <p class="ov-quiet">
-          Nenhum link criado no período. A conversão aparece quando houver link pago.
+          Nenhum link criado no período. O funil aparece quando houver link para acompanhar.
         </p>
       } @else {
-        <div
-          class="ov-bar"
-          role="img"
-          [attr.aria-label]="'Conversão de ' + rate(links().linkConversionRate)"
-        >
-          <span data-tone="ok" [style.width.%]="percent(links().linkConversionRate)"></span>
-        </div>
+        <p class="ov-rate">{{ rate(links().linkConversionRate) }}</p>
+        <p class="ov-quiet ov-rate-note">dos links criados viraram pagamento</p>
 
-        <dl class="ov-pairs">
-          <div>
-            <dt>Criados</dt>
-            <dd class="mer-num">{{ links().linksCreated.toLocaleString('pt-BR') }}</dd>
-          </div>
-          <div>
-            <dt>Pagos</dt>
-            <dd class="mer-num">{{ links().linksPaid.toLocaleString('pt-BR') }}</dd>
-          </div>
-        </dl>
+        <ol class="ov-funnel">
+          @for (step of funnel(); track step.label) {
+            <li>
+              <div class="ov-step-head">
+                <span>{{ step.label }}</span>
+                <b class="mer-num">{{ count(step.value) }}</b>
+              </div>
+              <div class="ov-track">
+                <span [style.width.%]="step.percent"></span>
+              </div>
+              @if (step.fromPrevious !== null) {
+                <span class="ov-step-note">{{ rate(step.fromPrevious) }} do passo anterior</span>
+              }
+            </li>
+          }
+        </ol>
       }
     </mer-panel>
 
+    <!-- Cobranças: cada faixa com o valor, e não só a contagem. -->
     <mer-panel
-      heading="Pagamentos"
-      [note]="links().paymentAttempts.toLocaleString('pt-BR') + ' tentativa(s) no período'"
+      heading="Cobranças"
+      [note]="count(links().paymentAttempts) + ' tentativa(s) no período'"
     >
-      <p class="ov-rate">{{ rate(links().paymentApprovalRate) }}</p>
-
       @if (segments().length === 0) {
         <p class="ov-quiet">
           Sem tentativas no período. O diagnóstico aparece quando houver cobrança iniciada.
         </p>
       } @else {
+        <p class="ov-rate">{{ rate(links().paymentApprovalRate) }}</p>
+        <p class="ov-quiet ov-rate-note">das tentativas foram aprovadas</p>
+
         <div class="ov-bar">
           @for (segment of segments(); track segment.label) {
             <span [attr.data-tone]="segment.tone" [style.width.%]="segment.percent"></span>
@@ -158,20 +188,41 @@
           @for (segment of segments(); track segment.label) {
             <li>
               <span class="ov-dot" [attr.data-tone]="segment.tone"></span>
-              <span>{{ segment.label }}</span>
-              <b class="mer-num">{{ segment.value.toLocaleString('pt-BR') }}</b>
+              <span class="ov-legend-label">{{ segment.label }}</span>
+              <span class="ov-legend-money mer-num">
+                {{ segment.amount > 0 ? money(segment.amount) : '—' }}
+              </span>
+              <b class="mer-num">{{ count(segment.value) }}</b>
             </li>
           }
         </ul>
       }
     </mer-panel>
 
-    <mer-panel
-      heading="Atenção"
-      [note]="attention().length ? 'O que ainda pede ação' : 'Nada pendente nas integrações'"
-    >
+    <!-- Integrações: saúde e ação no mesmo lugar. Eram dois painéis que
+         mostravam os mesmos dois números. -->
+    <mer-panel heading="Integrações" note="Entregas de webhook e alertas">
+      <ng-container panelActions>
+        <mer-chip
+          [status]="health().environment"
+          [label]="health().environment"
+          [tone]="health().environment === 'LIVE' ? 'warn' : 'neutral'"
+        />
+      </ng-container>
+
+      <dl class="ov-pairs ov-pairs-grid">
+        <div>
+          <dt>Webhooks ativos</dt>
+          <dd class="mer-num">{{ count(health().activeWebhooks) }}</dd>
+        </div>
+        <div>
+          <dt>Alertas ativos</dt>
+          <dd class="mer-num">{{ count(health().activeAlerts) }}</dd>
+        </div>
+      </dl>
+
       @if (attention().length === 0) {
-        <p class="ov-quiet">
+        <p class="ov-quiet ov-calm">
           Nenhuma entrega falha ou na fila. Cobrança aguardando pagamento não entra aqui — isso é o
           Pix funcionando.
         </p>
@@ -182,51 +233,12 @@
               <a [routerLink]="item.route">
                 <span class="ov-dot" [attr.data-tone]="item.tone"></span>
                 <span>{{ item.label }}</span>
-                <b class="mer-num">{{ item.value.toLocaleString('pt-BR') }}</b>
+                <b class="mer-num">{{ count(item.value) }}</b>
               </a>
             </li>
           }
         </ul>
       }
-    </mer-panel>
-
-    <mer-panel heading="Integrações" note="Saúde de webhooks e alertas">
-      <ng-container panelActions>
-        <mer-chip
-          [status]="data().integrationsHealth.environment"
-          [label]="data().integrationsHealth.environment"
-          [tone]="data().integrationsHealth.environment === 'LIVE' ? 'warn' : 'neutral'"
-        />
-      </ng-container>
-
-      <dl class="ov-pairs ov-pairs-grid">
-        <div>
-          <dt>Webhooks ativos</dt>
-          <dd class="mer-num">{{ data().integrationsHealth.activeWebhooks }}</dd>
-        </div>
-        <div>
-          <dt>Alertas ativos</dt>
-          <dd class="mer-num">{{ data().integrationsHealth.activeAlerts }}</dd>
-        </div>
-        <div>
-          <dt>Falhas de webhook</dt>
-          <dd
-            class="mer-num"
-            [attr.data-tone]="data().integrationsHealth.failedWebhookDeliveries > 0 ? 'bad' : null"
-          >
-            {{ data().integrationsHealth.failedWebhookDeliveries }}
-          </dd>
-        </div>
-        <div>
-          <dt>Falhas de alerta</dt>
-          <dd
-            class="mer-num"
-            [attr.data-tone]="data().integrationsHealth.failedAlertDeliveries > 0 ? 'bad' : null"
-          >
-            {{ data().integrationsHealth.failedAlertDeliveries }}
-          </dd>
-        </div>
-      </dl>
     </mer-panel>
   </section>
 

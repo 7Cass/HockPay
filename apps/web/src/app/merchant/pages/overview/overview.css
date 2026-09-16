@@ -35,26 +35,74 @@
   gap: 0.75rem;
 }
 
-/* Os quatro diagnósticos: mesma caixa, mesmo peso. `auto-fit` quebra para duas
-   colunas por volta de 900px e para uma no celular, sem media query. */
+/* A legenda dos deltas: fala baixo e fica colada nos cartões que explica, e
+   não a uma seção de distância. */
+.ov-versus {
+  margin: -0.5rem 0 0;
+  font-size: 11.5px;
+  color: var(--mer-text-3);
+}
+
+/* ── A conta do período, no cabeçalho do gráfico ───────────────────────── */
+.ov-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 0.85rem;
+  margin: 0;
+}
+
+.ov-flow dt {
+  margin-bottom: 0.1rem;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.ov-flow dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--mer-text);
+}
+
+.ov-flow-fee {
+  color: var(--mer-text-2);
+}
+
+.ov-flow-op {
+  align-self: end;
+  padding-bottom: 0.1rem;
+  font-size: 13px;
+  color: var(--mer-text-3);
+}
+
+.ov-fee-note {
+  margin-top: 0.85rem;
+}
+
+/* ── Os três diagnósticos ──────────────────────────────────────────────── */
 .ov-cells {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
   gap: 0.75rem;
-  /* `stretch`, e não `start`: as quatro caixas têm o mesmo peso e conteúdo de
-     alturas diferentes. Alinhadas pelo topo, elas terminavam em degraus e a
-     linha parecia desmontada. */
+  /* `stretch`, e não `start`: as caixas têm o mesmo peso e conteúdo de alturas
+     diferentes. Alinhadas pelo topo, terminavam em degraus. */
   align-items: stretch;
 }
 
 .ov-rate {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 1.6rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--mer-text);
+}
+
+.ov-rate-note {
+  margin-top: 0.3rem;
 }
 
 .ov-quiet {
@@ -64,10 +112,63 @@
   color: var(--mer-text-3);
 }
 
+.ov-calm {
+  margin-top: 0.9rem;
+}
+
+/* ── Funil ─────────────────────────────────────────────────────────────── */
+.ov-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ov-step-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+  font-size: 12.5px;
+  color: var(--mer-text-2);
+}
+
+.ov-step-head b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--mer-text);
+}
+
+.ov-track {
+  overflow: hidden;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--mer-surface-3);
+}
+
+.ov-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--mer-ok);
+}
+
+.ov-step-note {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 11px;
+  color: var(--mer-text-3);
+}
+
+/* ── Barra de status e legenda ─────────────────────────────────────────── */
 .ov-bar {
   display: flex;
   overflow: hidden;
   height: 0.4rem;
+  margin-top: 0.9rem;
   border-radius: 999px;
   background: var(--mer-surface-3);
 }
@@ -89,37 +190,6 @@
   background: var(--mer-bad);
 }
 
-.ov-pairs {
-  display: flex;
-  gap: 1.5rem;
-  margin: 0.9rem 0 0;
-}
-
-.ov-pairs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem 1rem;
-  margin: 0;
-}
-
-.ov-pairs dt {
-  margin-bottom: 0.2rem;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--mer-text-3);
-}
-
-.ov-pairs dd {
-  margin: 0;
-  font-size: 14px;
-  color: var(--mer-text);
-}
-
-.ov-pairs dd[data-tone='bad'] {
-  color: var(--mer-bad);
-}
-
 .ov-legend,
 .ov-attention {
   display: flex;
@@ -135,7 +205,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.35rem 0;
+  padding: 0.38rem 0;
   font-size: 12.5px;
   color: var(--mer-text-2);
   text-decoration: none;
@@ -146,16 +216,33 @@
   border-top: 1px solid var(--mer-line);
 }
 
+.ov-legend-label {
+  min-width: 0;
+}
+
+/* O valor fica antes da contagem e mais apagado: a contagem é o que alinha a
+   coluna, o valor é o que explica o tamanho do problema. */
+.ov-legend-money {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--mer-text-3);
+}
+
 .ov-attention a:hover {
   color: var(--mer-text);
 }
 
 .ov-legend b,
 .ov-attention b {
-  margin-left: auto;
+  min-width: 2.5ch;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   color: var(--mer-text);
+}
+
+.ov-attention b {
+  margin-left: auto;
 }
 
 .ov-dot {
@@ -176,4 +263,31 @@
 
 .ov-dot[data-tone='bad'] {
   background: var(--mer-bad);
+}
+
+/* ── Pares ─────────────────────────────────────────────────────────────── */
+.ov-pairs {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+}
+
+.ov-pairs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+.ov-pairs dt {
+  margin-bottom: 0.2rem;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.ov-pairs dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mer-text);
 }

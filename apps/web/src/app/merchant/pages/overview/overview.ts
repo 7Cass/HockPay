@@ -7,7 +7,13 @@ import { MerchantSession } from '../../data/session';
 import { toApiFailure } from '../../domain/api-error';
 import { conversionPercent } from '../../domain/conversion';
 import { deltaLabel, deltaTone, ratePercent } from '../../domain/deltas';
-import { attentionItems, originLabel, paymentSegments } from '../../domain/overview';
+import {
+  attentionItems,
+  linkFunnel,
+  moneyFlow,
+  originLabel,
+  paymentSegments,
+} from '../../domain/overview';
 import {
   type PeriodPreset,
   periodCaption,
@@ -92,6 +98,25 @@ export class ConsoleOverview {
 
   protected readonly caption = computed(() => periodCaption(this.preset(), this.range()));
 
+  /**
+   * Contra o que os deltas comparam, com data.
+   *
+   * "vs. período anterior" obriga a adivinhar qual. A API manda as duas pontas
+   * do intervalo comparado; dizer "19/07 a 17/08" custa o mesmo espaço e
+   * responde a pergunta.
+   */
+  protected readonly previousLabel = computed(() => {
+    const { previousStartDate, previousEndDate } = this.data().period;
+    if (!previousStartDate || !previousEndDate) return '';
+
+    const start = shortDate(previousStartDate.slice(0, 10));
+    const end = shortDate(previousEndDate.slice(0, 10));
+
+    // Só o intervalo: quem monta a frase é o template, e devolver "comparado a"
+    // daqui fazia a tela dizer "comparam com o período comparado a 19/07".
+    return `${start}–${end}`;
+  });
+
   protected readonly blocker = computed(() =>
     this.preset() === 'custom' ? rangeBlocker(this.range()) : null,
   );
@@ -101,7 +126,7 @@ export class ConsoleOverview {
     return error ? toApiFailure(error) : null;
   });
 
-  /* ── Os cinco números ───────────────────────────────────────────────── */
+  /* ── Os números de abertura ─────────────────────────────────────────── */
   protected readonly cards = computed(() => {
     const { balance, performance } = this.data();
 
@@ -109,7 +134,10 @@ export class ConsoleOverview {
       {
         label: 'Disponível',
         value: this.money(balance.available),
-        note: 'Pronto para sacar',
+        note:
+          balance.blocked > 0
+            ? `${this.money(balance.blocked)} reservados por saque em voo`
+            : 'Pronto para sacar',
         delta: balance.availableDelta,
       },
       {
@@ -163,7 +191,10 @@ export class ConsoleOverview {
     );
   });
 
-  /* ── Conversão e atenção ────────────────────────────────────────────── */
+  /* ── A conta do período ─────────────────────────────────────────────── */
+  protected readonly flow = computed(() => moneyFlow(this.data().performance));
+
+  /* ── Diagnósticos ───────────────────────────────────────────────────── */
   protected readonly segments = computed(() =>
     paymentSegments({
       attempts: this.data().conversion.paymentAttempts,
@@ -172,9 +203,13 @@ export class ConsoleOverview {
     }),
   );
 
+  protected readonly funnel = computed(() => linkFunnel(this.data().conversion));
+
   protected readonly attention = computed(() => attentionItems(this.data().attention));
 
   protected readonly links = computed(() => this.data().conversion);
+
+  protected readonly health = computed(() => this.data().integrationsHealth);
 
   /* ── Ações ──────────────────────────────────────────────────────────── */
   protected setPreset(preset: PeriodPreset): void {
@@ -218,6 +253,11 @@ export class ConsoleOverview {
     (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   protected readonly day = (value: string): string => shortDate(value);
+
+  /** Número inteiro, com o separador de milhar do português. */
+  protected count(value: number): string {
+    return (value ?? 0).toLocaleString('pt-BR');
+  }
 
   protected when(value: string): string {
     const date = new Date(value);
