@@ -55,27 +55,6 @@ export const routes: Routes = [
           import('./features/dashboard/pages/overview/overview').then((m) => m.Overview),
       },
       {
-        path: 'payment-links',
-        loadComponent: () =>
-          import('./features/dashboard/pages/payment-links/payment-links').then(
-            (m) => m.PaymentLinks,
-          ),
-      },
-      {
-        path: 'payment-links/:id',
-        loadComponent: () =>
-          import('./features/dashboard/pages/payment-link-detail/payment-link-detail').then(
-            (m) => m.PaymentLinkDetail,
-          ),
-      },
-      {
-        path: 'payments/:id',
-        loadComponent: () =>
-          import('./features/dashboard/pages/payment-detail/payment-detail').then(
-            (m) => m.PaymentDetail,
-          ),
-      },
-      {
         path: 'receipts/:id',
         loadComponent: () =>
           import('./features/dashboard/pages/receipt-detail/receipt-detail').then(

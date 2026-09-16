@@ -34,6 +34,23 @@ export const CONSOLE_ROUTES: Routes = [
         loadComponent: () => import('./pages/customers/customers').then((m) => m.ConsoleCustomers),
       },
       {
+        path: 'payments/:id',
+        loadComponent: () =>
+          import('./pages/payment-detail/payment-detail').then((m) => m.ConsolePaymentDetail),
+      },
+      {
+        path: 'payment-links',
+        loadComponent: () =>
+          import('./pages/payment-links/payment-links').then((m) => m.ConsolePaymentLinks),
+      },
+      {
+        path: 'payment-links/:id',
+        loadComponent: () =>
+          import('./pages/payment-link-detail/payment-link-detail').then(
+            (m) => m.ConsolePaymentLinkDetail,
+          ),
+      },
+      {
         path: 'financials',
         loadComponent: () =>
           import('./pages/financials/financials').then((m) => m.ConsoleFinancials),
