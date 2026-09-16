@@ -1,0 +1,107 @@
+:host {
+  display: block;
+}
+
+.spark {
+  position: relative;
+  margin: 0;
+}
+
+.spark-svg {
+  display: block;
+  width: 100%;
+  height: 13rem;
+  overflow: visible;
+}
+
+.spark-base {
+  stroke: var(--mer-line);
+  stroke-width: 1;
+}
+
+.spark-line {
+  fill: none;
+  stroke: var(--mer-action);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* O preenchimento some para baixo: a área serve para dar peso à linha, não
+   para competir com ela. */
+.spark-fill {
+  fill: var(--mer-action);
+  opacity: 0.1;
+  stroke: none;
+}
+
+.spark-rule {
+  stroke: var(--mer-line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.spark-dot {
+  fill: var(--mer-surface);
+  stroke: var(--mer-action);
+  stroke-width: 2;
+}
+
+.spark-hit {
+  fill: transparent;
+}
+
+.spark-tip {
+  position: absolute;
+  top: -0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--mer-line);
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface);
+  box-shadow: var(--mer-shadow);
+  white-space: nowrap;
+  pointer-events: none;
+  /* Preso ao ponto, mas puxado para dentro nas pontas: sem isso o balão do
+     primeiro e do último dia sai da caixa. */
+  transform: translateX(-50%);
+  max-width: 12rem;
+}
+
+.spark-tip-when {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.spark-tip-value {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--mer-text);
+}
+
+.spark-tip-extra {
+  font-size: 11px;
+  color: var(--mer-text-3);
+}
+
+.spark-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.spark-empty {
+  margin: 0;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--mer-text-3);
+}

@@ -23,7 +23,7 @@ trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 | 3   | Dinheiro                          | `concluido`    | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                                        |
 | 4   | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.                     |
 | 5   | Integracao                        | `concluido`    | API, Webhooks, Alertas. Toaster proprio e espelho de eventos guardado por teste; `ngx-sonner` so sai na fatia 7. |
-| 6   | Visao geral                       | `nao iniciado` | Grafico proprio; `apexcharts` sai.                                                                               |
+| 6   | Visao geral                       | `concluido`    | Grafico proprio em SVG; `apexcharts` e `ng-apexcharts` saem do produto.                                          |
 | 7   | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI.                   |
 
 ## Decisoes ja tomadas

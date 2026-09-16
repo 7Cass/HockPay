@@ -1,0 +1,284 @@
+<mer-page-header
+  heading="Visão Geral"
+  [description]="'Saldo, volume e conversão da loja · ' + caption()"
+>
+  <ng-container pageActions>
+    <div class="ov-presets" role="group" aria-label="Período">
+      @for (option of presets; track option.value) {
+        <button
+          type="button"
+          class="ov-preset"
+          [class.is-on]="preset() === option.value"
+          [attr.aria-pressed]="preset() === option.value"
+          (click)="setPreset(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="overview.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+
+    <a merButton variant="primary" routerLink="/dashboard/payment-links">Criar link</a>
+  </ng-container>
+</mer-page-header>
+
+@if (preset() === 'custom') {
+  <mer-panel>
+    <div class="ov-range">
+      <mer-field label="Início">
+        <input
+          type="date"
+          [value]="range().startDate"
+          (change)="setStart($any($event.target).value)"
+        />
+      </mer-field>
+
+      <mer-field label="Fim">
+        <input type="date" [value]="range().endDate" (change)="setEnd($any($event.target).value)" />
+      </mer-field>
+    </div>
+
+    @if (blocker(); as message) {
+      <mer-notice tone="warn">{{ message }}</mer-notice>
+    }
+  </mer-panel>
+}
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível carregar a visão geral"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else {
+  <!-- ─── Os cinco números ─────────────────────────────────────────────── -->
+  <section class="ov-stats">
+    @for (card of cards(); track card.label) {
+      <mer-stat
+        [label]="card.label"
+        [value]="card.value"
+        [note]="card.note"
+        [delta]="label(card.delta)"
+        [deltaTone]="tone(card.delta)"
+      />
+    }
+  </section>
+
+  <section class="ov-split">
+    <!-- ─── A série ────────────────────────────────────────────────────── -->
+    <mer-panel heading="Volume e vendas" note="Volume líquido por dia; vendas no balão">
+      @if (overview.isLoading() && series().length === 0) {
+        <mer-page-state variant="loading" message="Lendo o período…" />
+      } @else if (isEmptyPeriod()) {
+        <mer-page-state
+          variant="empty"
+          heading="Sem atividade no período"
+          message="Nenhum volume ou venda aprovada no filtro atual. Experimente um período maior."
+        />
+      } @else {
+        <mer-area-chart
+          [points]="series()"
+          [format]="money"
+          [formatLabel]="day"
+          extraLabel="vendas aprovadas"
+        />
+      }
+    </mer-panel>
+
+    <div class="ov-side">
+      <!-- ─── Links ────────────────────────────────────────────────────── -->
+      <mer-panel heading="Links" note="Criados que viraram pagamento">
+        <p class="ov-rate">{{ rate(links().linkConversionRate) }}</p>
+
+        @if (links().linksCreated === 0) {
+          <p class="ov-quiet">
+            Nenhum link criado no período. A conversão aparece quando houver link pago.
+          </p>
+        } @else {
+          <div
+            class="ov-bar"
+            role="img"
+            [attr.aria-label]="'Conversão de ' + rate(links().linkConversionRate)"
+          >
+            <span data-tone="ok" [style.width.%]="percent(links().linkConversionRate)"></span>
+          </div>
+
+          <dl class="ov-pairs">
+            <div>
+              <dt>Criados</dt>
+              <dd class="mer-num">{{ links().linksCreated.toLocaleString('pt-BR') }}</dd>
+            </div>
+            <div>
+              <dt>Pagos</dt>
+              <dd class="mer-num">{{ links().linksPaid.toLocaleString('pt-BR') }}</dd>
+            </div>
+          </dl>
+        }
+      </mer-panel>
+
+      <!-- ─── Pagamentos ───────────────────────────────────────────────── -->
+      <mer-panel
+        heading="Pagamentos"
+        [note]="links().paymentAttempts.toLocaleString('pt-BR') + ' tentativa(s) no período'"
+      >
+        <p class="ov-rate">{{ rate(links().paymentApprovalRate) }}</p>
+
+        @if (segments().length === 0) {
+          <p class="ov-quiet">
+            Sem tentativas no período. O diagnóstico aparece quando houver cobrança iniciada.
+          </p>
+        } @else {
+          <div class="ov-bar">
+            @for (segment of segments(); track segment.label) {
+              <span [attr.data-tone]="segment.tone" [style.width.%]="segment.percent"></span>
+            }
+          </div>
+
+          <ul class="ov-legend">
+            @for (segment of segments(); track segment.label) {
+              <li>
+                <span class="ov-dot" [attr.data-tone]="segment.tone"></span>
+                <span>{{ segment.label }}</span>
+                <b class="mer-num">{{ segment.value.toLocaleString('pt-BR') }}</b>
+              </li>
+            }
+          </ul>
+        }
+      </mer-panel>
+    </div>
+  </section>
+
+  <section class="ov-split">
+    <!-- ─── Recentes ───────────────────────────────────────────────────── -->
+    <mer-panel
+      heading="Pagamentos recentes"
+      note="As últimas cobranças, com origem e desfecho"
+      flush
+    >
+      <ng-container panelActions>
+        <a merButton size="sm" variant="ghost" routerLink="/dashboard/payments">Ver todos</a>
+      </ng-container>
+
+      @if (data().recentPayments.length === 0) {
+        <mer-page-state
+          variant="empty"
+          heading="Nenhum pagamento recente"
+          message="Quando houver atividade, as cobranças mais recentes aparecem aqui."
+        />
+      } @else {
+        <mer-table>
+          <table>
+            <thead>
+              <tr>
+                <th>Pagamento</th>
+                <th>Origem</th>
+                <th>Status</th>
+                <th class="mer-col-num">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (payment of data().recentPayments; track payment.id) {
+                <tr class="is-clickable" (click)="openPayment(payment.id)">
+                  <td class="is-flex">
+                    <span class="mer-cell">
+                      <span class="mer-cell-main">{{ payerOf(payment) }}</span>
+                      <span class="mer-cell-sub mer-mono">{{ when(payment.createdAt) }}</span>
+                    </span>
+                  </td>
+                  <td class="mer-cell-quiet">{{ origin(payment.origin) }}</td>
+                  <td><mer-chip [status]="payment.status" /></td>
+                  <td class="mer-col-num">{{ money(payment.amount) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mer-table>
+      }
+    </mer-panel>
+
+    <div class="ov-side">
+      <!-- ─── Atenção ──────────────────────────────────────────────────── -->
+      <mer-panel
+        heading="Atenção"
+        [note]="attention().length ? 'O que ainda pede ação' : 'Nada pendente nas integrações'"
+      >
+        @if (attention().length === 0) {
+          <p class="ov-quiet">
+            Nenhuma entrega falha ou na fila. Cobrança aguardando pagamento não entra aqui — isso é
+            o Pix funcionando.
+          </p>
+        } @else {
+          <ul class="ov-attention">
+            @for (item of attention(); track item.label) {
+              <li>
+                <a [routerLink]="item.route">
+                  <span class="ov-dot" [attr.data-tone]="item.tone"></span>
+                  <span>{{ item.label }}</span>
+                  <b class="mer-num">{{ item.value.toLocaleString('pt-BR') }}</b>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </mer-panel>
+
+      <!-- ─── Integrações ──────────────────────────────────────────────── -->
+      <mer-panel heading="Integrações" note="Saúde de webhooks e alertas">
+        <ng-container panelActions>
+          <mer-chip
+            [status]="data().integrationsHealth.environment"
+            [label]="data().integrationsHealth.environment"
+            [tone]="data().integrationsHealth.environment === 'LIVE' ? 'warn' : 'neutral'"
+          />
+        </ng-container>
+
+        <dl class="ov-pairs ov-pairs-grid">
+          <div>
+            <dt>Webhooks ativos</dt>
+            <dd class="mer-num">{{ data().integrationsHealth.activeWebhooks }}</dd>
+          </div>
+          <div>
+            <dt>Alertas ativos</dt>
+            <dd class="mer-num">{{ data().integrationsHealth.activeAlerts }}</dd>
+          </div>
+          <div>
+            <dt>Falhas de webhook</dt>
+            <dd
+              class="mer-num"
+              [attr.data-tone]="
+                data().integrationsHealth.failedWebhookDeliveries > 0 ? 'bad' : null
+              "
+            >
+              {{ data().integrationsHealth.failedWebhookDeliveries }}
+            </dd>
+          </div>
+          <div>
+            <dt>Falhas de alerta</dt>
+            <dd
+              class="mer-num"
+              [attr.data-tone]="data().integrationsHealth.failedAlertDeliveries > 0 ? 'bad' : null"
+            >
+              {{ data().integrationsHealth.failedAlertDeliveries }}
+            </dd>
+          </div>
+        </dl>
+      </mer-panel>
+    </div>
+  </section>
+}

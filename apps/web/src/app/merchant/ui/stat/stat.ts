@@ -1,5 +1,7 @@
 import { Component, input } from '@angular/core';
 
+import type { Tone } from '../../domain/tone';
+
 /**
  * O número que a tela abre.
  *
@@ -18,6 +20,11 @@ import { Component, input } from '@angular/core';
   template: `
     <p class="mer-overline">{{ label() }}</p>
     <p class="value mer-num">{{ value() }}</p>
+    @if (delta(); as text) {
+      <p class="delta" [attr.data-tone]="deltaTone()">
+        {{ text }} <span class="delta-vs">vs. período anterior</span>
+      </p>
+    }
     @if (note(); as text) {
       <p class="note">{{ text }}</p>
     }
@@ -29,4 +36,17 @@ export class MerStat {
   readonly label = input.required<string>();
   readonly value = input.required<string>();
   readonly note = input<string>();
+
+  /**
+   * A variação contra o período anterior, **já escrita** ("+12%").
+   *
+   * Entra formatada pelo mesmo motivo que o valor: a conta vive em
+   * `domain/deltas`, onde tem teste, e não num componente que recebe fração e
+   * chuta o arredondamento. Ausente quando não há período comparável — que é
+   * diferente de zero, e por isso o cartão simplesmente não mostra a linha em
+   * vez de escrever "0%".
+   */
+  readonly delta = input<string | null>();
+
+  readonly deltaTone = input<Tone | null>(null);
 }

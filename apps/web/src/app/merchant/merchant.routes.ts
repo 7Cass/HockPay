@@ -22,6 +22,10 @@ export const CONSOLE_ROUTES: Routes = [
     component: ConsoleShell,
     children: [
       {
+        path: '',
+        loadComponent: () => import('./pages/overview/overview').then((m) => m.ConsoleOverview),
+      },
+      {
         path: 'payments',
         loadComponent: () => import('./pages/payments/payments').then((m) => m.ConsolePayments),
       },

@@ -19,6 +19,7 @@
  * precisar, a peça que falta é um componente — não uma classe a mais.
  */
 
+export { MerAreaChart, type AreaPoint } from './area-chart/area-chart';
 export { MerButton, type MerButtonSize, type MerButtonVariant } from './button/button';
 export { MerChip } from './chip/chip';
 export { MerCopy } from './copy/copy';
