@@ -1,0 +1,427 @@
+<mer-page-header
+  heading="Pagamento"
+  backTo="/dashboard/payments"
+  backLabel="Pagamentos"
+  [description]="payment()?.description || 'Tudo que aconteceu com esta cobrança Pix.'"
+>
+  @if (payment(); as item) {
+    <ng-container pageStatus><mer-chip [status]="item.status" /></ng-container>
+  }
+
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="data.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <button merButton type="button" [disabled]="!canOpenRefund()" (click)="openRefund()">
+      Estornar
+    </button>
+  </ng-container>
+</mer-page-header>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler a cobrança"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <a pageStateAction merButton routerLink="/dashboard/payments">Voltar para a lista</a>
+  </mer-page-state>
+} @else if (data.isLoading() && !payment()) {
+  <mer-page-state variant="loading" message="Lendo a cobrança…" />
+} @else if (payment(); as item) {
+  <section class="stats">
+    <mer-stat label="Bruto" [value]="money(item.amount)" />
+    <mer-stat label="Taxa" [value]="'−' + money(item.fee)" />
+    <mer-stat label="Líquido" [value]="money(item.netAmount)" />
+    <mer-stat
+      label="Estornado"
+      [value]="money(item.totalRefunded)"
+      [note]="'Restam ' + money(refundable())"
+    />
+  </section>
+
+  <div class="grid">
+    <div class="column">
+      <mer-panel heading="Linha do tempo" [note]="timeline().length + ' evento(s)'">
+        @if (timeline().length === 0) {
+          <p class="quiet">Nenhum evento registrado.</p>
+        } @else {
+          <ol class="pd-events">
+            @for (event of timeline(); track event.id) {
+              <li [attr.data-tone]="eventTone(event.status)">
+                <div class="pd-event-row">
+                  <span>{{ event.title }}</span>
+                  <span class="pd-when mer-mono">
+                    {{ event.occurredAt | date: 'dd/MM/yy HH:mm:ss' }}
+                  </span>
+                </div>
+                @if (event.description) {
+                  <p class="pd-note">{{ event.description }}</p>
+                }
+                <div class="pd-event-meta">
+                  @if (event.entityId) {
+                    <mer-copy [value]="event.entityId" [truncate]="12" />
+                  }
+                  @if (eventAmount(event); as amount) {
+                    <span class="mer-num pd-amount">{{ money(amount) }}</span>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </mer-panel>
+
+      @if (item.items?.length) {
+        <mer-panel heading="Itens" note="o que o comprador levou">
+          <ul class="pd-items">
+            @for (line of item.items; track line.name + line.quantity) {
+              <li>
+                <span class="pd-item-text">
+                  <span>{{ line.name }}</span>
+                  <span class="quiet mer-mono">
+                    {{ line.quantity }} × {{ money(line.unitPrice) }}
+                  </span>
+                </span>
+                <span class="mer-num">{{ money(line.totalPrice) }}</span>
+              </li>
+            }
+          </ul>
+        </mer-panel>
+      }
+
+      <mer-panel heading="Lançamentos" note="como esta cobrança mexeu no saldo">
+        @if (entries().length === 0) {
+          <p class="quiet">Nenhum lançamento — é o esperado enquanto a cobrança não confirma.</p>
+        } @else {
+          <ul class="pd-records">
+            @for (entry of entries(); track entry.id) {
+              <li>
+                <div class="pd-record-head">
+                  <span>{{ entryLabel(entry.type) }}</span>
+                  <span class="mer-num">{{ money(entry.netAmount) }}</span>
+                </div>
+                <dl class="pd-facts">
+                  <div>
+                    <dt>ID</dt>
+                    <dd><mer-copy [value]="entry.id" [truncate]="12" /></dd>
+                  </div>
+                  <div>
+                    <dt>Taxa</dt>
+                    <dd class="mer-num">−{{ money(entry.fee) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Saldo após</dt>
+                    <dd class="mer-num">{{ money(entry.balanceAfter) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Data</dt>
+                    <dd class="mer-num">{{ entry.createdAt | date: 'dd/MM/yy HH:mm' }}</dd>
+                  </div>
+                </dl>
+              </li>
+            }
+          </ul>
+        }
+      </mer-panel>
+
+      <mer-panel heading="Webhooks" note="o que saiu daqui para a sua integração">
+        @if (webhooks().length === 0) {
+          <p class="quiet">Nenhuma entrega registrada para esta cobrança.</p>
+        } @else {
+          <ul class="pd-records">
+            @for (log of webhooks(); track log.id) {
+              <li>
+                <div class="pd-record-head">
+                  <span class="mer-mono">{{ log.eventType }}</span>
+                  <mer-chip
+                    [status]="log.deliveredAt ? 'DELIVERED' : 'PENDING'"
+                    [label]="log.responseStatus ? '' + log.responseStatus : 'pendente'"
+                    [tone]="webhookTone(log)"
+                  />
+                </div>
+                <dl class="pd-facts">
+                  <div>
+                    <dt>deliveryId</dt>
+                    <dd><mer-copy [value]="log.deliveryId" [truncate]="12" /></dd>
+                  </div>
+                  <div>
+                    <dt>requestId</dt>
+                    <dd><mer-copy [value]="log.requestId" [truncate]="12" /></dd>
+                  </div>
+                  <div>
+                    <dt>Tentativa</dt>
+                    <dd class="mer-num">{{ log.attempt }}/{{ log.maxAttempts }}</dd>
+                  </div>
+                  <div>
+                    <dt>Entregue</dt>
+                    <dd class="mer-num">
+                      {{ log.deliveredAt ? (log.deliveredAt | date: 'dd/MM/yy HH:mm') : '—' }}
+                    </dd>
+                  </div>
+                </dl>
+              </li>
+            }
+          </ul>
+        }
+      </mer-panel>
+    </div>
+
+    <div class="column">
+      <!-- A capacidade que o dashboard antigo nunca teve: escolher o final. -->
+      @if (outcomes().length > 0) {
+        <mer-panel heading="Forçar o desfecho" note="ambiente de teste">
+          <p class="quiet">
+            É a promessa da landing, aqui dentro: escolha como esta cobrança termina, sem esperar o
+            comprador nem o cron.
+          </p>
+
+          @if (outcomeError()) {
+            <mer-notice tone="bad">{{ outcomeError() }}</mer-notice>
+          }
+
+          <div class="pd-actions">
+            @for (outcome of outcomes(); track outcome.action) {
+              <button
+                merButton
+                type="button"
+                [variant]="outcome.tone === 'bad' ? 'danger' : 'quiet'"
+                (click)="ask(outcome)"
+              >
+                {{ outcome.label }}
+              </button>
+            }
+          </div>
+        </mer-panel>
+      }
+
+      <mer-panel heading="Pagador">
+        <dl class="pd-facts pd-stacked">
+          <div>
+            <dt>Nome</dt>
+            <dd>{{ item.payerName || 'Não identificado' }}</dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>{{ item.payerEmail || 'Não informado' }}</dd>
+          </div>
+          <div>
+            <dt>Documento</dt>
+            <dd class="mer-mono">{{ item.payerDocument || 'Não informado' }}</dd>
+          </div>
+          <div>
+            <dt>External ID</dt>
+            <dd><mer-copy [value]="item.externalId" [truncate]="16" /></dd>
+          </div>
+        </dl>
+
+        @if (item.customerId) {
+          <a merButton size="sm" [routerLink]="['/dashboard/customers', item.customerId]">
+            Ver cliente →
+          </a>
+        }
+      </mer-panel>
+
+      <mer-panel heading="Cobrança de origem" [note]="attemptLabel(item)">
+        <dl class="pd-facts pd-stacked">
+          @if (item.pixChargeId) {
+            <div>
+              <dt>PixCharge</dt>
+              <dd><mer-copy [value]="item.pixChargeId" [truncate]="12" /></dd>
+            </div>
+          }
+          @if (item.pixCharge?.pixTxId) {
+            <div>
+              <dt>TxID</dt>
+              <dd><mer-copy [value]="item.pixCharge?.pixTxId" [truncate]="18" /></dd>
+            </div>
+          }
+          <div>
+            <dt>Expira</dt>
+            <dd class="mer-num">{{ (item.expiresAt | date: 'dd/MM/yy HH:mm') || '—' }}</dd>
+          </div>
+          @if (receipt(); as doc) {
+            <div>
+              <dt>Comprovante</dt>
+              <dd><mer-copy [value]="doc.receiptNumber" [truncate]="0" /></dd>
+            </div>
+          }
+          @if (checkout(); as session) {
+            <div>
+              <dt>Checkout</dt>
+              <dd class="mer-mono">{{ session.status }}</dd>
+            </div>
+          }
+        </dl>
+
+        @if (isLinkAttempt() && item.paymentLinkId) {
+          <a merButton size="sm" [routerLink]="['/dashboard/payment-links', item.paymentLinkId]">
+            Ver o link →
+          </a>
+        }
+      </mer-panel>
+
+      @if (refunds().length > 0) {
+        <mer-panel heading="Estornos" [note]="'Restam ' + money(refundable())">
+          <ul class="pd-records">
+            @for (refund of refunds(); track refund.id) {
+              <li>
+                <div class="pd-record-head">
+                  <mer-chip [status]="refund.status" />
+                  <span class="mer-num">−{{ money(refund.amount) }}</span>
+                </div>
+                <dl class="pd-facts">
+                  <div>
+                    <dt>ID</dt>
+                    <dd><mer-copy [value]="refund.id" [truncate]="12" /></dd>
+                  </div>
+                  <div>
+                    <dt>Processado</dt>
+                    <dd class="mer-num">
+                      {{ (refund.processedAt | date: 'dd/MM/yy HH:mm') || '—' }}
+                    </dd>
+                  </div>
+                  @if (refund.reason) {
+                    <div>
+                      <dt>Motivo</dt>
+                      <dd>{{ refund.reason }}</dd>
+                    </div>
+                  }
+                </dl>
+              </li>
+            }
+          </ul>
+        </mer-panel>
+      }
+
+      @if (attempts().length > 1) {
+        <mer-panel heading="Outras tentativas" [note]="attempts().length + ' na mesma cobrança'">
+          <div class="pd-attempts">
+            @for (attempt of attempts(); track attempt.id) {
+              <a
+                class="pd-attempt"
+                [class.is-current]="attempt.id === item.id"
+                [routerLink]="['/dashboard/payments', attempt.id]"
+              >
+                <span class="pd-attempt-head">
+                  <span>{{ attemptLabel(attempt) }}</span>
+                  <mer-chip [status]="attempt.status" />
+                </span>
+                <span class="quiet mer-mono">
+                  {{ attempt.createdAt | date: 'dd/MM/yy HH:mm' }}
+                </span>
+                @if (attempt.failedReason) {
+                  <span class="quiet">{{ attempt.failedReason }}</span>
+                }
+              </a>
+            }
+          </div>
+        </mer-panel>
+      }
+    </div>
+  </div>
+
+  <!-- ─── Forçar desfecho: confirmação em prosa ──────────────────────────── -->
+  <mer-sheet
+    [open]="!!pendingOutcome()"
+    side="center"
+    eyebrow="Simulação"
+    [heading]="(pendingOutcome()?.label || '') + ' esta cobrança'"
+    [description]="pendingOutcome()?.effect"
+    (closed)="closeOutcome()"
+  >
+    @if (pendingOutcome()?.action === 'fail') {
+      <mer-field label="Motivo da falha" note="vai para a trilha e para o webhook">
+        <input
+          type="text"
+          maxlength="120"
+          placeholder="insufficient_funds"
+          [value]="failReason()"
+          (input)="failReason.set($any($event.target).value)"
+        />
+      </mer-field>
+    }
+
+    @if (outcomeError()) {
+      <mer-notice tone="bad">{{ outcomeError() }}</mer-notice>
+    }
+
+    <ng-container sheetActions>
+      <button merButton type="button" [disabled]="running()" (click)="closeOutcome()">
+        Cancelar
+      </button>
+      <button
+        merButton
+        type="button"
+        [variant]="pendingOutcome()?.tone === 'bad' ? 'danger' : 'primary'"
+        [loading]="running()"
+        (click)="runOutcome()"
+      >
+        {{ pendingOutcome()?.label }}
+      </button>
+    </ng-container>
+  </mer-sheet>
+
+  <!-- ─── Estorno ────────────────────────────────────────────────────────── -->
+  <mer-sheet
+    [open]="refundOpen()"
+    eyebrow="Estorno"
+    heading="Devolver ao pagador"
+    [description]="'Dá para estornar até ' + money(refundable()) + ', em uma ou mais vezes.'"
+    (closed)="closeRefund()"
+  >
+    <mer-field label="Valor a estornar" note="em reais, como 120,00">
+      <input
+        inputmode="decimal"
+        [value]="refundText()"
+        (input)="refundText.set($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Motivo" note="opcional, fica no registro do estorno">
+      <input
+        type="text"
+        maxlength="500"
+        placeholder="Cliente desistiu da compra"
+        [value]="refundReason()"
+        (input)="refundReason.set($any($event.target).value)"
+      />
+    </mer-field>
+
+    <!-- Estorno parcial não muda o status: a cobrança segue confirmada até o
+         estornado cobrir o total. -->
+    <p class="quiet">
+      Estorno parcial não muda o status da cobrança — ela só vira estornada quando o total for
+      devolvido.
+    </p>
+
+    @if (refundError()) {
+      <mer-notice tone="bad">{{ refundError() }}</mer-notice>
+    }
+
+    <ng-container sheetActions>
+      <button merButton type="button" [disabled]="refunding()" (click)="closeRefund()">
+        Cancelar
+      </button>
+      <button
+        merButton
+        type="button"
+        variant="primary"
+        [disabled]="!!refundBlock()"
+        [loading]="refunding()"
+        (click)="sendRefund()"
+      >
+        Estornar {{ money(refundAmount()) }}
+      </button>
+    </ng-container>
+  </mer-sheet>
+}

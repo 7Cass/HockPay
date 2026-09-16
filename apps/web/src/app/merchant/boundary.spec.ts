@@ -96,6 +96,35 @@ describe('fronteira do console', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('ninguém chama um recurso como se fosse função', () => {
+    // `httpResource` devolve uma **referência**: o valor se lê com `.value()`.
+    // Chamar `this.conta()` compila como erro só no build de template, que os
+    // specs não rodam — eu cometi esse erro três vezes seguidas antes de
+    // transformá-lo em teste. O guarda acha a declaração (`x = algoResource(`)
+    // e procura `x()` no componente e no template irmão.
+    const offenders: string[] = [];
+
+    // O próprio teste fala sobre o padrão que procura, e os specs declaram
+    // dublês — nenhum dos dois é tela. Varrer só o código de produção.
+    for (const file of files.filter((path) => !path.endsWith('.spec.ts'))) {
+      const source = readFileSync(file, 'utf8');
+      const declared = [...source.matchAll(/(\w+)\s*=\s*\w*[Rr]esource\(/g)].map((m) => m[1]);
+      if (declared.length === 0) continue;
+
+      const markup = readIfExists(file.replace(/\.ts$/, '.html'));
+      const template = file.replace(/\.ts$/, '.html');
+
+      for (const name of declared) {
+        const called = new RegExp(`(this\\.)?\\b${name}\\(\\)`);
+        if (called.test(source.replace(new RegExp(`${name}\\s*=\\s*\\w*[Rr]esource\\(`), '')))
+          offenders.push(`${short(file)} -> ${name}()`);
+        else if (markup && called.test(markup)) offenders.push(`${short(template)} -> ${name}()`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it('os templates não herdam classe global do dashboard antigo', () => {
     // As classes de `styles/primitives.css` são globais e vivem em
     // `@layer components`: o que o componente não sobrescreve vaza para cá. Usar
@@ -239,6 +268,15 @@ function walk(dir: string): string[] {
     const path = join(dir, entry.name);
     return entry.isDirectory() ? walk(path) : [path];
   });
+}
+
+/** O template irmão de um componente, ou vazio quando ele não existe. */
+function readIfExists(file: string): string {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 function importsOf(file: string): string[] {

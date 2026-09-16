@@ -1,0 +1,266 @@
+<mer-page-header
+  heading="Links de pagamento"
+  description="Cobranças Pix avulsas para mandar por mensagem, e-mail ou qualquer canal de atendimento."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="links.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <button merButton type="button" variant="primary" (click)="openSheet()">Novo link</button>
+  </ng-container>
+</mer-page-header>
+
+<section class="stats">
+  <mer-stat
+    label="Em aberto"
+    [value]="'' + (stats().active + stats().opened)"
+    note="Esperando alguém pagar"
+  />
+  <mer-stat label="Pagos" [value]="'' + stats().paid" note="Cobranças que converteram" />
+  <mer-stat label="Conversão" [value]="percent(stats().conversionRate)" note="Dos links criados" />
+  <mer-stat label="Valor pago" [value]="money(stats().paidAmount)" note="Somando tudo que entrou" />
+</section>
+
+<div class="pl-filters">
+  @for (filter of filters; track filter.value) {
+    <button
+      type="button"
+      class="pl-filter"
+      [class.is-active]="params().status === filter.value"
+      (click)="setFilter(filter.value)"
+    >
+      {{ filter.label }}
+    </button>
+  }
+</div>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler os links"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (links.isLoading() && page().items.length === 0) {
+  <mer-page-state variant="loading" message="Lendo os links…" />
+} @else if (isEmpty()) {
+  <mer-page-state
+    variant="empty"
+    heading="Nenhum link por aqui"
+    [message]="
+      query.touched()
+        ? 'Nenhum link neste estado.'
+        : 'Um link vira uma cobrança Pix que você manda pronta para quem vai pagar.'
+    "
+  >
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="setFilter('')">
+        Ver todos
+      </button>
+    } @else {
+      <button pageStateAction merButton type="button" size="sm" (click)="openSheet()">
+        Criar o primeiro
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Cobrança</th>
+            <th>Situação</th>
+            <th class="mer-col-num">Valor</th>
+            <th class="col-when">Criado</th>
+            <th class="col-when">Expira</th>
+            <th>Checkout</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (link of page().items; track link.id) {
+            <tr class="is-clickable" (click)="open(link.id)">
+              <td class="is-flex">
+                <span class="mer-cell">
+                  <span class="mer-cell-main">{{ linkTitle(link) }}</span>
+                  <span class="mer-cell-sub mer-mono">
+                    {{ link.internalReference || link.publicToken.slice(0, 12) + '…' }}
+                    @if (link.failedPaymentCount > 0) {
+                      · {{ link.failedPaymentCount }} falha(s)
+                    }
+                  </span>
+                </span>
+              </td>
+
+              <td><mer-chip [status]="link.status" [tone]="tone(link.status)" /></td>
+
+              <td class="mer-col-num">{{ money(link.amount) }}</td>
+
+              <td class="col-when mer-num mer-cell-quiet">
+                {{ link.createdAt | date: 'dd/MM/yy' }}
+              </td>
+              <td class="col-when mer-num mer-cell-quiet">
+                {{ link.expiresAt ? (link.expiresAt | date: 'dd/MM/yy') : 'sem prazo' }}
+              </td>
+
+              <td (click)="$event.stopPropagation()">
+                <mer-copy [value]="link.checkoutUrl" [truncate]="22" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().items.length"
+      noun="links"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}
+
+<!-- ─── Novo link ────────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="sheetOpen()"
+  eyebrow="Nova cobrança"
+  heading="Criar link de pagamento"
+  description="Um link cobra um valor avulso ou itens do catálogo — nunca os dois."
+  (closed)="closeSheet()"
+>
+  <div class="pl-modes">
+    <button
+      type="button"
+      class="pl-mode"
+      [class.is-active]="mode() === 'amount'"
+      (click)="setMode('amount')"
+    >
+      Valor avulso
+      <span>Você digita quanto cobrar</span>
+    </button>
+    <button
+      type="button"
+      class="pl-mode"
+      [class.is-active]="mode() === 'items'"
+      (click)="setMode('items')"
+    >
+      Itens do catálogo
+      <span>O valor vem da soma</span>
+    </button>
+  </div>
+
+  @if (mode() === 'amount') {
+    <mer-field label="Valor" note="em reais, como 250,00">
+      <input
+        inputmode="decimal"
+        placeholder="250,00"
+        [value]="amountText()"
+        (input)="amountText.set($any($event.target).value)"
+      />
+    </mer-field>
+  } @else {
+    <mer-field label="Buscar no catálogo" note="só produtos ativos aparecem">
+      <input
+        type="search"
+        placeholder="café, caneca, kit…"
+        [value]="term()"
+        (input)="term.set($any($event.target).value)"
+      />
+    </mer-field>
+
+    <div class="pl-catalog">
+      @for (product of catalog.value().products; track product.id) {
+        <button type="button" class="pl-product" (click)="add(product)">
+          <span>{{ product.name }}</span>
+          <span class="mer-num">{{ money(product.price) }}</span>
+        </button>
+      } @empty {
+        <p class="quiet">Nenhum produto ativo encontrado.</p>
+      }
+    </div>
+
+    @if (chosen().length > 0) {
+      <div class="pl-chosen">
+        @for (entry of chosen(); track entry.product.id) {
+          <div class="pl-chosen-line">
+            <span>{{ entry.quantity }}× {{ entry.product.name }}</span>
+            <span class="mer-num">{{ money(entry.product.price * entry.quantity) }}</span>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              (click)="remove(entry.product.id)"
+            >
+              Tirar
+            </button>
+          </div>
+        }
+        <div class="pl-total">
+          <span>Total</span>
+          <span class="mer-num">{{ money(itemsTotal()) }}</span>
+        </div>
+      </div>
+    }
+  }
+
+  <mer-field label="Título" note="o que o pagador lê no checkout">
+    <input
+      type="text"
+      maxlength="120"
+      placeholder="Pedido FIG-11134"
+      [value]="title()"
+      (input)="title.set($any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Referência interna" note="opcional, só você vê">
+    <input
+      type="text"
+      maxlength="120"
+      [value]="reference()"
+      (input)="reference.set($any($event.target).value)"
+    />
+  </mer-field>
+
+  <mer-field label="Expira em" note="deixe vazio para não vencer">
+    <input
+      type="datetime-local"
+      [value]="expiresAt()"
+      (input)="expiresAt.set($any($event.target).value)"
+    />
+  </mer-field>
+
+  @if (createError()) {
+    <mer-notice tone="bad">{{ createError() }}</mer-notice>
+  }
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="creating()" (click)="closeSheet()">Cancelar</button>
+    <button
+      merButton
+      type="button"
+      variant="primary"
+      [disabled]="!!createBlocker()"
+      [loading]="creating()"
+      (click)="create()"
+    >
+      Criar {{ money(total()) }}
+    </button>
+  </ng-container>
+</mer-sheet>

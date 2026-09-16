@@ -17,11 +17,11 @@ trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 
 | #  | Fatia                             | Estado         | Entrega                                                                                     |
 | -- | --------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
-| 0  | Fundacao                          | `nao iniciado` | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.     |
-| 1  | Nucleo de dados                   | `nao iniciado` | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                            |
-| 2  | Kit de ui v1                      | `nao iniciado` | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram. |
-| 3  | Dinheiro                          | `nao iniciado` | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                   |
-| 4  | Cobranca                          | `nao iniciado` | Detalhe do pagamento (o corte morre aqui), Links, Detalhe do link, forcar desfecho.         |
+| 0  | Fundacao                          | `concluido`    | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.     |
+| 1  | Nucleo de dados                   | `concluido`    | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                            |
+| 2  | Kit de ui v1                      | `concluido`    | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram. |
+| 3  | Dinheiro                          | `concluido`    | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                   |
+| 4  | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.  |
 | 5  | Integracao                        | `nao iniciado` | API, Webhooks, Alertas. Toaster proprio; `ngx-sonner` sai.                                  |
 | 6  | Visao geral                       | `nao iniciado` | Grafico proprio; `apexcharts` sai.                                                          |
 | 7  | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI. |

@@ -1,0 +1,238 @@
+<mer-page-header
+  heading="Link de pagamento"
+  backTo="/dashboard/payment-links"
+  backLabel="Links"
+  [description]="title()"
+>
+  @if (link(); as item) {
+    <ng-container pageStatus>
+      <mer-chip [status]="item.status" [tone]="tone(item.status)" />
+    </ng-container>
+  }
+
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="data.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    @if (link(); as item) {
+      <a merButton [href]="item.checkoutUrl" target="_blank" rel="noreferrer">Abrir checkout ↗</a>
+    }
+  </ng-container>
+</mer-page-header>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler o link"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <a pageStateAction merButton routerLink="/dashboard/payment-links">Voltar para a lista</a>
+  </mer-page-state>
+} @else if (data.isLoading() && !link()) {
+  <mer-page-state variant="loading" message="Lendo o link…" />
+} @else if (link(); as item) {
+  <section class="stats">
+    <mer-stat label="Valor" [value]="money(item.amount)" [note]="stateTitle()" />
+    <mer-stat
+      label="Tentativas"
+      [value]="'' + attempts().length"
+      [note]="item.failedPaymentCount + ' com falha'"
+    />
+    <mer-stat
+      label="Expira"
+      [value]="item.expiresAt ? (item.expiresAt | date: 'dd/MM/yy HH:mm') || '—' : 'Sem prazo'"
+      note="Depois disso o checkout recusa"
+    />
+  </section>
+
+  @if (actionError()) {
+    <mer-notice tone="bad">{{ actionError() }}</mer-notice>
+  }
+
+  <div class="grid">
+    <div class="column">
+      <mer-panel
+        heading="Tentativas"
+        [note]="attempts().length + ' pagamento(s) contra a mesma cobrança Pix'"
+        flush
+      >
+        @if (attempts().length === 0) {
+          <p class="empty quiet">A primeira aparece quando alguém abrir o checkout.</p>
+        } @else {
+          <mer-table>
+            <table>
+              <thead>
+                <tr>
+                  <th>Tentativa</th>
+                  <th>Status</th>
+                  <th class="mer-col-num">Valor</th>
+                  <th class="col-when">Criada</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (attempt of attempts(); track attempt.id) {
+                  <tr>
+                    <td>
+                      <a class="mer-cell" [routerLink]="['/dashboard/payments', attempt.id]">
+                        <span class="mer-cell-main">{{ attemptLabel(attempt) }}</span>
+                        <span class="mer-cell-sub mer-mono">
+                          {{ attempt.id.slice(0, 8) }}…
+                          @if (attempt.isLatestAttempt) {
+                            · atual
+                          }
+                        </span>
+                      </a>
+                    </td>
+                    <td><mer-chip [status]="attempt.status" /></td>
+                    <td class="mer-col-num">{{ money(attempt.amount) }}</td>
+                    <td class="col-when mer-num mer-cell-quiet">
+                      {{ attempt.createdAt | date: 'dd/MM/yy HH:mm' }}
+                    </td>
+                    <td class="is-flex mer-cell-quiet">{{ attempt.failedReason || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </mer-table>
+        }
+      </mer-panel>
+    </div>
+
+    <div class="column">
+      <mer-panel heading="Cobrança Pix" note="uma só, reaproveitada por todas as tentativas">
+        <dl class="pld-facts">
+          <div>
+            <dt>PixCharge</dt>
+            <dd><mer-copy [value]="item.pixCharge.id" [truncate]="12" /></dd>
+          </div>
+          <div>
+            <dt>TxID</dt>
+            <dd><mer-copy [value]="item.pixCharge.pixTxId" [truncate]="18" /></dd>
+          </div>
+          <div>
+            <dt>Situação</dt>
+            <dd class="mer-mono">{{ item.pixCharge.status }}</dd>
+          </div>
+          <div>
+            <dt>Pago em</dt>
+            <dd class="mer-num">
+              {{ item.pixCharge.paidAt ? (item.pixCharge.paidAt | date: 'dd/MM/yy HH:mm') : '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Link público</dt>
+            <dd><mer-copy [value]="item.checkoutUrl" [truncate]="20" /></dd>
+          </div>
+          @if (item.internalReference) {
+            <div>
+              <dt>Referência</dt>
+              <dd>{{ item.internalReference }}</dd>
+            </div>
+          }
+        </dl>
+      </mer-panel>
+
+      <mer-panel heading="Simular a próxima tentativa" note="ambiente de teste">
+        <p class="quiet">{{ stateNote() }}</p>
+
+        @if (simulationBlocker(); as blocker) {
+          <mer-notice tone="warn">{{ blocker }}</mer-notice>
+        } @else {
+          <div class="pld-actions">
+            <button merButton type="button" variant="primary" (click)="openPay()">
+              Simular pagamento
+            </button>
+            <button merButton type="button" variant="danger" [loading]="running()" (click)="fail()">
+              Simular falha
+            </button>
+          </div>
+        }
+      </mer-panel>
+
+      @if (canCancel()) {
+        <mer-panel heading="Encerrar a cobrança">
+          <p class="quiet">
+            Cancelar fecha o link para sempre: o checkout passa a recusar, e as tentativas que já
+            existem continuam onde estão.
+          </p>
+          <div class="pld-actions">
+            <button merButton type="button" variant="danger" (click)="askCancel()">
+              Cancelar link
+            </button>
+          </div>
+        </mer-panel>
+      }
+    </div>
+  </div>
+
+  <!-- ─── Simular pagamento ──────────────────────────────────────────────── -->
+  <mer-sheet
+    [open]="payOpen()"
+    side="center"
+    eyebrow="Simulação"
+    heading="Simular um pagamento"
+    description="Cria uma tentativa contra esta cobrança, como se alguém tivesse pago no checkout."
+    (closed)="closePay()"
+  >
+    <mer-field label="Documento do pagador" note="CPF ou CNPJ, só números">
+      <input
+        inputmode="numeric"
+        maxlength="18"
+        placeholder="50621302554"
+        [value]="document()"
+        (input)="document.set($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Nome" note="opcional">
+      <input
+        type="text"
+        maxlength="120"
+        [value]="payerName()"
+        (input)="payerName.set($any($event.target).value)"
+      />
+    </mer-field>
+
+    @if (actionError()) {
+      <mer-notice tone="bad">{{ actionError() }}</mer-notice>
+    }
+
+    <ng-container sheetActions>
+      <button merButton type="button" [disabled]="running()" (click)="closePay()">Cancelar</button>
+      <button merButton type="button" variant="primary" [loading]="running()" (click)="pay()">
+        Pagar {{ money(link()?.amount) }}
+      </button>
+    </ng-container>
+  </mer-sheet>
+
+  <!-- ─── Cancelar ───────────────────────────────────────────────────────── -->
+  <mer-sheet
+    [open]="cancelOpen()"
+    side="center"
+    eyebrow="Encerrar"
+    heading="Cancelar este link"
+    description="O checkout passa a recusar, e o link não aceita mais nenhuma tentativa."
+    (closed)="closeCancel()"
+  >
+    @if (actionError()) {
+      <mer-notice tone="bad">{{ actionError() }}</mer-notice>
+    }
+
+    <ng-container sheetActions>
+      <button merButton type="button" [disabled]="running()" (click)="closeCancel()">Voltar</button>
+      <button merButton type="button" variant="danger" [loading]="running()" (click)="cancel()">
+        Cancelar link
+      </button>
+    </ng-container>
+  </mer-sheet>
+}
