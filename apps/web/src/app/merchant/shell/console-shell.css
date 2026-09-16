@@ -1,5 +1,13 @@
 :host {
   display: block;
+  /* O fundo também aqui, e não só em `.shell`.
+     `.shell` tem `height: 100dvh` e pinta apenas a si mesma; o `body` do app é
+     branco (vem do reset global), então qualquer pixel além da altura da janela
+     aparecia branco — numa captura de página inteira, no repique do elástico ao
+     rolar, ou quando a barra de endereço do celular recolhe e a viewport cresce
+     antes do `dvh` reassentar. */
+  min-height: 100dvh;
+  background: var(--mer-ground);
 }
 
 .shell {
