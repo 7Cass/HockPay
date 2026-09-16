@@ -89,6 +89,24 @@ export const CONSOLE_ROUTES: Routes = [
         path: 'alerts',
         loadComponent: () => import('./pages/alerts/alerts').then((m) => m.ConsoleAlerts),
       },
+      {
+        path: 'receipts/:id',
+        loadComponent: () =>
+          import('./pages/receipt-detail/receipt-detail').then((m) => m.ConsoleReceiptDetail),
+      },
+      {
+        path: 'customers/:id',
+        loadComponent: () =>
+          import('./pages/customer-detail/customer-detail').then((m) => m.ConsoleCustomerDetail),
+      },
+      {
+        path: 'products',
+        loadComponent: () => import('./pages/products/products').then((m) => m.ConsoleProducts),
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./pages/settings/settings').then((m) => m.ConsoleSettings),
+      },
     ],
   },
 ];

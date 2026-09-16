@@ -89,10 +89,12 @@ export class AlertService {
     id: string,
     params?: { page?: number; limit?: number; status?: AlertDeliveryStatus },
   ): Observable<{ logs: AlertDeliveryLog[]; total: number; page: number; limit: number }> {
-    return this.apiClient.get<{ logs: AlertDeliveryLog[]; total: number; page: number; limit: number }>(
-      `/alerts/${id}/logs`,
-      { params: params as any },
-    );
+    return this.apiClient.get<{
+      logs: AlertDeliveryLog[];
+      total: number;
+      page: number;
+      limit: number;
+    }>(`/alerts/${id}/logs`, { params: params as any });
   }
 
   retryLog(id: string, logId: string): Observable<{ success: boolean; log: AlertDeliveryLog }> {

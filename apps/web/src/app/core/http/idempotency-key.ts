@@ -7,9 +7,9 @@
  * para contextos sem crypto (jsdom antigo, http em rede local).
  */
 export function createIdempotencyKey(prefix = 'web'): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
 
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

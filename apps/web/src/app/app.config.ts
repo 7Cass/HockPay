@@ -13,6 +13,6 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    { provide: LOCALE_ID, useValue: 'pt-BR' }
-  ]
+    { provide: LOCALE_ID, useValue: 'pt-BR' },
+  ],
 };

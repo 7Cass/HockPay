@@ -57,3 +57,58 @@ export function receiptsResource(query: Signal<ReceiptQuery>) {
     defaultValue: EMPTY_RECEIPTS,
   });
 }
+
+/* ── O comprovante inteiro ───────────────────────────────────────────────── */
+
+export interface ReceiptItem {
+  readonly name: string;
+  readonly quantity: number;
+  readonly unitPrice: number;
+  readonly totalPrice: number;
+}
+
+/**
+ * O comprovante como documento, e não como linha de lista.
+ *
+ * O que a lista não carrega e o detalhe precisa: quem recebeu, a taxa, o
+ * líquido e os itens. É o único lugar do console onde a **decomposição do
+ * valor** aparece para o pagador — bruto, taxa e líquido na mesma tela.
+ */
+export interface ReceiptDetail extends ReceiptRow {
+  readonly storeId: string;
+  readonly payeeName: string;
+  readonly payeeDocument?: string;
+  readonly fee: number;
+  readonly netAmount: number;
+  readonly currency: string;
+  readonly description?: string;
+  readonly items?: readonly ReceiptItem[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+const EMPTY_RECEIPT: ReceiptDetail = {
+  id: '',
+  receiptNumber: '',
+  paymentId: '',
+  amount: 0,
+  status: 'PENDING',
+  issuedAt: '',
+  storeId: '',
+  payeeName: '',
+  fee: 0,
+  netAmount: 0,
+  currency: 'BRL',
+  createdAt: '',
+  updatedAt: '',
+};
+
+/** `id` vazio não busca nada — a rota ainda pode estar resolvendo. */
+export function receiptResource(id: Signal<string>) {
+  const api = inject(MerchantApi);
+
+  return httpResource<{ receipt: ReceiptDetail }>(
+    () => (id() ? api.request(`/receipts/${id()}`) : undefined),
+    { defaultValue: { receipt: EMPTY_RECEIPT } },
+  );
+}

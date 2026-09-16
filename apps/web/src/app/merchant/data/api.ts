@@ -64,7 +64,16 @@ export class MerchantApi {
     return this.run(this.api.delete<T>(path, { headers: this.headers(options) }));
   }
 
-  private async run<T>(call: Observable<T>): Promise<Result<T>> {
+  /**
+   * Um `Observable` vira um `Result`.
+   *
+   * É público porque nem toda escrita do console sai daqui: as que passam pela
+   * costura — `StoreService`, por exemplo — já chegam como `Observable` pronto,
+   * e precisam do mesmo tratamento de falha. Uma segunda cópia de
+   * `firstValueFrom` + `toApiFailure` seria um segundo lugar para a tradução de
+   * erro divergir.
+   */
+  async run<T>(call: Observable<T>): Promise<Result<T>> {
     try {
       return { ok: true, value: await firstValueFrom(call) };
     } catch (error) {
