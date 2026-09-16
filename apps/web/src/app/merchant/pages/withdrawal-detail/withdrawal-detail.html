@@ -1,0 +1,210 @@
+<mer-page-header
+  heading="Detalhe do saque"
+  backTo="/dashboard/withdrawals"
+  backLabel="Saques"
+  description="Para onde foi, quanto custou, e o que o processamento fez até agora."
+>
+  @if (withdrawal(); as item) {
+    <ng-container pageStatus><mer-chip [status]="item.status" /></ng-container>
+  }
+
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="detail.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+  </ng-container>
+</mer-page-header>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler o saque"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <a pageStateAction merButton routerLink="/dashboard/withdrawals">Voltar para a lista</a>
+  </mer-page-state>
+} @else if (detail.isLoading() && !withdrawal()) {
+  <mer-page-state variant="loading" message="Lendo o saque…" />
+} @else if (withdrawal(); as item) {
+  <div class="grid">
+    <div class="column">
+      <mer-panel heading="Valores" note="bruto, taxa fixa e o que chega do outro lado">
+        <dl class="wd-facts">
+          <div>
+            <dt>Bruto</dt>
+            <dd class="mer-num">{{ money(item.amount) }}</dd>
+          </div>
+          <div>
+            <dt>Taxa</dt>
+            <dd class="mer-num">−{{ money(item.fee) }}</dd>
+          </div>
+          <div class="total">
+            <dt>Líquido</dt>
+            <dd class="mer-num">{{ money(item.netAmount) }}</dd>
+          </div>
+        </dl>
+      </mer-panel>
+
+      <mer-panel heading="Destino Pix" note="a chave que recebeu o envio">
+        @if (destination(); as bank) {
+          <dl class="wd-facts split">
+            <div>
+              <dt>Chave</dt>
+              <dd class="mer-mono">{{ bank.pixKeyType }} {{ maskDocument(bank.pixKey) }}</dd>
+            </div>
+            <div>
+              <dt>Titular</dt>
+              <dd>{{ bank.holderName }}</dd>
+            </div>
+            <div>
+              <dt>Documento</dt>
+              <dd class="mer-mono">{{ maskDocument(bank.holderDocument) }}</dd>
+            </div>
+            <div>
+              <dt>Verificação</dt>
+              <dd>
+                <mer-chip
+                  [status]="bank.isVerified ? 'VERIFIED' : 'PENDING'"
+                  [label]="bank.isVerified ? 'verificada' : 'não verificada'"
+                />
+              </dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="quiet">A chave deste saque não aparece na listagem atual.</p>
+        }
+      </mer-panel>
+
+      <mer-panel heading="Linha do tempo" note="o que o processamento fez, em ordem">
+        @if (timeline().length === 0) {
+          <p class="quiet">Nenhum evento registrado ainda.</p>
+        } @else {
+          <ol class="wd-timeline">
+            @for (event of timeline(); track event.type + event.occurredAt) {
+              <li [attr.data-tone]="tone(event.type)">
+                <div class="wd-timeline-row">
+                  <span class="wd-timeline-label">{{ event.label }}</span>
+                  <span class="wd-timeline-when mer-mono">
+                    {{ event.occurredAt | date: 'dd/MM/yy HH:mm:ss' }}
+                  </span>
+                </div>
+                @if (event.description) {
+                  <p class="wd-timeline-note">{{ event.description }}</p>
+                }
+                @if (event.amount) {
+                  <span class="wd-timeline-amount mer-num">{{ money(event.amount) }}</span>
+                }
+              </li>
+            }
+          </ol>
+        }
+      </mer-panel>
+
+      <mer-panel heading="Lançamentos no extrato" note="como este saque mexeu no saldo">
+        @if (entries().length === 0) {
+          <p class="quiet">Nenhum lançamento ainda.</p>
+        } @else {
+          <dl class="wd-facts">
+            @for (entry of entries(); track entry.id) {
+              <div>
+                <dt>{{ entryLabel(entry.type) }}</dt>
+                <dd class="mer-num">{{ money(entry.netAmount) }}</dd>
+              </div>
+            }
+          </dl>
+        }
+      </mer-panel>
+    </div>
+
+    <div class="column">
+      <mer-panel heading="Saldo agora" note="depois do último carregamento">
+        <dl class="wd-facts">
+          <div>
+            <dt>Disponível</dt>
+            <dd class="mer-num">{{ money(balance().available) }}</dd>
+          </div>
+          <div>
+            <dt>Bloqueado</dt>
+            <dd class="mer-num">{{ money(balance().blocked) }}</dd>
+          </div>
+          <div>
+            <dt>A receber</dt>
+            <dd class="mer-num">{{ money(balance().pending) }}</dd>
+          </div>
+        </dl>
+      </mer-panel>
+
+      <mer-panel heading="Para o suporte" note="o que se manda junto ao abrir um chamado">
+        <dl class="wd-facts">
+          <div>
+            <dt>ID do saque</dt>
+            <dd class="mer-mono">{{ item.id }}</dd>
+          </div>
+          <div>
+            <dt>Pix E2E</dt>
+            <dd class="mer-mono">{{ item.pixE2eId || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Pago em</dt>
+            <dd class="mer-num">{{ (item.paidAt | date: 'dd/MM/yy HH:mm:ss') || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Tentativas</dt>
+            <dd class="mer-num">{{ item.processingAttempts }}</dd>
+          </div>
+          <div>
+            <dt>Próxima tentativa</dt>
+            <dd class="mer-num">{{ (item.nextProcessAt | date: 'dd/MM/yy HH:mm') || '—' }}</dd>
+          </div>
+        </dl>
+      </mer-panel>
+
+      @if (canSimulate()) {
+        <mer-panel heading="Simular desfecho" note="ambiente de teste">
+          <p class="quiet">
+            O worker leva este saque ao desfecho sozinho. Daqui você força o final agora, para não
+            esperar a fila.
+          </p>
+
+          @if (actionError()) {
+            <mer-notice tone="bad">{{ actionError() }}</mer-notice>
+          }
+
+          <div class="actions">
+            <button merButton type="button" (click)="ask('complete')">Completar</button>
+            <button merButton type="button" variant="danger" (click)="ask('fail')">Falhar</button>
+          </div>
+        </mer-panel>
+      }
+    </div>
+  </div>
+
+  <mer-sheet
+    [open]="!!pending()"
+    side="center"
+    eyebrow="Simulação"
+    [heading]="confirmTitle()"
+    [description]="confirmNote()"
+    (closed)="close()"
+  >
+    @if (actionError()) {
+      <mer-notice tone="bad">{{ actionError() }}</mer-notice>
+    }
+
+    <ng-container sheetActions>
+      <button merButton type="button" [disabled]="running()" (click)="close()">Cancelar</button>
+      <button merButton type="button" variant="primary" [loading]="running()" (click)="confirm()">
+        Confirmar
+      </button>
+    </ng-container>
+  </mer-sheet>
+}

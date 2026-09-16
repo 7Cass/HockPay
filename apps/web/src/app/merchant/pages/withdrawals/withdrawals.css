@@ -1,0 +1,107 @@
+:host {
+  display: contents;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+/* ── Folha do saque ────────────────────────────────────────────────────── */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--mer-line);
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface-2);
+  font-size: 13px;
+}
+
+.breakdown div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.breakdown dt {
+  color: var(--mer-text-2);
+}
+
+.breakdown dd {
+  margin: 0;
+}
+
+.breakdown .total {
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--mer-line);
+  font-weight: 600;
+}
+
+.confirm {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--mer-text-2);
+}
+
+.confirm strong {
+  color: var(--mer-text);
+}
+
+/* ── Chaves Pix ────────────────────────────────────────────────────────── */
+.destination {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--mer-line);
+}
+
+.destination:last-of-type {
+  border-bottom: 0;
+}
+
+.destination-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-right: auto;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.destination-sub {
+  font-size: 11.5px;
+  color: var(--mer-text-3);
+}
+
+.empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mer-text-3);
+}
+
+@media (max-width: 860px) {
+  .col-attempts {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .col-fee {
+    display: none;
+  }
+}

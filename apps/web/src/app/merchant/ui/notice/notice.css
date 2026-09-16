@@ -1,0 +1,51 @@
+:host {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--tone-line, var(--mer-line));
+  border-left-width: 3px;
+  border-radius: var(--mer-radius-sm);
+  background: var(--tone-soft, var(--mer-surface-2));
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mer-text);
+}
+
+:host([data-tone='ok']) {
+  --tone-line: var(--mer-ok-line);
+  --tone-soft: var(--mer-ok-soft);
+}
+
+:host([data-tone='warn']) {
+  --tone-line: var(--mer-warn-line);
+  --tone-soft: var(--mer-warn-soft);
+}
+
+:host([data-tone='bad']) {
+  --tone-line: var(--mer-bad-line);
+  --tone-soft: var(--mer-bad-soft);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+strong {
+  font-weight: 600;
+}
+
+.text span {
+  color: var(--mer-text-2);
+}
+
+.action {
+  margin-left: auto;
+}
+
+.action:empty {
+  display: none;
+}

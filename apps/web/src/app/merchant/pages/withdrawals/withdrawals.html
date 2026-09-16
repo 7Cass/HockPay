@@ -1,0 +1,381 @@
+<mer-page-header
+  heading="Saques"
+  description="Mande saldo disponível para uma chave Pix verificada do mesmo titular."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="withdrawals.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <button merButton type="button" (click)="destinationsOpen.set(true)">Chaves Pix</button>
+    <button merButton type="button" variant="primary" (click)="openSheet()">Novo saque</button>
+  </ng-container>
+</mer-page-header>
+
+@if (createdId()) {
+  <mer-notice tone="ok" heading="Saque solicitado">
+    O saldo já foi reservado e o saque entrou na fila de processamento.
+    <button noticeAction merButton type="button" size="sm" (click)="openCreated()">
+      Abrir detalhe
+    </button>
+  </mer-notice>
+}
+
+<section class="stats">
+  <mer-stat label="Disponível" [value]="money(balance().available)" note="Pode virar saque agora" />
+  <mer-stat
+    label="Bloqueado"
+    [value]="money(balance().blocked)"
+    note="Reservado por saque em voo"
+  />
+  <mer-stat
+    label="Em processamento"
+    [value]="money(summary().pendingOrProcessingAmount)"
+    [note]="summary().pendingCount + summary().processingCount + ' saque(s) a caminho'"
+  />
+  <mer-stat
+    label="Sacado"
+    [value]="money(summary().completedNetAmount)"
+    [note]="summary().completedCount + ' concluído(s) no filtro'"
+  />
+</section>
+
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="filters">
+    <mer-field label="Busca" grow note="id, E2E, chave Pix ou titular">
+      <input
+        type="search"
+        placeholder="E2E ou id do saque"
+        [value]="params().q"
+        (keydown.enter)="search($any($event.target).value)"
+        (blur)="search($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Status">
+      <select [value]="params().status" (change)="setStatus($any($event.target).value)">
+        @for (status of statuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+    </mer-field>
+
+    <mer-field label="Chave Pix">
+      <select [value]="params().account" (change)="setAccount($any($event.target).value)">
+        <option value="">Todas as chaves</option>
+        @for (destination of destinations.value(); track destination.id) {
+          <option [value]="destination.id">
+            {{ destination.pixKeyType }} {{ maskDocument(destination.pixKey) }}
+          </option>
+        }
+      </select>
+    </mer-field>
+
+    <mer-field label="Início">
+      <input
+        type="date"
+        [value]="params().startDate"
+        (change)="setStart($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Fim">
+      <input type="date" [value]="params().endDate" (change)="setEnd($any($event.target).value)" />
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler os saques"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (withdrawals.isLoading() && page().withdrawals.length === 0) {
+  <mer-page-state variant="loading" message="Lendo os saques…" />
+} @else if (isEmpty()) {
+  <mer-page-state
+    variant="empty"
+    heading="Nenhum saque"
+    [message]="
+      query.touched()
+        ? 'Nenhum saque corresponde aos filtros atuais.'
+        : 'Quando você mandar saldo para uma chave Pix, o saque aparece aqui.'
+    "
+  >
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar filtros
+      </button>
+    } @else {
+      <button pageStateAction merButton type="button" size="sm" (click)="openSheet()">
+        Solicitar saque
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Destino</th>
+            <th class="mer-col-num">Bruto</th>
+            <th class="mer-col-num col-fee">Taxa</th>
+            <th class="mer-col-num">Líquido</th>
+            <th class="mer-col-num col-attempts">Tentativas</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (withdrawal of page().withdrawals; track withdrawal.id) {
+            <tr class="is-clickable" (click)="open(withdrawal.id)">
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-num">
+                    {{ withdrawal.createdAt.slice(8, 10) }}/{{
+                      withdrawal.createdAt.slice(5, 7)
+                    }}/{{ withdrawal.createdAt.slice(2, 4) }}
+                  </span>
+                  <span class="mer-cell-sub mer-mono">{{ short(withdrawal.id) }}</span>
+                </span>
+              </td>
+
+              <td><mer-chip [status]="withdrawal.status" /></td>
+
+              <td class="is-flex">
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-mono">
+                    {{ destinationLabel(withdrawal.bankAccountId) }}
+                  </span>
+                  @if (withdrawal.failedReason) {
+                    <span class="mer-cell-sub">{{ withdrawal.failedReason }}</span>
+                  }
+                </span>
+              </td>
+
+              <td class="mer-col-num">{{ money(withdrawal.amount) }}</td>
+              <td class="mer-col-num col-fee mer-cell-quiet">−{{ money(withdrawal.fee) }}</td>
+              <td class="mer-col-num">{{ money(withdrawal.netAmount) }}</td>
+              <td class="mer-col-num col-attempts mer-cell-quiet">
+                {{ withdrawal.processingAttempts }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().page"
+      [totalPages]="page().totalPages"
+      [total]="page().total"
+      [shown]="page().withdrawals.length"
+      noun="saques"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}
+
+<!-- ─── Novo saque: dois passos ──────────────────────────────────────────── -->
+<mer-sheet
+  [open]="sheetOpen()"
+  eyebrow="Novo saque"
+  [heading]="confirming() ? 'Confirmar solicitação' : 'Solicitar saque Pix'"
+  [description]="
+    confirming()
+      ? 'Confira os valores. Ao confirmar, o saldo é reservado na hora.'
+      : 'Mínimo de R$ 10,00, máximo de R$ 5.000,00, sempre dentro do saldo disponível.'
+  "
+  (closed)="closeSheet()"
+>
+  @if (session.isLive()) {
+    <!-- No próprio formulário, e não só no rodapé: é aqui que alguém está
+         prestes a sacar, e é aqui que a frase precisa estar. -->
+    <mer-notice tone="warn" heading="Saque LIVE é simulado">
+      O saldo sai do ledger LIVE desta loja e nenhum dinheiro real se move.
+    </mer-notice>
+  }
+
+  @if (!confirming()) {
+    <mer-field label="Chave Pix de destino" note="só chave verificada recebe saque">
+      <select [value]="destinationId()" (change)="setDestination($any($event.target).value)">
+        <option value="">Selecione uma chave verificada</option>
+        @for (destination of destinations.value(); track destination.id) {
+          <option [value]="destination.id" [disabled]="!destination.isVerified">
+            {{ destination.pixKeyType }} {{ maskDocument(destination.pixKey) }}
+            @if (!destination.isVerified) {
+              · não verificada
+            }
+          </option>
+        }
+      </select>
+    </mer-field>
+
+    <mer-field label="Valor bruto" note="em reais, como 250,00">
+      <input
+        inputmode="decimal"
+        placeholder="250,00"
+        [value]="amountText()"
+        (input)="setAmount($any($event.target).value)"
+      />
+    </mer-field>
+
+    <button merButton type="button" size="sm" variant="ghost" (click)="useMax()">
+      Usar o máximo possível
+    </button>
+
+    <dl class="breakdown">
+      <div>
+        <dt>Saldo disponível</dt>
+        <dd class="mer-num">{{ money(balance().available) }}</dd>
+      </div>
+      <div>
+        <dt>Valor bruto</dt>
+        <dd class="mer-num">{{ money(amount()) }}</dd>
+      </div>
+      <div>
+        <dt>Taxa fixa</dt>
+        <dd class="mer-num">−{{ money(fee) }}</dd>
+      </div>
+      <div class="total">
+        <dt>Líquido a receber</dt>
+        <dd class="mer-num">{{ money(net()) }}</dd>
+      </div>
+    </dl>
+
+    @if (verified().length === 0) {
+      <mer-notice tone="warn" heading="Sem chave verificada">
+        Cadastre uma chave Pix antes do primeiro saque.
+        <button noticeAction merButton type="button" size="sm" (click)="destinationsOpen.set(true)">
+          Cadastrar
+        </button>
+      </mer-notice>
+    } @else if (formError()) {
+      <mer-notice tone="bad">{{ formError() }}</mer-notice>
+    }
+  } @else {
+    <!-- O segundo passo repete em prosa o que vai acontecer. -->
+    <p class="confirm">
+      Vão sair <strong>{{ money(amount()) }}</strong> do saldo disponível desta loja, com taxa fixa
+      de {{ money(fee) }}. Chegam <strong>{{ money(net()) }}</strong> em
+      <strong>{{ destinationLabel(destinationId()) }}</strong
+      >.
+    </p>
+
+    @if (formError()) {
+      <mer-notice tone="bad">{{ formError() }}</mer-notice>
+    }
+  }
+
+  <ng-container sheetActions>
+    @if (confirming()) {
+      <button merButton type="button" [disabled]="sending()" (click)="back()">Voltar</button>
+      <button merButton type="button" variant="primary" [loading]="sending()" (click)="send()">
+        Sacar {{ money(amount()) }}
+      </button>
+    } @else {
+      <button merButton type="button" (click)="closeSheet()">Cancelar</button>
+      <button
+        merButton
+        type="button"
+        variant="primary"
+        [disabled]="!!blocker()"
+        (click)="advance()"
+      >
+        Revisar
+      </button>
+    }
+  </ng-container>
+</mer-sheet>
+
+<!-- ─── Chaves Pix ───────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="destinationsOpen()"
+  eyebrow="Destinos"
+  heading="Chaves Pix"
+  description="Para onde o saque pode ir. A chave é sempre do mesmo titular da conta."
+  (closed)="destinationsOpen.set(false)"
+>
+  @if (destinationError()) {
+    <mer-notice tone="bad">{{ destinationError() }}</mer-notice>
+  }
+
+  @for (destination of destinations.value(); track destination.id) {
+    <div class="destination">
+      <div class="destination-text">
+        <span class="mer-mono">
+          {{ destination.pixKeyType }} {{ maskDocument(destination.pixKey) }}
+        </span>
+        <span class="destination-sub">{{ destination.holderName }}</span>
+      </div>
+
+      <mer-chip
+        [status]="destination.isVerified ? 'VERIFIED' : 'PENDING'"
+        [label]="destination.isVerified ? 'verificada' : 'não verificada'"
+      />
+
+      @if (destination.isDefault) {
+        <mer-chip status="ACTIVE" label="padrão" tone="neutral" />
+      } @else {
+        <button
+          merButton
+          type="button"
+          size="sm"
+          variant="ghost"
+          [loading]="busyDestination() === destination.id"
+          (click)="makeDefault(destination)"
+        >
+          Tornar padrão
+        </button>
+      }
+
+      <button
+        merButton
+        type="button"
+        size="sm"
+        variant="danger"
+        [disabled]="destination.hasWithdrawals"
+        [title]="destination.hasWithdrawals ? 'Tem saques vinculados' : 'Remover'"
+        [loading]="busyDestination() === destination.id"
+        (click)="remove(destination)"
+      >
+        Remover
+      </button>
+    </div>
+  } @empty {
+    <p class="empty">Nenhuma chave cadastrada ainda.</p>
+  }
+
+  <ng-container sheetActions>
+    <button merButton type="button" (click)="destinationsOpen.set(false)">Fechar</button>
+    <button
+      merButton
+      type="button"
+      variant="primary"
+      [loading]="busyDestination() === 'new'"
+      (click)="createDestination()"
+    >
+      Cadastrar meu documento
+    </button>
+  </ng-container>
+</mer-sheet>

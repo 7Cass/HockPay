@@ -33,6 +33,22 @@ export class MerchantSession {
   readonly name = computed(() => this.user()?.name ?? '');
   readonly email = computed(() => this.user()?.email ?? '');
 
+  /**
+   * Documento do titular, só dígitos.
+   *
+   * O destino Pix do lojista é o próprio documento dele: a API exige que a
+   * chave e o titular batam com quem está logado, e cadastrar destino de
+   * terceiro é recusado do outro lado.
+   */
+  readonly document = computed(() => {
+    const user = this.user() as { document?: string; formattedDocument?: string } | null;
+    return String(user?.document ?? user?.formattedDocument ?? '').replace(/\D/g, '');
+  });
+
+  readonly documentType = computed<'CPF' | 'CNPJ'>(() =>
+    this.document().length === 14 ? 'CNPJ' : 'CPF',
+  );
+
   /** Iniciais para o crachá: o avatar é tipografia, não imagem. */
   readonly initials = computed(() => {
     const name = this.name().trim();

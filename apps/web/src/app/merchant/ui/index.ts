@@ -9,8 +9,8 @@
  *
  * A regra de divisão entre este barril e `merchant.css`:
  *
- * - **componente** é tudo que tem comportamento (painel modal, menu) ou
- *   marcação repetida (botão, chip, campo, tabela). O estilo mora com ele.
+ * - **componente** é tudo que tem comportamento (folha modal, menu) ou marcação
+ *   repetida (botão, chip, campo, tabela). O estilo mora com ele.
  * - **`merchant.css`** é só o que precisa existir antes de qualquer componente:
  *   os tokens, o anel de foco, a barra de rolagem e as utilidades que a página
  *   aplica em elemento que ela mesma escreve (`.mer-mono`, `.mer-col-num`).
@@ -22,9 +22,12 @@
 export { MerButton, type MerButtonSize, type MerButtonVariant } from './button/button';
 export { MerChip } from './chip/chip';
 export { MerField } from './field/field';
+export { MerNotice } from './notice/notice';
 export { MerPageHeader } from './page-header/page-header';
 export { MerPageState, type MerPageStateVariant } from './page-state/page-state';
 export { MerPagination } from './pagination/pagination';
 export { MerPanel } from './panel/panel';
+export { MerSheet } from './sheet/sheet';
+export { MerStat } from './stat/stat';
 export { MerTable } from './table/table';
 export { MerThemeService, type MerSkin, type MerTheme } from './theme/theme.service';

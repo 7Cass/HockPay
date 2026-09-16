@@ -1,0 +1,156 @@
+:host {
+  display: contents;
+}
+
+/* Duas colunas que cedem: `minmax(0, …)` nas duas é o que impede o painel de
+   estourar a área de trabalho — o defeito que o detalhe do pagamento antigo
+   tem em 1440. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* ── Fatos ─────────────────────────────────────────────────────────────── */
+.wd-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 13px;
+}
+
+.wd-facts.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.wd-facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.wd-facts.split > div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.wd-facts dt {
+  color: var(--mer-text-2);
+}
+
+.wd-facts dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--mer-text);
+}
+
+.wd-facts .total {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--mer-line);
+  font-weight: 600;
+}
+
+.quiet {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-3);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+/* ── Linha do tempo ────────────────────────────────────────────────────── */
+.wd-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  list-style: none;
+  border-left: 1px solid var(--mer-line);
+}
+
+.wd-timeline li {
+  position: relative;
+}
+
+.wd-timeline li::before {
+  content: '';
+  position: absolute;
+  top: 0.35rem;
+  left: -1.31rem;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--mer-line-strong);
+  border-radius: 50%;
+  background: var(--mer-surface);
+}
+
+.wd-timeline li[data-tone='ok']::before {
+  border-color: var(--mer-ok);
+  background: var(--mer-ok);
+}
+
+.wd-timeline li[data-tone='bad']::before {
+  border-color: var(--mer-bad);
+  background: var(--mer-bad);
+}
+
+.wd-timeline li[data-tone='warn']::before {
+  border-color: var(--mer-warn);
+  background: var(--mer-warn);
+}
+
+.wd-timeline-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 13px;
+}
+
+.wd-timeline-when {
+  font-size: 11px;
+  color: var(--mer-text-3);
+}
+
+.wd-timeline-note {
+  margin: 0.15rem 0 0;
+  font-size: 12px;
+  color: var(--mer-text-3);
+}
+
+.wd-timeline-amount {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--mer-line);
+  border-radius: var(--mer-radius-sm);
+  font-size: 11.5px;
+  color: var(--mer-text-2);
+}

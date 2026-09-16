@@ -1,0 +1,154 @@
+<mer-page-header heading="Saldo e Extrato" [description]="ledgerNote()">
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="ledger.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <a merButton routerLink="/dashboard/withdrawals">Saques →</a>
+  </ng-container>
+</mer-page-header>
+
+<section class="stats">
+  <mer-stat label="Disponível" [value]="money(balance().available)" note="Pronto para sacar" />
+  <mer-stat
+    label="A receber"
+    [value]="money(balance().pending)"
+    note="Confirmado, esperando liberação"
+  />
+  <mer-stat
+    label="Bloqueado"
+    [value]="money(balance().blocked)"
+    note="Reservado por saque em voo"
+  />
+</section>
+
+<mer-panel [head]="query.touched()">
+  <ng-container panelActions>
+    @if (query.touched()) {
+      <button merButton type="button" variant="ghost" size="sm" (click)="clear()">Limpar</button>
+    }
+  </ng-container>
+
+  <div class="filters">
+    <mer-field label="Tipo de lançamento" grow>
+      <select [value]="params().type" (change)="setType($any($event.target).value)">
+        @for (type of types; track type.value) {
+          <option [value]="type.value">{{ type.label }}</option>
+        }
+      </select>
+    </mer-field>
+
+    <mer-field label="Início">
+      <input
+        type="date"
+        [value]="params().startDate"
+        (change)="setStart($any($event.target).value)"
+      />
+    </mer-field>
+
+    <mer-field label="Fim">
+      <input type="date" [value]="params().endDate" (change)="setEnd($any($event.target).value)" />
+    </mer-field>
+  </div>
+</mer-panel>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler o extrato"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (ledger.isLoading() && page().data.length === 0) {
+  <mer-page-state variant="loading" message="Lendo o extrato…" />
+} @else if (isEmpty()) {
+  <mer-page-state variant="empty" heading="Nenhum lançamento" [message]="emptyMessage()">
+    @if (query.touched()) {
+      <button pageStateAction merButton type="button" size="sm" (click)="clear()">
+        Limpar filtros
+      </button>
+    }
+  </mer-page-state>
+} @else {
+  <mer-panel flush>
+    <mer-table>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Lançamento</th>
+            <th class="mer-col-num">Bruto</th>
+            <th class="mer-col-num col-fee">Taxa</th>
+            <th class="mer-col-num">Líquido</th>
+            <th class="mer-col-num col-balance">Saldo após</th>
+            <th class="mer-col-num">Referência</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of page().data; track entry.id) {
+            <tr>
+              <td>
+                <span class="mer-cell">
+                  <span class="mer-cell-main mer-num">{{
+                    entry.createdAt | date: 'dd/MM/yy'
+                  }}</span>
+                  <span class="mer-cell-sub mer-mono">{{
+                    entry.createdAt | date: 'HH:mm:ss'
+                  }}</span>
+                </span>
+              </td>
+
+              <td class="is-flex">
+                <span class="mer-cell">
+                  <span class="mer-cell-main">{{ label(entry.type) }}</span>
+                  <span class="mer-cell-sub">{{ entry.description || short(entry.id) }}</span>
+                </span>
+              </td>
+
+              <td class="mer-col-num">
+                {{ money(entry.amount) }}
+              </td>
+              <td class="mer-col-num col-fee mer-cell-quiet">−{{ money(entry.fee) }}</td>
+              <td class="mer-col-num" [attr.data-sign]="sign(entry.netAmount)">
+                {{ money(entry.netAmount) }}
+              </td>
+              <td class="mer-col-num col-balance">
+                {{ money(entry.balanceAfter) }}
+              </td>
+
+              <td class="mer-col-num mer-mono mer-cell-quiet">
+                @if (isPayment(entry)) {
+                  <a class="ref" [routerLink]="['/dashboard/payments', entry.referenceId]">
+                    {{ short(entry.referenceId) }} →
+                  </a>
+                } @else {
+                  {{ entry.referenceType || '—' }} {{ short(entry.referenceId) }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </mer-table>
+
+    <mer-pagination
+      [page]="page().meta.page"
+      [totalPages]="page().meta.totalPages"
+      [total]="page().meta.total"
+      [shown]="page().data.length"
+      noun="lançamentos"
+      (goTo)="goTo($event)"
+    />
+  </mer-panel>
+}

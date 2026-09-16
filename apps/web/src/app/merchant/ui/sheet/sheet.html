@@ -1,0 +1,31 @@
+<dialog
+  #dlg
+  class="sheet"
+  [attr.data-side]="side()"
+  (close)="closed.emit()"
+  (click)="onBackdrop($event)"
+>
+  <div class="sheet-panel">
+    <header class="sheet-head">
+      <div class="sheet-text">
+        @if (eyebrow(); as text) {
+          <p class="mer-overline">{{ text }}</p>
+        }
+        <h2>{{ heading() }}</h2>
+        @if (description(); as text) {
+          <p class="sheet-desc">{{ text }}</p>
+        }
+      </div>
+
+      <button type="button" class="sheet-close" (click)="dismiss()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="sheet-body mer-scroll">
+      <ng-content />
+    </div>
+
+    <footer class="sheet-foot">
+      <ng-content select="[sheetActions]" />
+    </footer>
+  </div>
+</dialog>
