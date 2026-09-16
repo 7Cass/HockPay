@@ -114,23 +114,6 @@ export const routes: Routes = [
           import('./features/dashboard/pages/products/products').then((m) => m.Products),
       },
       {
-        path: 'financials',
-        loadComponent: () =>
-          import('./features/dashboard/pages/financials/financials').then((m) => m.Financials),
-      },
-      {
-        path: 'withdrawals',
-        loadComponent: () =>
-          import('./features/dashboard/pages/withdrawals/withdrawals').then((m) => m.Withdrawals),
-      },
-      {
-        path: 'withdrawals/:id',
-        loadComponent: () =>
-          import('./features/dashboard/pages/withdrawal-detail/withdrawal-detail').then(
-            (m) => m.WithdrawalDetail,
-          ),
-      },
-      {
         path: 'settings',
         loadComponent: () =>
           import('./features/dashboard/pages/settings/settings').then((m) => m.Settings),
