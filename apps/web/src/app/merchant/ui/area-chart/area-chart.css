@@ -21,17 +21,31 @@
 
 .spark-line {
   fill: none;
-  stroke: var(--mer-action);
-  stroke-width: 1.75;
+  stroke: var(--mer-ok);
+  stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
-/* O preenchimento some para baixo: a área serve para dar peso à linha, não
-   para competir com ela. */
+/* As três paradas do degradê. A do meio existe para a área desbotar antes da
+   metade: com duas paradas a cor ainda tem peso na base e desenha uma faixa
+   escura em cima da linha do zero. */
+.spark-grad-top {
+  stop-color: var(--mer-ok);
+  stop-opacity: 0.28;
+}
+
+.spark-grad-mid {
+  stop-color: var(--mer-ok);
+  stop-opacity: 0.08;
+}
+
+.spark-grad-end {
+  stop-color: var(--mer-ok);
+  stop-opacity: 0;
+}
+
 .spark-fill {
-  fill: var(--mer-action);
-  opacity: 0.1;
   stroke: none;
 }
 
@@ -41,9 +55,15 @@
   stroke-dasharray: 3 3;
 }
 
+/* O halo separa o ponto da linha sem precisar de borda grossa. */
+.spark-halo {
+  fill: var(--mer-ok);
+  opacity: 0.16;
+}
+
 .spark-dot {
   fill: var(--mer-surface);
-  stroke: var(--mer-action);
+  stroke: var(--mer-ok);
   stroke-width: 2;
 }
 

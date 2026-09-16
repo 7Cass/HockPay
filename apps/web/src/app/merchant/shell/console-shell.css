@@ -1,10 +1,24 @@
 :host {
   display: block;
+  /* O fundo também aqui, e não só em `.shell`.
+     `.shell` tem `height: 100dvh` e pinta apenas a si mesma; o `body` do app é
+     branco (vem do reset global), então qualquer pixel além da altura da janela
+     aparecia branco — numa captura de página inteira, no repique do elástico ao
+     rolar, ou quando a barra de endereço do celular recolhe e a viewport cresce
+     antes do `dvh` reassentar. */
+  min-height: 100dvh;
+  background: var(--mer-ground);
 }
 
 .shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* A linha também precisa de `minmax(0, …)`. Sem isso o item de grid recebe
+     `min-height: auto`, estica até o tamanho do conteúdo e leva a área de
+     rolagem junto — a casca fica com 100dvh, o conteúdo com 2.817px, e o
+     `overflow: hidden` aqui corta quase dois mil pixels sem mostrar barra
+     nenhuma. Medido em 390px antes do conserto. */
+  grid-template-rows: minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
   background: var(--mer-ground);
@@ -30,6 +44,11 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* O par do `min-width: 0` na vertical, e o que faz a rolagem existir: um
+     item de grid ou de flex nasce com `min-height: auto`, que significa "nunca
+     menor que o conteúdo". Com isso ele empurra a altura para baixo e o
+     `.shell-scroll` nunca chega a ter o que rolar. */
+  min-height: 0;
   /* `clip` e não `hidden`: `hidden` num ancestral cria contexto de rolagem e
      mata `position: sticky` do cabeçalho da tabela. */
   overflow: clip;

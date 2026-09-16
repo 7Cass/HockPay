@@ -241,6 +241,28 @@
   }
 }
 
+/**
+ * O respiro entre as seções de uma tela.
+ *
+ * Isto mora aqui, e não em `console-shell.css`, por uma razão de alcance: o
+ * `.shell-content` tem **um único filho** — o componente que o roteador monta —
+ * e todas as seções da tela vivem dentro dele. O `gap` da casca separa o
+ * `router-outlet` do componente, e nunca as seções entre si; elas ficavam
+ * coladas, sem um pixel de folga.
+ *
+ * O estilo da casca também não alcança esse elemento: com encapsulação
+ * emulada, o componente que o roteador cria não recebe o atributo do shell.
+ * Por isso a regra é global, presa a `.mer-root`, e vale para todas as telas do
+ * console de uma vez — em vez de repetir um `:host { display: flex }` em
+ * dezesseis arquivos e esquecer no décimo sétimo.
+ */
+.mer-root .shell-content > * {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mer-root *,
   .mer-root *::before,

@@ -15,16 +15,16 @@ trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 
 ## Fatias
 
-| #   | Fatia                             | Estado         | Entrega                                                                                                          |
-| --- | --------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 0   | Fundacao                          | `concluido`    | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.                         |
-| 1   | Nucleo de dados                   | `concluido`    | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                                                 |
-| 2   | Kit de ui v1                      | `concluido`    | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram.    |
-| 3   | Dinheiro                          | `concluido`    | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                                        |
-| 4   | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.                     |
-| 5   | Integracao                        | `concluido`    | API, Webhooks, Alertas. Toaster proprio e espelho de eventos guardado por teste; `ngx-sonner` so sai na fatia 7. |
-| 6   | Visao geral                       | `concluido`    | Grafico proprio em SVG; `apexcharts` e `ng-apexcharts` saem do produto.                                          |
-| 7   | Produtos, Configuracoes e limpeza | `concluido`    | As quatro ultimas telas migram; `features/dashboard/`, `shared/ui`, `libs/ui` e `ngx-sonner` saem (459 arquivos); web entra no `format:check` da CI.                   |
+| #   | Fatia                             | Estado      | Entrega                                                                                                                                              |
+| --- | --------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Fundacao                          | `concluido` | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.                                                             |
+| 1   | Nucleo de dados                   | `concluido` | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                                                                                     |
+| 2   | Kit de ui v1                      | `concluido` | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram.                                        |
+| 3   | Dinheiro                          | `concluido` | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                                                                            |
+| 4   | Cobranca                          | `concluido` | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.                                                         |
+| 5   | Integracao                        | `concluido` | API, Webhooks, Alertas. Toaster proprio e espelho de eventos guardado por teste; `ngx-sonner` so sai na fatia 7.                                     |
+| 6   | Visao geral                       | `concluido` | Grafico proprio em SVG; `apexcharts` e `ng-apexcharts` saem do produto.                                                                              |
+| 7   | Produtos, Configuracoes e limpeza | `concluido` | As quatro ultimas telas migram; `features/dashboard/`, `shared/ui`, `libs/ui` e `ngx-sonner` saem (459 arquivos); web entra no `format:check` da CI. |
 
 ## Decisoes ja tomadas
 
@@ -77,6 +77,16 @@ dinheiro pela loja.
   `limit`/`offset`, retencao da trilha e a mensagem vazia do `@IsEnum`.
 
 ## Achados abertos, sem dono
+
+- **`performance.feeVolume` de `/dashboard/overview` volta sempre `0`.** Medido
+  em `2026-09-16`: `grossVolume` 3.378.850 e `netVolume` 3.325.674 na mesma
+  resposta, ou seja, R$ 531,76 de taxa que o campo proprio nao carrega. A visao
+  geral deriva o valor de `bruto - liquido`, que e exato por definicao, mas o
+  campo continua orfao para quem consumir a API.
+- **`conversion.linksOpened` volta sempre `0`.** Medido no mesmo dia, com 21
+  links pagos na mesma resposta -- e nao da para pagar um link sem abrir. O
+  funil da visao geral omite o passo em vez de desenhar um zero que se desmente
+  sozinho; medir abertura de link continua sendo trabalho de backend.
 
 - **`/dashboard/payments/:id` corta conteudo em 1440px.** A area de conteudo tem
   1.168px e um painel da coluna direita termina em 1.499px; a casca esconde o estouro

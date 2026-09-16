@@ -19,6 +19,11 @@
   align-items: baseline;
   gap: 0.6rem;
   min-width: 0;
+  /* A nota fica ao lado do título enquanto couber, e cai para a linha de baixo
+     quando não couber. Sem isso, num painel estreito as duas disputam a mesma
+     linha: "Integrações" e "Saúde de webhooks e alertas" quebravam em três
+     linhas e empurravam o chip do ambiente para fora do lugar. */
+  flex-wrap: wrap;
 }
 
 h2 {
