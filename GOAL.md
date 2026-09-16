@@ -1,10 +1,10 @@
 # Hockpay - Goal
 
 Source repo: `/Users/jpcass/Documents/2026/hockpay`
-Last reviewed: `2026-09-15`
+Last reviewed: `2026-09-16`
 Ordering: fronteira antes de codigo; dado antes de pele; lista antes de detalhe; limpeza no fim
 Scope: **o console do lojista** -- `app/merchant/`, com arquitetura, desenho e as tres capacidades que o redesign destrava
-Status: `em andamento`. PRD em `docs/PRD_MERCHANT_CONSOLE.md`; nenhuma fatia comecou
+Status: `em andamento`. PRD em `docs/PRD_MERCHANT_CONSOLE.md`; fatias 0 a 5 concluidas
 
 O dashboard e a maior superficie do produto (12.698 linhas, 18 telas) e a unica que
 nunca foi redesenhada. A landing virou noite, as telas de entrada seguiram, e o
@@ -15,16 +15,16 @@ trocar a camada de dados, que e pre-sinal num app Angular 21 zoneless.
 
 ## Fatias
 
-| #  | Fatia                             | Estado         | Entrega                                                                                     |
-| -- | --------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
-| 0  | Fundacao                          | `concluido`    | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.     |
-| 1  | Nucleo de dados                   | `concluido`    | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                            |
-| 2  | Kit de ui v1                      | `concluido`    | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram. |
-| 3  | Dinheiro                          | `concluido`    | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                   |
-| 4  | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.  |
-| 5  | Integracao                        | `nao iniciado` | API, Webhooks, Alertas. Toaster proprio; `ngx-sonner` sai.                                  |
-| 6  | Visao geral                       | `nao iniciado` | Grafico proprio; `apexcharts` sai.                                                          |
-| 7  | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI. |
+| #   | Fatia                             | Estado         | Entrega                                                                                                          |
+| --- | --------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 0   | Fundacao                          | `concluido`    | `app/merchant/` com tokens, costura, spec de fronteira e casca vazia. Nenhuma tela muda.                         |
+| 1   | Nucleo de dados                   | `concluido`    | `httpResource` + `listQuery` + comandos, provados em Pagamentos.                                                 |
+| 2   | Kit de ui v1                      | `concluido`    | Painel, tabela, chip, campo, botao, cabecalho, estado, paginacao. Pagamentos, Comprovantes e Clientes migram.    |
+| 3   | Dinheiro                          | `concluido`    | Saldo e Extrato, Saques, Detalhe do saque. Formulario de saque por sinal.                                        |
+| 4   | Cobranca                          | `concluido`    | Detalhe do pagamento (o corte de 1440px morreu), Links, Detalhe do link e o forcar desfecho.                     |
+| 5   | Integracao                        | `concluido`    | API, Webhooks, Alertas. Toaster proprio e espelho de eventos guardado por teste; `ngx-sonner` so sai na fatia 7. |
+| 6   | Visao geral                       | `nao iniciado` | Grafico proprio; `apexcharts` sai.                                                                               |
+| 7   | Produtos, Configuracoes e limpeza | `nao iniciado` | `features/dashboard/`, `shared/ui`, `libs/ui` e as dependencias saem; web entra no gate da CI.                   |
 
 ## Decisoes ja tomadas
 

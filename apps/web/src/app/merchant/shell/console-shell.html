@@ -12,6 +12,10 @@
   </div>
 </div>
 
+<!-- Os avisos moram na casca, e não na tela: uma ação pode terminar depois de
+     o lojista já ter navegado, e o aviso precisa sobreviver à troca de rota. -->
+<mer-toaster />
+
 <!-- A gaveta do celular: o mesmo trilho, por cima do conteúdo. -->
 @if (drawerOpen()) {
   <div class="drawer-scrim" (click)="closeDrawer()"></div>

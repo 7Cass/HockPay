@@ -102,4 +102,10 @@
 .mer-table .is-flex {
   width: 100%;
   max-width: 0;
+  /* ...mas com piso. `max-width: 0` elege esta coluna como a que cede, e sem
+     um minimo ela cede ate sumir: medido em 65px na tela de chaves a 390px,
+     onde cinco nomes viraram "Re...", "Re...", "ER...". `min-width` vence
+     `max-width` na cascata, entao o piso vale e a tabela rola dentro do
+     proprio contentor -- que e o que uma tabela larga deve fazer. */
+  min-width: 9rem;
 }

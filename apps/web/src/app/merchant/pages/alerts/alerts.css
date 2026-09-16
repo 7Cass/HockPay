@@ -1,0 +1,120 @@
+.alert-split {
+  display: grid;
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.alert-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.7rem 1.1rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.alert-list li + li .alert-item {
+  border-top: 1px solid var(--mer-line);
+}
+
+.alert-item:hover {
+  background: var(--mer-surface-2);
+}
+
+.alert-item.is-on {
+  border-left-color: var(--mer-action);
+  background: var(--mer-surface-2);
+}
+
+.alert-name {
+  font-size: 13px;
+  color: var(--mer-text);
+  overflow-wrap: anywhere;
+}
+
+.alert-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.alert-channel,
+.alert-events {
+  font-size: 11px;
+  color: var(--mer-text-3);
+}
+
+.alert-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.alert-facts {
+  display: grid;
+  /* Mesma trilha presa da tela de webhooks, pelo mesmo motivo. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.alert-facts dt {
+  margin-bottom: 0.2rem;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mer-text-3);
+}
+
+.alert-facts dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--mer-text-2);
+}
+
+.alert-target {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.alert-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.alert-tag {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--mer-line);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--mer-text-2);
+}
+
+.alert-col-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 960px) {
+  .alert-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

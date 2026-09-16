@@ -1,0 +1,32 @@
+.key-warning {
+  margin: 0 0 0.75rem;
+  max-width: 62ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-2);
+}
+
+.key-plain {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--mer-warn-line);
+  border-radius: var(--mer-radius-sm);
+  background: var(--mer-surface-2);
+  overflow-x: auto;
+}
+
+.key-col-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.key-is-off td {
+  opacity: 0.5;
+}
+
+.key-confirm {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mer-text-2);
+}

@@ -1,0 +1,297 @@
+<mer-page-header
+  heading="Alertas"
+  description="Avisos operacionais para uma pessoa acompanhar — não para a sua aplicação reagir."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="alerts.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <button merButton type="button" variant="primary" (click)="openNew()">Novo alerta</button>
+  </ng-container>
+</mer-page-header>
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler os alertas"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (alerts.isLoading() && list().length === 0) {
+  <mer-page-state variant="loading" message="Lendo os alertas…" />
+} @else if (isEmpty()) {
+  <mer-page-state
+    variant="empty"
+    heading="Nenhum alerta ainda"
+    message="Crie um alerta para receber no Discord quando um pagamento entrar, um saque falhar ou um link expirar."
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="openNew()">
+      Criar o primeiro alerta
+    </button>
+  </mer-page-state>
+} @else {
+  <div class="alert-split">
+    <mer-panel heading="Alertas" [note]="list().length + ' configurado(s)'" flush>
+      <ul class="alert-list">
+        @for (alert of list(); track alert.id) {
+          <li>
+            <button
+              type="button"
+              class="alert-item"
+              [class.is-on]="alert.id === selectedId()"
+              (click)="select(alert.id)"
+            >
+              <span class="alert-name">{{ alert.name }}</span>
+              <span class="alert-meta">
+                <mer-chip
+                  [status]="alert.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  [label]="alert.isActive ? 'ativo' : 'pausado'"
+                />
+                <span class="alert-channel">{{ channelName(alert.channel) }}</span>
+                <span class="alert-events">{{ summaryOf(alert.events) }}</span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    </mer-panel>
+
+    @if (selected(); as alert) {
+      <div class="alert-detail">
+        <mer-panel head>
+          <ng-container panelActions>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              [loading]="busy() === alert.id"
+              (click)="test(alert)"
+            >
+              Enviar teste
+            </button>
+            <button merButton type="button" size="sm" variant="ghost" (click)="openEdit(alert)">
+              Editar
+            </button>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              [loading]="busy() === alert.id"
+              (click)="toggle(alert)"
+            >
+              {{ alert.isActive ? 'Pausar' : 'Reativar' }}
+            </button>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              variant="danger"
+              (click)="removing.set(alert)"
+            >
+              Excluir
+            </button>
+          </ng-container>
+
+          <dl class="alert-facts">
+            <div>
+              <dt>Canal</dt>
+              <dd>{{ channelName(alert.channel) }}</dd>
+            </div>
+            <div>
+              <dt>Destino</dt>
+              <dd class="mer-mono alert-target">
+                {{ alert.configPreview.webhookUrl || 'URL guardada' }}
+              </dd>
+            </div>
+            <div>
+              <dt>Eventos avisados</dt>
+              <dd class="alert-tags">
+                @for (event of alert.events; track event) {
+                  <span class="alert-tag">{{ eventName(event) }}</span>
+                } @empty {
+                  <span class="mer-cell-quiet">nenhum</span>
+                }
+              </dd>
+            </div>
+          </dl>
+        </mer-panel>
+
+        <mer-panel heading="Histórico" note="As últimas mensagens enviadas neste alerta" flush>
+          @if (logs.isLoading() && logs.value().logs.length === 0) {
+            <mer-page-state variant="loading" message="Lendo o histórico…" />
+          } @else if (logs.value().logs.length === 0) {
+            <mer-page-state
+              variant="empty"
+              heading="Nada enviado ainda"
+              message="Quando um dos eventos acontecer, a mensagem aparece aqui. Envie um teste para conferir o canal."
+            />
+          } @else {
+            <mer-table>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Evento</th>
+                    <th>Status</th>
+                    <th class="mer-col-num">Tentativa</th>
+                    <th>Quando</th>
+                    <th class="alert-col-action"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of logs.value().logs; track log.id) {
+                    <tr>
+                      <td class="is-flex">
+                        <span class="mer-cell">
+                          <span class="mer-cell-main">{{ eventName(log.eventType) }}</span>
+                          @if (log.errorMessage) {
+                            <span class="mer-cell-sub">{{ log.errorMessage }}</span>
+                          } @else {
+                            <span class="mer-cell-sub mer-mono">{{ log.eventType }}</span>
+                          }
+                        </span>
+                      </td>
+
+                      <td><mer-chip [status]="log.status" /></td>
+
+                      <td class="mer-col-num mer-cell-quiet">
+                        {{ log.attempt }}/{{ log.maxAttempts }}
+                      </td>
+
+                      <td class="mer-cell-quiet">{{ when(log.createdAt) }}</td>
+
+                      <td class="alert-col-action">
+                        @if (log.status === 'FAILED') {
+                          <button
+                            merButton
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            [loading]="busy() === log.id"
+                            (click)="retry(log)"
+                          >
+                            Reenviar
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </mer-table>
+          }
+        </mer-panel>
+      </div>
+    }
+  </div>
+}
+
+<!-- ─── Criar e editar ───────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="sheetOpen()"
+  [eyebrow]="editing() ? 'Editar alerta' : 'Novo alerta'"
+  [heading]="editing() ? 'Editar ' + (editing()?.name ?? '') : 'Criar alerta'"
+  description="Escolha o canal, cole o destino e marque o que você quer saber."
+  (closed)="closeSheet()"
+>
+  <mer-field label="Nome" note="como você vai reconhecer este alerta na lista">
+    <input
+      placeholder="Vendas — canal do time"
+      [value]="name()"
+      (input)="name.set($any($event.target).value); formError.set('')"
+    />
+  </mer-field>
+
+  <mer-field label="Canal">
+    <select [value]="channel()" (change)="channel.set($any($event.target).value)">
+      @for (option of channels; track option.value) {
+        <option [value]="option.value" [disabled]="!option.available">
+          {{ option.label }} — {{ option.hint }}
+        </option>
+      }
+    </select>
+  </mer-field>
+
+  <mer-field
+    label="URL do webhook do Discord"
+    [note]="
+      editing()
+        ? 'deixe em branco para manter a URL que já está gravada'
+        : 'nas configurações do canal, em Integrações → Webhooks'
+    "
+  >
+    <input
+      type="url"
+      placeholder="https://discord.com/api/webhooks/…"
+      [value]="webhookUrl()"
+      (input)="webhookUrl.set($any($event.target).value); formError.set('')"
+    />
+  </mer-field>
+
+  <mer-field label="Ativo">
+    <select
+      [value]="isActive() ? 'sim' : 'nao'"
+      (change)="isActive.set($any($event.target).value === 'sim')"
+    >
+      <option value="sim">Sim — envia assim que o evento acontecer</option>
+      <option value="nao">Não — fica configurado, mas em silêncio</option>
+    </select>
+  </mer-field>
+
+  <mer-event-picker [selected]="events()" [disabled]="saving()" (changed)="setEvents($event)" />
+
+  @if (formError()) {
+    <mer-notice tone="bad">{{ formError() }}</mer-notice>
+  }
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="saving()" (click)="closeSheet()">Cancelar</button>
+    <button
+      merButton
+      type="button"
+      variant="primary"
+      [disabled]="!!blocker()"
+      [loading]="saving()"
+      (click)="save()"
+    >
+      {{ editing() ? 'Salvar' : 'Criar alerta' }}
+    </button>
+  </ng-container>
+</mer-sheet>
+
+<!-- ─── Excluir ──────────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="!!removing()"
+  side="center"
+  eyebrow="Excluir alerta"
+  [heading]="'Excluir ' + (removing()?.name ?? '') + '?'"
+  description="O canal para de receber estes avisos."
+  (closed)="removing.set(null)"
+>
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="!!busy()" (click)="removing.set(null)">
+      Cancelar
+    </button>
+    <button
+      merButton
+      type="button"
+      variant="danger"
+      [loading]="busy() === removing()?.id"
+      (click)="remove()"
+    >
+      Excluir
+    </button>
+  </ng-container>
+</mer-sheet>

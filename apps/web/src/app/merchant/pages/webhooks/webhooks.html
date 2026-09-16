@@ -1,0 +1,377 @@
+<mer-page-header
+  heading="Webhooks"
+  description="Para onde o HockPay avisa, assinado, que algo aconteceu na sua loja."
+>
+  <ng-container pageActions>
+    <button
+      merButton
+      type="button"
+      variant="ghost"
+      iconOnly
+      aria-label="Atualizar"
+      [loading]="hooks.isLoading()"
+      (click)="reload()"
+    >
+      ↻
+    </button>
+    <button
+      merButton
+      type="button"
+      [loading]="busy() === 'inbox'"
+      title="Cria um destino de teste hospedado pelo próprio HockPay"
+      (click)="createInbox()"
+    >
+      Caixa de teste
+    </button>
+    <button merButton type="button" variant="primary" (click)="openSheet()">Novo destino</button>
+  </ng-container>
+</mer-page-header>
+
+<!-- O segredo de assinatura: mesma regra da chave em claro. -->
+@if (secret()) {
+  <mer-panel heading="Guarde o segredo de assinatura" note="Ele não aparece de novo">
+    <p class="hook-warning">
+      Cada entrega vai com uma assinatura calculada a partir deste segredo. É com ele que a sua
+      aplicação confirma que o pedido veio mesmo do HockPay — e não de alguém que descobriu a URL.
+    </p>
+
+    <div class="hook-secret"><mer-copy [value]="secret()" [truncate]="0" /></div>
+
+    <ng-container panelActions>
+      <button merButton type="button" size="sm" (click)="dismissSecret()">Já guardei</button>
+    </ng-container>
+  </mer-panel>
+}
+
+@if (failure(); as error) {
+  <mer-page-state
+    variant="error"
+    heading="Não foi possível ler os destinos"
+    [message]="error.message"
+    [code]="error.code"
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="reload()">
+      Tentar de novo
+    </button>
+  </mer-page-state>
+} @else if (hooks.isLoading() && list().length === 0) {
+  <mer-page-state variant="loading" message="Lendo os destinos…" />
+} @else if (isEmpty()) {
+  <mer-page-state
+    variant="empty"
+    heading="Nenhum destino ainda"
+    message="Cadastre a URL da sua aplicação, ou crie uma caixa de teste para ver como a entrega chega."
+  >
+    <button pageStateAction merButton type="button" size="sm" (click)="openSheet()">
+      Novo destino
+    </button>
+  </mer-page-state>
+} @else {
+  <div class="hook-split">
+    <!-- ─── Os destinos ──────────────────────────────────────────────── -->
+    <mer-panel heading="Destinos" [note]="list().length + ' cadastrado(s)'" flush>
+      <ul class="hook-list">
+        @for (hook of list(); track hook.id) {
+          <li>
+            <button
+              type="button"
+              class="hook-item"
+              [class.is-on]="hook.id === selectedId()"
+              (click)="select(hook.id)"
+            >
+              <span class="hook-url">
+                <span class="hook-host mer-mono">{{ host(hook.url) }}</span>
+                <span class="hook-path mer-mono">{{ path(hook.url) }}</span>
+              </span>
+
+              <span class="hook-meta">
+                <mer-chip
+                  [status]="hook.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  [label]="hook.isActive ? 'ativo' : 'pausado'"
+                />
+                @if (hook.circuit?.state === 'open') {
+                  <mer-chip status="SUSPENDED" label="circuito aberto" tone="bad" />
+                }
+                <span class="hook-events">{{ summaryOf(hook.events) }}</span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    </mer-panel>
+
+    <!-- ─── A investigação ───────────────────────────────────────────── -->
+    @if (selected(); as hook) {
+      <div class="hook-detail">
+        @if (circuit(); as explanation) {
+          <mer-notice tone="bad" heading="Entregas pausadas neste destino">
+            {{ explanation }}
+          </mer-notice>
+        }
+
+        <mer-panel head>
+          <ng-container panelActions>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              [loading]="busy() === hook.id"
+              (click)="test(hook)"
+            >
+              Disparar teste
+            </button>
+            <button
+              merButton
+              type="button"
+              size="sm"
+              variant="ghost"
+              [loading]="busy() === hook.id"
+              (click)="toggle(hook)"
+            >
+              {{ hook.isActive ? 'Pausar' : 'Reativar' }}
+            </button>
+            <button merButton type="button" size="sm" variant="danger" (click)="removing.set(hook)">
+              Excluir
+            </button>
+          </ng-container>
+
+          <dl class="hook-facts">
+            <div>
+              <dt>URL</dt>
+              <dd><mer-copy [value]="hook.url" [truncate]="0" /></dd>
+            </div>
+            <div>
+              <dt>Eventos assinados</dt>
+              <dd class="hook-event-tags">
+                @for (event of hook.events; track event) {
+                  <span class="hook-tag">{{ eventName(event) }}</span>
+                } @empty {
+                  <span class="mer-cell-quiet">nenhum</span>
+                }
+              </dd>
+            </div>
+          </dl>
+        </mer-panel>
+
+        <div class="hook-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            class="hook-tab"
+            [class.is-on]="tab() === 'deliveries'"
+            [attr.aria-selected]="tab() === 'deliveries'"
+            (click)="setTab('deliveries')"
+          >
+            Entregas
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="hook-tab"
+            [class.is-on]="tab() === 'received'"
+            [attr.aria-selected]="tab() === 'received'"
+            (click)="setTab('received')"
+          >
+            Recebidos
+          </button>
+        </div>
+
+        @if (tab() === 'deliveries') {
+          <mer-panel head flush>
+            <ng-container panelActions>
+              <mer-field label="Desfecho">
+                <select [value]="outcome()" (change)="setOutcome($any($event.target).value)">
+                  @for (option of outcomes; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </mer-field>
+            </ng-container>
+
+            @if (logs.isLoading() && logs.value().logs.length === 0) {
+              <mer-page-state variant="loading" message="Lendo as entregas…" />
+            } @else if (logs.value().logs.length === 0) {
+              <mer-page-state
+                variant="empty"
+                heading="Nenhuma entrega"
+                [message]="
+                  outcome()
+                    ? 'Nenhuma entrega com esse desfecho.'
+                    : 'Quando um evento assinado acontecer, a entrega aparece aqui. Dispare um teste para ver o caminho completo.'
+                "
+              />
+            } @else {
+              <mer-table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Evento</th>
+                      <th>Desfecho</th>
+                      <th class="mer-col-num">Tentativa</th>
+                      <th class="mer-col-num">HTTP</th>
+                      <th>Quando</th>
+                      <th class="hook-col-action"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (log of logs.value().logs; track log.id) {
+                      <tr>
+                        <td class="is-flex">
+                          <span class="mer-cell">
+                            <span class="mer-cell-main">{{ eventName(log.eventType) }}</span>
+                            @if (log.lastError) {
+                              <span class="mer-cell-sub">{{ log.lastError }}</span>
+                            } @else {
+                              <span class="mer-cell-sub mer-mono">{{ log.eventType }}</span>
+                            }
+                          </span>
+                        </td>
+
+                        <td>
+                          <mer-chip
+                            [status]="outcomeOf(log)"
+                            [label]="labelOf(outcomeOf(log))"
+                            [tone]="toneOf(outcomeOf(log))"
+                          />
+                        </td>
+
+                        <td class="mer-col-num mer-cell-quiet">
+                          {{ log.attempt }}/{{ log.maxAttempts }}
+                        </td>
+
+                        <td class="mer-col-num mer-mono">{{ log.responseStatus ?? '—' }}</td>
+
+                        <td class="mer-cell-quiet">{{ when(log.createdAt) }}</td>
+
+                        <td class="hook-col-action">
+                          @if (retriable(outcomeOf(log))) {
+                            <button
+                              merButton
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              [loading]="busy() === log.id"
+                              (click)="retry(log)"
+                            >
+                              Reenviar
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </mer-table>
+            }
+          </mer-panel>
+        } @else {
+          <mer-panel flush>
+            @if (inbox.isLoading() && inbox.value().events.length === 0) {
+              <mer-page-state variant="loading" message="Lendo o que chegou…" />
+            } @else if (inbox.value().events.length === 0) {
+              <mer-page-state
+                variant="empty"
+                heading="Nada recebido aqui"
+                message="Só a caixa de teste recebe de volta. Para um destino seu, quem guarda o que chegou é a sua aplicação."
+              />
+            } @else {
+              <mer-table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Evento</th>
+                      <th>Assinatura</th>
+                      <th>Entrega</th>
+                      <th>Recebido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (event of inbox.value().events; track event.id) {
+                      <tr>
+                        <td class="is-flex">
+                          <span class="mer-cell">
+                            <span class="mer-cell-main">{{ eventName(event.eventType) }}</span>
+                            <span class="mer-cell-sub mer-mono">{{ event.eventType }}</span>
+                          </span>
+                        </td>
+
+                        <td>
+                          <mer-chip
+                            [status]="event.signatureValid ? 'VERIFIED' : 'FAILED'"
+                            [label]="event.signatureValid ? 'válida' : 'inválida'"
+                          />
+                        </td>
+
+                        <td><mer-copy [value]="event.deliveryId" /></td>
+
+                        <td class="mer-cell-quiet">{{ when(event.receivedAt) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </mer-table>
+            }
+          </mer-panel>
+        }
+      </div>
+    }
+  </div>
+}
+
+<!-- ─── Novo destino ─────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="sheetOpen()"
+  eyebrow="Novo destino"
+  heading="Cadastrar webhook"
+  description="A entrega vai assinada. Guarde o segredo que aparece depois de criar."
+  (closed)="closeSheet()"
+>
+  <mer-field label="URL" note="https, e acessível pela internet">
+    <input
+      type="url"
+      placeholder="https://sua-loja.com.br/hockpay/webhook"
+      [value]="url()"
+      (input)="url.set($any($event.target).value); formError.set('')"
+    />
+  </mer-field>
+
+  <mer-event-picker [selected]="events()" [disabled]="creating()" (changed)="setEvents($event)" />
+
+  @if (formError()) {
+    <mer-notice tone="bad">{{ formError() }}</mer-notice>
+  }
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="creating()" (click)="closeSheet()">Cancelar</button>
+    <button merButton type="button" variant="primary" [loading]="creating()" (click)="create()">
+      Criar destino
+    </button>
+  </ng-container>
+</mer-sheet>
+
+<!-- ─── Excluir ──────────────────────────────────────────────────────────── -->
+<mer-sheet
+  [open]="!!removing()"
+  side="center"
+  eyebrow="Excluir destino"
+  heading="Excluir este webhook?"
+  description="Os eventos deixam de ser entregues neste endereço."
+  (closed)="removing.set(null)"
+>
+  <p class="hook-confirm mer-mono">{{ removing()?.url }}</p>
+
+  <ng-container sheetActions>
+    <button merButton type="button" [disabled]="!!busy()" (click)="removing.set(null)">
+      Cancelar
+    </button>
+    <button
+      merButton
+      type="button"
+      variant="danger"
+      [loading]="busy() === removing()?.id"
+      (click)="remove()"
+    >
+      Excluir
+    </button>
+  </ng-container>
+</mer-sheet>

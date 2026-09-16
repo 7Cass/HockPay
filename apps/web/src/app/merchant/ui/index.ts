@@ -22,6 +22,7 @@
 export { MerButton, type MerButtonSize, type MerButtonVariant } from './button/button';
 export { MerChip } from './chip/chip';
 export { MerCopy } from './copy/copy';
+export { MerEventPicker } from './event-picker/event-picker';
 export { MerField } from './field/field';
 export { MerNotice } from './notice/notice';
 export { MerPageHeader } from './page-header/page-header';
@@ -32,3 +33,5 @@ export { MerSheet } from './sheet/sheet';
 export { MerStat } from './stat/stat';
 export { MerTable } from './table/table';
 export { MerThemeService, type MerSkin, type MerTheme } from './theme/theme.service';
+export { MerToastService, type MerToast } from './toast/toast.service';
+export { MerToaster } from './toast/toaster';

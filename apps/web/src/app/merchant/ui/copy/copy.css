@@ -1,5 +1,10 @@
 :host {
   display: inline-flex;
+  /* `min-width: 0` so vale como item de flex ou grid. Dentro de um bloco
+     comum o host cresce ate o tamanho do texto, e as reticencias abaixo nunca
+     disparam: medido em 588px de largura dentro de uma trilha de 321, numa
+     janela de 390. O limite mora aqui, e nao em cada tela que usa. */
+  max-width: 100%;
   min-width: 0;
 }
 
